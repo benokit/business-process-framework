@@ -1,5 +1,9 @@
 # Elements
 
+- definition
+  - type
+  - body
+
 - schema
   - schema
   - subSchemas

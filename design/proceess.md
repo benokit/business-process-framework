@@ -47,6 +47,44 @@ start process:
   inputSchema
   initialization
 
+## Representation
+
+```json
+{
+  "type": "process",
+  "name": "contract-management",
+  "entity": "contract",
+  "schema": "contract-management-process-schema",
+  "states": {
+    "Draft": {
+      "actions": {
+        "update": {
+          "updateSchema": "contract-update-schema",
+          "applyUpdate": "apply-update-function"
+        },
+        "transitions": {
+          "Activate": {
+            "targetState": "Active",
+            "withSubprocess": {
+              "name": "activation-sub-process",
+              "init": "init-function"
+            }
+          }
+        }
+      }
+    },
+    "Active": {
+      "actions": {
+        "amend": {
+          "process"
+        }
+      }
+    }
+  }
+}
+```
+
+
 ## API
 
 Create  process:

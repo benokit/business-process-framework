@@ -1,0 +1,30 @@
+create table definition (
+    definition_id varchar(50),
+    definition_type varchar(50),
+    definition_layer varchar(50),
+    parent_definition_id varchar(50),
+    parent_definition_type varchar(50),
+    body text,
+
+    created_at timestamp with time zone default current_timestamp,
+    updated_at timestamp with time zone default current_timestamp,
+    created_by varchar(50),
+    updated_by varchar(50),
+
+    primary key (definition_id, definition_type, definition_layer)
+    foreign key (parent_definition_id, parent_definition_type) references definition(definition_id, definition_type)
+)
+
+create table entity (
+    entity_id uuid primary key,
+    definition_id varchar(50),
+    definition_type varchar(50),
+    body text,
+
+    created_at timestamp with time zone default current_timestamp,
+    updated_at timestamp with time zone default current_timestamp,
+    created_by varchar(50),
+    updated_by varchar(50),
+
+    foreign key (definition_id, definition_type) references definition(definition_id, definition_type)
+)
