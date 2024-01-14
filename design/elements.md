@@ -1,77 +1,77 @@
-## Elements
+# Elements
 
 - schema
   - schema
   - subSchemas
 
 - class
-    - schema
-    - dimensions
-    - traits
+  - schema
+  - dimensions
+  - traits
 
 - entity
-    - schema
-    - dimensions
-    - traits
+  - schema
+  - dimensions
+  - traits
 
 - trait
-    - class
-    - stateful
-    - retainable
-    - ownable
-    - versionable
-    - traceable
-    - indexable
-    - auditable
-    - related
+  - class
+  - stateful
+  - retainable
+  - ownable
+  - versionable
+  - traceable
+  - indexable
+  - auditable
+  - related
 
 - flow
-    - states
-    - transitions
+  - states
+  - transitions
 
 - process
-    - entity
-    - flow
+  - entity
+  - flow
 
 - procedure
-    - pipeline
-        - pipes
-            - getData
-            - createEntity
-            - updateEntity
-            - transitionProcess
-            - sendMessage
+  - pipeline
+    - pipes
+      - getData
+      - createEntity
+      - updateEntity
+      - transitionProcess
+      - sendMessage
 
 - dataSchema
-    - schemaKey
+  - schemaKey
 
 - function
-    - input
-    - output
-    - implementation
+  - input
+  - output
+  - implementation
 
 - effect
-    - trigger
-    - procedure
+  - trigger
+  - procedure
 
 - service
-    - url
-    - procedure
+  - url
+  - procedure
 
 - consumer
-    - message channel
-    - procedure
+  - message channel
+  - procedure
 
 - security
-    - authorization
-        - access
-            - field level
-            - entity level
-        - process
-        - action
+  - authorization
+    - access
+      - field level
+      - entity level
+      - process
+      - action
 
 - userInterface
-    -  
+  - schema
 
 - user
 

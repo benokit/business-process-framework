@@ -1,5 +1,5 @@
 
-## Process
+# Process
 
 ```json
 {
@@ -9,7 +9,8 @@
 ```
 
 process:
-  - class
+
+- class
   input
      entityName
      entityInitialState
@@ -42,13 +43,11 @@ transition
   withSubProcess: subprocess
   withCoProcess
 
-
 start process:
   inputSchema
   initialization
 
-
-### API
+## API
 
 Create  process:
 
@@ -95,10 +94,3 @@ response:
   }
 }
 ```
-
-
-
-
-
-
-
