@@ -51,34 +51,46 @@ start process:
 
 ```json
 {
+  "type": "entity",
+  "name": "contract",
+  "class": "base-contract",
+  "schema": "contract-schema",
+  "constructors": [
+    "Default": {
+      "process": "PolicyRegistration"
+    }
+  ]
+}
+```
+
+```json
+{
   "type": "process",
   "name": "contract-management",
   "entity": "contract",
   "schema": "contract-management-process-schema",
   "states": {
     "Draft": {
+      "initialState": true,
       "actions": {
-        "update": {
+        "Update": {
+          "type": "update",
           "updateSchema": "contract-update-schema",
           "applyUpdate": "apply-update-function"
         },
-        "transitions": {
-          "Activate": {
-            "targetState": "Active",
-            "withSubprocess": {
-              "name": "activation-sub-process",
-              "init": "init-function"
-            }
-          }
+        "Activate": {
+          "type": "transition",
+          "targetState": "Active",
+          "condition": "activation-condition-function"
+        },
+        "Print": {
+          "type": "printout",
+          "render": "contract-to-pdf"
         }
       }
     },
     "Active": {
-      "actions": {
-        "amend": {
-          "process"
-        }
-      }
+      "terminalState": true
     }
   }
 }
@@ -87,40 +99,61 @@ start process:
 
 ## API
 
-Create  process:
+### Create entity:
 
-```http
-POST /api/process/<process-name>
+```rest
+POST /api/entities/<entity-name>/entity
+```
+
 payload:
-{
 
+```json
+{
+  "constructor": "Default",
   "state": "Draft",
   "body": {
 
   }
 }
-response:
-{
-  processNumber: 123
-  entity: {
-    entityNumber: 321,
-    body: {
+```
 
-    }
+response:
+
+```json
+{
+  "number": "123",
+  "state": "Draft",
+  "process": "PolicyRegistration",
+  "processState": "Draft",
+  "body": {
   }
 }
 ```
 
-Update entity:
+### Get entity
 
-```http
-PUT /api/process/<process-name>/<process-number>/entity
-payload:
+```rest
+GET /api/entities/<entity-name>/entity/<entity-number>
+```
+
+## Update entity
+
+```rest
+GET /api/entities/<entity-name>/entity/<entity-number>/actions
+```
+
+response:
+
+```json
 {
-  "body": {
-
-  }
+  "process": "Default",
+  "processState": "Draft",
+  "actions": [
+    "Update"
+  ]
 }
+```
+
 response:
 {
   processNumber: 123
