@@ -1,12 +1,13 @@
 
 # Process
 
-```json
-{
-    "class": "state",
+Types:
+  - new entity
+  - existing entity
+  - 
 
-}
-```
+
+
 
 process:
 
@@ -46,6 +47,50 @@ transition
 start process:
   inputSchema
   initialization
+
+process:
+  states:
+    - state:
+       actions:
+         - action:
+            type:
+             - 
+
+entity -> process -> status -> [active, completed]
+
+definition:
+entity -> actions -> action-name -> process
+
+---------------------------------------------------------
+
+API trigger action:
+
+command: `POST /api/entities/<entity-name>/entity/<entity-number>/action/<action-name>`
+
+procedure:
+
+```meta
+  entity = get-entity entity-number
+  process_instance = get-active-process-for-entity entity-number
+  if process_instance
+    process_definition = get-process-definition process_instance.definition_id
+    action_definition = process_definition.states[process_instance.state].actions[action-name]
+    if action-definition
+      execute-action action-definition process payload
+  else
+    entity_definition = get-entity-definition entity.definition_id
+    action_definition = process_definition.states[entity.state].actions[action-name]
+    if action-definition
+      execute-action action-definition entity payload
+```
+
+
+
+
+
+
+
+
 
 ## Representation
 
@@ -136,7 +181,7 @@ response:
 GET /api/entities/<entity-name>/entity/<entity-number>
 ```
 
-## Update entity
+## Get actions
 
 ```rest
 GET /api/entities/<entity-name>/entity/<entity-number>/actions
