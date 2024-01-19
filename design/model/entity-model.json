@@ -1,0 +1,88 @@
+{
+    "schema": "BDS",
+    "description": "Basic data schema",
+    "tables": {
+        "ENTITY": {
+            "fields": {
+                "ENTITY_ID": {
+                    "type": "guid"
+                },
+                "NUMBER": {
+                    "type": "text"
+                },
+                "ENTITY_NAME": {
+                    "type": "string"
+                },
+                "BODY": {
+                    "type": "text"
+                }
+            },
+            "primaryKey": [
+                "ENTITY_ID"
+            ],
+            "uniqueKeys": [
+                [
+                    "NUMBER",
+                    "ENTITY_NAME"
+                ]
+            ]
+        },
+        "ENTITY_RELATION_VECTOR": {
+            "fields": {
+                "FROM_ENTITY": {
+                    "type": "guid"
+                },
+                "TO_ENTITY": {
+                    "type": "guid"
+                },
+                "RELATION_NAME": {
+                    "type": "string"
+                },
+                "BODY": {
+                    "type": "text"
+                }
+            },
+            "foreignKeys": [
+                {
+                    "fields": [
+                        "FROM_ENTITY"
+                    ],
+                    "foreignTable": {
+                        "schema": "BDS",
+                        "name": "ENTITY",
+                        "fields": [
+                            "ENTITY_ID"
+                        ]
+                    }
+                },
+                {
+                    "fields": [
+                        "TO_ENTITY"
+                    ],
+                    "foreignTable": {
+                        "schema": "BDS",
+                        "name": "ENTITY",
+                        "fields": [
+                            "ENTITY_ID"
+                        ]
+                    }
+                }
+            ],
+            "uniqueKeys": [
+                [
+                    "FROM_ENTITY",
+                    "TO_ENTITY",
+                    "RELATION_NAME"
+                ]
+            ],
+            "indices": [
+                [
+                    "FROM_ENTITY"
+                ],
+                [
+                    "TO_ENTITY"
+                ]
+            ]
+        }
+    }
+}

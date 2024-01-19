@@ -3,39 +3,30 @@
     "title": "entity definition",
     "type": "object",
     "properties": {
+      "type": {
+        "const": "entity-definition"
+      },
       "name": {
-        "description": "Unique identifier of the entity definition",
+        "description": "Unique identifier of the definition",
         "type": "string"
       },
       "schema": {
-        "description": "Name of schema describing the entity body",
+        "description": "Name of schema definition for the entity body",
         "type": "string"
       },
       "constructors": {
-        "description": "Dictionary of entity constructors. Name of one constructor can be 'Default' and will be used by default by the platform.",
+        "description": "Dictionary of entity constructors.",
         "additionalProperties": {
             "$ref": "./entity-constructor-definition.json"
         }
       },
       "traits": {
-        "description": "Traits of the entity",
-        "additionalProperties": {
-            "$ref": "./trait-definition.json"  
-        }
-      },
-      "states": {
-        "description": "Dictionary of states and associated properties",
-        "additionalProperties": {
-            "$ref": "./state-definition.json"  
-        }
+        "$ref": "./traits-definition.json"  
       },
       "actions": {
-        "description": "Dictionary of actions in any state",
-        "additionalProperties": {
-            "$ref": "./action-definition.json"
-        }
+        "$ref": "./entity-actions-definition.json"
       }
     },
-    "required": ["name"]
+    "required": ["name", "schema"]
   }
   

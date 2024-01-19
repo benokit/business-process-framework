@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "entity coupling definition",
+  "type": "object",
+  "properties": {
+    "targetEntity": {
+      "oneOf": [
+        {
+          "description": "entity name",
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "class": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "forwardApply": {
+      "description": "Name of an apply function from source to target",
+      "type": "string"
+    },
+    "backwardApply": {
+      "description": "Name of an apply function from target to source",
+      "type": "string"
+    }
+  }
+}

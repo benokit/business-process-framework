@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "entity actions definition",
+  "type": "object",
+  "additionalProperties": {
+    "anyOf": [
+      {
+        "$ref": "./action-update-definition.json"
+      },
+      {
+        "$ref": "./action-transition-definition.json"
+      },
+      {
+        "$ref": "./action-process-definition.json"
+      },
+      {
+        "$ref": "./action-create-child-definition.json"
+      },
+      {
+        "$ref": "./action-procedure-definition.json"
+      }
+    ]
+  }
+}
