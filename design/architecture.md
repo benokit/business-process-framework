@@ -1,6 +1,7 @@
 
 ```
-  client --> servers --> service bus <--> workers 
+  client
+          --> server --> service bus <--> worker 
                      --> dal --> sql
                              --> elasticsearch
 ```
