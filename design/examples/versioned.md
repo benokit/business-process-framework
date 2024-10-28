@@ -7,6 +7,22 @@ Root entity definition:
   "type": "entity-definition",
   "name": "Consent",
   "schema": "ConsentSchema",
+  "constructors": {
+    "Default": {
+      "actions": [
+        {
+          "type": "create-entity",
+          "entityName": "ConsentVersion",
+          "construction": {
+            "constructor": "Applied",
+            "constructorMapping": "VersionConstructorMapping"
+          },
+          "relation": "Version",
+          
+        }
+      ]
+    }
+  },
   "actions": {
     "CreateVersion": {
       "type": "create-entity",
@@ -14,7 +30,11 @@ Root entity definition:
       "construction": {
         "constructor": "Default",
         "constructorMapping": "VersionConstructorMapping"
-      } 
+      },
+      "coupling": {
+        "relation": "Version",
+
+      }
     }
   }
   "traits": {
