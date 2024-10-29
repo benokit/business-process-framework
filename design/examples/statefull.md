@@ -1,9 +1,9 @@
 ```json
 {
     "type": "trait",
-    "name": "statefull",
-    "data": "satefull-trait-data-schema",
-    "configuration": "satefull-trait-configuration-schema",
+    "name": "stateful",
+    "data": "stateful-trait-data-schema",
+    "configuration": "stateful-trait-configuration-schema",
     "actions": 
 }
 ```
@@ -11,7 +11,7 @@
 ```json
 {
     "type": "schema",
-    "name": "satefull-trait-data-schema",
+    "name": "stateful-trait-data-schema",
     "schema": {
         "type": "object",
         "properties": {
@@ -26,7 +26,7 @@
 ```json
 {
     "type": "schema",
-    "name": "satefull-trait-configuration-schema",
+    "name": "stateful-trait-configuration-schema",
     "schema": {
         "type": "object",
         "properties": {
@@ -40,7 +40,17 @@
                 "type": "array",
                 "items": {
                     "type": "object",
-                    "
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "from": {
+                            "type": "string"
+                        },
+                        "to": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         }
