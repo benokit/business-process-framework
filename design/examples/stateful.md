@@ -4,7 +4,7 @@
     "name": "my-process",
     "traits": {
         "flow": {
-            "name": "stateful",
+            "trait": "stateful",
             "configuration": {
                 "states": [
                     "draft",
@@ -68,7 +68,7 @@ function make-transition ({input, data, configuration, context})
         };
     }
     else {
-        throw `Can not make transition ${input.transition} from the state ${data.state}.`
+        throw `Cannot make transition ${input.transition} from the state ${data.state}.`
     }
 }
 
@@ -82,6 +82,7 @@ function raise-transition-event ({input, data, configuration, context})
 }
 
 exports.make-transition = make-transition;
+exports.raise-transition-event = raise-transition-event;
 ```
 
 ```json
