@@ -1,5 +1,29 @@
 ```json
 {
+    "type": "class",
+    "name": "my-process",
+    "traits": {
+        "flow": {
+            "name": "stateful",
+            "configuration": {
+                "states": [
+                    "draft",
+                    "active"
+                ],
+                "transitions": {
+                    "activate": {
+                        "from": "draft",
+                        "to": "active"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+```json
+{
     "type": "trait",
     "namespace": "stateful-trait",
     "name": "stateful",
@@ -21,7 +45,11 @@
     "pipeline": [
         {
             "action": "std/update",
-            "inputMapping": "stateful-trait/update-state"
+            "inputMapping": "stateful-trait/make-transition"
+        },
+        {
+            "action": "std/event",
+            "inputMapping": "stateful-trait/raise-transition-event"
         }
     ]
 }
@@ -30,7 +58,7 @@
 ```js
 // stateful-trait.js
 
-function update-state ({input, data, configuration, context})
+function make-transition ({input, data, configuration, context})
 {
     const transition = configuration.transitions[input.transition];
     
@@ -44,7 +72,16 @@ function update-state ({input, data, configuration, context})
     }
 }
 
-exports.update-state = update-state;
+function raise-transition-event ({input, data, configuration, context})
+{
+    return {
+        eventType: "transition",
+        transition: input.transition
+        context: context
+    }
+}
+
+exports.make-transition = make-transition;
 ```
 
 ```json
