@@ -3,7 +3,7 @@
     "type": "trait",
     "name": "versionable",
     "data": "versionable-trait-data-schema",
-    "configuration": "versionable-trait-data-schema",
+    "configuration": "versionable-trait-configuration-schema",
     "actions": {
         "create": "versionable-trait-create-procedure",
         "activate": "versionable-trait-activate-procedure",

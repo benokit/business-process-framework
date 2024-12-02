@@ -1,0 +1,136 @@
+[
+    {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "definition",
+        "properties": {
+            "type": {
+                "type": "string"
+            },
+            "name": {
+                "type": "string"
+            },
+            "actions": {
+                "type": "object"
+            },
+            "parameters": {
+                "type": "object"
+            },
+            "configuration": {
+                "type": "object"
+            }
+        }
+    },
+    {
+        "type": "type",
+        "name": "schema",
+        "parameters": {
+            "schema": {
+                "type": "object"
+            }
+        }
+    },
+    {
+        "type": "type",
+        "name": "action",
+        "parameters": {
+            "requestSchema": {
+                "type": "schema"
+            },
+            "responseSchema": {
+                "type": "schema"
+            },
+            "implementation": {
+                "type": "string"
+            }
+        }
+    },
+    {
+        "type": "type",
+        "name": "function",
+        "parameters": {
+            "inputSchema": {
+                "type": "schema"
+            },
+            "outputSchema": {
+                "type": "schema"
+            },
+            "implementation": {
+                "type": "string"
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "name": "pipeline",
+        "configuration": {
+            "schema": {
+                "type": "object",
+                "additionalProperties": {
+                    "action": {
+                        "type": "action"
+                    },
+                    "requestMapping": {
+                        "type": "function"
+                    },
+                    "applyResponse": {
+                        "type": "function"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "action",
+        "name": "procedure",
+        "parameters": {
+            "requestSchema": {
+                "type": "schema"
+            },
+            "responseSchema": {
+                "type": "schema"
+            },
+            "contextSchema": {
+                "type": "schema"
+            },
+            "try": {
+                "type": "schema:pipeline"
+            },
+            "catch": {
+                "type": "schema:pipeline"
+            },
+            "finally": {
+                "type": "schema:pipeline"
+            },
+            "responseMapping": {
+                "type": "function"
+            }
+        },
+        "configuration": {
+            "requestSchema": "instance:configuration/requestSchema",
+            "responseSchema": "instance:configuration/responseSchema",
+            "implementation": "evaluate-procedure@system"
+        }
+    },
+    {
+        "type": "type",
+        "name": "trait",
+        "parameters": {
+            
+        }
+    },
+    {
+        "type": "type",
+        "name": "entity",
+        "parameters": {
+            "traits": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "trait"
+                }
+            }
+        },
+        "actions": {
+            "create": {}
+        }
+    }
+]
