@@ -6,17 +6,23 @@
             "type": {
                 "type": "string"
             },
-            "name": {
+            "domain": {
                 "type": "string"
             },
-            "actions": {
-                "type": "object"
+            "name": {
+                "type": "string"
             },
             "parameters": {
                 "type": "object"
             },
             "configuration": {
                 "type": "object"
+            },
+            "execute": {
+                "type": "string"   
+            },
+            "evaluate": {
+                "type": "string"
             }
         }
     },
@@ -115,7 +121,7 @@
         "type": "type",
         "name": "trait",
         "parameters": {
-            
+
         }
     },
     {
