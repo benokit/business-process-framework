@@ -1,15 +1,33 @@
-async function evaluateWithConfiguration(instanceName, input, instanceConfiguration) {
-    const definition = await getDefinition(instanceName);
-    const { type: baseTypeName, parameters: configurationSchema, evaluate: evaluationImplementation } = definition;
+const lodash = require('lodash');
 
-    await validateSchema(configurationSchema, instanceConfiguration);
-    
-    if (definition.evaluationImplementation) {
-        const f = getEvaluationImplementation(evaluationImplementation);
-        return f({ input, context: { configuration: instanceConfiguration }});
+function evaluate(evaluatableId, input) {
+    const { configuration, evaluateFunction } = resolveDefinition(evaluatableId);
+    return evaluateFunction(configuration, input); 
+}
+
+async function execute(executableId, input) {
+    const { configuration, executeFunction } = resolveDefinition(executableId);
+    return await executeFunction(configuration, input); 
+}
+
+function resolveDefinition(definitionId) {
+    const definition = getDefinition(definitionId);
+    const { type, configuration } = definition;
+    if (configuration) {
+        const base = resolveDefinition(type);
+        return {
+            ...base,
+            configuration: mergeConfiguration(configuration, baseConfiguration)
+        }
     }
-    
-    const baseTypeConfiguration = applyInstanceConfiguration(instanceConfiguration, definition.configuration);
+    const { evaluate, execute } = definition;
+    return {
+        configuration,
+        evaluateFunction: getFunction(evaluate),
+        executeFunction: getFunction(execute)
+    };
+}
 
-    return evaluate(baseTypeName, input, baseTypeConfiguration);
+function mergeConfiguration(configuration, baseConfiguration) {
+    return lodash.merge({}, baseConfiguration, configuration);
 }

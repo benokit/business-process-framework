@@ -1,142 +1,300 @@
 [
     {
+        "$id": "schema",
+        "$ref": "http://json-schema.org/draft-07/schema#"
+    },
+    {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "$id": "definition",
-        "properties": {
-            "type": {
-                "type": "string"
-            },
-            "domain": {
-                "type": "string"
-            },
-            "name": {
-                "type": "string"
-            },
-            "parameters": {
-                "type": "object"
-            },
-            "configuration": {
-                "type": "object"
-            },
-            "execute": {
-                "type": "string"   
-            },
-            "evaluate": {
-                "type": "string"
-            }
-        }
-    },
-    {
-        "type": "type",
-        "name": "schema",
-        "parameters": {
-            "schema": {
-                "type": "object"
-            }
-        }
-    },
-    {
-        "type": "type",
-        "name": "action",
-        "parameters": {
-            "requestSchema": {
-                "type": "schema"
-            },
-            "responseSchema": {
-                "type": "schema"
-            },
-            "implementation": {
-                "type": "string"
-            }
-        }
-    },
-    {
-        "type": "type",
-        "name": "function",
-        "parameters": {
-            "inputSchema": {
-                "type": "schema"
-            },
-            "outputSchema": {
-                "type": "schema"
-            },
-            "implementation": {
-                "type": "string"
-            }
-        }
-    },
-    {
-        "type": "schema",
-        "name": "pipeline",
-        "configuration": {
-            "schema": {
+        "$id": "definition-schema",
+        "oneOf": [
+            {
+                "description": "interface definition",
                 "type": "object",
-                "additionalProperties": {
-                    "action": {
-                        "type": "action"
+                "required": [
+                    "definition",
+                    "id"
+                ],
+                "properties": {
+                    "definition": {
+                        "const": "interface"
                     },
-                    "requestMapping": {
-                        "type": "function"
+                    "configurationSchema": {
+                        "$ref": "schema"
+                    }
+                }
+            },
+            {
+                "description": "type definition",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "definition",
+                    "id"
+                ],
+                "properties": {
+                    "definition": {
+                        "const": "type"
                     },
-                    "applyResponse": {
-                        "type": "function"
+                    "id": {
+                        "type": "string"
+                    },
+                    "interface": {
+                        "type": "string",
+                        "x-target-definition": "interface"
+                    },
+                    "configurationSchema": {
+                        "$ref": "schema"
+                    },
+                    "execution": {
+                        "type": "object",
+                        "properties": {
+                            "inputSchema": {
+                                "$ref": "schema"
+                            },
+                            "implementation": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "evaluation": {
+                        "type": "object",
+                        "properties": {
+                            "inputSchema": {
+                                "$ref": "schema"
+                            },
+                            "implementation": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "description": "class definition",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "definition": {
+                        "const": "class"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "configuration": {
+                        "type": "object"
+                    }
+                }
+            },
+            {
+                "description": "derived class definition",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "definition": {
+                        "const": "derivedClass"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "class": {
+                        "type": "string"
+                    },
+                    "configuration": {
+                        "type": "object"
+                    }
+                }
+            },
+            {
+                "description": "class modifier definition",
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "definition": {
+                        "const": "classModifier"
+                    },
+                    "class": {
+                        "type": "string"
+                    },
+                    "configuration": {
+                        "type": "object"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "definition": "interface",
+        "id": "i-action",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "requestSchema": {
+                    "$ref": "schema"
+                },
+                "responseSchema": {
+                    "$ref": "schema"
+                }
+            }
+        }
+    },
+    {
+        "definition": "interface",
+        "id": "i-function",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "inputSchema": {
+                    "$ref": "schema"
+                },
+                "outputSchema": {
+                    "$ref": "schema"
+                }
+            }
+        }
+    },
+    {
+        "definition": "type",
+        "id": "action",
+        "interface": "i-action",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "implementation": {
+                    "type": "string",
+                    "x-target-type": "js-function"
+                }
+            }
+        },
+        "execution": {
+            "inputSchema": {},
+            "implementation": "executeAction@system"
+        }
+    },
+    {
+        "definition": "type",
+        "id": "function",
+        "interface": "i-function",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "implementation": {
+                    "type": "string",
+                    "x-target-type": "js-function"
+                }
+            },
+            "evaluation": {
+                "inputSchema": {},
+                "implementation": "evaluateFunction@system"
+            }
+        }
+    },
+    {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "pipeline-schema",
+        "type": "object",
+        "additionalProperties": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "x-target": "i-action"
+                },
+                "requestMapping": {
+                    "type": "string",
+                    "x-target": "js-function"
+                },
+                "responseMapping": {
+                    "type": "string",
+                    "x-target": "js-function"
+                },
+                "ordering": {
+                    "type": "object",
+                    "properties": {
+                        "before": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "after": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             }
         }
     },
     {
-        "type": "action",
-        "name": "procedure",
-        "parameters": {
-            "requestSchema": {
-                "type": "schema"
-            },
-            "responseSchema": {
-                "type": "schema"
-            },
-            "contextSchema": {
-                "type": "schema"
-            },
-            "try": {
-                "type": "schema:pipeline"
-            },
-            "catch": {
-                "type": "schema:pipeline"
-            },
-            "finally": {
-                "type": "schema:pipeline"
-            },
-            "responseMapping": {
-                "type": "function"
-            }
-        },
-        "configuration": {
-            "requestSchema": "instance:configuration/requestSchema",
-            "responseSchema": "instance:configuration/responseSchema",
-            "implementation": "evaluate-procedure@system"
-        }
-    },
-    {
-        "type": "type",
-        "name": "trait",
-        "parameters": {
-
-        }
-    },
-    {
-        "type": "type",
-        "name": "entity",
-        "parameters": {
-            "traits": {
-                "type": "object",
-                "additionalProperties": {
-                    "type": "trait"
+        "definition": "type",
+        "id": "procedure",
+        "interface": "i-action",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "aggregateSchema": {
+                    "$ref": "schema"
+                },
+                "pipeline": {
+                    "$ref": "pipeline-schema"
+                },
+                "responseMapping": {
+                    "type": "string",
+                    "x-target": "js-function"
                 }
             }
         },
-        "actions": {
-            "create": {}
+        "execution": {
+            "inputSchema": {},
+            "implementation": "evaluateProcedure@system"
+        }
+    },
+    {
+        "definition": "type",
+        "type": "trait",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "dataSchema": {
+                    "$ref": "schema"
+                }
+            }
+        }
+    },
+    {
+        "definition": "type",
+        "id": "entity",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "traits": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
+                },
+                "actions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "definition": "class",
+        "type": "entity",
+        "id": "party",
+        "traits": {
+            "body": {
+
+            }
         }
     }
 ]
