@@ -1,5 +1,4 @@
 const Ajv = require('ajv');
-
 const ajv = new Ajv();
 
 ajv.addSchema({
@@ -26,8 +25,18 @@ const something = {
     }
 };
 
+const forArray = {
+            type: 'array',
+            items: {
+                type: 'integer'
+            }
+        };
+
 const validate = ajv.getSchema('schema-container');
 
 const isValid = validate(something);
 console.log(isValid);
 console.log(validate.errors);
+
+const v = ajv.compile(forArray);
+console.log(v([1,2]));

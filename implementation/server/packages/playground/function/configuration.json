@@ -1,0 +1,32 @@
+[
+    {
+        "type": "type",
+        "id": "function",
+        "configurationSchema": {
+            "$ref": "function-configuration-schema"
+        },
+        "evaluate": {
+            "inputSchema": {},
+            "implementation": "evaluate@playground/function/lib"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "function-configuration-schema",
+        "configuration": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "inputSchema": {
+                    "type": "object"
+                },
+                "outputSchema": {
+                    "type": "object"
+                },
+                "implementation": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+]

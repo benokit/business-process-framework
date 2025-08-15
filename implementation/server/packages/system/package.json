@@ -1,8 +1,5 @@
 {
-  "name": "program",
-  "workspaces": [
-    "packages/*"
-  ],
+  "name": "system",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
