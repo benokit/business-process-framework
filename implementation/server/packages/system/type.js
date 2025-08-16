@@ -62,11 +62,11 @@ async function executeObject(instanceObject, input) {
         throw 'type is not defined';
     }
 
-    if (!typeDefinition.evaluate) {
-        throw 'type does not support evaluation';
+    if (!typeDefinition.execute) {
+        throw 'type does not support execution';
     }
 
-    if (!isValidAgainstSchema(typeDefinition.evaluate.interface, input)) {
+    if (!isValidAgainstSchema(typeDefinition.execute.interface, input)) {
         throw 'not valid input according to schema';
     }
 

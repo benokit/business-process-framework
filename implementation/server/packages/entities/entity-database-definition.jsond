@@ -17,14 +17,14 @@
         },
         "execute": {
             "interface": {
-                "$ref": "database-entity-methods-interface"
+                "$ref": "database-entity-interface"
             },
-            "implementation": "execute@entities/entityDatabase"
+            "implementation": "execute@entities/entity-database"
         }
     },
     {
         "type": "schema",
-        "id": "database-entity-method-interface",
+        "id": "database-entity-interface",
         "data": {
             "oneOf": [
                 {
@@ -46,9 +46,6 @@
                         "properties": {
                             "id": {
                                 "type": "string"
-                            },
-                            "data": {
-                                "type": "object"
                             }
                         }
                     }

@@ -1,6 +1,12 @@
 const Ajv = require('ajv');
 const ajv = new Ajv();
 
+ajv.addKeyword({
+  keyword: "response",
+  schemaType: ["object"],
+  validate: () => true
+});
+
 function registerSchema(schema) {
     ajv.addSchema(schema);
 }
