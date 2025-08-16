@@ -13,7 +13,7 @@
     {
         "type": "schema",
         "id": "function-configuration-schema",
-        "configuration": {
+        "data": {
             "type": "object",
             "additionalProperties": false,
             "properties": {

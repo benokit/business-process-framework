@@ -1,0 +1,77 @@
+[
+    {
+        "type": "schema",
+        "id": "definition-schema",
+        "data": {
+            "oneOf": [
+                {
+                    "description": "schema definition",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "const": "schema"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "object"
+                        }
+                    }
+                },
+                {
+                    "description": "type definition",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "const": "type"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "configurationSchema": {
+                            "type": "object"
+                        },
+                        "execution": {
+                            "type": "object",
+                            "properties": {
+                                "inputSchema": {
+                                    "$ref": "schema"
+                                },
+                                "implementation": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "evaluation": {
+                            "type": "object",
+                            "properties": {
+                                "inputSchema": {
+                                    "$ref": "schema"
+                                },
+                                "implementation": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "instance definition",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "configuration": {
+                            "type": "object"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+]

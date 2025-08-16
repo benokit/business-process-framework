@@ -1,11 +1,11 @@
 const { loadDefinitions } = require('system/definitionsLoader')
-const { getDefinition } = require('system/register');
 const { evaluate } = require('system/type'); 
+const path = require('path');
 
 async function main() {
-    await loadDefinitions([ '/Users/benjaminbatistic/Programming/business-process-framework/implementation/server/packages/playground' ]);
-    const sumArray = getDefinition('function', 'sumArray');
-    console.log(evaluate(sumArray, [1,2,3,4]));
+    const paths = [ 'packages' ]
+    await loadDefinitions(paths.map(p => path.join(process.cwd(), p)));
+    console.log(evaluate('function', 'sumArray', [1,2,3,4,5]));
 }
 
 main();

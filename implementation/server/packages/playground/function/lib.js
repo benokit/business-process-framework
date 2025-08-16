@@ -1,4 +1,5 @@
-const { isFunction, isAsyncFunction } = require('system/validations');
+const { isAsyncFunction } = require('system/validations');
+const { isFunction } = require('lodash');
 const { isValidAgainstSchema } = require('system/schema');
 const { getImplementation } = require('system/implementationsLoader');
 
@@ -14,11 +15,11 @@ function evaluate(functionInstance, input) {
     }
 
     if (!isFunction(fn)) {
-        throw 'evaluation is not a function';
+        throw 'implementation is not a function';
     }
 
     if (isAsyncFunction(fn)) {
-        throw 'evaluation can not be asynchronous';
+        throw 'implementation can not be asynchronous';
     }
 
     return fn(input);

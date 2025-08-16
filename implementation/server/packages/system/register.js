@@ -9,7 +9,7 @@ function registerDefinition(definition) {
 
     if (definition.type === 'schema') {
         const schema = {
-            ...definition.configuration,
+            ...definition.data,
             '$id': definition.id
         };
         registerSchema(schema);

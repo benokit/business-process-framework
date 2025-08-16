@@ -1,10 +1,21 @@
-const { isFunction, isAsyncFunction } = require('system/validations');
+const { isAsyncFunction } = require('system/validations');
 const { isValidAgainstSchema } = require('system/schema');
 const { getDefinition } = require('system/register');
 const { getImplementation } = require('system/implementationsLoader');
+const { isFunction, isPlainObject } = require('lodash');
 
-function evaluate(typeInstance, input) {
-    const typeDefinition = getDefinition('type', typeInstance.type);
+
+function evaluate(instanceType, instanceId, input) {
+    const instanceObject = getDefinition(instanceType, instanceId);
+    return evaluateObject(instanceObject, input);
+}
+
+function evaluateObject(instanceObject, input) {
+    if (!(instanceObject && isPlainObject(instanceObject))) {
+        throw 'expecting object';
+    }
+
+    const typeDefinition = getDefinition('type', instanceObject.type);
 
     if (!typeDefinition) {
         throw 'type is not defined';
@@ -25,16 +36,17 @@ function evaluate(typeInstance, input) {
     }
 
     if (!isFunction(evaluate)) {
-        throw 'evaluation is not a function';
+        throw 'implementation is not a function';
     }
 
     if (isAsyncFunction(evaluate)) {
-        throw 'evaluation can not be asynchronous';
+        throw 'implementation can not be asynchronous';
     }
 
-    return evaluate(typeInstance, input);
+    return evaluate(instanceObject, input);
 }
 
 module.exports = {
-    evaluate
+    evaluate,
+    evaluateObject
 }
