@@ -6,7 +6,7 @@
             "$ref": "function-configuration-schema"
         },
         "evaluate": {
-            "inputSchema": {},
+            "interface": {},
             "implementation": "evaluate@playground/function/lib"
         }
     },

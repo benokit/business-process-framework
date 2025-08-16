@@ -1,0 +1,59 @@
+[
+    {
+        "type": "type",
+        "id": "entity-database",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "implementation": {
+                    "type": "object",
+                    "properties": {
+                        "create": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "execute": {
+            "interface": {
+                "$ref": "database-entity-methods-interface"
+            },
+            "implementation": "execute@entities/entityDatabase"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "database-entity-method-interface",
+        "data": {
+            "oneOf": [
+                {
+                    "description": "create entity",
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "const": "create"
+                        },
+                        "collection": {
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "object"
+                        }
+                    },
+                    "response": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+]

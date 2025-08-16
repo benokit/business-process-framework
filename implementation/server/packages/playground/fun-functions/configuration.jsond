@@ -1,7 +1,7 @@
 [
     {
         "type": "function",
-        "id": "sumArray",
+        "id": "sum-array",
         "configuration": {
             "inputSchema": {
                 "type": "array",
@@ -12,7 +12,7 @@
             "outputSchema": {
                 "type": "number"
             },
-            "implementation": "sumArray@playground/funFunctions/lib"
+            "implementation": "sumArray@playground/fun-functions/lib"
         }
     }
 ]

@@ -22,7 +22,6 @@ function registerDefinition(definition) {
 }
 
 function getDefinition(type, id) {
-    debugger;
     return register[type][id];
 }
 

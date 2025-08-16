@@ -1,0 +1,15 @@
+
+POST http://localhost:3000/entities
+Content-Type: application/json
+
+{
+    "toby": {
+        "test": "test",
+        "something": "else",
+        "and": "another thing"
+    }
+}
+
+###
+
+GET http://localhost:3000/entities/68a07841b3ddeea1ef9d1aa0

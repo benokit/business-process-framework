@@ -1,0 +1,11 @@
+[
+    {
+        "type": "entity-database",
+        "id": "mongodb",
+        "configuration": {
+            "implementation": {
+                "create": "create@entities/mongodb"
+            }
+        }
+    }
+]

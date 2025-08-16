@@ -30,12 +30,12 @@
                             "type": "string"
                         },
                         "configurationSchema": {
-                            "type": "object"
+                            "$ref": "schema"
                         },
-                        "execution": {
+                        "execute": {
                             "type": "object",
                             "properties": {
-                                "inputSchema": {
+                                "interface": {
                                     "$ref": "schema"
                                 },
                                 "implementation": {
@@ -43,10 +43,10 @@
                                 }
                             }
                         },
-                        "evaluation": {
+                        "evaluate": {
                             "type": "object",
                             "properties": {
-                                "inputSchema": {
+                                "interface": {
                                     "$ref": "schema"
                                 },
                                 "implementation": {
@@ -72,6 +72,13 @@
                     }
                 }
             ]
+        }
+    },
+    {
+        "type": "schema",
+        "id": "schema",
+        "data": {
+            "$ref": "http://json-schema.org/draft-07/schema#"
         }
     }
 ]

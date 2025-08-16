@@ -1,7 +1,7 @@
 const { isAsyncFunction } = require('system/validations');
 const { isValidAgainstSchema } = require('system/schema');
 const { getDefinition } = require('system/register');
-const { getImplementation } = require('system/implementationsLoader');
+const { getImplementation } = require('system/implementations-loader');
 const { isFunction, isPlainObject } = require('lodash');
 
 
@@ -25,7 +25,7 @@ function evaluateObject(instanceObject, input) {
         throw 'type does not support evaluation';
     }
 
-    if (!isValidAgainstSchema(typeDefinition.evaluate.inputSchema, input)) {
+    if (!isValidAgainstSchema(typeDefinition.evaluate.interface, input)) {
         throw 'not valid input according to schema';
     }
 
@@ -46,7 +46,46 @@ function evaluateObject(instanceObject, input) {
     return evaluate(instanceObject, input);
 }
 
+async function execute(instanceType, instanceId, input) {
+    const instanceObject = getDefinition(instanceType, instanceId);
+    return await executeObject(instanceObject, input);
+}
+
+async function executeObject(instanceObject, input) {
+    if (!(instanceObject && isPlainObject(instanceObject))) {
+        throw 'expecting object';
+    }
+
+    const typeDefinition = getDefinition('type', instanceObject.type);
+
+    if (!typeDefinition) {
+        throw 'type is not defined';
+    }
+
+    if (!typeDefinition.evaluate) {
+        throw 'type does not support evaluation';
+    }
+
+    if (!isValidAgainstSchema(typeDefinition.evaluate.interface, input)) {
+        throw 'not valid input according to schema';
+    }
+
+    const execute = getImplementation(typeDefinition.execute.implementation);
+
+    if (!execute) {
+        throw 'missing implementation';
+    }
+
+    if (!isFunction(execute)) {
+        throw 'implementation is not a function';
+    }
+
+    return await execute(instanceObject, input);
+}
+
 module.exports = {
     evaluate,
-    evaluateObject
+    evaluateObject,
+    execute,
+    executeObject
 }
