@@ -4,7 +4,9 @@
         "id": "mongodb",
         "configuration": {
             "implementation": {
-                "create": "create@entities/mongodb"
+                "create": "create@entities/mongodb",
+                "get": "get@entities/mongodb",
+                "update": "update@entities/mongodb"
             }
         }
     }

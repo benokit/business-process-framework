@@ -49,6 +49,67 @@
                             }
                         }
                     }
+                },
+                {
+                    "description": "get entity",
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "const": "get"
+                        },
+                        "collection": {
+                            "type": "string"
+                        },
+                        "id": {
+                            "type": "string"
+                        }
+                    },
+                    "response": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "update entity",
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "const": "update"
+                        },
+                        "collection": {
+                            "type": "string"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "integer"
+                        },
+                        "data": {
+                            "type": "object"
+                        }
+                    },
+                    "response": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": "integer"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
+                        }
+                    }
                 }
             ]
         }
