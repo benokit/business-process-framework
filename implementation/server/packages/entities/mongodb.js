@@ -5,7 +5,7 @@ const database = client.db('test-db');
 
 const entitiesCollection = database.collection('entities');
 
-async function create(request) {
+async function createDocument(request) {
     const dto = {
         version: 1,
         data: request.data
@@ -20,20 +20,16 @@ async function create(request) {
     }
 }
 
-async function get(request) {
+async function readDocument(request) {
     const result = await entitiesCollection.findOne({ _id: new ObjectId(request.id) });
     if (result._id) {
-       return {
-            id: result._id.toString(),
-            version: result.version,
-            data: result.data
-        };
+       return convertDocument(result); 
     } else {
         throw 'no entity with the given id'
     }
 }
 
-async function update(request) {
+async function updateDocument(request) {
     const criteria = { _id: new ObjectId(request.id) };
     if (request.version) {
         criteria.version = request.version;
@@ -47,18 +43,38 @@ async function update(request) {
         { returnDocument: "after" }
     );
     if (result) {
-        return {
-            id: result._id.toString(),
-            version: result.version,
-            data: result.data
-        };
+        return convertDocument(result);
     } else {
         throw 'update failed'
     }
 }
 
+async function deleteDocument(request) {
+    const criteria = { _id: new ObjectId(request.id) };
+    if (request.version) {
+        criteria.version = request.version;
+    } 
+    const result = await entitiesCollection.findOneAndDelete(
+        criteria
+    );
+    if (result) {
+        return convertDocument(result);
+    } else {
+        throw 'delete failed'
+    }
+}
+
+function convertDocument(doc) {
+    return {
+            id: doc._id.toString(),
+            version: doc.version,
+            data: doc.data
+        };
+}
+
 module.exports = {
-    create,
-    get,
-    update
+    createDocument,
+    readDocument,
+    updateDocument,
+    deleteDocument
 };

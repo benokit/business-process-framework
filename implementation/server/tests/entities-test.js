@@ -14,7 +14,7 @@ async function main() {
         }
     });
     const getResponse = await execute('entity-database', 'mongodb', {
-        method: 'get',
+        method: 'read',
         collection: 'entities',
         id: id
     });
@@ -29,6 +29,17 @@ async function main() {
         }
     });
     console.log(updateResponse);
+    const deleteResponse = await execute('entity-database', 'mongodb', {
+        method: 'delete',
+        collection: 'entities',
+        id: id
+    });
+    console.log(deleteResponse);
+    await execute('entity-database', 'mongodb', {
+        method: 'read',
+        collection: 'entities',
+        id: id
+    });
 }
 
 main();

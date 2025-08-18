@@ -51,11 +51,11 @@
                     }
                 },
                 {
-                    "description": "get entity",
+                    "description": "read entity",
                     "type": "object",
                     "properties": {
                         "method": {
-                            "const": "get"
+                            "const": "read"
                         },
                         "collection": {
                             "type": "string"
@@ -94,6 +94,38 @@
                         },
                         "data": {
                             "type": "object"
+                        }
+                    },
+                    "response": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": "integer"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                {
+                    "description": "delete entity",
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "const": "delete"
+                        },
+                        "collection": {
+                            "type": "string"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "version": {
+                            "type": "integer"
                         }
                     },
                     "response": {
