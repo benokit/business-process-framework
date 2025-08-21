@@ -16,32 +16,24 @@
             }
         },
         "execute": {
-            "interface": {
-                "$ref": "database-entity-interface"
-            },
-            "implementation": "execute@entities/entity-database"
-        }
-    },
-    {
-        "type": "schema",
-        "id": "database-entity-interface",
-        "data": {
-            "oneOf": [
+            "interface": [
                 {
-                    "description": "create entity",
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "const": "create"
-                        },
-                        "collection": {
-                            "type": "string"
-                        },
-                        "data": {
-                            "type": "object"
+                    "description": "cerate entity",
+                    "requestSchema": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "const": "create"
+                            },
+                            "collection": {
+                                "type": "string"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
                         }
                     },
-                    "response": {
+                    "responseSchema": {
                         "type": "object",
                         "properties": {
                             "id": {
@@ -52,19 +44,21 @@
                 },
                 {
                     "description": "read entity",
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "const": "read"
-                        },
-                        "collection": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "string"
+                    "requestSchema": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "const": "read"
+                            },
+                            "collection": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            }
                         }
                     },
-                    "response": {
+                    "responseSchema": {
                         "type": "object",
                         "properties": {
                             "id": {
@@ -78,25 +72,27 @@
                 },
                 {
                     "description": "update entity",
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "const": "update"
-                        },
-                        "collection": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "version": {
-                            "type": "integer"
-                        },
-                        "data": {
-                            "type": "object"
+                    "requestSchema": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "const": "update"
+                            },
+                            "collection": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": "integer"
+                            },
+                            "data": {
+                                "type": "object"
+                            }
                         }
                     },
-                    "response": {
+                    "responseSchema": {
                         "type": "object",
                         "properties": {
                             "id": {
@@ -113,22 +109,24 @@
                 },
                 {
                     "description": "delete entity",
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "const": "delete"
-                        },
-                        "collection": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "version": {
-                            "type": "integer"
+                    "requestSchema": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "const": "delete"
+                            },
+                            "collection": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "version": {
+                                "type": "integer"
+                            }
                         }
                     },
-                    "response": {
+                    "responseSchema": {
                         "type": "object",
                         "properties": {
                             "id": {
@@ -143,7 +141,8 @@
                         }
                     }
                 }
-            ]
+            ],
+            "implementation": "execute@entities/entity-database"
         }
     }
 ]

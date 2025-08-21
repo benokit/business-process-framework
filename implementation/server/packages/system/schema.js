@@ -11,12 +11,16 @@ function registerSchema(schema) {
     ajv.addSchema(schema);
 }
 
-function isValidAgainstSchema(schema, object) {
+function validateSchema(schema, object) {
     const validate = ajv.compile(schema);
-    return validate(object);
+    const validationResult = validate(object);
+    return {
+        isValid: validationResult,
+        errors: validate.errors
+    }
 }
 
 module.exports = {
     registerSchema,
-    isValidAgainstSchema
+    validateSchema
 }

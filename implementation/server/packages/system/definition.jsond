@@ -33,26 +33,10 @@
                             "$ref": "schema"
                         },
                         "execute": {
-                            "type": "object",
-                            "properties": {
-                                "interface": {
-                                    "$ref": "schema"
-                                },
-                                "implementation": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "type-execute-interface-schema"
                         },
                         "evaluate": {
-                            "type": "object",
-                            "properties": {
-                                "interface": {
-                                    "$ref": "schema"
-                                },
-                                "implementation": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "type-evaluate-interface-schema"
                         }
                     }
                 },
@@ -80,5 +64,66 @@
         "data": {
             "$ref": "http://json-schema.org/draft-07/schema#"
         }
+    },
+    {
+        "type": "schema",
+        "id": "type-evaluate-interface-schema",
+        "data": {
+            "oneOf": [
+                {
+                    "$ref": "$defs/evaluateIO"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "$defs/evaluateIO"
+                    }
+                }
+            ],
+            "$defs": {
+                "evaluateIO": {
+                    "type": "object",
+                    "properties": {
+                        "inputSchema": {
+                            "$ref": "schema"
+                        },
+                        "outputSchema": {
+                            "$ref": "schema"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "id": "type-execute-interface-schema",
+        "data": {
+            "oneOf": [
+                {
+                    "$ref": "$defs/executeIO"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "$defs/executeIO"
+                    }
+                }
+            ],
+            "$defs": {
+                "executeIO": {
+                    "type": "object",
+                    "properties": {
+                        "requestSchema": {
+                            "$ref": "schema"
+                        },
+                        "responseSchema": {
+                            "$ref": "schema"
+                        }
+                    }
+                }
+            }
+        }
     }
+
 ]

@@ -1,8 +1,8 @@
 const { isAsyncFunction } = require('system/validations');
-const { isValidAgainstSchema } = require('system/schema');
+const { validateSchema } = require('system/schema');
 const { getDefinition } = require('system/register');
 const { getImplementation } = require('system/implementations-loader');
-const { isFunction, isPlainObject } = require('lodash');
+const { isFunction, isPlainObject, isArray } = require('lodash');
 
 
 function evaluate(instanceType, instanceId, input) {
@@ -25,8 +25,9 @@ function evaluateObject(instanceObject, input) {
         throw 'type does not support evaluation';
     }
 
-    if (!isValidAgainstSchema(typeDefinition.evaluate.interface, input)) {
-        throw 'not valid input according to schema';
+    const inputValidation = validateInputAgainstInterface(typeDefinition.execute.interface, input);
+    if (!inputValidation.isValid) {
+        throw 'input not valid input according to schema: ' + JSON.stringify(inputValidation.errors);
     }
 
     const evaluate = getImplementation(typeDefinition.evaluate.implementation);
@@ -46,12 +47,12 @@ function evaluateObject(instanceObject, input) {
     return evaluate(instanceObject, input);
 }
 
-async function execute(instanceType, instanceId, input) {
+async function execute(instanceType, instanceId, request) {
     const instanceObject = getDefinition(instanceType, instanceId);
-    return await executeObject(instanceObject, input);
+    return await executeObject(instanceObject, request);
 }
 
-async function executeObject(instanceObject, input) {
+async function executeObject(instanceObject, request) {
     if (!(instanceObject && isPlainObject(instanceObject))) {
         throw 'expecting object';
     }
@@ -66,8 +67,9 @@ async function executeObject(instanceObject, input) {
         throw 'type does not support execution';
     }
 
-    if (!isValidAgainstSchema(typeDefinition.execute.interface, input)) {
-        throw 'not valid input according to schema';
+    const requestValidation = validateRequestAgainstInterface(typeDefinition.execute.interface, request);
+    if (!requestValidation.isValid) {
+        throw 'request not valid input according to schema: ' + JSON.stringify(requestValidation.errors);
     }
 
     const execute = getImplementation(typeDefinition.execute.implementation);
@@ -80,7 +82,27 @@ async function executeObject(instanceObject, input) {
         throw 'implementation is not a function';
     }
 
-    return await execute(instanceObject, input);
+    return await execute(instanceObject, request);
+}
+
+function validateInputAgainstInterface(interface, input) {
+    if (isArray(interface)) {
+        const schema = {
+            oneOf: interface.map(i => i.inputSchema || {})
+        }
+        return validateSchema(schema, input)
+    }
+    return validateSchema(interface.inputSchema || {}, input)
+}
+
+function validateRequestAgainstInterface(interface, request) {
+    if (isArray(interface)) {
+        const schema = {
+            oneOf: interface.map(i => i.requestSchema || {})
+        }
+        return validateSchema(schema, request)
+    }
+    return validateSchema(interface.requestSchema || {}, request)
 }
 
 module.exports = {

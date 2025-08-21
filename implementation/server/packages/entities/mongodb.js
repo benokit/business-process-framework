@@ -22,10 +22,10 @@ async function createDocument(request) {
 
 async function readDocument(request) {
     const result = await entitiesCollection.findOne({ _id: new ObjectId(request.id) });
-    if (result._id) {
+    if (result?._id) {
        return convertDocument(result); 
     } else {
-        throw 'no entity with the given id'
+        return null;
     }
 }
 
