@@ -2,7 +2,7 @@ const { registerSchema } = require('system/schema');
 
 const register = {};
 
-function registerDefinition(definition) {
+function registerObject(definition) {
     if (!definition.type) {
         return;
     }
@@ -21,11 +21,11 @@ function registerDefinition(definition) {
     register[definition.type][definition.id] = definition;
 }
 
-function getDefinition(type, id) {
+function getObjectFromRegister(type, id) {
     return register[type][id];
 }
 
 module.exports = {
-    registerDefinition,
-    getDefinition
+    registerObject,
+    getObjectFromRegister
 }

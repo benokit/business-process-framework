@@ -1,7 +1,7 @@
 [
     {
         "type": "schema",
-        "id": "definition-schema",
+        "id": "definitions-schema",
         "data": {
             "oneOf": [
                 {
@@ -20,11 +20,26 @@
                     }
                 },
                 {
-                    "description": "type definition",
+                    "description": "data definition",
                     "type": "object",
                     "properties": {
                         "type": {
-                            "const": "type"
+                            "const": "data"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "data": {
+                            "type": "object"
+                        }
+                    }
+                },
+                {
+                    "description": "class definition",
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "const": "class"
                         },
                         "id": {
                             "type": "string"

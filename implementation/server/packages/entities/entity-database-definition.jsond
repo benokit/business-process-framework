@@ -1,6 +1,6 @@
 [
     {
-        "type": "type",
+        "type": "class",
         "id": "entity-database",
         "configurationSchema": {
             "type": "object",

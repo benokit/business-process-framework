@@ -1,5 +1,5 @@
 const { loadDefinitions } = require('system/definitions-loader')
-const { execute } = require('system/type'); 
+const { execute } = require('system/class'); 
 const path = require('path');
 
 async function main() {
