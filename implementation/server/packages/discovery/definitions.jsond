@@ -1,0 +1,18 @@
+[
+    {
+        "type": "http-controller",
+        "id": "discovery-service-http-controller",
+        "configuration": {
+            "endpoints": {
+                "getInstance": {
+                    "method": "GET",
+                    "uri": "/api/discovery/type/:type/instance/:instance",
+                    "responseSchema": {
+                        "$ref": "instance-definition-schema"
+                    },
+                    "handler": "getInstance@discovery/discovery-service.js"
+                }
+            }
+        }
+    }
+]

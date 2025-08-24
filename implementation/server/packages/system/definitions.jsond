@@ -56,19 +56,7 @@
                     }
                 },
                 {
-                    "description": "instance definition",
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "type": "string"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "configuration": {
-                            "type": "object"
-                        }
-                    }
+                    "$ref": "instance-definition-schema"
                 }
             ]
         }
@@ -78,6 +66,24 @@
         "id": "schema",
         "data": {
             "$ref": "http://json-schema.org/draft-07/schema#"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "instance-definition-schema",
+        "data": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "configuration": {
+                    "type": "object"
+                }
+            }
         }
     },
     {
@@ -140,5 +146,4 @@
             }
         }
     }
-
 ]

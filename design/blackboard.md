@@ -1,21 +1,9 @@
-schema
 
-type
 
-data:
-    type: data,
-    id:
-    data: {
-        $ref: data-id
-    }
-
-{
-    "$with": {
-        "a": {
-            "$ref": "data-id"
-        }
-    },
-    "$set": {
-        
-    }
-}
+class:
+    server:
+        execute:
+            run:
+                execute web-sever
+                get all instances of type web-controller
+                register endpoints

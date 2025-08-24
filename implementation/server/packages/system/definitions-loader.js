@@ -1,6 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
-const { registerObject } = require('system/register');
+const { registerObject } = require('system/objects-registry');
 
 const definitionsFileExtensions = ['.jsond'];
 

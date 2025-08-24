@@ -1,4 +1,4 @@
-const { getImplementation } = require('system/implementations-loader');
+const { getImplementation } = require('system/implementations-registry');
 
 async function execute(dbInstance, request) {
     if (request.method === 'create') {

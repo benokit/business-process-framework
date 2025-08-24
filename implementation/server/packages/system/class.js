@@ -1,44 +1,21 @@
 const { isAsyncFunction } = require('system/validations');
 const { validateSchema } = require('system/schema');
-const { getObjectFromRegister } = require('system/register');
-const { getImplementation } = require('system/implementations-loader');
+const { getObject } = require('system/objects-registry');
+const { getImplementation } = require('system/implementations-registry');
 const { isFunction, isPlainObject, isArray } = require('lodash');
-const { evaluateData } = require('system/data');
-
-const instanceCache = {};
-
-function getInstanceCacheKey(instanceType, instanceId) {
-    return instanceId + '@' + instanceType;
-}
-
-function getInstance(instanceType, instanceId) {
-    const instanceKey = getInstanceCacheKey(instanceType, instanceId);
-    
-    if (instanceCache[instanceKey]) {
-        return instanceCache[instanceKey];
-    }
-
-    const instanceDefinition = getObjectFromRegister(instanceType, instanceId);
-
-    instanceCache[instanceKey] = {
-        ...instanceDefinition,
-        configuration: evaluateData(instanceDefinition.configuration)
-    };
-
-    return instanceCache[instanceKey];
-}
+const { getInstance } = require('system/instances-registry');
 
 function evaluate(instanceType, instanceId, input) {
     const instance = getInstance(instanceType, instanceId);
-    return evaluateObject(instance, input);
+    return evaluateInstance(instance, input);
 }
 
-function evaluateObject(instanceObject, input) {
+function evaluateInstance(instanceObject, input) {
     if (!(instanceObject && isPlainObject(instanceObject))) {
         throw 'expecting object';
     }
 
-    const typeDefinition = getObjectFromRegister('class', instanceObject.type);
+    const typeDefinition = getObject('class', instanceObject.type);
 
     if (!typeDefinition) {
         throw 'type is not defined';
@@ -72,15 +49,15 @@ function evaluateObject(instanceObject, input) {
 
 async function execute(instanceType, instanceId, request) {
     const instance = getInstance(instanceType, instanceId);
-    return await executeObject(instance, request);
+    return await executeInstance(instance, request);
 }
 
-async function executeObject(instanceObject, request) {
+async function executeInstance(instanceObject, request) {
     if (!(instanceObject && isPlainObject(instanceObject))) {
         throw 'expecting object';
     }
 
-    const typeDefinition = getObjectFromRegister('class', instanceObject.type);
+    const typeDefinition = getObject('class', instanceObject.type);
 
     if (!typeDefinition) {
         throw 'type is not defined';
@@ -130,5 +107,7 @@ function validateRequestAgainstInterface(interface, request) {
 
 module.exports = {
     evaluate,
-    execute
+    execute,
+    evaluateInstance,
+    executeInstance
 }

@@ -1,5 +1,5 @@
 const { isArray, isPlainObject, mapValues, merge } = require('lodash');
-const { getObjectFromRegister } = require('system/register');
+const { getObject } = require('system/objects-registry');
 
 const dataCache = {};
 
@@ -9,7 +9,7 @@ function getData(dataId) {
         return dataCache[dataId];
     }
 
-    const object = getObjectFromRegister('data', dataId);
+    const object = getObject('data', dataId);
 
     if (!object) {
         return null;
@@ -43,7 +43,7 @@ function evaluateData(data) {
         }
 
         if (data[keyword.ref]) {
-            return getData(data[keyword.ref]);
+            return getData(data[keyword.ref]) || data;
         }
 
         if (data[keyword.merge]) {

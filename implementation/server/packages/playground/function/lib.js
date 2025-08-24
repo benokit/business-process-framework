@@ -1,7 +1,7 @@
 const { isAsyncFunction } = require('system/validations');
 const { isFunction } = require('lodash');
 const { validateSchema } = require('system/schema');
-const { getImplementation } = require('system/implementations-loader');
+const { getImplementation } = require('system/implementations-registry');
 
 function evaluate(functionInstance, input) {
     if(!validateSchema(functionInstance.configuration.inputSchema, input)) {

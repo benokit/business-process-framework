@@ -1,4 +1,4 @@
-const { registerObject } = require('system/register');
+const { registerObject } = require('system/objects-registry');
 const { getData } = require('system/data');
 
 registerObject(

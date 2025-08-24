@@ -1,0 +1,99 @@
+[
+    {
+        "type": "class",
+        "id": "http-service",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "port": {
+                    "type": "number"
+                },
+                "middleware": {
+                    "type": "string"
+                }
+            }
+        },
+        "execute": {
+            "interface": [
+                {
+                    "description": "start server",
+                    "requestSchema": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "const": "start"
+                            }
+                        }
+                    },
+                    "responseSchema": {}
+                }
+            ],
+            "implementation": "execute@web/http-service"
+        }
+    },
+    {
+        "type": "class",
+        "id": "http-controller",
+        "configurationSchema": {
+            "type": "object",
+            "properties": {
+                "filter": {
+                    "type": "string"
+                },
+                "endpoints": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "http-endpoint"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "id": "http-endpoint",
+        "data": {
+            "allOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "enum": [
+                                "GET",
+                                "POST",
+                                "PUT",
+                                "DELETE"
+                            ]
+                        },
+                        "path": {
+                            "type": "string"
+                        },
+                        "queryParameters": {
+                            "$ref": "schema"
+                        },
+                        "responseSchema": {
+                            "$ref": "schema"
+                        },
+                        "handler": {
+                            "type": "string"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "enum": [
+                                "POST",
+                                "PUT"
+                            ]
+                        },
+                        "requestSchema": {
+                            "$ref": "schema"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+]
