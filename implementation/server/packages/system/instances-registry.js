@@ -7,7 +7,7 @@ function getInstanceCacheKey(instanceType, instanceId) {
     return instanceId + '@' + instanceType;
 }
 
-function getInstance(instanceType, instanceId) {
+function getInstanceOfClass(instanceType, instanceId) {
     const instanceKey = getInstanceCacheKey(instanceType, instanceId);
     
     if (instanceCache[instanceKey]) {
@@ -29,10 +29,10 @@ function getInstance(instanceType, instanceId) {
 }
 
 function getInstancesOfClass(instanceType) {
-    return getObjectIdsOfType(instanceType).map(i => getInstance(instanceType, i));
+    return getObjectIdsOfType(instanceType).map(i => getInstanceOfClass(instanceType, i));
 } 
 
 module.exports = {
-    getInstance,
+    getInstanceOfClass,
     getInstancesOfClass
 };

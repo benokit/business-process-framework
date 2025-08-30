@@ -3,10 +3,17 @@ const { validateSchema } = require('system/schema');
 const { getObject } = require('system/objects-registry');
 const { getImplementation } = require('system/implementations-registry');
 const { isFunction, isPlainObject, isArray } = require('lodash');
-const { getInstance } = require('system/instances-registry');
+const { getInstanceOfClass } = require('system/instances-registry');
+
+module.exports = {
+    evaluate,
+    execute,
+    evaluateInstance,
+    executeInstance
+}
 
 function evaluate(instanceType, instanceId, input) {
-    const instance = getInstance(instanceType, instanceId);
+    const instance = getInstanceOfClass(instanceType, instanceId);
     return evaluateInstance(instance, input);
 }
 
@@ -48,7 +55,7 @@ function evaluateInstance(instanceObject, input) {
 }
 
 async function execute(instanceType, instanceId, request) {
-    const instance = getInstance(instanceType, instanceId);
+    const instance = getInstanceOfClass(instanceType, instanceId);
     return await executeInstance(instance, request);
 }
 
@@ -103,11 +110,4 @@ function validateRequestAgainstInterface(interface, request) {
         return validateSchema(schema, request)
     }
     return validateSchema(interface.requestSchema || {}, request)
-}
-
-module.exports = {
-    evaluate,
-    execute,
-    evaluateInstance,
-    executeInstance
 }

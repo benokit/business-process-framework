@@ -41,8 +41,8 @@
                     "type": "string"
                 },
                 "endpoints": {
-                    "type": "object",
-                    "additionalProperties": {
+                    "type": "array",
+                    "items": {
                         "$ref": "http-endpoint"
                     }
                 }

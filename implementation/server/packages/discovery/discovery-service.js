@@ -1,9 +1,9 @@
-const { getInstance } = require('system/instances-registry');
-
-function getInstanceMethod(request) {
-    return getInstance(request.params.type, request.params.instance)
-}
+const { getInstanceOfClass } = require('system/instances-registry');
 
 module.exports = {
-    getInstance: getInstanceMethod
+    getInstance
 };
+
+function getInstance(request) {
+    return getInstanceOfClass(request.params.type, request.params.instance)
+}

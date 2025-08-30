@@ -1,7 +1,10 @@
 const express = require('express');
 const { getImplementation } = require('system/implementations-registry');
 const { getInstancesOfClass } = require('system/instances-registry');
-const { valuesIn } = require('lodash');
+
+module.exports = {
+    execute
+}
 
 let service = null;
 
@@ -54,7 +57,7 @@ function addRoute(app, routeDefinition) {
 function registerEndpoints(app) {
     const webControllers = getInstancesOfClass('http-controller');
     for (const webController of webControllers) {
-        for (const endpoint of valuesIn(webController.configuration.endpoints)) {
+        for (const endpoint of webController.configuration.endpoints) {
             addRoute(app, endpoint);
         }
     } 
@@ -64,8 +67,4 @@ function execute({ configuration }, request) {
     if (request.method === 'start') {
         startService(configuration);
     }
-}
-
-module.exports = {
-    execute
 }
