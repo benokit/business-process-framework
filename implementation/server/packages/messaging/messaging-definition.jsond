@@ -1,0 +1,42 @@
+[
+    {
+        "type": "schema",
+        "id": "message-envelope-schema",
+        "data": {
+            "type": "object",
+            "properties": {
+                "messageId": {
+                    "type": "string"
+                },
+                "correlationId": {
+                    "type": "string"
+                },
+                "timestampUTC": {
+                    "type": "string"
+                },
+                "groupId": {
+                    "type": "string"
+                },
+                "contentType": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    {
+        "type": "class",
+        "id": "message-broker",
+        "execute": [
+            {
+                "requestSchema": {
+                    "method": {
+                        "const": ""
+                    }
+                }
+            }
+        ]
+    }
+]

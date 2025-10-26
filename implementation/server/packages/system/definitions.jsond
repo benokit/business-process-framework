@@ -48,10 +48,10 @@
                             "$ref": "schema"
                         },
                         "execute": {
-                            "$ref": "type-execute-interface-schema"
+                            "$ref": "class-execute-interface-schema"
                         },
                         "evaluate": {
-                            "$ref": "type-evaluate-interface-schema"
+                            "$ref": "class-evaluate-interface-schema"
                         }
                     }
                 },
@@ -88,7 +88,7 @@
     },
     {
         "type": "schema",
-        "id": "type-evaluate-interface-schema",
+        "id": "class-evaluate-interface-schema",
         "data": {
             "oneOf": [
                 {
@@ -118,7 +118,7 @@
     },
     {
         "type": "schema",
-        "id": "type-execute-interface-schema",
+        "id": "class-execute-interface-schema",
         "data": {
             "oneOf": [
                 {

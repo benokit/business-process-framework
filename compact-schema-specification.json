@@ -1,0 +1,63 @@
+{
+    "description": "compact schema notation specification",
+    "properties": {
+        "id": "string:custom-type",
+        "data": "object:compact-schema"
+    },
+    "primitive types": [
+        "null",
+        "string",
+        "number",
+        "boolean"
+    ],
+    "structured types": {
+        "object": {}
+    },
+    "custom types": "id of any schema",
+    "appending property modifiers": {
+        "#|": "anyOf",
+        "#1": "oneOf",
+        "#&": "allOf",
+        "==": "const",
+        "=1": "enum",
+        "//": "additionalProperties: false",
+        ":>": "dictionary, additionalProperties: type",
+        "()": "tuple, items: array with additionalItems: false",
+        "[]": "array of items",
+        "[<int>]": "array of fixed length <int> of items",
+        "$$": "literal json schema"
+    },
+    "prepending property modifiers": {
+        "!": "required"
+    },
+    "prepending type modifiers": {
+        "@": "pointer to a custom type (a schema with an id equal to the string following @)"
+    },
+    "example": {
+        "$schema:person": [
+            {
+                "id": "person",
+                "data": {
+                    "name": "string",
+                    "address": {
+                        "street": "string",
+                        "city": "string",
+                        "country": "string"
+                    },
+                    "nicks[]": "string",
+                    "emails[]": "email"
+                }
+            },
+            {
+                "id": "email",
+                "data": {
+                    "purpose=1": [
+                        "home",
+                        "office"
+                    ],
+                    "!email": "string"
+                }
+            }
+        ]
+    }
+}
