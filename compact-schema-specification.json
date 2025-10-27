@@ -1,63 +1,318 @@
-{
-    "description": "compact schema notation specification",
-    "properties": {
-        "id": "string:custom-type",
-        "data": "object:compact-schema"
-    },
-    "primitive types": [
-        "null",
-        "string",
-        "number",
-        "boolean"
-    ],
-    "structured types": {
-        "object": {}
-    },
-    "custom types": "id of any schema",
-    "appending property modifiers": {
-        "#|": "anyOf",
-        "#1": "oneOf",
-        "#&": "allOf",
-        "==": "const",
-        "=1": "enum",
-        "//": "additionalProperties: false",
-        ":>": "dictionary, additionalProperties: type",
-        "()": "tuple, items: array with additionalItems: false",
-        "[]": "array of items",
-        "[<int>]": "array of fixed length <int> of items",
-        "$$": "literal json schema"
-    },
-    "prepending property modifiers": {
-        "!": "required"
-    },
-    "prepending type modifiers": {
-        "@": "pointer to a custom type (a schema with an id equal to the string following @)"
-    },
-    "example": {
-        "$schema:person": [
+[
+    {
+        "description": "compact schema definition",
+        "id": "compact-schema",
+        "data#1": [
             {
-                "id": "person",
-                "data": {
-                    "name": "string",
-                    "address": {
-                        "street": "string",
-                        "city": "string",
-                        "country": "string"
-                    },
-                    "nicks[]": "string",
-                    "emails[]": "email"
+                "!id": "string",
+                "!data": "@compact-schema-data",
+                "locals[]": "@compact-schema"
+            },
+            "@compact-schema-data"
+        ],
+        "locals": [
+            {
+                "id": "compact-schema-data",
+                "data#": [
+                    "null",
+                    "string",
+                    "number",
+                    "boolean",
+                    "any",
+                    "{@compact-schema-data}",
+                    "[@compact-schema-data]"
+                ]
+            }
+        ],
+        "semantics": {
+            "appending property modifiers": {
+                "#": {
+                    "value is": "anyOf",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data#": [
+                                    "string",
+                                    "object"
+                                ]
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "objects"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "#1": {
+                    "value is": "oneOf"
+                },
+                "#&": {
+                    "value is": "allOf"
+                },
+                "=": {
+                    "value is": "const",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data=": "lore ipsum"
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "const": "lore ipsum"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "=1": {
+                    "value is": "enum",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data=1": [
+                                    "one",
+                                    "two"
+                                ]
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "enum": [
+                                            "one",
+                                            "two"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "{}": {
+                    "value is": "dictionary",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data{}": "string"
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "()": {
+                    "value is": "n-tuple",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data()": [
+                                    "string",
+                                    "number",
+                                    "number"
+                                ]
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": [
+                                            {
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "number"
+                                            },
+                                            {
+                                                "type": "number"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "[]": {
+                    "value is": "array",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data[]": "string"
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "$$": {
+                    "value is": "constrained by standard schema",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data$$": {
+                                    "type": "string"
+                                }
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    ]
                 }
             },
-            {
-                "id": "email",
-                "data": {
-                    "purpose=1": [
-                        "home",
-                        "office"
-                    ],
-                    "!email": "string"
+            "prepending property modifiers": {
+                "!": {
+                    "value is": "required",
+                    "examples": [
+                        {
+                            "compact": {
+                                "!data": "string"
+                            },
+                            "standard": {
+                                "type": "object",
+                                "required": [
+                                    "data"
+                                ],
+                                "properties": {
+                                    "data": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "prepending type modifiers": {
+                "@": {
+                    "type is": "referenced",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data": "@custom-type"
+                            },
+                            "standard": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "$ref": "custom-type"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "enclosing type modifiers": {
+                "{}": {
+                    "type is": "dictionary",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data": "{string}"
+                            },
+                            "equivalent": {
+                                "data{}": "string"
+                            }
+                        }
+                    ]
+                },
+                "[]": {
+                    "type is": "array",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data": "[string]"
+                            },
+                            "equivalent": {
+                                "data[]": "string"
+                            }
+                        }
+                    ]
+                },
+                "()": {
+                    "type is": "n-tuple",
+                    "examples": [
+                        {
+                            "compact": {
+                                "data": "(string,number,@custom)"
+                            },
+                            "equivalent": {
+                                "data()": [
+                                    "string",
+                                    "number",
+                                    "@custom"
+                                ]
+                            }
+                        }
+                    ]
                 }
             }
-        ]
+        }
+    },
+    {
+        "example": {
+            "id": "person",
+            "data": {
+                "name": "string",
+                "address": {
+                    "street": "string",
+                    "city": "string",
+                    "country": "string"
+                },
+                "nicks[]": "string",
+                "emails[]": "@email"
+            },
+            "locals": [
+                {
+                    "id": "email",
+                    "data": {
+                        "purpose=1": [
+                            "home",
+                            "office"
+                        ],
+                        "!email": "string"
+                    }
+                }
+            ]
+        }
     }
-}
+]
