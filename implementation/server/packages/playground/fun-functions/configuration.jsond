@@ -1,18 +1,16 @@
 [
     {
-        "type": "function",
+        "type": "instance",
+        "class": "function",
         "id": "sum-array",
         "configuration": {
             "inputSchema": {
-                "type": "array",
-                "items": {
-                    "type": "number"
-                }
+                "data[]": "number"
             },
             "outputSchema": {
-                "type": "number"
+                "data": "number"
             },
-            "implementation": "sumArray@playground/fun-functions/lib"
+            "implementation": "sumArray@playground/fun-functions/lib.js"
         }
     }
 ]

@@ -1,4 +1,4 @@
-const Ajv = require('ajv');
+import Ajv from 'ajv';
 const ajv = new Ajv();
 
 function registerSchema(schema) {
@@ -14,7 +14,7 @@ function validateSchema(schema, object) {
     }
 }
 
-module.exports = {
+export {
     registerSchema,
     validateSchema
 }

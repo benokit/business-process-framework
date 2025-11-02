@@ -1,113 +1,48 @@
-const { isAsyncFunction } = require('system/validations');
-const { validateSchema } = require('system/schema');
-const { getObject } = require('system/objects-registry');
-const { getImplementation } = require('system/implementations-registry');
-const { isFunction, isPlainObject, isArray } = require('lodash');
-const { getInstanceOfClass } = require('system/instances-registry');
+import { validateSchema } from 'system/schema.js';
+import { getObject } from 'system/objects-registry.js';
+import { getImplementation } from 'system/implementations-registry.js';
+import { isFunction, isPlainObject } from 'lodash-es';
+import { getInstance } from 'system/instances-registry.js';
 
-module.exports = {
-    evaluate,
+export {
     execute,
-    evaluateInstance,
     executeInstance
+};
+
+async function execute(instanceId, methodId, input) {
+    const instance = getInstance(instanceId);
+    return await executeInstance(instance, methodId, input);
 }
 
-function evaluate(instanceType, instanceId, input) {
-    const instance = getInstanceOfClass(instanceType, instanceId);
-    return evaluateInstance(instance, input);
-}
-
-function evaluateInstance(instanceObject, input) {
+async function executeInstance(instanceObject, methodId, input) {
     if (!(instanceObject && isPlainObject(instanceObject))) {
         throw 'expecting object';
     }
 
-    const typeDefinition = getObject('class', instanceObject.type);
+    const classDefinition = getObject('class', instanceObject.class);
 
-    if (!typeDefinition) {
-        throw 'type is not defined';
+    if (!classDefinition) {
+        throw 'class is not defined';
     }
 
-    if (!typeDefinition.evaluate) {
-        throw 'type does not support evaluation';
-    }
+    // const inputValidation = validateInputAgainstInterface(classDefinition.interface[methodId], input);
+    // if (!inputValidation.isValid) {
+    //     throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
+    // }
 
-    const inputValidation = validateInputAgainstInterface(typeDefinition.execute.interface, input);
-    if (!inputValidation.isValid) {
-        throw 'input not valid input according to schema: ' + JSON.stringify(inputValidation.errors);
-    }
+    const executor = await getImplementation(classDefinition.implementation);
 
-    const evaluate = getImplementation(typeDefinition.evaluate.implementation);
-
-    if (!evaluate) {
+    if (!executor) {
         throw 'missing implementation';
     }
 
-    if (!isFunction(evaluate)) {
+    if (!isFunction(executor)) {
         throw 'implementation is not a function';
     }
 
-    if (isAsyncFunction(evaluate)) {
-        throw 'implementation can not be asynchronous';
-    }
-
-    return evaluate(instanceObject, input);
+    return await executor(methodId, instanceObject, input);
 }
 
-async function execute(instanceType, instanceId, request) {
-    const instance = getInstanceOfClass(instanceType, instanceId);
-    return await executeInstance(instance, request);
-}
-
-async function executeInstance(instanceObject, request) {
-    if (!(instanceObject && isPlainObject(instanceObject))) {
-        throw 'expecting object';
-    }
-
-    const typeDefinition = getObject('class', instanceObject.type);
-
-    if (!typeDefinition) {
-        throw 'type is not defined';
-    }
-
-    if (!typeDefinition.execute) {
-        throw 'type does not support execution';
-    }
-
-    const requestValidation = validateRequestAgainstInterface(typeDefinition.execute.interface, request);
-    if (!requestValidation.isValid) {
-        throw 'request not valid input according to schema: ' + JSON.stringify(requestValidation.errors);
-    }
-
-    const execute = getImplementation(typeDefinition.execute.implementation);
-
-    if (!execute) {
-        throw 'missing implementation';
-    }
-
-    if (!isFunction(execute)) {
-        throw 'implementation is not a function';
-    }
-
-    return await execute(instanceObject, request);
-}
-
-function validateInputAgainstInterface(interface, input) {
-    if (isArray(interface)) {
-        const schema = {
-            oneOf: interface.map(i => i.inputSchema || {})
-        }
-        return validateSchema(schema, input)
-    }
-    return validateSchema(interface.inputSchema || {}, input)
-}
-
-function validateRequestAgainstInterface(interface, request) {
-    if (isArray(interface)) {
-        const schema = {
-            oneOf: interface.map(i => i.requestSchema || {})
-        }
-        return validateSchema(schema, request)
-    }
-    return validateSchema(interface.requestSchema || {}, request)
+function validateInputAgainstInterface(methodInterface, input) {
+    return validateSchema(methodInterface.input || {}, input)
 }

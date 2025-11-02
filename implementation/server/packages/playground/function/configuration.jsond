@@ -3,29 +3,24 @@
         "type": "class",
         "id": "function",
         "configurationSchema": {
-            "$ref": "function-configuration-schema"
+            "data": "@function-configuration-schema"
         },
-        "evaluate": {
-            "interface": {},
-            "implementation": "evaluate@playground/function/lib"
-        }
+        "interface": {
+            "evaluate": {
+                "input": "any",
+                "output": "any"
+            }
+        },
+        "implementation": "playground/function/lib.js"
     },
     {
         "type": "schema",
         "id": "function-configuration-schema",
-        "data": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "inputSchema": {
-                    "type": "object"
-                },
-                "outputSchema": {
-                    "type": "object"
-                },
-                "implementation": {
-                    "type": "string"
-                }
+        "schema": {
+            "data": {
+                "inputSchema": "@schema",
+                "outputSchema": "@schema",
+                "implementation": "string"
             }
         }
     }

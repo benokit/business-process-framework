@@ -1,14 +1,8 @@
-const { isAsyncFunction } = require('system/validations');
-const { isFunction } = require('lodash');
-const { validateSchema } = require('system/schema');
-const { getImplementation } = require('system/implementations-registry');
+import { isFunction } from 'lodash-es';
+import { getImplementation } from 'system/implementations-registry.js';
 
-function evaluate(functionInstance, input) {
-    if(!validateSchema(functionInstance.configuration.inputSchema, input)) {
-        throw 'not valid input according to schema';
-    }
-
-    const fn = getImplementation(functionInstance.configuration.implementation);
+async function evaluate(functionInstance, input) {
+    const fn = await getImplementation(functionInstance.configuration.implementation);
 
     if (!fn) {
         throw 'missing implementation';
@@ -18,13 +12,7 @@ function evaluate(functionInstance, input) {
         throw 'implementation is not a function';
     }
 
-    if (isAsyncFunction(fn)) {
-        throw 'implementation can not be asynchronous';
-    }
-
     return fn(input);
 }
 
-module.exports = {
-    evaluate
-}
+export default (methodId, functionInstance, input) => evaluate(functionInstance, input);

@@ -1,13 +1,15 @@
-const { registerSchema } = require('system/schema');
-const { keysIn } = require('lodash')
+import { registerSchema } from 'system/schema.js';
+import { keysIn } from 'lodash-es';
 
 const registry = {
     class: {},
     data: {},
-    schema: {}
+    schema: {},
+    instance: {}
 };
 
 function registerObject(definition) {
+    console.log(definition.id);
     if (!definition.type) {
         return;
     }
@@ -20,13 +22,11 @@ function registerObject(definition) {
         registerSchema(schema);
     }
 
-    if (!registry[definition.type]) {
-        registry[definition.type] = {};
-    }
     registry[definition.type][definition.id] = definition;
 }
 
 function getObject(type, id) {
+    console.log([type, id]);
     return registry[type][id];
 }
 
@@ -34,7 +34,7 @@ function getObjectIdsOfType(type) {
     return keysIn(registry[type]);
 }
 
-module.exports = {
+export {
     registerObject,
     getObject,
     getObjectIdsOfType

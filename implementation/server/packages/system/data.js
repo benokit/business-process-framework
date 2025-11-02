@@ -1,5 +1,5 @@
-const { isArray, isPlainObject, mapValues, merge } = require('lodash');
-const { getObject } = require('system/objects-registry');
+import { isArray, isPlainObject, mapValues, merge } from 'lodash-es';
+import { getObject } from 'system/objects-registry.js';
 
 const dataCache = {};
 
@@ -54,7 +54,7 @@ function evaluateData(data) {
     }
 }
 
-module.exports = {
+export {
     getData,
     evaluateData
-}
+};

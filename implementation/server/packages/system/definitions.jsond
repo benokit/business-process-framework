@@ -2,148 +2,35 @@
     {
         "type": "schema",
         "id": "definitions-schema",
-        "data": {
-            "oneOf": [
+        "schema": {
+            "data=1": [
                 {
-                    "description": "schema definition",
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "const": "schema"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "data": {
-                            "type": "object"
-                        }
-                    }
+                    "!type=": "schema",
+                    "!id": "string",
+                    "schema": "@compact-schema"
                 },
                 {
-                    "description": "data definition",
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "const": "data"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "data": {
-                            "type": "object"
-                        }
-                    }
+                    "!type=": "data",
+                    "!id": "string",
+                    "!data": "object"
                 },
                 {
-                    "description": "class definition",
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "const": "class"
-                        },
-                        "id": {
-                            "type": "string"
-                        },
-                        "configurationSchema": {
-                            "$ref": "schema"
-                        },
-                        "execute": {
-                            "$ref": "class-execute-interface-schema"
-                        },
-                        "evaluate": {
-                            "$ref": "class-evaluate-interface-schema"
-                        }
-                    }
+                    "!type=": "class",
+                    "!id": "string",
+                    "!configurationSchema": "@schema",
+                    "!interface{}": {
+                        "!input": "@schema",
+                        "!output": "@schema"
+                    },
+                    "!implementation": "string"
                 },
                 {
-                    "$ref": "instance-definition-schema"
+                    "!type=": "instance",
+                    "!class": "string",
+                    "!id": "string",
+                    "!configuration": "object"
                 }
             ]
-        }
-    },
-    {
-        "type": "schema",
-        "id": "schema",
-        "data": {
-            "$ref": "http://json-schema.org/draft-07/schema#"
-        }
-    },
-    {
-        "type": "schema",
-        "id": "instance-definition-schema",
-        "data": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "configuration": {
-                    "type": "object"
-                }
-            }
-        }
-    },
-    {
-        "type": "schema",
-        "id": "class-evaluate-interface-schema",
-        "data": {
-            "oneOf": [
-                {
-                    "$ref": "$defs/evaluateIO"
-                },
-                {
-                    "type": "array",
-                    "items": {
-                        "$ref": "$defs/evaluateIO"
-                    }
-                }
-            ],
-            "$defs": {
-                "evaluateIO": {
-                    "type": "object",
-                    "properties": {
-                        "inputSchema": {
-                            "$ref": "schema"
-                        },
-                        "outputSchema": {
-                            "$ref": "schema"
-                        }
-                    }
-                }
-            }
-        }
-    },
-    {
-        "type": "schema",
-        "id": "class-execute-interface-schema",
-        "data": {
-            "oneOf": [
-                {
-                    "$ref": "$defs/executeIO"
-                },
-                {
-                    "type": "array",
-                    "items": {
-                        "$ref": "$defs/executeIO"
-                    }
-                }
-            ],
-            "$defs": {
-                "executeIO": {
-                    "type": "object",
-                    "properties": {
-                        "requestSchema": {
-                            "$ref": "schema"
-                        },
-                        "responseSchema": {
-                            "$ref": "schema"
-                        }
-                    }
-                }
-            }
         }
     }
 ]

@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/implementation/server/src/server.js"
+            "program": "${workspaceFolder}/implementation/server/tests/proto-test.js"
         }
     ]
 }

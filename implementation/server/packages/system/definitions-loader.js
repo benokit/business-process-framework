@@ -1,6 +1,6 @@
-const fs = require('fs/promises');
-const path = require('path');
-const { registerObject } = require('system/objects-registry');
+import fs from 'fs/promises';
+import path from 'path';
+import { registerObject } from 'system/objects-registry.js';
 
 const definitionsFileExtensions = ['.jsond'];
 
@@ -35,6 +35,6 @@ async function loadDefinitions(paths) {
     definitions.forEach(registerObject);
 }
 
-module.exports = {
+export {
     loadDefinitions
-}
+};

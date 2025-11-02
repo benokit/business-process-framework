@@ -1,20 +1,20 @@
-const { getObject, getObjectIdsOfType } = require('system/objects-registry');
-const { evaluateData } = require('system/data');
+import { getObject } from 'system/objects-registry.js';
+import { evaluateData } from 'system/data.js';
 
 const instanceCache = {};
 
-function getInstanceCacheKey(instanceType, instanceId) {
-    return instanceId + '@' + instanceType;
+function getInstanceCacheKey(instanceId) {
+    return instanceId;
 }
 
-function getInstanceOfClass(instanceType, instanceId) {
-    const instanceKey = getInstanceCacheKey(instanceType, instanceId);
+function getInstance(instanceId) {
+    const instanceKey = getInstanceCacheKey(instanceId);
     
     if (instanceCache[instanceKey]) {
         return instanceCache[instanceKey];
     }
 
-    const instanceDefinition = getObject(instanceType, instanceId);
+    const instanceDefinition = getObject('instance', instanceId);
 
     if (!instanceDefinition) {
         return null;
@@ -28,11 +28,6 @@ function getInstanceOfClass(instanceType, instanceId) {
     return instanceCache[instanceKey];
 }
 
-function getInstancesOfClass(instanceType) {
-    return getObjectIdsOfType(instanceType).map(i => getInstanceOfClass(instanceType, i));
-} 
-
-module.exports = {
-    getInstanceOfClass,
-    getInstancesOfClass
+export {
+    getInstance
 };
