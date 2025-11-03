@@ -1,3 +1,4 @@
+import { compactToStandard } from '@benokit/js-cjsl';
 import Ajv from 'ajv';
 const ajv = new Ajv();
 
@@ -6,7 +7,7 @@ function registerSchema(schema) {
 }
 
 function validateSchema(schema, object) {
-    const validate = ajv.compile(schema);
+    const validate = ajv.compile(compactToStandard(schema));
     const validationResult = validate(object);
     return {
         isValid: validationResult,

@@ -1,5 +1,6 @@
 import { registerSchema } from 'system/schema.js';
 import { keysIn } from 'lodash-es';
+import { compactToStandard } from '@benokit/js-cjsl';
 
 const registry = {
     class: {},
@@ -9,24 +10,22 @@ const registry = {
 };
 
 function registerObject(definition) {
-    console.log(definition.id);
     if (!definition.type) {
         return;
     }
 
     if (definition.type === 'schema') {
         const schema = {
-            ...definition.data,
-            '$id': definition.id
+            id: definition.id,
+            ...definition.schema
         };
-        registerSchema(schema);
+        registerSchema(compactToStandard(schema));
     }
 
     registry[definition.type][definition.id] = definition;
 }
 
 function getObject(type, id) {
-    console.log([type, id]);
     return registry[type][id];
 }
 

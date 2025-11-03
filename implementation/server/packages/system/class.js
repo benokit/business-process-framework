@@ -25,10 +25,10 @@ async function executeInstance(instanceObject, methodId, input) {
         throw 'class is not defined';
     }
 
-    // const inputValidation = validateInputAgainstInterface(classDefinition.interface[methodId], input);
-    // if (!inputValidation.isValid) {
-    //     throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
-    // }
+    const inputValidation = validateInputAgainstInterface(classDefinition.interface[methodId], input);
+    if (!inputValidation.isValid) {
+        throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
+    }
 
     const executor = await getImplementation(classDefinition.implementation);
 

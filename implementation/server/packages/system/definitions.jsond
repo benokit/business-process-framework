@@ -7,7 +7,7 @@
                 {
                     "!type=": "schema",
                     "!id": "string",
-                    "schema": "@compact-schema"
+                    "schema": "object"
                 },
                 {
                     "!type=": "data",
@@ -17,10 +17,10 @@
                 {
                     "!type=": "class",
                     "!id": "string",
-                    "!configurationSchema": "@schema",
+                    "!configurationSchema": "object",
                     "!interface{}": {
-                        "!input": "@schema",
-                        "!output": "@schema"
+                        "!inputSchema": "object",
+                        "!outputSchema": "object"
                     },
                     "!implementation": "string"
                 },

@@ -7,8 +7,8 @@
         },
         "interface": {
             "evaluate": {
-                "input": "any",
-                "output": "any"
+                "input": {},
+                "output": {}
             }
         },
         "implementation": "playground/function/lib.js"
@@ -18,8 +18,8 @@
         "id": "function-configuration-schema",
         "schema": {
             "data": {
-                "inputSchema": "@schema",
-                "outputSchema": "@schema",
+                "inputSchema": "object",
+                "outputSchema": "object",
                 "implementation": "string"
             }
         }
