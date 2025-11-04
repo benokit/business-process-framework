@@ -3,6 +3,7 @@ import { keysIn } from 'lodash-es';
 import { compactToStandard } from '@benokit/js-cjsl';
 
 const registry = {
+    interface: {},
     class: {},
     data: {},
     schema: {},
@@ -16,8 +17,10 @@ function registerObject(definition) {
 
     if (definition.type === 'schema') {
         const schema = {
-            id: definition.id,
-            ...definition.schema
+            $id: definition.id,
+            $data: {
+                ...definition.schema
+            }
         };
         registerSchema(compactToStandard(schema));
     }

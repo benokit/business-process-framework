@@ -7,7 +7,7 @@
                 {
                     "!type=": "schema",
                     "!id": "string",
-                    "schema": "object"
+                    "!schema": "object"
                 },
                 {
                     "!type=": "data",
@@ -15,13 +15,19 @@
                     "!data": "object"
                 },
                 {
+                    "!type=": "interface",
+                    "!id": "string",
+                    "!methods{}": "method-schema"
+                },  
+                {
                     "!type=": "class",
                     "!id": "string",
                     "!configurationSchema": "object",
-                    "!interface{}": {
-                        "!inputSchema": "object",
-                        "!outputSchema": "object"
-                    },
+                    "!interface#": [
+                        "string",
+                        "[string]",
+                        "{method-schema}"
+                    ],
                     "!implementation": "string"
                 },
                 {
@@ -30,7 +36,13 @@
                     "!id": "string",
                     "!configuration": "object"
                 }
-            ]
+            ],
+            "locals": {
+                "method-schema": {
+                    "!inputSchema": "object",
+                    "!outputSchema": "object"
+                }
+            }
         }
     }
 ]

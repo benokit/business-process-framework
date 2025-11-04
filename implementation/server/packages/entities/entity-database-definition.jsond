@@ -1,148 +1,59 @@
 [
     {
-        "type": "class",
+        "type": "interface",
         "id": "entity-database",
-        "configurationSchema": {
-            "type": "object",
-            "properties": {
-                "implementation": {
-                    "type": "object",
-                    "properties": {
-                        "create": {
-                            "type": "string"
-                        }
+        "methods": {
+            "create": {
+                "inputSchema": {
+                    "$data": {
+                        "collection": "string",
+                        "data": "object"
+                    }
+                },
+                "outputSchema": {
+                    "$data": {
+                        "id": "string"
                     }
                 }
+            },
+            "read": {
+                "inputSchema": {
+                    "$data": {
+                        "collection": "string",
+                        "id": "string"
+                    }
+                },
+                "outputSchema": {
+                    "$data": {
+                        "version": "number",
+                        "data": "object"
+                    }
+                }
+            },
+            "update": {
+                "inputSchema": {
+                    "$data": {
+                        "id": "string",
+                        "collection": "string",
+                        "version": "number",
+                        "data": "object"
+                    }
+                },
+                "responseSchema": {
+                    "$data": {
+                        "version": "number",
+                        "data": "object"
+                    }
+                }
+            },
+            "delete": {
+                "inputSchema": {
+                    "id": "string",
+                    "collection": "string",
+                    "version": "number"
+                },
+                "outputSchema": {}
             }
-        },
-        "execute": {
-            "interface": [
-                {
-                    "description": "cerate entity",
-                    "requestSchema": {
-                        "type": "object",
-                        "properties": {
-                            "method": {
-                                "const": "create"
-                            },
-                            "collection": {
-                                "type": "string"
-                            },
-                            "data": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "responseSchema": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                },
-                {
-                    "description": "read entity",
-                    "requestSchema": {
-                        "type": "object",
-                        "properties": {
-                            "method": {
-                                "const": "read"
-                            },
-                            "collection": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "responseSchema": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string"
-                            },
-                            "data": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                {
-                    "description": "update entity",
-                    "requestSchema": {
-                        "type": "object",
-                        "properties": {
-                            "method": {
-                                "const": "update"
-                            },
-                            "collection": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "string"
-                            },
-                            "version": {
-                                "type": "integer"
-                            },
-                            "data": {
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "responseSchema": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string"
-                            },
-                            "version": {
-                                "type": "integer"
-                            },
-                            "data": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                {
-                    "description": "delete entity",
-                    "requestSchema": {
-                        "type": "object",
-                        "properties": {
-                            "method": {
-                                "const": "delete"
-                            },
-                            "collection": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "string"
-                            },
-                            "version": {
-                                "type": "integer"
-                            }
-                        }
-                    },
-                    "responseSchema": {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "string"
-                            },
-                            "version": {
-                                "type": "integer"
-                            },
-                            "data": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                }
-            ],
-            "implementation": "execute@entities/entity-database"
         }
     }
 ]

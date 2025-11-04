@@ -5,10 +5,10 @@
         "id": "sum-array",
         "configuration": {
             "inputSchema": {
-                "data[]": "number"
+                "$data[]": "number"
             },
             "outputSchema": {
-                "data": "number"
+                "$data": "number"
             },
             "implementation": "sumArray@playground/fun-functions/lib.js"
         }

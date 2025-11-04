@@ -1,14 +1,14 @@
-const { MongoClient, ObjectId } = require('mongodb');
+import { MongoClient, ObjectId } from 'mongodb';
 
 const client = new MongoClient('mongodb://admin:password@localhost:27017/admin');
 const database = client.db('test-db');
 
 const entitiesCollection = database.collection('entities');
 
-async function createDocument(request) {
+async function createDocument({ data }) {
     const dto = {
         version: 1,
-        data: request.data
+        data
     }
     const result = await entitiesCollection.insertOne(dto);
     if (result.acknowledged) {
@@ -20,8 +20,8 @@ async function createDocument(request) {
     }
 }
 
-async function readDocument(request) {
-    const result = await entitiesCollection.findOne({ _id: new ObjectId(request.id) });
+async function readDocument({ id }) {
+    const result = await entitiesCollection.findOne({ _id: new ObjectId(id) });
     if (result?._id) {
        return convertDocument(result); 
     } else {
@@ -29,16 +29,16 @@ async function readDocument(request) {
     }
 }
 
-async function updateDocument(request) {
-    const criteria = { _id: new ObjectId(request.id) };
-    if (request.version) {
-        criteria.version = request.version;
+async function updateDocument({ id, version, data }) {
+    const criteria = { _id: new ObjectId(id) };
+    if (version) {
+        criteria.version = version;
     } 
     const result = await entitiesCollection.findOneAndUpdate(
         criteria,
         {  
             $inc: { version: 1 },
-            $set: { data: request.data  } 
+            $set: { data } 
         },
         { returnDocument: "after" }
     );
@@ -49,10 +49,10 @@ async function updateDocument(request) {
     }
 }
 
-async function deleteDocument(request) {
-    const criteria = { _id: new ObjectId(request.id) };
-    if (request.version) {
-        criteria.version = request.version;
+async function deleteDocument({ id, version }) {
+    const criteria = { _id: new ObjectId(id) };
+    if (version) {
+        criteria.version = version;
     } 
     const result = await entitiesCollection.findOneAndDelete(
         criteria
@@ -72,9 +72,9 @@ function convertDocument(doc) {
         };
 }
 
-module.exports = {
-    createDocument,
-    readDocument,
-    updateDocument,
-    deleteDocument
+export {
+    createDocument as create,
+    readDocument as read,
+    updateDocument as update,
+    deleteDocument as delete
 };

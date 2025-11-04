@@ -3,7 +3,7 @@
         "type": "class",
         "id": "function",
         "configurationSchema": {
-            "data": "@function-configuration-schema"
+            "$data": "@function-configuration-schema"
         },
         "interface": {
             "evaluate": {
@@ -17,11 +17,9 @@
         "type": "schema",
         "id": "function-configuration-schema",
         "schema": {
-            "data": {
-                "inputSchema": "object",
-                "outputSchema": "object",
-                "implementation": "string"
-            }
+            "inputSchema": "object",
+            "outputSchema": "object",
+            "implementation": "string"
         }
     }
 ]

@@ -1,14 +1,9 @@
 [
     {
-        "type": "entity-database",
+        "type": "class",
+        "interface": "entity-database",
         "id": "mongodb",
-        "configuration": {
-            "implementation": {
-                "create": "createDocument@entities/mongodb",
-                "read": "readDocument@entities/mongodb",
-                "update": "updateDocument@entities/mongodb",
-                "delete": "deleteDocument@entities/mongodb"
-            }
-        }
+        "configurationSchema": {},
+        "implementation": "entities/mongodb.js"
     }
 ]
