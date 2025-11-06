@@ -10,7 +10,7 @@
             "outputSchema": {
                 "$data": "number"
             },
-            "implementation": "sumArray@playground/fun-functions/lib.js"
+            "implementation": "playground/fun-functions/lib.js"
         }
     }
 ]

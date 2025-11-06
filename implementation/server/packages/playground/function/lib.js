@@ -1,9 +1,8 @@
 import { isFunction } from 'lodash-es';
-import { getImplementation } from 'system/implementations-registry.js';
 import { validateSchema } from 'system/schema.js'
 
 async function evaluate(functionInstance, input) {
-    const fn = await getImplementation(functionInstance.configuration.implementation);
+    const { evaluate: fn } = await import(functionInstance.configuration.implementation);
 
     if (!fn) {
         throw 'missing implementation';
@@ -22,4 +21,6 @@ async function evaluate(functionInstance, input) {
     return fn(input);
 }
 
-export default (_, functionInstance, input) => evaluate(functionInstance, input);
+export {
+    evaluate
+};

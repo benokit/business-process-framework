@@ -2,11 +2,7 @@
     {
         "type": "class",
         "id": "entity",
-        "configurationSchema": {
-            
-        },
-        "execute": [
-
-        ]
+        "configurationSchema": {},
+        "interface": {}
     }
 ]

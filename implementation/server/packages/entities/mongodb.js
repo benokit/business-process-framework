@@ -21,7 +21,7 @@ async function createDocument({ data }) {
 }
 
 async function readDocument({ id }) {
-    const result = await entitiesCollection.findOne({ _id: new ObjectId(id) });
+    const result = await entitiesCollection.findOne({ _id: ObjectId.parse(id) });
     if (result?._id) {
        return convertDocument(result); 
     } else {
@@ -30,7 +30,7 @@ async function readDocument({ id }) {
 }
 
 async function updateDocument({ id, version, data }) {
-    const criteria = { _id: new ObjectId(id) };
+    const criteria = { _id: ObjectId.parse(id) };
     if (version) {
         criteria.version = version;
     } 
@@ -50,7 +50,7 @@ async function updateDocument({ id, version, data }) {
 }
 
 async function deleteDocument({ id, version }) {
-    const criteria = { _id: new ObjectId(id) };
+    const criteria = { _id: ObjectId.parse(id) };
     if (version) {
         criteria.version = version;
     } 

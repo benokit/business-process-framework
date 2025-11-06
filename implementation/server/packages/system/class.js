@@ -1,7 +1,7 @@
 import { validateSchema } from 'system/schema.js';
 import { getObject } from 'system/objects-registry.js';
 import { getImplementation } from 'system/implementations-registry.js';
-import { isFunction, isPlainObject } from 'lodash-es';
+import { isFunction, isPlainObject, isString } from 'lodash-es';
 import { getInstance } from 'system/instances-registry.js';
 
 export {
@@ -25,7 +25,9 @@ async function executeInstance(instanceObject, methodId, input) {
         throw 'class is not defined';
     }
 
-    const inputValidation = validateInputAgainstInterface(classDefinition.interface[methodId], input);
+    const iface = isString(classDefinition.interface) ? getObject('interface', classDefinition.interface)?.methods : classDefinition.interface;
+
+    const inputValidation = validateInputAgainstInterface(iface[methodId], input);
     if (!inputValidation.isValid) {
         throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
     }

@@ -1,18 +1,5 @@
 
-function splitAtFirstAt(str) {
-  const idx = str.indexOf('@');
-  if (idx === -1) {
-    return [undefined, str];
-  }
-  return [str.slice(0, idx), str.slice(idx + 1)];
-}
-
-async function getImplementation(implementationUrl) {
-    const [fn, module] = splitAtFirstAt(implementationUrl);
+export async function getImplementation(module) {
     const impl = await import(module);
-    return fn ? impl[fn] : impl.default;
+    return (methodId, context, input) => impl[methodId](context, input);
 }
-
-export {
-    getImplementation
-};
