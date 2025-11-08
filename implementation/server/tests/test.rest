@@ -1,3 +1,3 @@
 ###
 
-GET http://localhost:3000/api/discovery/type/http-controller/instance/discovery-service-http-controller
+GET http://localhost:3000/api/discovery/class/http-controller/instance/discovery-service-http-controller

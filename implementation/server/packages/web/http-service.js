@@ -1,14 +1,13 @@
-const express = require('express');
-const { getImplementation } = require('system/implementations-registry');
-const { getInstancesOfClass } = require('system/instances-registry');
+import express from 'express';
+import { getInstancesOfClass } from 'system/instances-registry.js';
 
-module.exports = {
-    execute
+export {
+    startService
 }
 
 let service = null;
 
-function startService(configuration) {
+async function startService(configuration) {
     if (service) {
         return;
     }
@@ -18,15 +17,16 @@ function startService(configuration) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-    registerEndpoints(app);
+    await registerEndpoints(app);
 
     service = app.listen(configuration.port, () => {
         console.log(`Server running on port ${configuration.port}`);
     });
 }
 
-function getHandler(routeDefinition) {
-    const handler = getImplementation(routeDefinition.handler);
+async function getHandler(routeDefinition) {
+    const [method, module] = routeDefinition.handler.split('@', 2);
+    const handler = (await import(module))[method];
     return async (req, res) => {
         try {
             const result = await handler(req);
@@ -37,34 +37,30 @@ function getHandler(routeDefinition) {
     }
 }
 
-function addRoute(app, routeDefinition) {
+async function addRoute(app, routeDefinition) {
     switch (routeDefinition.method) {
         case 'GET': 
-           app.get(routeDefinition.uri, getHandler(routeDefinition));
+           app.get(routeDefinition.uri, await getHandler(routeDefinition));
            break;
         case 'POST':
-           app.post(routeDefinition.uri, getHandler(routeDefinition));
+           app.post(routeDefinition.uri, await getHandler(routeDefinition));
            break;
         case 'PUT':
-           app.put(routeDefinition.uri, getHandler(routeDefinition));
+           app.put(routeDefinition.uri, await getHandler(routeDefinition));
            break;
         case 'DELETE':
-           app.put(routeDefinition.uri, getHandler(routeDefinition));
+           app.put(routeDefinition.uri, await getHandler(routeDefinition));
            break;
     }
 }
 
-function registerEndpoints(app) {
+async function registerEndpoints(app) {
     const webControllers = getInstancesOfClass('http-controller');
     for (const webController of webControllers) {
+        console.log('registering endpoints of web controller ' + webController.id);
         for (const endpoint of webController.configuration.endpoints) {
-            addRoute(app, endpoint);
+            console.log('- endpoint: ' + endpoint.uri);
+            await addRoute(app, endpoint);
         }
     } 
-}
-
-function execute({ configuration }, request) {
-    if (request.method === 'start') {
-        startService(configuration);
-    }
 }

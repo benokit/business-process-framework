@@ -13,85 +13,45 @@
                 }
             }
         },
-        "execute": {
-            "interface": [
-                {
-                    "description": "start server",
-                    "requestSchema": {
-                        "type": "object",
-                        "properties": {
-                            "method": {
-                                "const": "start"
-                            }
-                        }
-                    },
-                    "responseSchema": {}
-                }
-            ],
-            "implementation": "execute@web/http-service"
-        }
+        "interface": {
+            "startService": {
+                "input": {},
+                "output": {}
+            } 
+        },
+        "implementation": "web/http-service.js"
     },
     {
         "type": "class",
         "id": "http-controller",
         "configurationSchema": {
-            "type": "object",
-            "properties": {
-                "filter": {
-                    "type": "string"
-                },
-                "endpoints": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "http-endpoint"
-                    }
-                }
-            }
+            "filer": "string",
+            "endpoints[]": "@http-endpoint"
         }
     },
     {
         "type": "schema",
         "id": "http-endpoint",
-        "data": {
-            "allOf": [
+        "schema": {
+            "data#&": [
                 {
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "enum": [
-                                "GET",
-                                "POST",
-                                "PUT",
-                                "DELETE"
-                            ]
-                        },
-                        "path": {
-                            "type": "string"
-                        },
-                        "queryParameters": {
-                            "$ref": "schema"
-                        },
-                        "responseSchema": {
-                            "$ref": "schema"
-                        },
-                        "handler": {
-                            "type": "string"
-                        }
-                    }
+                    "method=1": [
+                       "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE" 
+                    ],
+                    "path": "string",
+                    "queryParameters": "object",
+                    "responseSchema": "object",
+                    "handler": "string"
                 },
                 {
-                    "type": "object",
-                    "properties": {
-                        "method": {
-                            "enum": [
-                                "POST",
-                                "PUT"
-                            ]
-                        },
-                        "requestSchema": {
-                            "$ref": "schema"
-                        }
-                    }
+                    "method=1": [
+                        "POST",
+                        "PUT"
+                    ],
+                    "requestSchema": "object"
                 }
             ]
         }

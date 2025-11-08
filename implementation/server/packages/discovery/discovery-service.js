@@ -1,9 +1,9 @@
-const { getInstanceOfClass } = require('system/instances-registry');
+import { getInstance } from 'system/instances-registry.js';
 
-module.exports = {
-    getInstance
+export {
+    getInstanceForRequest as getInstance
 };
 
-function getInstance(request) {
-    return getInstanceOfClass(request.params.type, request.params.instance)
+function getInstanceForRequest(request) {
+    return [getInstance(request.params.instance)].filter(i => i.class === request.params.class)[0];
 }

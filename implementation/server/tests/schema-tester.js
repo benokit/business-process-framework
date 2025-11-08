@@ -1,4 +1,4 @@
-const Ajv = require('ajv');
+import Ajv from 'ajv';
 const ajv = new Ajv();
 
 ajv.addSchema({

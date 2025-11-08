@@ -1,4 +1,4 @@
-import { getObject } from 'system/objects-registry.js';
+import { getObject, getObjectsOfType } from 'system/objects-registry.js';
 import { evaluateData } from 'system/data.js';
 
 const instanceCache = {};
@@ -28,6 +28,11 @@ function getInstance(instanceId) {
     return instanceCache[instanceKey];
 }
 
+function getInstancesOfClass(classId) {
+    return getObjectsOfType('instance').filter(i => i.class === classId).map(i => getInstance(i.id));
+}
+
 export {
-    getInstance
+    getInstance,
+    getInstancesOfClass
 };

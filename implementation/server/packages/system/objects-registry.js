@@ -32,12 +32,12 @@ function getObject(type, id) {
     return registry[type][id];
 }
 
-function getObjectIdsOfType(type) {
-    return keysIn(registry[type]);
+function getObjectsOfType(type) {
+    return Object.values(registry[type]);
 }
 
 export {
     registerObject,
     getObject,
-    getObjectIdsOfType
+    getObjectsOfType
 }

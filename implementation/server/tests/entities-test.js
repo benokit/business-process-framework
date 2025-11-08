@@ -1,26 +1,23 @@
-const { loadDefinitions } = require('system/definitions-loader')
-const { execute } = require('system/class'); 
-const path = require('path');
+import { loadDefinitions } from 'system/definitions-loader.js'
+import { execute } from 'system/class.js'; 
+import path from 'path';
 
 async function main() {
-    // const paths = [ 'implementation/server/packages' ]
-    const paths = [ 'packages' ]
+    const paths = [ 'implementation/server/packages/entities' ]
+    // const paths = [ 'packages/entities' ]
     await loadDefinitions(paths.map(p => path.join(process.cwd(), p)));
-    const { id } = await execute('entity-database', 'mongodb', {
-        method: 'create',
+    const { id } = await execute({ class: 'mongodb' }, 'create', {
         collection: 'entities',
         data: {
             test: 'test'
         }
     });
-    const getResponse = await execute('entity-database', 'mongodb', {
-        method: 'read',
+    const getResponse = await execute({ class: 'mongodb' }, 'read', {
         collection: 'entities',
         id: id
     });
     console.log(getResponse);
-    const updateResponse = await execute('entity-database', 'mongodb', {
-        method: 'update',
+    const updateResponse = await execute({ class: 'mongodb' }, 'update', {
         collection: 'entities',
         id: id,
         data: {
@@ -29,17 +26,15 @@ async function main() {
         }
     });
     console.log(updateResponse);
-    const deleteResponse = await execute('entity-database', 'mongodb', {
-        method: 'delete',
+    const deleteResponse = await execute({ class: 'mongodb' }, 'delete', {
         collection: 'entities',
         id: id
     });
     console.log(deleteResponse);
-    await execute('entity-database', 'mongodb', {
-        method: 'read',
+    console.log(await execute({ class: 'mongodb' }, 'read', {
         collection: 'entities',
         id: id
-    });
+    }));
 }
 
 main();

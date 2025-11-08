@@ -1,5 +1,5 @@
-const { registerObject } = require('system/objects-registry');
-const { getData } = require('system/data');
+import { registerObject } from 'system/objects-registry.js';
+import { getData } from 'system/data.js';
 
 registerObject(
     {

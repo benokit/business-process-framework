@@ -1,17 +1,22 @@
 import { validateSchema } from 'system/schema.js';
 import { getObject } from 'system/objects-registry.js';
-import { getImplementation } from 'system/implementations-registry.js';
 import { isFunction, isPlainObject, isString } from 'lodash-es';
 import { getInstance } from 'system/instances-registry.js';
 
 export {
-    execute,
-    executeInstance
+    execute
 };
 
-async function execute(instanceId, methodId, input) {
-    const instance = getInstance(instanceId);
-    return await executeInstance(instance, methodId, input);
+/**
+ * 
+ * @param {String|Object} instance 
+ * @param {String} methodId 
+ * @param {Object} input 
+ * @returns 
+ */
+async function execute(instance, methodId, input) {
+    const instanceObject = isString(instance) ? getInstance(instance) : instance;
+    return await executeInstance(instanceObject, methodId, input);
 }
 
 async function executeInstance(instanceObject, methodId, input) {
@@ -32,7 +37,7 @@ async function executeInstance(instanceObject, methodId, input) {
         throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
     }
 
-    const executor = await getImplementation(classDefinition.implementation);
+    const executor = (await import(classDefinition.implementation))[methodId];
 
     if (!executor) {
         throw 'missing implementation';
@@ -42,7 +47,7 @@ async function executeInstance(instanceObject, methodId, input) {
         throw 'implementation is not a function';
     }
 
-    return await executor(methodId, instanceObject, input);
+    return await executor(instanceObject.configuration, input);
 }
 
 function validateInputAgainstInterface(methodInterface, input) {

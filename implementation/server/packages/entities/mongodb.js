@@ -5,7 +5,7 @@ const database = client.db('test-db');
 
 const entitiesCollection = database.collection('entities');
 
-async function createDocument({ data }) {
+async function createDocument(_, { data }) {
     const dto = {
         version: 1,
         data
@@ -20,8 +20,8 @@ async function createDocument({ data }) {
     }
 }
 
-async function readDocument({ id }) {
-    const result = await entitiesCollection.findOne({ _id: ObjectId.parse(id) });
+async function readDocument(_, { id }) {
+    const result = await entitiesCollection.findOne({ _id: ObjectId.createFromHexString(id) });
     if (result?._id) {
        return convertDocument(result); 
     } else {
@@ -29,8 +29,8 @@ async function readDocument({ id }) {
     }
 }
 
-async function updateDocument({ id, version, data }) {
-    const criteria = { _id: ObjectId.parse(id) };
+async function updateDocument(_, { id, version, data }) {
+    const criteria = { _id: ObjectId.createFromHexString(id) };
     if (version) {
         criteria.version = version;
     } 
@@ -49,8 +49,8 @@ async function updateDocument({ id, version, data }) {
     }
 }
 
-async function deleteDocument({ id, version }) {
-    const criteria = { _id: ObjectId.parse(id) };
+async function deleteDocument(_, { id, version }) {
+    const criteria = { _id: ObjectId.createFromHexString(id) };
     if (version) {
         criteria.version = version;
     } 

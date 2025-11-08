@@ -2,7 +2,7 @@
     {
         "type": "schema",
         "id": "message-envelope-schema",
-        "data": {
+        "schema": {
             "type": "object",
             "properties": {
                 "messageId": {
@@ -25,18 +25,5 @@
                 }
             }
         }
-    },
-    {
-        "type": "class",
-        "id": "message-broker",
-        "execute": [
-            {
-                "requestSchema": {
-                    "method": {
-                        "const": ""
-                    }
-                }
-            }
-        ]
     }
 ]

@@ -1,12 +1,13 @@
 [
     {
-        "type": "http-controller",
+        "type": "instance",
+        "class": "http-controller",
         "id": "discovery-service-http-controller",
         "configuration": {
             "endpoints": [
                 {
                     "method": "GET",
-                    "uri": "/api/discovery/type/:type/instance/:instance",
+                    "uri": "/api/discovery/class/:class/instance/:instance",
                     "responseSchema": {
                         "$ref": "instance-definition-schema"
                     },
