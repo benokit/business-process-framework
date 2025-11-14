@@ -10,46 +10,50 @@ export {
 /**
  * 
  * @param {String|Object} instance 
- * @param {String} methodId 
+ * @param {String} method 
  * @param {Object} input 
  * @returns 
  */
-async function execute(instance, methodId, input) {
+async function execute(instance, method, input) {
     const instanceObject = isString(instance) ? getInstance(instance) : instance;
-    return await executeInstance(instanceObject, methodId, input);
+    return await executeInstance(instanceObject, method, input);
 }
 
-async function executeInstance(instanceObject, methodId, input) {
+async function executeInstance(instanceObject, method, input) {
     if (!(instanceObject && isPlainObject(instanceObject))) {
-        throw 'expecting object';
+        throw 'instance should be an object';
+    }
+
+    if (!instanceObject.class) {
+        throw 'instance should have property class'
     }
 
     const classDefinition = getObject('class', instanceObject.class);
 
     if (!classDefinition) {
-        throw 'class is not defined';
+        throw `class ${instanceObject.class} is not defined`;
     }
 
     const iface = isString(classDefinition.interface) ? getObject('interface', classDefinition.interface)?.methods : classDefinition.interface;
 
-    const inputValidation = validateInputAgainstInterface(iface[methodId], input);
-    if (!inputValidation.isValid) {
-        throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
+    if (!(iface && isPlainObject(iface))) {
+        throw 'interface should be an object';
     }
 
-    const executor = (await import(classDefinition.implementation))[methodId];
+    validateInputAgainstInterface(iface[method], input);
+
+    const executor = (await import(classDefinition.implementation))[method];
 
     if (!executor) {
-        throw 'missing implementation';
-    }
-
-    if (!isFunction(executor)) {
-        throw 'implementation is not a function';
+        throw `missing implementation from method ${method}`;
     }
 
     return await executor(instanceObject.configuration, input);
 }
 
 function validateInputAgainstInterface(methodInterface, input) {
-    return validateSchema(methodInterface.input || {}, input)
+    const inputValidation = validateSchema(methodInterface.input || {}, input)
+     if (!inputValidation.isValid) {
+        throw 'input is not valid: ' + JSON.stringify(inputValidation.errors);
+    }
 }

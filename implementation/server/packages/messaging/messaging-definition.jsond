@@ -1,29 +1,89 @@
 [
     {
         "type": "schema",
-        "id": "message-envelope-schema",
+        "id": "message-envelope",
         "schema": {
-            "type": "object",
-            "properties": {
-                "messageId": {
-                    "type": "string"
+            "messageId": "string",
+            "correlationId": "string",
+            "groupId": "string",
+            "timestampUTC": "string",
+            "contentType=1": [
+                "json",
+                "string"
+            ],
+            "!message#": [
+                "string",
+                "object"
+            ]
+        }
+    },
+    {
+        "type": "class",
+        "id": "message-channel",
+        "configurationSchema": {
+            "channelName": "string",
+            "messageBus": "string",
+            "topology=1": [
+                "queue",
+                "topic"
+            ]
+        },
+        "interface": {
+            "publish": {
+                "input": {
+                    "$data": "@message-envelope"
                 },
-                "correlationId": {
-                    "type": "string"
+                "output": {
+                    "messageId": "string"
+                }
+            },
+            "registerConsumer": {
+                "input": {
+                    "consumerName": "string",
+                    "handler#": [
+                        "string",
+                        {}
+                    ]
                 },
-                "timestampUTC": {
-                    "type": "string"
+                "output": {
+                    "consumerName": "string"
+                }
+            }
+        },
+        "implementation": "messaging/message-channel.js"
+    },
+    {
+        "type": "interface",
+        "id": "message-bus",
+        "methods": {
+            "publish": {
+                "input": {
+                    "channelName": "string",
+                    "messageEnvelope": "@message-envelope"
                 },
-                "groupId": {
-                    "type": "string"
+                "output": {
+                    "messageId": "string"
+                }
+            },
+            "registerConsumer": {
+                "input": {
+                    "consumerName": "string",
+                    "channelName": "string",
+                    "handler": {}
                 },
-                "contentType": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
+                "output": {
+                    "consumerName": "string"
                 }
             }
         }
+    },
+    {
+        "type": "class",
+        "id": "in-process-event-bus",
+        "configurationSchema": {
+            "namespace": "string"
+        },
+        "interface": "message-bus",
+        "implementation": "messaging/in-process-events-bus.js"
     }
 ]

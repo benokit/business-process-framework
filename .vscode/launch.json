@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/implementation/server/tests/entities-test.js"
+            "program": "${workspaceFolder}/implementation/server/tests/messaging-test.js"
         }
     ]
 }

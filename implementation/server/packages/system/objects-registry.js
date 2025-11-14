@@ -1,6 +1,4 @@
 import { registerSchema } from 'system/schema.js';
-import { keysIn } from 'lodash-es';
-import { compactToStandard } from '@benokit/js-cjsl';
 
 const registry = {
     interface: {},
@@ -22,7 +20,7 @@ function registerObject(definition) {
                 ...definition.schema
             }
         };
-        registerSchema(compactToStandard(schema));
+        registerSchema(schema);
     }
 
     registry[definition.type][definition.id] = definition;

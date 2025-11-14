@@ -3,7 +3,7 @@ import Ajv from 'ajv';
 const ajv = new Ajv();
 
 function registerSchema(schema) {
-    ajv.addSchema(schema);
+    ajv.addSchema(compactToStandard(schema));
 }
 
 function validateSchema(schema, object) {
