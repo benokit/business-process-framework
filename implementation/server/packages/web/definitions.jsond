@@ -3,15 +3,8 @@
         "type": "class",
         "id": "http-service",
         "configurationSchema": {
-            "type": "object",
-            "properties": {
-                "port": {
-                    "type": "number"
-                },
-                "middleware": {
-                    "type": "string"
-                }
-            }
+            "port": "number",
+            "middleware": "string"
         },
         "interface": {
             "startService": {

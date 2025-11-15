@@ -1,0 +1,23 @@
+[
+    {
+        "type": "interface",
+        "id": "sequence",
+        "methods": {
+            "next": {
+                "input": {},
+                "output": {
+                    "$data": "number"
+                }
+            }
+        }
+    },
+    {
+        "type": "class",
+        "id": "mongo-sequence",
+        "configuration": {
+            "sequenceName": "string"
+        },
+        "interface": "sequence",
+        "implementation": "sequences/mongo-sequence.js"
+    }
+]

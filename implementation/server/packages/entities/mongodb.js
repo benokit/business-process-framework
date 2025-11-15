@@ -1,7 +1,5 @@
-import { MongoClient, ObjectId } from 'mongodb';
-
-const client = new MongoClient('mongodb://admin:password@localhost:27017/admin');
-const database = client.db('test-db');
+import { ObjectId } from 'mongodb';
+import { database } from 'databases/mongodb.js';
 
 const entitiesCollection = database.collection('entities');
 
