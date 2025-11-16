@@ -39,8 +39,8 @@
             ],
             "locals": {
                 "method-schema": {
-                    "!inputSchema": "object",
-                    "!outputSchema": "object"
+                    "!input": "object",
+                    "!output": "object"
                 }
             }
         }

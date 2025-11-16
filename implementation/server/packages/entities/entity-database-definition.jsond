@@ -4,26 +4,26 @@
         "id": "entity-database",
         "methods": {
             "create": {
-                "inputSchema": {
+                "input": {
                     "$data": {
                         "collection": "string",
                         "data": "object"
                     }
                 },
-                "outputSchema": {
+                "output": {
                     "$data": {
                         "id": "string"
                     }
                 }
             },
             "read": {
-                "inputSchema": {
+                "input": {
                     "$data": {
                         "collection": "string",
                         "id": "string"
                     }
                 },
-                "outputSchema": {
+                "output": {
                     "$data": {
                         "version": "number",
                         "data": "object"
@@ -31,7 +31,7 @@
                 }
             },
             "update": {
-                "inputSchema": {
+                "input": {
                     "$data": {
                         "id": "string",
                         "collection": "string",
@@ -39,7 +39,7 @@
                         "data": "object"
                     }
                 },
-                "responseSchema": {
+                "output": {
                     "$data": {
                         "version": "number",
                         "data": "object"
@@ -47,12 +47,12 @@
                 }
             },
             "delete": {
-                "inputSchema": {
+                "input": {
                     "id": "string",
                     "collection": "string",
                     "version": "number"
                 },
-                "outputSchema": {}
+                "output": {}
             }
         }
     }
