@@ -1,6 +1,6 @@
 import { validateSchema } from 'system/schema.js';
 import { getObject } from 'system/objects-registry.js';
-import { isFunction, isPlainObject, isString } from 'lodash-es';
+import { isPlainObject, isString } from 'lodash-es';
 import { getInstance } from 'system/instances-registry.js';
 
 export {
@@ -48,7 +48,7 @@ async function executeInstance(instanceObject, method, input) {
         throw `missing implementation from method ${method}`;
     }
 
-    return await executor(instanceObject.configuration, input);
+    return await executor(instanceObject, input);
 }
 
 function validateInputAgainstInterface(methodInterface, input) {

@@ -17,9 +17,12 @@
         "type": "schema",
         "id": "function-configuration-schema",
         "schema": {
-            "inputSchema": "object",
-            "outputSchema": "object",
-            "implementation": "string"
+            "input": "object",
+            "output": "object",
+            "implementation#": [
+                "string",
+                "object"
+            ]
         }
     }
 ]

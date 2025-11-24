@@ -23,9 +23,9 @@ function getData(dataId) {
 }
 
 const keyword = {
-    literal: '$literal',
-    ref: '$ref',
-    merge: '$merge'
+    literal: '/literal',
+    ref: '/ref',
+    merge: '/merge'
 }
 
 function evaluateData(data) {

@@ -1,4 +1,4 @@
-import { isFunction, isString } from "lodash-es";
+import { isString } from "lodash-es";
 import { execute } from "system/class.js";
 
 export {

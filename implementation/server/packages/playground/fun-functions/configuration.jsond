@@ -4,13 +4,33 @@
         "class": "function",
         "id": "sum-array",
         "configuration": {
-            "inputSchema": {
+            "input": {
                 "$data[]": "number"
             },
-            "outputSchema": {
+            "output": {
                 "$data": "number"
             },
-            "implementation": "playground/fun-functions/lib.js"
+            "implementation": {
+                "$evaluate": {
+                    "_id": "test-sum"
+                }
+            }
+        }
+    },
+    {
+        "type": "instance",
+        "class": "function",
+        "id": "test-sum",
+        "configuration": {
+            "input": {
+                "$data[]": "number"
+            },
+            "output": {
+                "$data": "number"
+            },
+            "implementation": {
+                "$sum": "#"
+            }
         }
     }
 ]

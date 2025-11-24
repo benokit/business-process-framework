@@ -1,16 +1,16 @@
-import { isFunction } from 'lodash-es';
-import { validateSchema } from 'system/schema.js'
+import { concat, flatten, isPlainObject, isString, values, map } from 'lodash-es';
+import { validateSchema } from 'system/schema.js';
+import { compile } from 'lambdajson-js';
+import { getInstance } from 'system/instances-registry.js';
 
-async function evaluate({ implementation, inputSchema }, input) {
-    const { evaluate: fn } = await import(implementation);
+const funkRegister = {};
 
-    if (!fn) {
-        throw 'missing implementation';
-    }
+const customPrimitives = {
+    $evaluate: ({ _id, _input = ({input}) => input}) => x => funkRegister[_id(x)](_input(x))
+};
 
-    if (!isFunction(fn)) {
-        throw 'implementation is not a function';
-    }
+async function evaluate({id, configuration: { implementation, input: inputSchema }}, input) {
+    const fn = funkRegister[id] || (await registerFunction(id, implementation));
 
     const inputValidation = validateSchema(inputSchema, input);
 
@@ -19,6 +19,38 @@ async function evaluate({ implementation, inputSchema }, input) {
     }
 
     return fn(input);
+}
+
+async function registerFunction(id, implementation) {
+    if (isString(implementation)) {
+        const { evaluate } = await import(implementation);
+        funkRegister[id] = evaluate;
+    }
+    else {
+        const fn = compile(implementation, customPrimitives);
+        funkRegister[id] = fn;
+        await registerDependencies(implementation);
+    } 
+
+    return funkRegister[id];
+}
+
+async function registerDependencies(implementation) {
+    const ids = getDependenciesIds(implementation);
+    for (const id of ids) {
+        if (!funkRegister[id]) {
+            const instance = getInstance(id);
+            if (!instance || !instance.class === 'function');
+            await registerFunction(id, instance.configuration.implementation)
+        }
+    }
+}
+
+function getDependenciesIds(p) {
+    if (!isPlainObject(p)) {
+        return []
+    }
+    return concat((p['$evaluate'] ? [p['$evaluate']['_id']] : []), flatten(map(values(p), getDependenciesIds)));
 }
 
 export {
