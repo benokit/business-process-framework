@@ -1,5 +1,5 @@
 import { isArray, isPlainObject, mapValues, merge } from 'lodash-es';
-import { getObject } from 'system/objects-registry.js';
+import { getObject } from './objects.js';
 
 const dataCache = {};
 

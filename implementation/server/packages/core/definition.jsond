@@ -1,7 +1,7 @@
 [
     {
         "type": "schema",
-        "id": "definitions-schema",
+        "id": "definition",
         "schema": {
             "data=1": [
                 {
@@ -17,7 +17,7 @@
                 {
                     "!type=": "interface",
                     "!id": "string",
-                    "!methods{}": "method-schema"
+                    "!methods{}": "@#method-schema"
                 },  
                 {
                     "!type=": "class",
@@ -26,7 +26,7 @@
                     "!interface#": [
                         "string",
                         "[string]",
-                        "{method-schema}"
+                        "{@#method-schema}"
                     ],
                     "!implementation": "string"
                 },
@@ -39,10 +39,20 @@
             ],
             "locals": {
                 "method-schema": {
-                    "!input": "object",
-                    "!output": "object"
+                    "!input": "@schema",
+                    "!output": "@schema"
                 }
             }
         }
+    },
+    {
+        "type": "schema",
+        "id": "schema",
+        "schema": "number"
+    },
+    {
+        "type": "schema",
+        "id": "lambda-json",
+        "schema": {}
     }
 ]

@@ -1,4 +1,4 @@
-import { registerSchema } from 'system/schema.js';
+import { registerSchema } from './schema.js';
 
 const registry = {
     interface: {},
@@ -16,9 +16,7 @@ function registerObject(definition) {
     if (definition.type === 'schema') {
         const schema = {
             $id: definition.id,
-            $data: {
-                ...definition.schema
-            }
+            $data: definition.schema
         };
         registerSchema(schema);
     }

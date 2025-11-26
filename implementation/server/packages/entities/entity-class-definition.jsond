@@ -2,7 +2,14 @@
     {
         "type": "class",
         "id": "entity",
-        "configurationSchema": {},
+        "configurationSchema": {
+            "baseEntity": "string",
+            "sequence": "@function",
+            "key": "@function",
+            "dimensions{}": "object",
+            "schema": "@schema",
+            "traits()": "@trait"
+        },
         "interface": {}
     }
 ]

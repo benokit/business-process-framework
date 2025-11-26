@@ -1,7 +1,7 @@
 import { concat, flatten, isPlainObject, isString, values, map } from 'lodash-es';
-import { validateSchema } from 'system/schema.js';
+import { validateSchema } from 'core/schema';
 import { compile } from 'lambdajson-js';
-import { getInstance } from 'system/instances-registry.js';
+import { getInstance } from 'core/instance';
 
 const funkRegister = {};
 

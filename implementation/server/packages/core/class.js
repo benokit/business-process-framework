@@ -1,7 +1,7 @@
-import { validateSchema } from 'system/schema.js';
-import { getObject } from 'system/objects-registry.js';
+import { validateSchema } from './schema.js';
+import { getObject } from './objects.js';
 import { isPlainObject, isString } from 'lodash-es';
-import { getInstance } from 'system/instances-registry.js';
+import { getInstance } from './instance.js';
 
 export {
     execute
@@ -45,7 +45,7 @@ async function executeInstance(instanceObject, method, input) {
     const executor = (await import(classDefinition.implementation))[method];
 
     if (!executor) {
-        throw `missing implementation from method ${method}`;
+        throw `missing class implementation for the method`;
     }
 
     return await executor(instanceObject, input);

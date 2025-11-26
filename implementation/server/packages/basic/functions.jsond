@@ -11,17 +11,17 @@
                 "output": {}
             }
         },
-        "implementation": "playground/function/lib.js"
+        "implementation": "basic/functions"
     },
     {
         "type": "schema",
         "id": "function-configuration-schema",
         "schema": {
-            "input": "object",
-            "output": "object",
+            "input": "@schema",
+            "output": "@schema",
             "implementation#": [
                 "string",
-                "object"
+                "@lambda-json"
             ]
         }
     }

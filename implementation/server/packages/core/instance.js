@@ -1,5 +1,5 @@
-import { getObject, getObjectsOfType } from 'system/objects-registry.js';
-import { evaluateData } from 'system/data.js';
+import { getObject, getObjectsOfType } from './objects.js';
+import { evaluateData } from './data.js';
 
 const instanceCache = {};
 

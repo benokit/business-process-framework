@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { registerObject } from 'system/objects-registry.js';
+import { registerObject } from './objects.js';
 
 const definitionsFileExtensions = ['.jsond'];
 
