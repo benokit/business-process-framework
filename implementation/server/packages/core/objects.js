@@ -1,11 +1,10 @@
 import { registerSchema } from './schema.js';
 
 const registry = {
-    interface: {},
-    class: {},
+    service: {},
     data: {},
     schema: {},
-    instance: {}
+    interface: {}
 };
 
 function registerObject(definition) {

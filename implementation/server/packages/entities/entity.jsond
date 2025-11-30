@@ -1,0 +1,37 @@
+[
+    {
+        "type": "service",
+        "id": "entity",
+        "configurationSchema": {
+            "sequence": "@function",
+            "key": "@function",
+            "dimensions{}": "object",
+            "schema": "@schema",
+            "traits{}": "@trait"
+        },
+        "interface": "entity-interface",
+        "implementation": "entities/entity"
+    },
+    {
+        "type": "interface",
+        "id": "entity-interface",
+        "methods": {
+            "create": {
+                "input": {
+                    "body": "object"
+                },
+                "output": {
+                    "key": "string"
+                }
+            },
+            "get": {
+                "input": {
+                    "key": "string"
+                },
+                "output": {
+                    "data": "object"
+                }
+            }
+        }
+    }
+]

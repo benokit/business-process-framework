@@ -15,7 +15,7 @@ function getData(dataId) {
         return null;
     }
 
-    const evaluatedData = evaluateData(object.data)
+    const evaluatedData = { ...object, data: evaluateData(object.data) }
 
     dataCache[dataId] = evaluatedData;
 

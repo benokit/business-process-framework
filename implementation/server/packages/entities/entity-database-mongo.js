@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { database } from 'databases/mongodb.js';
+import { database } from 'databases/mongodb';
 
 const entitiesCollection = database.collection('entities');
 

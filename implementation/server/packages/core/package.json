@@ -5,10 +5,9 @@
   "main": "index.js",
   "type": "module",
   "exports": {
-    "./class": "./class.js",
+    "./service": "./service.js",
     "./data": "./data.js",
     "./objects": "./object.js",
-    "./instance": "./instance.js",
     "./schema": "./schema.js",
     "./definitions": "./definitions.js"
   },

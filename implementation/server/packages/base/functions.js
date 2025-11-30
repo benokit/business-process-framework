@@ -1,7 +1,7 @@
 import { concat, flatten, isPlainObject, isString, values, map } from 'lodash-es';
 import { validateSchema } from 'core/schema';
 import { compile } from 'lambdajson-js';
-import { getInstance } from 'core/instance';
+import { getData } from 'core/data';
 
 const funkRegister = {};
 
@@ -39,9 +39,9 @@ async function registerDependencies(implementation) {
     const ids = getDependenciesIds(implementation);
     for (const id of ids) {
         if (!funkRegister[id]) {
-            const instance = getInstance(id);
-            if (!instance || !instance.class === 'function');
-            await registerFunction(id, instance.configuration.implementation)
+            const instance = getData(id);
+            if (!instance || !instance.meta.service === 'function');
+            await registerFunction(id, instance.data.implementation)
         }
     }
 }

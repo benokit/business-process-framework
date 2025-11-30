@@ -1,7 +1,7 @@
 import { validateSchema } from './schema.js';
 import { getObject } from './objects.js';
 import { isPlainObject, isString } from 'lodash-es';
-import { getInstance } from './instance.js';
+import { getData } from './data.js';
 
 export {
     execute
@@ -15,7 +15,14 @@ export {
  * @returns 
  */
 async function execute(instance, method, input) {
-    const instanceObject = isString(instance) ? getInstance(instance) : instance;
+    let instanceObject = isString(instance) ? getData(instance) : instance;
+    if (instanceObject.type === 'data') {
+        instanceObject = {
+            id: instanceObject.id,
+            service: instanceObject.meta.service,
+            configuration: instanceObject.data
+        }
+    }
     return await executeInstance(instanceObject, method, input);
 }
 
@@ -24,17 +31,13 @@ async function executeInstance(instanceObject, method, input) {
         throw 'instance should be an object';
     }
 
-    if (!instanceObject.class) {
-        throw 'instance should have property class'
+    const serviceDefinition = getObject('service', instanceObject.service);
+
+    if (!serviceDefinition) {
+        throw `service ${instanceObject.service} is not defined`;
     }
 
-    const classDefinition = getObject('class', instanceObject.class);
-
-    if (!classDefinition) {
-        throw `class ${instanceObject.class} is not defined`;
-    }
-
-    const iface = isString(classDefinition.interface) ? getObject('interface', classDefinition.interface)?.methods : classDefinition.interface;
+    const iface = isString(serviceDefinition.interface) ? getObject('interface', serviceDefinition.interface)?.methods : serviceDefinition.interface;
 
     if (!(iface && isPlainObject(iface))) {
         throw 'interface should be an object';
@@ -42,10 +45,10 @@ async function executeInstance(instanceObject, method, input) {
 
     validateInputAgainstInterface(iface[method], input);
 
-    const executor = (await import(classDefinition.implementation))[method];
+    const executor = (await import(serviceDefinition.implementation))[method];
 
     if (!executor) {
-        throw `missing class implementation for the method`;
+        throw `missing service implementation for the method`;
     }
 
     return await executor(instanceObject, input);

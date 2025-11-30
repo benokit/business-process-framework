@@ -1,5 +1,5 @@
 import { loadDefinitions } from 'core/definitions';
-import { execute } from 'core/class'; 
+import { execute } from 'core/service'; 
 import path from 'path';
 import { map } from 'lodash-es';
 
@@ -8,7 +8,7 @@ async function main() {
     map(
     [ 
         'packages/core',
-        'packages/basic',
+        'packages/base',
         'packages/playground'
     ], p => p ); // 'implementation/server/' + p);
     await loadDefinitions(paths.map(p => path.join(process.cwd(), p)));

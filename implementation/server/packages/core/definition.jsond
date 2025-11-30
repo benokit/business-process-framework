@@ -7,34 +7,23 @@
                 {
                     "!type=": "schema",
                     "!id": "string",
-                    "!schema": "object"
+                    "!schema": "@schema"
                 },
                 {
                     "!type=": "data",
                     "!id": "string",
+                    "meta": "object",
                     "!data": "object"
                 },
                 {
-                    "!type=": "interface",
+                    "!type=": "service",
                     "!id": "string",
-                    "!methods{}": "@#method-schema"
-                },  
-                {
-                    "!type=": "class",
-                    "!id": "string",
-                    "!configurationSchema": "object",
+                    "!configurationSchema": "@schema",
                     "!interface#": [
                         "string",
-                        "[string]",
                         "{@#method-schema}"
                     ],
                     "!implementation": "string"
-                },
-                {
-                    "!type=": "instance",
-                    "!class": "string",
-                    "!id": "string",
-                    "!configuration": "object"
                 }
             ],
             "locals": {
@@ -48,7 +37,7 @@
     {
         "type": "schema",
         "id": "schema",
-        "schema": "number"
+        "schema": "object"
     },
     {
         "type": "schema",

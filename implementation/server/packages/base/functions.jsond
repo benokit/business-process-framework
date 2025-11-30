@@ -1,6 +1,6 @@
 [
     {
-        "type": "class",
+        "type": "service",
         "id": "function",
         "configurationSchema": {
             "$data": "@function-configuration-schema"
@@ -11,7 +11,7 @@
                 "output": {}
             }
         },
-        "implementation": "basic/functions"
+        "implementation": "base/functions"
     },
     {
         "type": "schema",

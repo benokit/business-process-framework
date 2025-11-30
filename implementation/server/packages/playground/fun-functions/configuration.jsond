@@ -1,9 +1,11 @@
 [
     {
-        "type": "instance",
-        "class": "function",
+        "type": "data",
+        "meta": {
+            "service": "function"
+        },
         "id": "sum-array",
-        "configuration": {
+        "data": {
             "input": {
                 "$data[]": "number"
             },
@@ -18,10 +20,12 @@
         }
     },
     {
-        "type": "instance",
-        "class": "function",
+        "type": "data",
+        "meta": {
+            "service": "function"
+        },
         "id": "test-sum",
-        "configuration": {
+        "data": {
             "input": {
                 "$data[]": "number"
             },
