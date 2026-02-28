@@ -81,7 +81,7 @@
                 {
                     "low": {
                         "!module": "string",
-                        "!function": "string"
+                        "!functionName": "string"
                     }
                 },
                 {

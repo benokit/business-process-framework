@@ -1,0 +1,28 @@
+{
+  "name": "core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "exports": {
+    "./service": "./src/service.js",
+    "./data": "./src/data.js",
+    "./elements-registry": "./src/elements-registry.js",
+    "./schema": "./src/schema.js",
+    "./elements": "./src/elements.js"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@benokit/js-cjsl": "^0.3.0",
+    "ajv": "^8.17.1",
+    "body-parser": "^1.20.3",
+    "express": "^4.21.2",
+    "lambdajson-js": "^1.0.1",
+    "lodash-es": "^4.17.21",
+    "mongodb": "^6.13.0"
+  }
+}
