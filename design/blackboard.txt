@@ -1,0 +1,79 @@
+
+service:
+
+--------------- data source -----------------
+
+{
+    type: service,
+    id: contract-data-source,
+    meta: {
+        kind: data-source
+    },
+    interface: {
+        get: {
+            input: {
+                !contractNumber: string
+            }
+            output: {}
+        }
+    },
+    implementation: {
+        get: [
+            {
+                name: context,
+                set: {
+                    cache: true       
+                }
+            },
+            {
+                name: contract,
+                service: {
+                    id: contract-data-provider,
+                    method: get
+                },
+                inputMap: {
+                    contractNumber: #.input.contractNumber
+                    cache: #.context.cache            
+                }
+            }
+            {
+                $return: #.contract.output
+            }
+        ]
+    }
+}
+
+--------------- data provider -----------------
+
+{
+    type: service,
+    id: contract-data-provider,
+    meta: {
+        kind: data-provider
+    },
+    interface: {
+        get: {
+            input: {
+                !contractNumber: string
+            },
+            output: {}
+        }
+    },
+    implementation: {
+        get: [
+            {
+                service: {
+                    id: entities-db,
+                    method: search
+                },
+                inputMap: {
+                    kind: contract,
+                    code: #.input.contractNumber
+                },
+                outputMap: {
+                    $return: #.data
+                }
+            }
+        ]
+    }
+}

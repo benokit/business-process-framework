@@ -43,7 +43,7 @@ function evaluateData(data) {
         }
 
         if (data[keyword.ref]) {
-            return getData(data[keyword.ref]) || data;
+            return getData(data[keyword.ref]).data;
         }
 
         if (data[keyword.merge]) {

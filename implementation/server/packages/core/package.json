@@ -7,7 +7,7 @@
   "exports": {
     "./service": "./service.js",
     "./data": "./data.js",
-    "./objects": "./object.js",
+    "./objects": "./objects.js",
     "./schema": "./schema.js",
     "./definitions": "./definitions.js"
   },

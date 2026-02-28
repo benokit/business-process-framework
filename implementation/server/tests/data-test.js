@@ -1,12 +1,12 @@
-import { registerObject } from 'system/objects-registry.js';
-import { getData } from 'system/data.js';
+import { registerObject } from 'core/objects';
+import { getData } from 'core/data';
 
 registerObject(
     {
         type: 'data',
         id: 'literal',
         data: {
-            $literal: {
+            "/literal": {
                 a: 'a',
                 b: 'b'
             }
@@ -22,7 +22,7 @@ registerObject(
             id: 'something',
             c: [
                 {
-                    $ref: 'literal'
+                    "/ref": 'literal'
                 },
                 {
                     a: 'aa',
@@ -40,12 +40,12 @@ registerObject(
         type: 'data',
         id: 'merged',
         data: {
-            $merge: [
+            "/merge": [
                 {
-                    $ref: 'referencing'
+                    "/ref": 'referencing'
                 },
                 {
-                    $ref: 'literal'
+                    "/ref": 'literal'
                 }
             ]
         }
@@ -54,4 +54,4 @@ registerObject(
 
 const data = getData('merged');
 
-console.log(data);
+console.log(JSON.stringify(data, null, 2));

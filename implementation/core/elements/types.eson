@@ -1,0 +1,119 @@
+[
+    {
+        "type": "schema",
+        "id": "types",
+        "schema": {
+            "$data#1": [
+                {
+                    "!type=": "schema",
+                    "!id": "string",
+                    "meta": "object",
+                    "!schema": "object"
+                },
+                {
+                    "!type=": "data",
+                    "!id": "string",
+                    "meta": "object",
+                    "!data": "object"
+                },
+                {
+                    "!type=": "service",
+                    "!id": "string",
+                    "!interface{}": "@interface-schema",
+                    "implementation{}": "@impl-schema"
+                }
+            ]
+        }
+    },
+    {
+        "type": "schema",
+        "id": "interface-schema",
+        "schema": {
+            "!input": "@schema",
+            "!output": "@schema"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "impl-schema",
+        "schema": {
+            "$data#1": [
+                "@impl-item-schema",
+                {
+                    "data[]": "@impl-item-schema" 
+                }
+            ]
+        }
+    },
+    {
+        "type": "schema",
+        "id": "impl-item-schema",
+        "schema": {
+            "data#&": [
+                "@impl-item-common-schema",
+                "@impl-item-specific-schema"
+            ]
+        }
+    },
+    {
+        "type": "schema",
+        "id": "impl-item-common-schema",
+        "schema": {
+            "name": "string",
+            "inputMap": "@function-schema",
+            "outputMap": "@function-schema"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "impl-item-specific-schema",
+        "schema": {
+            "$data#1": [
+                {
+                    "set": "object"
+                },
+                {
+                    "service": {
+                        "!id": "string",
+                        "!method": "string"
+                    }
+                },
+                {
+                    "low": {
+                        "!module": "string",
+                        "!function": "string"
+                    }
+                },
+                {
+                    "if": "@function-schema",
+                    "!then": "@impl-schema",
+                    "else": "@impl-schema"
+                },
+                {
+                    "try": "@impl-schema",
+                    "catch": "@impl-schema"
+                },
+                {
+                    "throw": "object"
+                },
+                {
+                    "switch": {
+                        "!value": "@function-schema",
+                        "!cases{}": "@impl-schema"
+                    }
+                },
+                {
+                    "forEach": "@impl-schema"
+                },
+                {
+                    "return": "@function-schema"
+                }
+            ]
+        }
+    },
+    {
+        "type": "schema",
+        "id": "schema",
+        "schema": "object"
+    }
+]
