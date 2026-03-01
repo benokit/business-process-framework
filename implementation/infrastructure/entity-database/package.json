@@ -1,0 +1,16 @@
+{
+  "name": "entity-database",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./mongodb": "./src/entity-database-mongodb.js",
+    "./mongodb-client": "./src/mongodb-client.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "core": "*",
+    "mongodb": "^6.13.0"
+  }
+}

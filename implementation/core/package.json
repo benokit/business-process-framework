@@ -9,7 +9,8 @@
     "./data": "./src/data.js",
     "./elements-registry": "./src/elements-registry.js",
     "./schema": "./src/schema.js",
-    "./elements": "./src/elements.js"
+    "./elements": "./src/elements.js",
+    "./elements-loader": "./src/elements-loader.js"
   },
   "scripts": {
     "test": "mocha"

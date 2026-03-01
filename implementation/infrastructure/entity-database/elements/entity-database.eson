@@ -1,0 +1,90 @@
+[
+    {
+        "type": "schema",
+        "id": "entity-record",
+        "schema": {
+            "!id": "string",
+            "!version": "number",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-create-input",
+        "schema": {
+            "!collection": "string",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-read-input",
+        "schema": {
+            "!collection": "string",
+            "!id": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-update-input",
+        "schema": {
+            "!collection": "string",
+            "!id": "string",
+            "!version": "number",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-delete-input",
+        "schema": {
+            "!collection": "string",
+            "!id": "string",
+            "version": "number"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-list-input",
+        "schema": {
+            "!collection": "string",
+            "filter": "object",
+            "sort": "object",
+            "limit": "number",
+            "skip": "number"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-database-list-output",
+        "schema": {
+            "records[]": "@entity-record"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-database-interface",
+        "data": {
+            "create": {
+                "input": "@entity-database-create-input",
+                "output": "@entity-record"
+            },
+            "read": {
+                "input": "@entity-database-read-input",
+                "output": "@entity-record"
+            },
+            "update": {
+                "input": "@entity-database-update-input",
+                "output": "@entity-record"
+            },
+            "delete": {
+                "input": "@entity-database-delete-input",
+                "output": "@entity-record"
+            },
+            "list": {
+                "input": "@entity-database-list-input",
+                "output": "@entity-database-list-output"
+            }
+        }
+    }
+]

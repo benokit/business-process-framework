@@ -4,10 +4,6 @@ import { registerElement } from 'core/elements-registry';
 
 const mathModuleUrl = new URL('./helpers/math.js', import.meta.url).href;
 
-// Register a service's interface and implementation as data elements.
-// Method names are placed at the top level so getData(id)[methodName] resolves
-// correctly, working around the fact that registerElement for 'service' type
-// would normally handle this internally.
 function registerService(id, methods) {
     const iface = {};
     const impl = {};
@@ -15,8 +11,7 @@ function registerService(id, methods) {
         iface[name] = { input: def.input ?? {}, output: def.output ?? {} };
         impl[name] = def.impl;
     }
-    registerElement({ type: 'data', id: 'iface@' + id, ...iface, data: null });
-    registerElement({ type: 'data', id: 'impl@' + id, ...impl, data: null });
+    registerElement({ type: 'service', id, interface: iface, implementation: impl });
 }
 
 describe('service tests', () => {

@@ -1,5 +1,6 @@
 import { validateSchema } from './schema.js';
 import { getData } from './data.js';
+import { getElement } from './elements-registry.js';
 import { has, isArray } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 
@@ -8,9 +9,10 @@ export {
 };
 
 async function execute(serviceId, methodName, input) {
-    const iface = getData('iface@' + serviceId);
-    validateInputAgainstInterface(iface[methodName], input);
-    const impl = getData('impl@' + serviceId)[methodName];
+    const service = getElement('service', serviceId)
+    const iface = getData(service.interface);
+    validateInputAgainstInterface(iface.data[methodName], input);
+    const impl = getData(service.implementation).data[methodName];
     return await executeMethod(impl, input);
 }
 

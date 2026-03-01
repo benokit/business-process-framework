@@ -1,7 +1,8 @@
 {
   "name": "implementation",
   "workspaces": [
-    "core"
+    "core",
+    "infrastructure/*"
   ],
   "private": true,
   "version": "1.0.0",
@@ -9,7 +10,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "mocha"
+    "test": "npm run test --workspaces --if-present"
   },
   "keywords": [],
   "author": "",

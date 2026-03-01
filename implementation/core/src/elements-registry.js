@@ -1,3 +1,4 @@
+import { isString } from 'lodash-es';
 import { registerSchema } from './schema.js';
 
 const registry = {
@@ -17,14 +18,33 @@ function registerElement(element) {
             $data: element.schema
         };
         registerSchema(schema);
+        registry.schema[element.id] = element;
+        return;
     }
 
     if (element.type === 'service') {
-        registry[data]['iface@' + element.id] = element.interface;
-        registry[data]['impl@' + element.id] = element.implementation;
+        const serviceElement = { ...element };
+
+        if (!isString(element.interface)) {
+            const ifaceId = 'iface@' + element.id;
+            registry.data[ifaceId] = { type: 'data', id: ifaceId, data: element.interface };
+            serviceElement.interface = ifaceId;
+        }
+
+        if (!isString(element.implementation)) {
+            const implId = 'impl@' + element.id;
+            registry.data[implId] = { type: 'data', id: implId, data: element.implementation };
+            serviceElement.implementation = implId;
+        }
+        
+        registry.service[serviceElement.id] = serviceElement;
+        return;
     }
 
-    registry[element.type][element.id] = element;
+    if (element.type === 'data') {
+        registry.data[element.id] = element;
+        return;
+    }
 }
 
 function getElement(type, id) {
