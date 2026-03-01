@@ -89,9 +89,9 @@ async function resolveItemExecutor(item) {
         return async input => {
             const condition = await executeMapping(item.if, input);
             if (condition) {
-                return await executeMethod(item.then, input);
+                return await executeMethodWithContext(item.then, input);
             } else {
-                return await executeMethod(item.else, input);
+                return await executeMethodWithContext(item.else, input);
             }
         }
     }
@@ -99,8 +99,8 @@ async function resolveItemExecutor(item) {
     if (has(item, keyword.forEach)) {
         return async input => {
             const result = [];
-            for (const i of input) {
-                result.push(await executeMethod(item.forEach, i));
+            for (const x of input) {
+                result.push(await executeMethod(item.forEach, x));
             }
             return result;
         }
@@ -109,23 +109,26 @@ async function resolveItemExecutor(item) {
     if (has(item, keyword.try)) {
         return async input => {
             try {
-                return await executeMethod(item.try, input);
+                return await executeMethodWithContext(item.try, input);
             }
-            catch(error) {
-                return await executeMethod(item.catch, {item, error});
+            catch (error) {
+                return await executeMethodWithContext(item.catch, {context: input, error});
             }
         }
     }
 
     if (has(item, keyword.throw)) {
-        return async input => { throw await executeMapping(item.throw, input); }
+        return async input => {
+            const error = await executeMapping(item.throw, input); 
+            throw error; 
+        }
     }
 
     if (has(item, keyword.switch)) {
         return async input => {
             const value = await executeMapping(item.switch.value, input);
             const g = item.switch.cases[value] || item.switch.cases[keyword.default];
-            return await executeMethod(g, input);
+            return await executeMethodWithContext(g, input);
         }
     } 
 }

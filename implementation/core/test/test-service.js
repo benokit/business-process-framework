@@ -137,6 +137,33 @@ describe('service tests', () => {
             expect(await execute('svc-if', 'classify', { n: -1 })).to.equal('non-positive');
         });
 
+        describe('context propagation', () => {
+
+            before(() => {
+                registerService('svc-if-ctx', {
+                    checkWithContext: {
+                        impl: [
+                            { name: 'doubled', set: { $multiply: ['#.input.n', 2] } },
+                            {
+                                if: { $gt: ['#.doubled', 10] },
+                                then: { return: { $return: '#.doubled' } },
+                                else: { return: { $return: '#.input.n' } }
+                            }
+                        ]
+                    }
+                });
+            });
+
+            it('should use a prior named step in the condition and return its value from the then branch', async () => {
+                expect(await execute('svc-if-ctx', 'checkWithContext', { n: 6 })).to.equal(12);
+            });
+
+            it('should use a prior named step in the condition and return input from the else branch', async () => {
+                expect(await execute('svc-if-ctx', 'checkWithContext', { n: 3 })).to.equal(3);
+            });
+
+        });
+
     });
 
     describe('forEach', () => {
@@ -145,6 +172,7 @@ describe('service tests', () => {
             registerService('svc-foreach', {
                 doubleAll: {
                     impl: {
+                        inputMap: { $return: '#.input' },
                         forEach: { return: { $multiply: ['#.input', 2] } }
                     }
                 }
@@ -163,8 +191,8 @@ describe('service tests', () => {
             registerService('svc-try', {
                 safeExecute: {
                     impl: {
-                        try: { throw: '#.input.message' },
-                        catch: { return: { $return: '#.input.error' } }
+                        try: { throw: { $return: '#.input.message' } },
+                        catch: { return: { $return: '#.error' } }
                     }
                 },
                 noError: {
@@ -182,6 +210,41 @@ describe('service tests', () => {
 
         it('should return the try body result when no error is thrown', async () => {
             expect(await execute('svc-try', 'noError', 'ok')).to.equal('ok');
+        });
+
+        describe('context propagation', () => {
+
+            before(() => {
+                registerService('svc-try-ctx', {
+                    tryWithStep: {
+                        impl: [
+                            { name: 'greeting', set: { $return: 'hello' } },
+                            {
+                                try:   { return: { $return: '#.greeting' } },
+                                catch: { return: { $return: 'error' } }
+                            }
+                        ]
+                    },
+                    catchWithStep: {
+                        impl: [
+                            { name: 'label', set: { $return: '#.input.tag' } },
+                            {
+                                try:   { throw: { $return: '#.input.message' } },
+                                catch: { return: { $return: '#.context.label' } }
+                            }
+                        ]
+                    }
+                });
+            });
+
+            it('should propagate named pipeline steps into the try body', async () => {
+                expect(await execute('svc-try-ctx', 'tryWithStep', {})).to.equal('hello');
+            });
+
+            it('should expose the pre-throw context at #.context in the catch body', async () => {
+                expect(await execute('svc-try-ctx', 'catchWithStep', { tag: 'myLabel', message: 'boom' })).to.equal('myLabel');
+            });
+
         });
 
     });
@@ -203,22 +266,52 @@ describe('service tests', () => {
 
     });
 
-    describe('inputMap and outputMap', () => {
+    describe('switch', () => {
 
         before(() => {
-            registerService('svc-maps', {
-                process: {
+            registerService('svc-switch', {
+                route: {
                     impl: {
-                        inputMap: { n: '#.input.value' },
-                        return: '#.n',
-                        outputMap: { doubled: { $multiply: ['#', 2] } }
+                        switch: {
+                            value: { $return: '#.input.op' },
+                            cases: {
+                                add:     { return: { $sum: ['#.input.a', '#.input.b'] } },
+                                default: { return: { $return: 0 } }
+                            }
+                        }
                     }
+                },
+                withContext: {
+                    impl: [
+                        { name: 'base', set: { $multiply: ['#.input.x', 2] } },
+                        {
+                            switch: {
+                                value: { $return: '#.input.op' },
+                                cases: {
+                                    inc:     { return: { $sum: ['#.base', '#.input.x'] } },
+                                    default: { return: { $return: '#.base' } }
+                                }
+                            }
+                        }
+                    ]
                 }
             });
         });
 
-        it('should reshape input with inputMap before execution and apply outputMap to the result', async () => {
-            expect(await execute('svc-maps', 'process', { value: 5 })).to.deep.equal({ doubled: 10 });
+        it('should execute the matching case branch', async () => {
+            expect(await execute('svc-switch', 'route', { op: 'add', a: 3, b: 4 })).to.equal(7);
+        });
+
+        it('should fall through to the default case when no case matches', async () => {
+            expect(await execute('svc-switch', 'route', { op: 'unknown', a: 3, b: 4 })).to.equal(0);
+        });
+
+        it('should propagate named pipeline steps into the matching case body', async () => {
+            expect(await execute('svc-switch', 'withContext', { op: 'inc', x: 5 })).to.equal(15);
+        });
+
+        it('should propagate named pipeline steps into the default case body', async () => {
+            expect(await execute('svc-switch', 'withContext', { op: 'other', x: 5 })).to.equal(10);
         });
 
     });
@@ -232,7 +325,7 @@ describe('service tests', () => {
             registerService('svc-delegate-outer', {
                 compute: {
                     impl: {
-                        inputMap: '#.input',
+                        inputMap: { $return: '#.input' },
                         service: { id: 'svc-delegate-inner', method: 'double' }
                     }
                 }
@@ -268,8 +361,8 @@ describe('service tests', () => {
                 transform: {
                     impl: {
                         return: {
-                            $low: { double: { module: mathModuleUrl, functionName: 'double' } },
-                            double: { $return: '#.input' }
+                            $low: { $double: { module: mathModuleUrl, functionName: 'double' } },
+                            $double: '#.input'
                         }
                     }
                 }
