@@ -26,7 +26,7 @@ async function readElementsRecursively(definitionsPath) {
     return definitions;
 }
 
-async function loadDefinitions(paths) {
+async function loadElements(paths) {
     let elements = [];
     for (const path of paths) {
         const elementsFromPath = await readElementsRecursively(path);
@@ -36,5 +36,5 @@ async function loadDefinitions(paths) {
 }
 
 export {
-    loadDefinitions
+    loadElements
 };

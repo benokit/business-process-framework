@@ -11,7 +11,7 @@ async function execute(serviceId, methodName, input) {
     const iface = getData('iface@' + serviceId);
     validateInputAgainstInterface(iface[methodName], input);
     const impl = getData('impl@' + serviceId)[methodName];
-    return await executeMethod(implementation, input);
+    return await executeMethod(impl, input);
 }
 
 function validateInputAgainstInterface(methodInterface, input) {
@@ -40,12 +40,15 @@ async function executeMethod(implementation, input) {
     const context = {
         input
     };
+    return await executeMethodWithContext(implementation, context);
+}
 
+async function executeMethodWithContext(implementation, context) {
     if (!isArray(implementation)) {
         return await executeItem(implementation, context);
     }
 
-    for (const item in implementation.slice(0, -1)) {
+    for (const item of implementation.slice(0, -1)) {
         const output = await executeItem(item, context);
         if (item.name) {
             context[item.name] = output;
@@ -96,7 +99,7 @@ async function resolveItemExecutor(item) {
     if (has(item, keyword.forEach)) {
         return async input => {
             const result = [];
-            for (const i in input) {
+            for (const i of input) {
                 result.push(await executeMethod(item.forEach, i));
             }
             return result;
@@ -120,9 +123,9 @@ async function resolveItemExecutor(item) {
 
     if (has(item, keyword.switch)) {
         return async input => {
-            const value = await executeMethod(input.value, input);
+            const value = await executeMapping(item.switch.value, input);
             const g = item.switch.cases[value] || item.switch.cases[keyword.default];
-            return await g(input);
+            return await executeMethod(g, input);
         }
     } 
 }
