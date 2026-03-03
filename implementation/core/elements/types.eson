@@ -19,6 +19,7 @@
                 {
                     "!type=": "service",
                     "!id": "string",
+                    "meta": "object",
                     "!interface{}": "@interface-schema",
                     "implementation{}": "@impl-schema"
                 }

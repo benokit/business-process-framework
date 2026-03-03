@@ -9,7 +9,9 @@ Elements are of three possible types:
 - `data`
 - `service`
 
-Each element has an `id` and optional `meta`-data that can be used for unique identification and classification.
+Each element has an `id` and an optional `meta` object for identification and classification. The framework recognises one reserved property inside `meta`:
+
+- `kind` — a string tag used to group elements within a type (e.g. all services that represent a particular category). Elements without a `kind` are still fully functional; `kind` is purely for querying.
 
 ## Schema
 
@@ -94,14 +96,22 @@ To call a host JS function as a custom lambdaJSON primitive, use the `$low` key 
 ## Runtime API
 
 ```js
-import { loadElements } from 'core/elements-loader';
-import { execute }      from 'core/service';
+import { loadElements }          from 'core/elements-loader';
+import { execute }               from 'core/service';
+import { getElement, getElements } from 'core/elements-registry';
 
 // Load all *.eson files from one or more directory trees.
 await loadElements(['./elements', './app/elements']);
 
 // Call a service method.
 const result = await execute(serviceId, methodName, input);
+
+// Retrieve a single element by type and id.
+const element = getElement(type, id);
+
+// Retrieve all elements of a given type, optionally filtered by meta.kind.
+const allServices  = getElements('service');
+const kindFiltered = getElements('service', 'my-kind');
 ```
 
 ## Example
