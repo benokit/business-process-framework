@@ -1,0 +1,15 @@
+{
+  "name": "http-server",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./express": "./src/http-server-express.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "core": "*",
+    "express": "^4.21.2"
+  }
+}

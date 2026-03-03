@@ -1,0 +1,42 @@
+[
+    {
+        "type": "schema",
+        "id": "endpoint",
+        "schema": {
+            "!method": "string",
+            "!path": "string",
+            "!controller": {
+                "!service": "string",
+                "!method": "string"
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "id": "http-server-start-input",
+        "schema": {
+            "port": "number"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "http-server-start-output",
+        "schema": {
+            "!port": "number"
+        }
+    },
+    {
+        "type": "data",
+        "id": "http-server-interface",
+        "data": {
+            "start": {
+                "input":  "@http-server-start-input",
+                "output": "@http-server-start-output"
+            },
+            "stop": {
+                "input":  "object",
+                "output": "object"
+            }
+        }
+    }
+]

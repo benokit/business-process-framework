@@ -1,0 +1,16 @@
+[
+    {
+        "type": "data",
+        "id": "http-server-express-implementation",
+        "data": {
+            "start": { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "start" } },
+            "stop":  { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "stop" } }
+        }
+    },
+    {
+        "type": "service",
+        "id": "http-server",
+        "interface": "http-server-interface",
+        "implementation": "http-server-express-implementation"
+    }
+]
