@@ -3,11 +3,11 @@
         "type": "data",
         "id": "entity-database-mongodb-implementation",
         "data": {
-            "create": { "inputMap": { "$return": "#.input" }, "low": { "module": "entity-database/mongodb", "functionName": "create" } },
-            "read":   { "inputMap": { "$return": "#.input" }, "low": { "module": "entity-database/mongodb", "functionName": "read" } },
-            "update": { "inputMap": { "$return": "#.input" }, "low": { "module": "entity-database/mongodb", "functionName": "update" } },
-            "delete": { "inputMap": { "$return": "#.input" }, "low": { "module": "entity-database/mongodb", "functionName": "delete" } },
-            "list":   { "inputMap": { "$return": "#.input" }, "low": { "module": "entity-database/mongodb", "functionName": "list" } }
+            "create": { "inputMap": "#.input", "low": { "module": "entity-database/mongodb", "functionName": "create" } },
+            "read":   { "inputMap": "#.input", "low": { "module": "entity-database/mongodb", "functionName": "read" } },
+            "update": { "inputMap": "#.input", "low": { "module": "entity-database/mongodb", "functionName": "update" } },
+            "delete": { "inputMap": "#.input", "low": { "module": "entity-database/mongodb", "functionName": "delete" } },
+            "list":   { "inputMap": "#.input", "low": { "module": "entity-database/mongodb", "functionName": "list" } }
         }
     },
     {

@@ -47,9 +47,9 @@ describe('service tests', () => {
 
         before(() => {
             registerService('svc-return', {
-                constant:    { impl: { return: { $return: 'hello' } } },
-                passthrough: { impl: { return: { $return: '#.input' } } },
-                field:       { impl: { return: { $return: '#.input.name' } } },
+                constant:    { impl: { return: 'hello' } },
+                passthrough: { impl: { return: '#.input' } },
+                field:       { impl: { return: '#.input.name' } },
                 computed:    { impl: { return: { $sum: ['#.input.a', '#.input.b'] } } }
             });
         });
@@ -79,7 +79,7 @@ describe('service tests', () => {
                 build: {
                     impl: [
                         { name: 'step1', set: { value: 42 } },
-                        { return: { $return: '#.step1.value' } }
+                        { return: '#.step1.value' }
                     ]
                 }
             });
@@ -117,8 +117,8 @@ describe('service tests', () => {
                 classify: {
                     impl: {
                         if: { $gt: ['#.input.n', 0] },
-                        then: { return: { $return: 'positive' } },
-                        else: { return: { $return: 'non-positive' } }
+                        then: { return: 'positive' },
+                        else: { return: 'non-positive' }
                     }
                 }
             });
@@ -141,8 +141,8 @@ describe('service tests', () => {
                             { name: 'doubled', set: { $multiply: ['#.input.n', 2] } },
                             {
                                 if: { $gt: ['#.doubled', 10] },
-                                then: { return: { $return: '#.doubled' } },
-                                else: { return: { $return: '#.input.n' } }
+                                then: { return: '#.doubled' },
+                                else: { return: '#.input.n' }
                             }
                         ]
                     }
@@ -167,7 +167,7 @@ describe('service tests', () => {
             registerService('svc-foreach', {
                 doubleAll: {
                     impl: {
-                        inputMap: { $return: '#.input' },
+                        inputMap: '#.input',
                         forEach: { return: { $multiply: ['#.input', 2] } }
                     }
                 }
@@ -186,14 +186,14 @@ describe('service tests', () => {
             registerService('svc-try', {
                 safeExecute: {
                     impl: {
-                        try: { throw: { $return: '#.input.message' } },
-                        catch: { return: { $return: '#.error' } }
+                        try: { throw: '#.input.message' },
+                        catch: { return: '#.error' }
                     }
                 },
                 noError: {
                     impl: {
-                        try: { return: { $return: '#.input' } },
-                        catch: { return: { $return: 'caught' } }
+                        try: { return: '#.input' },
+                        catch: { return: 'caught' }
                     }
                 }
             });
@@ -213,19 +213,19 @@ describe('service tests', () => {
                 registerService('svc-try-ctx', {
                     tryWithStep: {
                         impl: [
-                            { name: 'greeting', set: { $return: 'hello' } },
+                            { name: 'greeting', set: 'hello' },
                             {
-                                try:   { return: { $return: '#.greeting' } },
-                                catch: { return: { $return: 'error' } }
+                                try:   { return: '#.greeting' },
+                                catch: { return: 'error' }
                             }
                         ]
                     },
                     catchWithStep: {
                         impl: [
-                            { name: 'label', set: { $return: '#.input.tag' } },
+                            { name: 'label', set: '#.input.tag' },
                             {
-                                try:   { throw: { $return: '#.input.message' } },
-                                catch: { return: { $return: '#.context.label' } }
+                                try:   { throw: '#.input.message' },
+                                catch: { return: '#.context.label' }
                             }
                         ]
                     }
@@ -248,7 +248,7 @@ describe('service tests', () => {
 
         before(() => {
             registerService('svc-throw', {
-                fail: { impl: { throw: { $return: '#.input.message' } } }
+                fail: { impl: { throw: '#.input.message' } }
             });
         });
 
@@ -268,10 +268,10 @@ describe('service tests', () => {
                 route: {
                     impl: {
                         switch: {
-                            value: { $return: '#.input.op' },
+                            value: '#.input.op',
                             cases: {
                                 add:     { return: { $sum: ['#.input.a', '#.input.b'] } },
-                                default: { return: { $return: 0 } }
+                                default: { return: 0 }
                             }
                         }
                     }
@@ -281,10 +281,10 @@ describe('service tests', () => {
                         { name: 'base', set: { $multiply: ['#.input.x', 2] } },
                         {
                             switch: {
-                                value: { $return: '#.input.op' },
+                                value: '#.input.op',
                                 cases: {
                                     inc:     { return: { $sum: ['#.base', '#.input.x'] } },
-                                    default: { return: { $return: '#.base' } }
+                                    default: { return: '#.base' }
                                 }
                             }
                         }
@@ -320,7 +320,7 @@ describe('service tests', () => {
             registerService('svc-delegate-outer', {
                 compute: {
                     impl: {
-                        inputMap: { $return: '#.input' },
+                        inputMap: '#.input',
                         service: { id: 'svc-delegate-inner', method: 'double' }
                     }
                 }

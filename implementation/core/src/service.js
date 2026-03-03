@@ -143,15 +143,19 @@ async function executeMapping(func, input) {
 async function compileMapping(func) {
     const customPrimitives = await getCustomPrimitives(func);
 
-    const pureFunc = { ...func };
-    delete pureFunc.$low;
+    let lambda = func;
 
-    return compile(pureFunc, customPrimitives);
+    if (has(func, '$low')) {
+        lambda = { ...func };
+        delete lambda.$low;
+    }
+
+    return compile(lambda, customPrimitives);
 } 
 
 async function getCustomPrimitives(func) {
     const primitives = {}
-    if (!func.$low) {
+    if (!has(func, '$low')) {
         return primitives;
     }
 
