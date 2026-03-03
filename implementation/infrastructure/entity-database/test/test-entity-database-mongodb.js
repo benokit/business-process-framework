@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { MongoClient } from 'mongodb';
-import { connect, disconnect, getCollection } from '../src/mongodb-client.js';
+import { connect, disconnect, getCollection } from 'mongodb-client';
 import * as db from '../src/entity-database-mongodb.js';
 
 const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://admin:password@localhost:27017/admin';

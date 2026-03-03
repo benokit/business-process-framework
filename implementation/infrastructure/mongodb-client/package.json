@@ -1,0 +1,14 @@
+{
+  "name": "mongodb-client",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/mongodb-client.js"
+  },
+  "scripts": {
+    "test": "echo \"No tests for mongodb-client\""
+  },
+  "dependencies": {
+    "mongodb": "^6.13.0"
+  }
+}

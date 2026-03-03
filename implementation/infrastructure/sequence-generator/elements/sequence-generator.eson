@@ -1,0 +1,26 @@
+[
+    {
+        "type": "schema",
+        "id": "sequence-next-input",
+        "schema": {
+            "!sequence": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "sequence-next-output",
+        "schema": {
+            "!value": "number"
+        }
+    },
+    {
+        "type": "data",
+        "id": "sequence-generator-interface",
+        "data": {
+            "next": {
+                "input": "@sequence-next-input",
+                "output": "@sequence-next-output"
+            }
+        }
+    }
+]

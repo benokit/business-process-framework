@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { getCollection } from './mongodb-client.js';
+import { getCollection } from 'mongodb-client';
 
 async function create({ collection, data }) {
     const col = getCollection(collection);

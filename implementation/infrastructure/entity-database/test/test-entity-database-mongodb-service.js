@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { MongoClient } from 'mongodb';
 import { loadElements } from 'core/elements-loader';
 import { execute } from 'core/service';
-import { connect, disconnect, getCollection } from '../src/mongodb-client.js';
+import { connect, disconnect, getCollection } from 'mongodb-client';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');
