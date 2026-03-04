@@ -1,26 +1,40 @@
 import { ObjectId } from 'mongodb';
 import { getCollection } from 'mongodb-client';
 
-async function create({ collection, data }) {
+const indexedCollections = new Set();
+
+async function ensureBusinessKeyIndex(col) {
+    if (indexedCollections.has(col.collectionName)) return;
+    await col.createIndex({ businessKey: 1 }, { unique: true });
+    indexedCollections.add(col.collectionName);
+}
+
+async function create({ collection, businessKey, data }) {
+    if (typeof businessKey !== 'string' || businessKey === '') {
+        throw 'create failed: businessKey must be a non-empty string';
+    }
     const col = getCollection(collection);
-    const doc = { version: 1, data };
+    await ensureBusinessKeyIndex(col);
+    const doc = { businessKey, version: 1, data };
     const result = await col.insertOne(doc);
     if (!result.acknowledged) {
         throw 'create failed';
     }
-    return { id: result.insertedId.toString(), version: 1, data };
+    return { id: result.insertedId.toString(), businessKey, version: 1, data };
 }
 
-async function read({ collection, id }) {
+async function read({ collection, id, businessKey }) {
     const col = getCollection(collection);
-    const result = await col.findOne({ _id: ObjectId.createFromHexString(id) });
+    const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
+    const result = await col.findOne(criteria);
     return result ? toRecord(result) : null;
 }
 
-async function update({ collection, id, version, data }) {
+async function update({ collection, id, businessKey, version, data }) {
     const col = getCollection(collection);
+    const criteria = businessKey ? { businessKey, version } : { _id: ObjectId.createFromHexString(id), version };
     const result = await col.findOneAndUpdate(
-        { _id: ObjectId.createFromHexString(id), version },
+        criteria,
         { $inc: { version: 1 }, $set: { data } },
         { returnDocument: 'after' }
     );
@@ -30,9 +44,9 @@ async function update({ collection, id, version, data }) {
     return toRecord(result);
 }
 
-async function del({ collection, id, version }) {
+async function del({ collection, id, businessKey, version }) {
     const col = getCollection(collection);
-    const criteria = { _id: ObjectId.createFromHexString(id) };
+    const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
     if (version !== undefined) {
         criteria.version = version;
     }
@@ -60,7 +74,7 @@ async function list({ collection, filter = {}, sort, limit = 100, skip = 0 }) {
 }
 
 function toRecord(doc) {
-    return { id: doc._id.toString(), version: doc.version, data: doc.data };
+    return { id: doc._id.toString(), businessKey: doc.businessKey, version: doc.version, data: doc.data };
 }
 
 export { create, read, update, del as delete, list };

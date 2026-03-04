@@ -4,6 +4,7 @@
         "id": "entity-record",
         "schema": {
             "!id": "string",
+            "!businessKey": "string",
             "!version": "number",
             "!data": "object"
         }
@@ -13,6 +14,7 @@
         "id": "entity-database-create-input",
         "schema": {
             "!collection": "string",
+            "!businessKey": "string",
             "!data": "object"
         }
     },
@@ -20,27 +22,30 @@
         "type": "schema",
         "id": "entity-database-read-input",
         "schema": {
-            "!collection": "string",
-            "!id": "string"
+            "$data#1": [
+                { "!collection": "string", "!id": "string" },
+                { "!collection": "string", "!businessKey": "string" }
+            ]
         }
     },
     {
         "type": "schema",
         "id": "entity-database-update-input",
         "schema": {
-            "!collection": "string",
-            "!id": "string",
-            "!version": "number",
-            "!data": "object"
+            "$data#1": [
+                { "!collection": "string", "!id": "string", "!version": "number", "!data": "object" },
+                { "!collection": "string", "!businessKey": "string", "!version": "number", "!data": "object" }
+            ]
         }
     },
     {
         "type": "schema",
         "id": "entity-database-delete-input",
         "schema": {
-            "!collection": "string",
-            "!id": "string",
-            "version": "number"
+            "$data#1": [
+                { "!collection": "string", "!id": "string", "version": "number" },
+                { "!collection": "string", "!businessKey": "string", "version": "number" }
+            ]
         }
     },
     {

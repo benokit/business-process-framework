@@ -38,10 +38,20 @@ describe('entity-database-mongodb (service element)', function () {
 
     describe('input validation', () => {
 
-        it('throws when a required field is missing', async () => {
+        it('throws when collection is missing', async () => {
             let error;
             try {
-                await execute(SERVICE, 'create', { data: { name: 'Alice' } }); // missing collection
+                await execute(SERVICE, 'create', { businessKey: 'bk-val-1', data: { name: 'Alice' } });
+            } catch (e) {
+                error = e;
+            }
+            expect(error).to.be.a('string').that.includes('input is not valid');
+        });
+
+        it('throws when businessKey is missing from create', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'create', { collection: COLLECTION, data: { name: 'Alice' } });
             } catch (e) {
                 error = e;
             }
@@ -52,25 +62,38 @@ describe('entity-database-mongodb (service element)', function () {
 
     describe('create', () => {
 
-        it('returns an entity record with the correct shape', async () => {
-            const result = await execute(SERVICE, 'create', { collection: COLLECTION, data: { name: 'Alice' } });
-            expect(result).to.include.keys('id', 'version', 'data');
+        it('returns an entity record with the correct shape including businessKey', async () => {
+            const result = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-alice', data: { name: 'Alice' } });
+            expect(result).to.include.keys('id', 'businessKey', 'version', 'data');
+            expect(result.businessKey).to.equal('bk-svc-alice');
             expect(result.version).to.equal(1);
             expect(result.data).to.deep.equal({ name: 'Alice' });
         });
 
+        it('throws on duplicate businessKey', async () => {
+            await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-dup', data: { name: 'Original' } });
+            let error;
+            try {
+                await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-dup', data: { name: 'Duplicate' } });
+            } catch (e) {
+                error = e;
+            }
+            expect(error).to.exist;
+        });
+
     });
 
-    describe('read', () => {
+    describe('read by id', () => {
         let id;
 
         before(async () => {
-            ({ id } = await execute(SERVICE, 'create', { collection: COLLECTION, data: { name: 'Bob' } }));
+            ({ id } = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-bob', data: { name: 'Bob' } }));
         });
 
         it('returns the entity record for an existing id', async () => {
             const result = await execute(SERVICE, 'read', { collection: COLLECTION, id });
             expect(result.id).to.equal(id);
+            expect(result.businessKey).to.equal('bk-svc-bob');
             expect(result.version).to.equal(1);
             expect(result.data).to.deep.equal({ name: 'Bob' });
         });
@@ -82,11 +105,30 @@ describe('entity-database-mongodb (service element)', function () {
 
     });
 
-    describe('update', () => {
+    describe('read by businessKey', () => {
+
+        before(async () => {
+            await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-charlie', data: { name: 'Charlie' } });
+        });
+
+        it('returns the entity record for an existing businessKey', async () => {
+            const result = await execute(SERVICE, 'read', { collection: COLLECTION, businessKey: 'bk-svc-charlie' });
+            expect(result.businessKey).to.equal('bk-svc-charlie');
+            expect(result.data).to.deep.equal({ name: 'Charlie' });
+        });
+
+        it('returns null for a non-existent businessKey', async () => {
+            const result = await execute(SERVICE, 'read', { collection: COLLECTION, businessKey: 'no-such-key' });
+            expect(result).to.be.null;
+        });
+
+    });
+
+    describe('update by id', () => {
         let id, version;
 
         before(async () => {
-            ({ id, version } = await execute(SERVICE, 'create', { collection: COLLECTION, data: { name: 'Carol' } }));
+            ({ id, version } = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-carol', data: { name: 'Carol' } }));
         });
 
         it('updates data and increments version', async () => {
@@ -108,11 +150,37 @@ describe('entity-database-mongodb (service element)', function () {
 
     });
 
-    describe('delete', () => {
+    describe('update by businessKey', () => {
+        let version;
+
+        before(async () => {
+            ({ version } = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-diana', data: { name: 'Diana' } }));
+        });
+
+        it('updates data and increments version', async () => {
+            const result = await execute(SERVICE, 'update', { collection: COLLECTION, businessKey: 'bk-svc-diana', version, data: { name: 'Di' } });
+            expect(result.businessKey).to.equal('bk-svc-diana');
+            expect(result.version).to.equal(2);
+            expect(result.data).to.deep.equal({ name: 'Di' });
+        });
+
+        it('throws on version mismatch', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'update', { collection: COLLECTION, businessKey: 'bk-svc-diana', version: 99, data: { name: 'X' } });
+            } catch (e) {
+                error = e;
+            }
+            expect(error).to.be.a('string').that.includes('update failed');
+        });
+
+    });
+
+    describe('delete by id', () => {
         let id, version;
 
         before(async () => {
-            ({ id, version } = await execute(SERVICE, 'create', { collection: COLLECTION, data: { name: 'Dave' } }));
+            ({ id, version } = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-dave', data: { name: 'Dave' } }));
         });
 
         it('removes the document and returns its record', async () => {
@@ -133,32 +201,62 @@ describe('entity-database-mongodb (service element)', function () {
 
     });
 
+    describe('delete by businessKey', () => {
+        let version;
+
+        before(async () => {
+            ({ version } = await execute(SERVICE, 'create', { collection: COLLECTION, businessKey: 'bk-svc-eve', data: { name: 'Eve' } }));
+        });
+
+        it('removes the document and returns its record', async () => {
+            const result = await execute(SERVICE, 'delete', { collection: COLLECTION, businessKey: 'bk-svc-eve', version });
+            expect(result.businessKey).to.equal('bk-svc-eve');
+            expect(result.data).to.deep.equal({ name: 'Eve' });
+        });
+
+        it('throws when the document no longer exists', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'delete', { collection: COLLECTION, businessKey: 'bk-svc-eve', version: 1 });
+            } catch (e) {
+                error = e;
+            }
+            expect(error).to.be.a('string').that.includes('delete failed');
+        });
+
+    });
+
     describe('list', () => {
         const seeds = [
-            { name: 'Eve',   role: 'admin' },
-            { name: 'Frank', role: 'user'  },
-            { name: 'Grace', role: 'user'  }
+            { businessKey: 'bk-svc-list-frank', data: { name: 'Frank', role: 'admin' } },
+            { businessKey: 'bk-svc-list-grace', data: { name: 'Grace', role: 'user'  } },
+            { businessKey: 'bk-svc-list-henry', data: { name: 'Henry', role: 'user'  } }
         ];
 
         before(async () => {
-            await Promise.all(seeds.map(data => execute(SERVICE, 'create', { collection: COLLECTION, data })));
+            await Promise.all(seeds.map(({ businessKey, data }) => execute(SERVICE, 'create', { collection: COLLECTION, businessKey, data })));
         });
 
         it('returns all records in the collection', async () => {
             const { records } = await execute(SERVICE, 'list', { collection: COLLECTION });
             const names = records.map(r => r.data.name);
-            expect(names).to.include.members(['Eve', 'Frank', 'Grace']);
+            expect(names).to.include.members(['Frank', 'Grace', 'Henry']);
+        });
+
+        it('records include businessKey', async () => {
+            const { records } = await execute(SERVICE, 'list', { collection: COLLECTION, filter: { name: 'Frank' } });
+            expect(records[0].businessKey).to.equal('bk-svc-list-frank');
         });
 
         it('filters by a data field equality', async () => {
-            const { records } = await execute(SERVICE, 'list', { collection: COLLECTION, filter: { name: 'Eve' } });
+            const { records } = await execute(SERVICE, 'list', { collection: COLLECTION, filter: { name: 'Frank' } });
             expect(records).to.have.length(1);
-            expect(records[0].data.name).to.equal('Eve');
+            expect(records[0].data.name).to.equal('Frank');
         });
 
         it('filters to multiple records by a shared field', async () => {
             const { records } = await execute(SERVICE, 'list', { collection: COLLECTION, filter: { role: 'user' } });
-            expect(records.map(r => r.data.name)).to.include.members(['Frank', 'Grace']);
+            expect(records.map(r => r.data.name)).to.include.members(['Grace', 'Henry']);
             expect(records.every(r => r.data.role === 'user')).to.be.true;
         });
 
