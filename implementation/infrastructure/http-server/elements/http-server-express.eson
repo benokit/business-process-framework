@@ -3,8 +3,17 @@
         "type": "data",
         "id": "http-server-express-implementation",
         "data": {
-            "start": { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "start" } },
-            "stop":  { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "stop" } }
+            "start": [
+                {
+                    "name": "endpointData",
+                    "service": { "id": "data", "method": "getDataOfKind" },
+                    "inputMap": { "kind": "endpoint" }
+                },
+                {
+                    "low": { "module": "http-server/express", "functionName": "start" }
+                }
+            ],
+            "stop": { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "stop" } }
         }
     },
     {

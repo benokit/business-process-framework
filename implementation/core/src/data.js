@@ -1,5 +1,5 @@
 import { isArray, isPlainObject, mapValues, merge } from 'lodash-es';
-import { getElement } from './elements-registry.js';
+import { getElement, getElements } from './elements-registry.js';
 
 const dataCache = {};
 
@@ -54,7 +54,13 @@ function evaluateData(data) {
     }
 }
 
+function getDataOfKind(kind) {
+    const elements = getElements('data', kind);
+    return { items: elements.map(el => getData(el.id)).filter(Boolean) };
+}
+
 export {
     getData,
+    getDataOfKind,
     evaluateData
 };

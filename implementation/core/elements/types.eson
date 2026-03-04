@@ -1,6 +1,23 @@
 [
     {
         "type": "schema",
+        "id": "data-element",
+        "schema": {
+            "!type=": "data",
+            "!id": "string",
+            "meta": "object",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "data-element-list",
+        "schema": {
+            "items[]": "@data-element"
+        }
+    },
+    {
+        "type": "schema",
         "id": "types",
         "schema": {
             "$data#1": [
@@ -10,12 +27,7 @@
                     "meta": "object",
                     "!schema": "object"
                 },
-                {
-                    "!type=": "data",
-                    "!id": "string",
-                    "meta": "object",
-                    "!data": "object"
-                },
+                "@data-element",
                 {
                     "!type=": "service",
                     "!id": "string",

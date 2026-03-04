@@ -1,14 +1,15 @@
 import express from 'express';
-import { getElements } from 'core/elements-registry';
 import { execute } from 'core/service';
 
 let server = null;
 
-async function start({ port = 3000 } = {}) {
+async function start({ input = {}, endpointData = {} } = {}) {
+    const port = input.port ?? 3000;
+    const endpoints = endpointData.items ?? [];
+
     const app = express();
     app.use(express.json());
 
-    const endpoints = getElements('data', 'endpoint');
     for (const endpoint of endpoints) {
         const { method, path, controller } = endpoint.data;
         app[method.toLowerCase()](path, async (req, res) => {

@@ -18,7 +18,7 @@ describe('http-server-express', function () {
         let port;
 
         before(async () => {
-            ({ port } = await start({ port: 0 }));
+            ({ port } = await start({ input: { port: 0 }, endpointData: { items: [] } }));
         });
 
         after(async () => {
@@ -40,7 +40,7 @@ describe('http-server-express', function () {
     describe('stop', () => {
 
         it('server is no longer reachable after stop', async () => {
-            const { port } = await start({ port: 0 });
+            const { port } = await start({ input: { port: 0 }, endpointData: { items: [] } });
             await stop();
             let error;
             try {
@@ -52,7 +52,8 @@ describe('http-server-express', function () {
         });
 
         it('calling stop when not started is a no-op', async () => {
-            await expect(stop()).to.be.fulfilled;
+            const result = await stop();
+            expect(result).to.deep.equal({});
         });
 
     });

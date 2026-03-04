@@ -1,0 +1,34 @@
+[
+    {
+        "type": "schema",
+        "id": "data-get-input",
+        "schema": {
+            "!id": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "data-get-kind-input",
+        "schema": {
+            "!kind": "string"
+        }
+    },
+    {
+        "type": "service",
+        "id": "data",
+        "interface": {
+            "getData": {
+                "input":  "@data-get-input",
+                "output": "@data-element"
+            },
+            "getDataOfKind": {
+                "input":  "@data-get-kind-input",
+                "output": "@data-element-list"
+            }
+        },
+        "implementation": {
+            "getData":       { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getData" } },
+            "getDataOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKind" } }
+        }
+    }
+]
