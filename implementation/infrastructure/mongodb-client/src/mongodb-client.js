@@ -25,4 +25,8 @@ function getCollection(name) {
     return client.db(dbName).collection(name);
 }
 
-export { connect, disconnect, getCollection };
+function getClient() {
+    return client;
+}
+
+export { connect, disconnect, getCollection, getClient };

@@ -1,0 +1,51 @@
+[
+    {
+        "type": "schema",
+        "id": "transaction-begin-input",
+        "schema": {
+            "options": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "transaction-session",
+        "schema": {
+            "!sessionId": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "execute-in-transaction-input",
+        "schema": {
+            "config": "object",
+            "!program": {}
+        }
+    },
+    {
+        "type": "data",
+        "id": "transaction-mongodb-low-interface",
+        "data": {
+            "beginTransaction": {
+                "input": "@transaction-begin-input",
+                "output": "@transaction-session"
+            },
+            "commitTransaction": {
+                "input": "@transaction-session",
+                "output": "@transaction-session"
+            },
+            "rollbackTransaction": {
+                "input": "@transaction-session",
+                "output": "@transaction-session"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "transaction-interface",
+        "data": {
+            "executeInTransaction": {
+                "input": "@execute-in-transaction-input"
+            }
+        }
+    }
+]

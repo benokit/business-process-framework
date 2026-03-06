@@ -10,8 +10,33 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
+    entrypoint:
+      - bash
+      - -c
+      - |
+        openssl rand -base64 741 > /tmp/mongo-keyfile
+        chmod 400 /tmp/mongo-keyfile
+        chown 999:999 /tmp/mongo-keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /tmp/mongo-keyfile
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--username", "admin", "--password", "password", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  mongo-init:
+    image: mongo:latest
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      mongosh --host mongodb --port 27017
+        --username admin --password password --authenticationDatabase admin
+        --eval "try { rs.status(); } catch(e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }); }"
 
 volumes:
   mongo_data:
