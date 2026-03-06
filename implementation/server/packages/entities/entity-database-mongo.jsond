@@ -1,9 +1,0 @@
-[
-    {
-        "type": "service",
-        "interface": "entity-database",
-        "id": "mongodb",
-        "configurationSchema": {},
-        "implementation": "entities/mongodb"
-    }
-]

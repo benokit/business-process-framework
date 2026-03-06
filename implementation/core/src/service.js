@@ -35,6 +35,7 @@ const keyword = {
     throw: 'throw',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
+    dynamic: 'dynamic',
     default: 'default'
 };
 
@@ -62,10 +63,17 @@ async function executeMethodWithContext(implementation, context) {
 }
 
 async function executeItem(item, context) {
-    const input = has(item, keyword.inputMap) ? (await executeMapping(item.inputMap, context)) : context;
-    const exec = await resolveItemExecutor(item);
+    let staticItem = item;
+    if (has(item, keyword.dynamic)) {
+        const dynamicPart = await executeMapping(item.dynamic, context);
+        const { [keyword.dynamic]: _, ...rest } = item;
+        staticItem = { ...rest, ...dynamicPart };
+    }
+
+    const input = has(staticItem, keyword.inputMap) ? (await executeMapping(staticItem.inputMap, context)) : context;
+    const exec = await resolveItemExecutor(staticItem);
     const result = await exec(input);
-    const output = has(item, keyword.outputMap) ? (await executeMapping(item.outputMap, result)) : result;
+    const output = has(staticItem, keyword.outputMap) ? (await executeMapping(staticItem.outputMap, result)) : result;
     return output;
 }
 

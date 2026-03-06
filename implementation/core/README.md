@@ -51,6 +51,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `forEach` | Applies an implementation to each element of the input array |
 | `try` / `catch` | Error handling; if `try` body throws, `catch` body executes |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
+| `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the item (with `dynamic` removed) and the merged item is executed as a normal static item |
 
 ### Per-item modifiers
 
@@ -59,6 +60,8 @@ Any item (regardless of keyword) accepts these optional fields:
 - `name` — captures the item's output into the execution context under this key for use by later steps
 - `inputMap` — lambdaJSON expression evaluated against the current context; its result is passed as the item's input instead of the full context
 - `outputMap` — lambdaJSON expression applied to the item's raw output before it is stored or returned
+
+When `dynamic` is used, `inputMap` and `outputMap` belong to the outer item, not to the dynamic object. The `dynamic` expression is evaluated first against the full context; only then does `inputMap` (from the merged item) narrow the input for the resolved executor.
 
 ### Execution context
 
