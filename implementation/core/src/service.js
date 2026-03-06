@@ -26,6 +26,7 @@ function validateInputAgainstInterface(methodInterface, input) {
 const keyword = {
     service: 'service',
     low: 'low',
+    execute: 'execute',
     set: 'set',
     if: 'if',
     return: 'return',
@@ -80,6 +81,10 @@ async function executeItem(item, context) {
 async function resolveItemExecutor(item) {
     if (has(item, keyword.service)) {
         return async input => await execute(item.service.id, item.service.method, input);
+    }
+
+    if (has(item, keyword.execute)) {
+        return async input => await executeMethodWithContext(item.execute, input);
     }
 
     if (has(item, keyword.low)) {

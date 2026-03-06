@@ -64,6 +64,7 @@ A method implementation can be an array of steps. Each step may have:
 - `outputMap` — lambdajson expression mapping step output
 - `name` — stores step output in context under this key for later steps
 - Control flow: `if/then/else`, `switch`, `forEach`, `try/catch`, `throw`, `return`, `set`
+- `execute` — executes its value (a single item or pipeline array) inline, passing the current input (after `inputMap`) as context. Primarily useful with `dynamic` to inject pipelines at runtime.
 - `dynamic` — lambdajson expression evaluated against the full context; its result is merged into the item (overriding any same-named keys) with `dynamic` removed, and the merged item is then executed as a normal static step. `inputMap` and `outputMap` on the outer item are not part of the dynamic object — they are resolved in the static execution phase after the merge. Use this to select a service, method, or any other item property at runtime based on context.
 
 ### JS modules (low-level functions)

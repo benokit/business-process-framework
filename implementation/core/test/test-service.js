@@ -333,6 +333,55 @@ describe('service tests', () => {
 
     });
 
+    describe('execute', () => {
+
+        before(() => {
+            registerService('svc-execute', {
+                single: {
+                    impl: { execute: { return: '#.input.x' } }
+                },
+                pipeline: {
+                    impl: {
+                        execute: [
+                            { name: 'doubled', set: { $multiply: ['#.input.x', 2] } },
+                            { return: { $sum: ['#.doubled', '#.input.x'] } }
+                        ]
+                    }
+                },
+                withInputMap: {
+                    impl: {
+                        inputMap: '#.input',
+                        execute: { return: '#.x' }
+                    }
+                }
+            });
+
+            registerService('svc-execute-dynamic', {
+                run: {
+                    impl: { dynamic: { execute: '#.input.pipeline' } }
+                }
+            });
+        });
+
+        it('should execute a single-item pipeline with the current context', async () => {
+            expect(await execute('svc-execute', 'single', { x: 5 })).to.equal(5);
+        });
+
+        it('should execute a pipeline array with shared named step context', async () => {
+            expect(await execute('svc-execute', 'pipeline', { x: 3 })).to.equal(9);
+        });
+
+        it('should use the inputMap result as context for the execute pipeline', async () => {
+            expect(await execute('svc-execute', 'withInputMap', { x: 7 })).to.equal(7);
+        });
+
+        it('should allow dynamic to inject a pipeline at runtime', async () => {
+            const pipeline = { return: { $sum: ['#.input.a', '#.input.b'] } };
+            expect(await execute('svc-execute-dynamic', 'run', { pipeline, a: 3, b: 4 })).to.equal(7);
+        });
+
+    });
+
     describe('low', () => {
 
         before(() => {

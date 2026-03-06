@@ -1,11 +1,11 @@
 [
     {
         "type": "schema",
-        "id": "entity-kind-manifest",
+        "id": "entity-type-manifest",
         "schema": {
-            "!kind": "string",
+            "!type": "string",
             "!bodySchema": "@schema",
-            "evaluationSchema": "@schema",
+            "evaluation": "@service",
             "businessKeyGenerator": "@service",
             "traits{}": "@entity-trait"
         }

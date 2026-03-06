@@ -46,6 +46,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }` |
+| `execute` | Executes a pipeline (single item or array) inline with the current input as context; primarily useful with `dynamic` to inject pipelines at runtime |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |
@@ -70,7 +71,7 @@ The execution context is an object available throughout a method's pipeline:
 - `input` — the method's validated input value
 - `<name>` — the output of any preceding pipeline item that carries a `name`
 
-All branch keywords (`if`, `switch`) pass the full context into their bodies. Two special cases:
+All branch keywords (`if`, `switch`, `execute`) pass the full context into their bodies (or the `inputMap` result if one is present). Two special cases:
 
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
 - **`try/catch`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer named steps are accessible as `#.context.<name>`.
