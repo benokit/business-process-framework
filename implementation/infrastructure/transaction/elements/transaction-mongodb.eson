@@ -3,8 +3,8 @@
         "type": "data",
         "id": "transaction-mongodb-low-implementation",
         "data": {
-            "beginTransaction":   { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "beginTransaction" } },
-            "commitTransaction":  { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "commitTransaction" } },
+            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "beginTransaction" } },
+            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "commitTransaction" } },
             "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "rollbackTransaction" } }
         }
     },
@@ -18,37 +18,49 @@
         "type": "data",
         "id": "transaction-mongodb-implementation",
         "data": {
-            "executeInTransaction": [
-                {
-                    "name": "txn",
-                    "inputMap": { "options": "#.input.config" },
-                    "service": { "id": "transaction-mongodb-low", "method": "beginTransaction" }
-                },
-                {
-                    "try": [
-                        {
-                            "name": "result",
-                            "dynamic": { "execute": "#.input.program" }
-                        },
-                        {
-                            "inputMap": "#.txn",
-                            "service": { "id": "transaction-mongodb-low", "method": "commitTransaction" }
-                        },
-                        {
-                            "return": "#.result"
-                        }
-                    ],
-                    "catch": [
-                        {
-                            "inputMap": "#.context.txn",
-                            "service": { "id": "transaction-mongodb-low", "method": "rollbackTransaction" }
-                        },
-                        {
-                            "throw": "#.error"
-                        }
-                    ]
-                }
-            ]
+            "executeInTransaction": {
+                "if": "#._ctx.transaction",
+                "then": { "dynamic": { "execute": "#.input.program" } },
+                "else": [
+                    {
+                        "name": "txn",
+                        "inputMap": { "options": "#.input.config" },
+                        "service": { "id": "transaction-mongodb-low", "method": "beginTransaction" }
+                    },
+                    {
+                        "name": "_ctx",
+                        "set": { "transaction": "#.txn" }
+                    },
+                    {
+                        "try": [
+                            {
+                                "name": "result",
+                                "dynamic": { "execute": "#.input.program" }
+                            },
+                            {
+                                "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
+                                "service": { "id": "transaction-mongodb-low", "method": "commitTransaction" }
+                            },
+                            {
+                                "return": "#.result"
+                            }
+                        ],
+                        "catch": [
+                            {
+                                "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
+                                "service": { "id": "transaction-mongodb-low", "method": "rollbackTransaction" }
+                            },
+                            {
+                                "throw": "#.error"
+                            }
+                        ],
+                        "finally": [
+                            { "name": "_ctx", "set": { "transaction": false } },
+                            { "return": "#._ctx.transaction" }
+                        ]
+                    }
+                ]
+            }
         }
     },
     {

@@ -59,8 +59,13 @@ function getDataOfKind(kind) {
     return { items: elements.map(el => getData(el.id)).filter(Boolean) };
 }
 
+function getDataLow({ input }) { return getData(input); }
+function getDataOfKindLow({ input }) { return getDataOfKind(input); }
+
 export {
     getData,
     getDataOfKind,
-    evaluateData
+    evaluateData,
+    getDataLow,
+    getDataOfKindLow
 };

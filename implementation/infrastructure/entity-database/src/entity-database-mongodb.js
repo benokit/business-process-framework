@@ -9,7 +9,7 @@ async function ensureBusinessKeyIndex(col) {
     indexedCollections.add(col.collectionName);
 }
 
-async function create({ collection, businessKey, data }) {
+async function create({ input: { collection, businessKey, data } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
@@ -23,14 +23,14 @@ async function create({ collection, businessKey, data }) {
     return { id: result.insertedId.toString(), businessKey, version: 1, data };
 }
 
-async function read({ collection, id, businessKey }) {
+async function read({ input: { collection, id, businessKey } }) {
     const col = getCollection(collection);
     const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
     const result = await col.findOne(criteria);
     return result ? toRecord(result) : null;
 }
 
-async function update({ collection, id, businessKey, version, data }) {
+async function update({ input: { collection, id, businessKey, version, data } }) {
     const col = getCollection(collection);
     const criteria = businessKey ? { businessKey, version } : { _id: ObjectId.createFromHexString(id), version };
     const result = await col.findOneAndUpdate(
@@ -44,7 +44,7 @@ async function update({ collection, id, businessKey, version, data }) {
     return toRecord(result);
 }
 
-async function del({ collection, id, businessKey, version }) {
+async function del({ input: { collection, id, businessKey, version } }) {
     const col = getCollection(collection);
     const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
     if (version !== undefined) {
@@ -57,7 +57,7 @@ async function del({ collection, id, businessKey, version }) {
     return toRecord(result);
 }
 
-async function list({ collection, filter = {}, sort, limit = 100, skip = 0 }) {
+async function list({ input: { collection, filter = {}, sort, limit = 100, skip = 0 } }) {
     const col = getCollection(collection);
     const mongoFilter = Object.fromEntries(
         Object.entries(filter).map(([k, v]) => [`data.${k}`, v])

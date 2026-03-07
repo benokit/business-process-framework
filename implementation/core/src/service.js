@@ -1,19 +1,19 @@
 import { validateSchema } from './schema.js';
 import { getData } from './data.js';
 import { getElement } from './elements-registry.js';
-import { has, isArray } from 'lodash-es';
+import { has, isArray, isPlainObject, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 
 export {
     execute
 };
 
-async function execute(serviceId, methodName, input) {
+async function execute(serviceId, methodName, input, _ctx = {}) {
     const service = getElement('service', serviceId)
     const iface = getData(service.interface);
     validateInputAgainstInterface(iface.data[methodName], input);
     const impl = getData(service.implementation).data[methodName];
-    return await executeMethod(impl, input);
+    return await executeMethod(impl, input, _ctx);
 }
 
 function validateInputAgainstInterface(methodInterface, input) {
@@ -33,6 +33,8 @@ const keyword = {
     forEach: 'forEach',
     switch: 'switch',
     try: 'try',
+    catch: 'catch',
+    finally: 'finally',
     throw: 'throw',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
@@ -40,8 +42,9 @@ const keyword = {
     default: 'default'
 };
 
-async function executeMethod(implementation, input) {
+async function executeMethod(implementation, input, _ctx = {}) {
     const context = {
+        _ctx,
         input
     };
     return await executeMethodWithContext(implementation, context);
@@ -55,7 +58,11 @@ async function executeMethodWithContext(implementation, context) {
     for (const item of implementation.slice(0, -1)) {
         const output = await executeItem(item, context);
         if (item.name) {
-            context[item.name] = output;
+            if (has(item, keyword.set) && isPlainObject(context[item.name]) && isPlainObject(output)) {
+                merge(context[item.name], output);
+            } else {
+                context[item.name] = output;
+            }
         }
     }
 
@@ -71,16 +78,18 @@ async function executeItem(item, context) {
         staticItem = { ...rest, ...dynamicPart };
     }
 
-    const input = has(staticItem, keyword.inputMap) ? (await executeMapping(staticItem.inputMap, context)) : context;
+    const nodeInput = has(staticItem, keyword.inputMap)
+        ? { _ctx: context._ctx, input: await executeMapping(staticItem.inputMap, context) }
+        : context;
     const exec = await resolveItemExecutor(staticItem);
-    const result = await exec(input);
+    const result = await exec(nodeInput);
     const output = has(staticItem, keyword.outputMap) ? (await executeMapping(staticItem.outputMap, result)) : result;
     return output;
 }
 
 async function resolveItemExecutor(item) {
     if (has(item, keyword.service)) {
-        return async input => await execute(item.service.id, item.service.method, input);
+        return async ({ _ctx, input }) => await execute(item.service.id, item.service.method, input, _ctx);
     }
 
     if (has(item, keyword.execute)) {
@@ -112,10 +121,10 @@ async function resolveItemExecutor(item) {
     }
 
     if (has(item, keyword.forEach)) {
-        return async input => {
+        return async ({ _ctx, input }) => {
             const result = [];
             for (const x of input) {
-                result.push(await executeMethod(item.forEach, x));
+                result.push(await executeMethod(item.forEach, x, _ctx));
             }
             return result;
         }
@@ -124,10 +133,16 @@ async function resolveItemExecutor(item) {
     if (has(item, keyword.try)) {
         return async input => {
             try {
-                return await executeMethodWithContext(item.try, input);
-            }
-            catch (error) {
-                return await executeMethodWithContext(item.catch, {context: input, error});
+                try {
+                    return await executeMethodWithContext(item.try, input);
+                } catch (error) {
+                    if (!has(item, keyword.catch)) throw error;
+                    return await executeMethodWithContext(item.catch, { _ctx: input._ctx, context: input, error });
+                }
+            } finally {
+                if (has(item, keyword.finally)) {
+                    await executeMethodWithContext(item.finally, input);
+                }
             }
         }
     }

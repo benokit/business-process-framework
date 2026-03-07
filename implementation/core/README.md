@@ -50,7 +50,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |
-| `try` / `catch` | Error handling; if `try` body throws, `catch` body executes |
+| `try` / `catch` / `finally` | Error handling; if `try` body throws, `catch` body executes (optional); `finally` body always executes after `try` and `catch` regardless of outcome, and its return value is discarded |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
 | `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the item (with `dynamic` removed) and the merged item is executed as a normal static item |
 
@@ -74,7 +74,7 @@ The execution context is an object available throughout a method's pipeline:
 All branch keywords (`if`, `switch`, `execute`) pass the full context into their bodies (or the `inputMap` result if one is present). Two special cases:
 
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
-- **`try/catch`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer named steps are accessible as `#.context.<name>`.
+- **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer named steps are accessible as `#.context.<name>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
 If no `return` is present, the method returns the output of the last executed item.
 

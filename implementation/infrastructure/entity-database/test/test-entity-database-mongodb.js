@@ -32,7 +32,7 @@ describe('entity-database-mongodb', function () {
     describe('create', () => {
 
         it('returns an entity record with id, businessKey, version 1, and the given data', async () => {
-            const result = await db.create({ collection: COLLECTION, businessKey: 'bk-create-alice', data: { name: 'Alice' } });
+            const result = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-create-alice', data: { name: 'Alice' } } });
             expect(result).to.include.keys('id', 'businessKey', 'version', 'data');
             expect(result.businessKey).to.equal('bk-create-alice');
             expect(result.version).to.equal(1);
@@ -42,7 +42,7 @@ describe('entity-database-mongodb', function () {
         it('throws when businessKey is missing', async () => {
             let error;
             try {
-                await db.create({ collection: COLLECTION, data: { name: 'X' } });
+                await db.create({ input: { collection: COLLECTION, data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -52,7 +52,7 @@ describe('entity-database-mongodb', function () {
         it('throws when businessKey is an empty string', async () => {
             let error;
             try {
-                await db.create({ collection: COLLECTION, businessKey: '', data: { name: 'X' } });
+                await db.create({ input: { collection: COLLECTION, businessKey: '', data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -60,10 +60,10 @@ describe('entity-database-mongodb', function () {
         });
 
         it('throws on duplicate businessKey', async () => {
-            await db.create({ collection: COLLECTION, businessKey: 'bk-create-dup', data: { name: 'Original' } });
+            await db.create({ input: { collection: COLLECTION, businessKey: 'bk-create-dup', data: { name: 'Original' } } });
             let error;
             try {
-                await db.create({ collection: COLLECTION, businessKey: 'bk-create-dup', data: { name: 'Duplicate' } });
+                await db.create({ input: { collection: COLLECTION, businessKey: 'bk-create-dup', data: { name: 'Duplicate' } } });
             } catch (e) {
                 error = e;
             }
@@ -76,11 +76,11 @@ describe('entity-database-mongodb', function () {
         let id;
 
         before(async () => {
-            ({ id } = await db.create({ collection: COLLECTION, businessKey: 'bk-read-bob', data: { name: 'Bob' } }));
+            ({ id } = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-read-bob', data: { name: 'Bob' } } }));
         });
 
         it('returns the entity record for an existing id', async () => {
-            const result = await db.read({ collection: COLLECTION, id });
+            const result = await db.read({ input: { collection: COLLECTION, id } });
             expect(result.id).to.equal(id);
             expect(result.businessKey).to.equal('bk-read-bob');
             expect(result.version).to.equal(1);
@@ -88,7 +88,7 @@ describe('entity-database-mongodb', function () {
         });
 
         it('returns null for a non-existent id', async () => {
-            const result = await db.read({ collection: COLLECTION, id: '000000000000000000000000' });
+            const result = await db.read({ input: { collection: COLLECTION, id: '000000000000000000000000' } });
             expect(result).to.be.null;
         });
 
@@ -97,17 +97,17 @@ describe('entity-database-mongodb', function () {
     describe('read by businessKey', () => {
 
         before(async () => {
-            await db.create({ collection: COLLECTION, businessKey: 'bk-read-bk-charlie', data: { name: 'Charlie' } });
+            await db.create({ input: { collection: COLLECTION, businessKey: 'bk-read-bk-charlie', data: { name: 'Charlie' } } });
         });
 
         it('returns the entity record for an existing businessKey', async () => {
-            const result = await db.read({ collection: COLLECTION, businessKey: 'bk-read-bk-charlie' });
+            const result = await db.read({ input: { collection: COLLECTION, businessKey: 'bk-read-bk-charlie' } });
             expect(result.businessKey).to.equal('bk-read-bk-charlie');
             expect(result.data).to.deep.equal({ name: 'Charlie' });
         });
 
         it('returns null for a non-existent businessKey', async () => {
-            const result = await db.read({ collection: COLLECTION, businessKey: 'no-such-key' });
+            const result = await db.read({ input: { collection: COLLECTION, businessKey: 'no-such-key' } });
             expect(result).to.be.null;
         });
 
@@ -117,11 +117,11 @@ describe('entity-database-mongodb', function () {
         let id, version;
 
         before(async () => {
-            ({ id, version } = await db.create({ collection: COLLECTION, businessKey: 'bk-update-carol', data: { name: 'Carol' } }));
+            ({ id, version } = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-update-carol', data: { name: 'Carol' } } }));
         });
 
         it('updates data and increments version', async () => {
-            const result = await db.update({ collection: COLLECTION, id, version, data: { name: 'Caroline' } });
+            const result = await db.update({ input: { collection: COLLECTION, id, version, data: { name: 'Caroline' } } });
             expect(result.id).to.equal(id);
             expect(result.version).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Caroline' });
@@ -130,7 +130,7 @@ describe('entity-database-mongodb', function () {
         it('throws when version does not match', async () => {
             let error;
             try {
-                await db.update({ collection: COLLECTION, id, version: 99, data: { name: 'X' } });
+                await db.update({ input: { collection: COLLECTION, id, version: 99, data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -143,11 +143,11 @@ describe('entity-database-mongodb', function () {
         let version;
 
         before(async () => {
-            ({ version } = await db.create({ collection: COLLECTION, businessKey: 'bk-update-bk-diana', data: { name: 'Diana' } }));
+            ({ version } = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-update-bk-diana', data: { name: 'Diana' } } }));
         });
 
         it('updates data and increments version', async () => {
-            const result = await db.update({ collection: COLLECTION, businessKey: 'bk-update-bk-diana', version, data: { name: 'Di' } });
+            const result = await db.update({ input: { collection: COLLECTION, businessKey: 'bk-update-bk-diana', version, data: { name: 'Di' } } });
             expect(result.businessKey).to.equal('bk-update-bk-diana');
             expect(result.version).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Di' });
@@ -156,7 +156,7 @@ describe('entity-database-mongodb', function () {
         it('throws when version does not match', async () => {
             let error;
             try {
-                await db.update({ collection: COLLECTION, businessKey: 'bk-update-bk-diana', version: 99, data: { name: 'X' } });
+                await db.update({ input: { collection: COLLECTION, businessKey: 'bk-update-bk-diana', version: 99, data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -169,11 +169,11 @@ describe('entity-database-mongodb', function () {
         let id, version;
 
         before(async () => {
-            ({ id, version } = await db.create({ collection: COLLECTION, businessKey: 'bk-delete-dave', data: { name: 'Dave' } }));
+            ({ id, version } = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-delete-dave', data: { name: 'Dave' } } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await db['delete']({ collection: COLLECTION, id, version });
+            const result = await db['delete']({ input: { collection: COLLECTION, id, version } });
             expect(result.id).to.equal(id);
             expect(result.data).to.deep.equal({ name: 'Dave' });
         });
@@ -181,7 +181,7 @@ describe('entity-database-mongodb', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await db['delete']({ collection: COLLECTION, id, version: 1 });
+                await db['delete']({ input: { collection: COLLECTION, id, version: 1 } });
             } catch (e) {
                 error = e;
             }
@@ -194,11 +194,11 @@ describe('entity-database-mongodb', function () {
         let version;
 
         before(async () => {
-            ({ version } = await db.create({ collection: COLLECTION, businessKey: 'bk-delete-bk-eve', data: { name: 'Eve' } }));
+            ({ version } = await db.create({ input: { collection: COLLECTION, businessKey: 'bk-delete-bk-eve', data: { name: 'Eve' } } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await db['delete']({ collection: COLLECTION, businessKey: 'bk-delete-bk-eve', version });
+            const result = await db['delete']({ input: { collection: COLLECTION, businessKey: 'bk-delete-bk-eve', version } });
             expect(result.businessKey).to.equal('bk-delete-bk-eve');
             expect(result.data).to.deep.equal({ name: 'Eve' });
         });
@@ -206,7 +206,7 @@ describe('entity-database-mongodb', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await db['delete']({ collection: COLLECTION, businessKey: 'bk-delete-bk-eve', version: 1 });
+                await db['delete']({ input: { collection: COLLECTION, businessKey: 'bk-delete-bk-eve', version: 1 } });
             } catch (e) {
                 error = e;
             }
@@ -223,40 +223,40 @@ describe('entity-database-mongodb', function () {
         ];
 
         before(async () => {
-            await Promise.all(seeds.map(({ businessKey, data }) => db.create({ collection: COLLECTION, businessKey, data })));
+            await Promise.all(seeds.map(({ businessKey, data }) => db.create({ input: { collection: COLLECTION, businessKey, data } })));
         });
 
         it('returns all records in the collection', async () => {
-            const { records } = await db.list({ collection: COLLECTION });
+            const { records } = await db.list({ input: { collection: COLLECTION } });
             const names = records.map(r => r.data.name);
             expect(names).to.include.members(['Frank', 'Grace', 'Henry']);
         });
 
         it('records include businessKey', async () => {
-            const { records } = await db.list({ collection: COLLECTION, filter: { name: 'Frank' } });
+            const { records } = await db.list({ input: { collection: COLLECTION, filter: { name: 'Frank' } } });
             expect(records[0].businessKey).to.equal('bk-list-frank');
         });
 
         it('filters by a data field equality', async () => {
-            const { records } = await db.list({ collection: COLLECTION, filter: { name: 'Frank' } });
+            const { records } = await db.list({ input: { collection: COLLECTION, filter: { name: 'Frank' } } });
             expect(records).to.have.length(1);
             expect(records[0].data.name).to.equal('Frank');
         });
 
         it('filters by multiple data fields', async () => {
-            const { records } = await db.list({ collection: COLLECTION, filter: { role: 'user' } });
+            const { records } = await db.list({ input: { collection: COLLECTION, filter: { role: 'user' } } });
             expect(records.map(r => r.data.name)).to.include.members(['Grace', 'Henry']);
             expect(records.every(r => r.data.role === 'user')).to.be.true;
         });
 
         it('respects limit', async () => {
-            const { records } = await db.list({ collection: COLLECTION, limit: 1 });
+            const { records } = await db.list({ input: { collection: COLLECTION, limit: 1 } });
             expect(records).to.have.length(1);
         });
 
         it('skip + limit pages through results', async () => {
-            const all = (await db.list({ collection: COLLECTION })).records;
-            const page = (await db.list({ collection: COLLECTION, skip: 1, limit: 2 })).records;
+            const all = (await db.list({ input: { collection: COLLECTION } })).records;
+            const page = (await db.list({ input: { collection: COLLECTION, skip: 1, limit: 2 } })).records;
             expect(page).to.have.length(Math.min(2, all.length - 1));
         });
 

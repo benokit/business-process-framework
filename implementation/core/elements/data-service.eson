@@ -27,8 +27,8 @@
             }
         },
         "implementation": {
-            "getData":       { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getData" } },
-            "getDataOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKind" } }
+            "getData":       { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getDataLow" } },
+            "getDataOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKindLow" } }
         }
     }
 ]

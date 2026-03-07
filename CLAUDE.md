@@ -8,7 +8,7 @@ The framework is built around **elements** — typed, declarative JSON objects l
 - **`data`** — named data blobs; used to define service interfaces and implementations
 - **`service`** — binds an interface (data element) to an implementation (data element)
 
-Elements are loaded at startup via `loadElements(paths)` from `core/elements-loader` and registered globally. Services are invoked via `execute(serviceId, methodName, input)` from `core/service`, which validates input against the interface schema before dispatching.
+Elements are loaded at startup via `loadElements(paths)` from `core/elements-loader` and registered globally. Services are invoked via `execute(serviceId, methodName, input, _ctx?)` from `core/service`, which validates input against the interface schema before dispatching. `_ctx` is an optional shared context object (default `{}`) that propagates through the entire execution graph — across service calls, pipelines, and control flow structures.
 
 ## Schema syntax (compact JSON Schema / CJSL)
 
@@ -31,7 +31,7 @@ implementation/
     src/
       elements-loader.js         # loadElements(paths) — scans dirs for .eson files
       elements-registry.js       # registerElement / getElement
-      service.js                 # execute(serviceId, method, input)
+      service.js                 # execute(serviceId, method, input, _ctx?)
       schema.js                  # validateSchema — wraps ajv + CJSL
       data.js                    # getData / getDataOfKind
     elements/
@@ -63,13 +63,38 @@ A method implementation can be an array of steps. Each step may have:
 - `inputMap` — lambdajson expression mapping context to step input (`#.input` = pass-through)
 - `outputMap` — lambdajson expression mapping step output
 - `name` — stores step output in context under this key for later steps
-- Control flow: `if/then/else`, `switch`, `forEach`, `try/catch`, `throw`, `return`, `set`
+- Control flow: `if/then/else`, `switch`, `forEach`, `try/catch/finally`, `throw`, `return`, `set`
 - `execute` — executes its value (a single item or pipeline array) inline, passing the current input (after `inputMap`) as context. Primarily useful with `dynamic` to inject pipelines at runtime.
 - `dynamic` — lambdajson expression evaluated against the full context; its result is merged into the item (overriding any same-named keys) with `dynamic` removed, and the merged item is then executed as a normal static step. `inputMap` and `outputMap` on the outer item are not part of the dynamic object — they are resolved in the static execution phase after the merge. Use this to select a service, method, or any other item property at runtime based on context.
 
+#### Pipeline context and node input shape
+
+The pipeline context always has the shape `{ _ctx, input, ...namedSteps }`:
+
+- `_ctx` — shared object that propagates through the whole execution graph (initialized to `{}` at the top-level `execute` call). Mutations to `_ctx` are visible immediately to all subsequent steps and to nested service calls.
+- `input` — the method input as passed to `execute`.
+- `namedSteps` — results of previous steps that had a `name`.
+
+Every node executor receives a `{ _ctx, input }` object:
+
+- **Without `inputMap`**: the node receives the full context (`_ctx`, `input`, and all named steps).
+- **With `inputMap`**: the mapping expression is evaluated against the full context; its result is wrapped as `{ _ctx: context._ctx, input: <mapped result> }`. Inside that node (and for `service` calls it delegates to), `#.input` refers to the mapped result.
+
+#### `set` merge behaviour
+
+When a `set` step uses `name` and a property with that name already exists in the context **as a plain object**, the result is **merged** into the existing value (lodash deep merge) rather than replaced. This enables incremental accumulation of properties under a single name across multiple steps.
+
+This is the standard way to write to `_ctx`:
+
+```json
+{ "name": "_ctx", "set": { "transaction": "#.txn" } }
+```
+
+Because `_ctx` is always a plain object, subsequent `set` steps targeting `_ctx` will always merge.
+
 ### JS modules (low-level functions)
 
-Low-level functions receive a single plain object argument and return a value (or throw a string on error). They are imported dynamically by the runtime via `item.low.module`.
+Low-level functions receive a single `{ _ctx, input, ...namedSteps }` argument (the full pipeline context, or `{ _ctx, input }` when an `inputMap` is present) and return a value (or throw a string on error). They are imported dynamically by the runtime via `item.low.module`. The function can read `_ctx` to access cross-cutting state (e.g. a transaction session ID) and `input` to access the method-level input.
 
 ## Running tests
 

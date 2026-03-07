@@ -2,7 +2,7 @@ import { getCollection } from 'mongodb-client';
 
 const SEQUENCES_COLLECTION = 'sequences';
 
-async function next({ sequence }) {
+async function next({ input: { sequence } }) {
     const col = getCollection(SEQUENCES_COLLECTION);
     const result = await col.findOneAndUpdate(
         { _id: sequence },

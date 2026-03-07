@@ -30,20 +30,20 @@ describe('sequence-generator-mongodb', function () {
     });
 
     it('returns 1 on the first call for a new sequence', async () => {
-        const result = await next({ sequence: SEQUENCE });
+        const result = await next({ input: { sequence: SEQUENCE } });
         expect(result).to.deep.equal({ value: 1 });
     });
 
     it('increments on each subsequent call', async () => {
-        const r2 = await next({ sequence: SEQUENCE });
-        const r3 = await next({ sequence: SEQUENCE });
+        const r2 = await next({ input: { sequence: SEQUENCE } });
+        const r3 = await next({ input: { sequence: SEQUENCE } });
         expect(r2.value).to.equal(2);
         expect(r3.value).to.equal(3);
     });
 
     it('maintains independent counters for different sequences', async () => {
         const other = `${SEQUENCE}-other`;
-        const result = await next({ sequence: other });
+        const result = await next({ input: { sequence: other } });
         expect(result).to.deep.equal({ value: 1 });
     });
 

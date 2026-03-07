@@ -10,7 +10,7 @@
         "type": "schema",
         "id": "transaction-session",
         "schema": {
-            "!sessionId": "string"
+            "!sessionId": "number"
         }
     },
     {

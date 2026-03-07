@@ -81,12 +81,44 @@ describe('service tests', () => {
                         { name: 'step1', set: { value: 42 } },
                         { return: '#.step1.value' }
                     ]
+                },
+                mergeIntoExisting: {
+                    impl: [
+                        { name: 'acc', set: { a: 1 } },
+                        { name: 'acc', set: { b: 2 } },
+                        { return: '#.acc' }
+                    ]
+                },
+                mergeIntoCtx: {
+                    impl: [
+                        { name: '_ctx', set: { sessionId: '#.input.id' } },
+                        { return: '#._ctx.sessionId' }
+                    ]
+                },
+                readCtxAcrossSteps: {
+                    impl: [
+                        { name: '_ctx', set: { tag: '#.input.tag' } },
+                        { name: 'result', set: { value: '#._ctx.tag' } },
+                        { return: '#.result.value' }
+                    ]
                 }
             });
         });
 
         it('should make the set result accessible as a named step in the pipeline context', async () => {
             expect(await execute('svc-set', 'build', {})).to.equal(42);
+        });
+
+        it('should merge into an existing plain object when the same name is set twice', async () => {
+            expect(await execute('svc-set', 'mergeIntoExisting', {})).to.deep.equal({ a: 1, b: 2 });
+        });
+
+        it('should merge into _ctx and make the new property readable', async () => {
+            expect(await execute('svc-set', 'mergeIntoCtx', { id: 'abc' })).to.equal('abc');
+        });
+
+        it('should carry _ctx properties set in earlier steps to later steps', async () => {
+            expect(await execute('svc-set', 'readCtxAcrossSteps', { tag: 'hello' })).to.equal('hello');
         });
 
     });
@@ -244,6 +276,85 @@ describe('service tests', () => {
 
     });
 
+    describe('finally', () => {
+
+        before(() => {
+            registerService('svc-finally', {
+                successWithFinally: {
+                    impl: {
+                        try:     { return: '#.input.value' },
+                        finally: [
+                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { return: '#._ctx.log' }
+                    ]
+                    }
+                },
+                failWithFinally: {
+                    impl: {
+                        try:     { throw: '#.input.message' },
+                        catch:   { return: '#.error' },
+                        finally: [
+                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { return: '#._ctx.log' }
+                    ]
+                    }
+                },
+                rethrowWithFinally: {
+                    impl: {
+                        try:     { throw: '#.input.message' },
+                        catch:   { throw: '#.error' },
+                        finally: [
+                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { return: '#._ctx.log' }
+                    ]
+                    }
+                },
+                noCatchWithFinally: {
+                    impl: {
+                        try:     { throw: '#.input.message' },
+                        finally: [
+                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { return: '#._ctx.log' }
+                    ]
+                    }
+                }
+            });
+        });
+
+        it('runs finally after a successful try and returns the try result', async () => {
+            const _ctx = {};
+            const result = await execute('svc-finally', 'successWithFinally', { value: 42 }, _ctx);
+            expect(result).to.equal(42);
+            expect(_ctx.log).to.equal('finally ran');
+        });
+
+        it('runs finally after catch and returns the catch result', async () => {
+            const _ctx = {};
+            const result = await execute('svc-finally', 'failWithFinally', { message: 'boom' }, _ctx);
+            expect(result).to.equal('boom');
+            expect(_ctx.log).to.equal('finally ran');
+        });
+
+        it('runs finally when catch rethrows and propagates the error', async () => {
+            const _ctx = {};
+            let error;
+            try { await execute('svc-finally', 'rethrowWithFinally', { message: 'boom' }, _ctx); }
+            catch (e) { error = e; }
+            expect(error).to.equal('boom');
+            expect(_ctx.log).to.equal('finally ran');
+        });
+
+        it('runs finally when there is no catch and propagates the error', async () => {
+            const _ctx = {};
+            let error;
+            try { await execute('svc-finally', 'noCatchWithFinally', { message: 'boom' }, _ctx); }
+            catch (e) { error = e; }
+            expect(error).to.equal('boom');
+            expect(_ctx.log).to.equal('finally ran');
+        });
+
+    });
+
     describe('throw', () => {
 
         before(() => {
@@ -351,7 +462,7 @@ describe('service tests', () => {
                 withInputMap: {
                     impl: {
                         inputMap: '#.input',
-                        execute: { return: '#.x' }
+                        execute: { return: '#.input.x' }
                     }
                 }
             });
@@ -371,7 +482,7 @@ describe('service tests', () => {
             expect(await execute('svc-execute', 'pipeline', { x: 3 })).to.equal(9);
         });
 
-        it('should use the inputMap result as context for the execute pipeline', async () => {
+        it('should wrap the inputMap result in input and allow access via #.input in the execute pipeline', async () => {
             expect(await execute('svc-execute', 'withInputMap', { x: 7 })).to.equal(7);
         });
 

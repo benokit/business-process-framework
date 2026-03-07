@@ -43,7 +43,7 @@ describe('transaction-mongodb (service elements)', function () {
         it('beginTransaction returns a sessionId', async function () {
             if (!transactionsSupported) return this.skip();
             const result = await execute(LOW, 'beginTransaction', {});
-            expect(result).to.have.property('sessionId').that.is.a('string');
+            expect(result).to.have.property('sessionId').that.is.a('number');
             await execute(LOW, 'rollbackTransaction', { sessionId: result.sessionId });
         });
 
@@ -64,7 +64,7 @@ describe('transaction-mongodb (service elements)', function () {
         it('commitTransaction throws for an unknown sessionId', async () => {
             let error;
             try {
-                await execute(LOW, 'commitTransaction', { sessionId: 'no-such-session' });
+                await execute(LOW, 'commitTransaction', { sessionId: 999999 });
             } catch (e) {
                 error = e;
             }
@@ -74,7 +74,7 @@ describe('transaction-mongodb (service elements)', function () {
         it('rollbackTransaction throws for an unknown sessionId', async () => {
             let error;
             try {
-                await execute(LOW, 'rollbackTransaction', { sessionId: 'no-such-session' });
+                await execute(LOW, 'rollbackTransaction', { sessionId: 999999 });
             } catch (e) {
                 error = e;
             }
@@ -112,6 +112,36 @@ describe('transaction-mongodb (service elements)', function () {
                 error = e;
             }
             expect(error).to.equal('program error');
+        });
+
+        it('exposes _ctx.transaction to the program', async function () {
+            if (!transactionsSupported) return this.skip();
+            const program = { "return": "#._ctx.transaction" };
+            const result = await execute(SERVICE, 'executeInTransaction', { program });
+            expect(result).to.have.property('sessionId').that.is.a('number');
+        });
+
+        it('reuses the outer transaction when called nested', async function () {
+            if (!transactionsSupported) return this.skip();
+            const innerProgram = { "return": "#._ctx.transaction" };
+            const outerProgram = [
+                { "name": "inner", "inputMap": { "program": "#.input.innerProgram" }, "service": { "id": "transaction-mongodb", "method": "executeInTransaction" } },
+                { "return": { "outer": "#._ctx.transaction", "inner": "#.inner" } }
+            ];
+            const result = await execute(SERVICE, 'executeInTransaction', { program: outerProgram, innerProgram });
+            expect(result.outer.sessionId).to.be.a('number');
+            expect(result.inner.sessionId).to.equal(result.outer.sessionId);
+        });
+
+        it('clears _ctx.transaction after commit so a sequential transaction can start', async function () {
+            if (!transactionsSupported) return this.skip();
+            const captureTransaction = { "return": "#._ctx.transaction" };
+            const _ctx = {};
+            const first  = await execute(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
+            const second = await execute(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
+            expect(first.sessionId).to.be.a('number');
+            expect(second.sessionId).to.be.a('number');
+            expect(first.sessionId).to.not.equal(second.sessionId);
         });
 
     });

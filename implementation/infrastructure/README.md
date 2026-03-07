@@ -67,4 +67,14 @@ High-level service. Wraps a program in a transaction: begins, executes the progr
 
 The program executes with the full outer context available, so steps within `program` can reference `#.txn` (the active `{ sessionId }`) and `#.input` (the original `executeInTransaction` input).
 
+#### Nested transactions via `_ctx`
+
+Because `_ctx` propagates through every service call in the execution graph, `executeInTransaction` stores the active session as `_ctx.transaction = { sessionId }` at the start of a transaction. Any low-level function invoked later in the same graph can then read `_ctx.transaction.sessionId` from its argument to join the active transaction:
+
+```json
+{ "name": "_ctx", "set": { "transaction": "#.txn" } }
+```
+
+This is the intended mechanism for coordinating multiple operations under a single transaction. It also enables nested `executeInTransaction` calls to detect an existing session and reuse it instead of starting a new one.
+
 > **Note:** MongoDB transactions require a replica set or sharded cluster. They are not supported on a standalone `mongod`.
