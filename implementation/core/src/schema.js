@@ -3,6 +3,7 @@ import Ajv from 'ajv';
 const ajv = new Ajv();
 
 function registerSchema(schema) {
+    if (ajv.getSchema(schema.$id)) return;
     ajv.addSchema(compactToStandard(schema));
 }
 

@@ -16,6 +16,8 @@ This means business processes — validation rules, data transformations, servic
 
 Service pipelines are pure where possible. Side effects are isolated to explicit `low`-level calls that delegate to host JavaScript functions, keeping the rest of the logic portable and easy to inspect.
 
+The pipeline keyword set is open for extension: packages can register **execution node templates** that add new first-class keywords. For example, the `transaction` package adds `inTransaction`, which wraps a sub-pipeline in a database transaction with a single declarative node — no boilerplate service calls required.
+
 ## Potential use cases
 
 - **Workflow automation** — model multi-step business processes (approval flows, document routing, order processing) as composable service pipelines.

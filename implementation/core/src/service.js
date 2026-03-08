@@ -1,5 +1,5 @@
 import { validateSchema } from './schema.js';
-import { getData } from './data.js';
+import { getData, getDataOfKind } from './data.js';
 import { getElement } from './elements-registry.js';
 import { has, isArray, isPlainObject, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
@@ -160,7 +160,15 @@ async function resolveItemExecutor(item) {
             const g = item.switch.cases[value] || item.switch.cases[keyword.default];
             return await executeMethodWithContext(g, input);
         }
-    } 
+    }
+
+    const templates = getDataOfKind('execution-node-template').items;
+    for (const template of templates) {
+        const { keyword: kw, implementation } = template.data;
+        if (has(item, kw)) {
+            return async ({ _ctx, input }) => await executeMethodWithContext(implementation, { _ctx, input, node: item });
+        }
+    }
 }
 
 async function executeMapping(func, input) {

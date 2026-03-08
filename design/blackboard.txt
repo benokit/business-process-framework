@@ -94,11 +94,12 @@ service:
 
 {
     type: data,
-    id: inTransaction
+    id: transaction-template
     meta: {
-        kind: pipeline-node
+        kind: pipeline-node-template
     },
     data: {
+        keyword: inTransaction,
         implementation: [
             {
                 name: transactionInput,

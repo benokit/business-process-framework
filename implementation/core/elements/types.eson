@@ -128,5 +128,13 @@
         "type": "schema",
         "id": "schema",
         "schema": "object"
+    },
+    {
+        "type": "schema",
+        "id": "execution-node-template",
+        "schema": {
+            "!keyword": "string",
+            "!implementation": "@impl-schema"
+        }
     }
 ]

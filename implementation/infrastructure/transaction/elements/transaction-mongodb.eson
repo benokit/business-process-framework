@@ -69,5 +69,19 @@
         "id": "transaction-mongodb",
         "interface": "transaction-interface",
         "implementation": "transaction-mongodb-implementation"
+    },
+    {
+        "type": "data",
+        "id": "in-transaction-node-template",
+        "meta": { "kind": "execution-node-template" },
+        "data": {
+            "keyword": "inTransaction",
+            "implementation": [
+                {
+                    "inputMap": { "program": "#.node.inTransaction", "programInput": "#.input" },
+                    "service": { "id": "transaction-mongodb", "method": "executeInTransaction" }
+                }
+            ]
+        }
     }
 ]

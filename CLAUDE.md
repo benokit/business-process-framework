@@ -66,6 +66,7 @@ A method implementation can be an array of steps. Each step may have:
 - Control flow: `if/then/else`, `switch`, `forEach`, `try/catch/finally`, `throw`, `return`, `set`
 - `execute` — executes its value (a single item or pipeline array) inline, passing the current input (after `inputMap`) as context. Primarily useful with `dynamic` to inject pipelines at runtime.
 - `dynamic` — lambdajson expression evaluated against the full context; its result is merged into the item (overriding any same-named keys) with `dynamic` removed, and the merged item is then executed as a normal static step. `inputMap` and `outputMap` on the outer item are not part of the dynamic object — they are resolved in the static execution phase after the merge. Use this to select a service, method, or any other item property at runtime based on context.
+- **custom keywords** — any keyword defined by a registered `execution-node-template` data element (see [Execution node templates](#execution-node-templates)).
 
 #### Pipeline context and node input shape
 
@@ -95,6 +96,24 @@ Because `_ctx` is always a plain object, subsequent `set` steps targeting `_ctx`
 ### JS modules (low-level functions)
 
 Low-level functions receive a single `{ _ctx, input, ...namedSteps }` argument (the full pipeline context, or `{ _ctx, input }` when an `inputMap` is present) and return a value (or throw a string on error). They are imported dynamically by the runtime via `item.low.module`. The function can read `_ctx` to access cross-cutting state (e.g. a transaction session ID) and `input` to access the method-level input.
+
+### Execution node templates
+
+A `data` element with `meta.kind = "execution-node-template"` registers a new pipeline keyword. See [core/README.md](implementation/core/README.md#execution-node-templates) for the full spec. In brief:
+
+```json
+{
+    "type": "data",
+    "id": "my-node-template",
+    "meta": { "kind": "execution-node-template" },
+    "data": {
+        "keyword": "myKeyword",
+        "implementation": [ ... ]
+    }
+}
+```
+
+The template's `implementation` receives `{ _ctx, input, node }` where `input` is the node's input after `inputMap` and `node` is the full pipeline item. `inputMap`/`outputMap` are handled externally and are not the template's concern. The `transaction` package uses this to provide the `inTransaction` keyword — see [infrastructure/README.md](implementation/infrastructure/README.md#intransaction-pipeline-keyword).
 
 ## Running tests
 

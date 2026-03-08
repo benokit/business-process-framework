@@ -53,6 +53,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `try` / `catch` / `finally` | Error handling; if `try` body throws, `catch` body executes (optional); `finally` body always executes after `try` and `catch` regardless of outcome, and its return value is discarded |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
 | `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the item (with `dynamic` removed) and the merged item is executed as a normal static item |
+| *custom* | Any keyword registered via an `execution-node-template` data element (see [Execution node templates](#execution-node-templates)) |
 
 ### Per-item modifiers
 
@@ -96,6 +97,34 @@ To call a host JS function as a custom lambdaJSON primitive, use the `$low` key 
 ```
 
 `$low` registers named primitives that are available only within that expression. Each primitive wraps the host function as a unary lambdaJSON operator.
+
+## Execution node templates
+
+The set of pipeline keywords is open for extension. A `data` element with `meta.kind = "execution-node-template"` registers a new keyword that can be used in any pipeline:
+
+```json
+{
+    "type": "data",
+    "id": "my-node-template",
+    "meta": { "kind": "execution-node-template" },
+    "data": {
+        "keyword": "myKeyword",
+        "implementation": [ ... ]
+    }
+}
+```
+
+When a pipeline item carries the registered keyword, the executor runs the template's `implementation` pipeline with the following context:
+
+| Context key | Value |
+| --- | --- |
+| `#.input` | The node's input — result of `inputMap`, or the full context input if no `inputMap` is present |
+| `#.node` | The full pipeline item object (keyword value and any sibling properties) |
+| `#._ctx` | The shared execution context |
+
+`inputMap` and `outputMap` on the outer pipeline item are applied by the standard executor before and after the template runs; the template does not need to handle them.
+
+For a real-world example see [`inTransaction`](../infrastructure/README.md#intransaction-pipeline-keyword) in the `transaction` package.
 
 ## Runtime API
 

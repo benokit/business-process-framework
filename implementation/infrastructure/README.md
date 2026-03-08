@@ -75,4 +75,14 @@ Because `_ctx` propagates through every service call in the execution graph, `ex
 
 This is the intended mechanism for coordinating multiple operations under a single transaction. It also enables nested `executeInTransaction` calls to detect an existing session and reuse it instead of starting a new one.
 
+#### `inTransaction` pipeline keyword
+
+This package also registers an [execution node template](../core/README.md#execution-node-templates) that adds `inTransaction` as a first-class pipeline keyword — a shorthand for `executeInTransaction` that requires no explicit service call:
+
+```json
+{ "inTransaction": [ ... pipeline ... ] }
+```
+
+The node's input (after `inputMap`, if present) becomes the sub-pipeline's input; the sub-pipeline's result is the node's output (`outputMap` applies as normal). Nested `inTransaction` nodes reuse the outermost transaction; sequential ones each start a fresh transaction.
+
 > **Note:** MongoDB transactions require a replica set or sharded cluster. They are not supported on a standalone `mongod`.
