@@ -1,0 +1,25 @@
+[
+    {
+        "type": "schema",
+        "id": "nats-broker",
+        "schema": {
+            "!service=": "messaging-nats",
+            "!url": "string"
+        }
+    },
+    {
+        "type": "data",
+        "id": "messaging-nats-implementation",
+        "data": {
+            "publish":       { "inputMap": "#.input", "low": { "module": "messaging-nats/nats", "functionName": "publish" } },
+            "consume":       { "inputMap": "#.input", "low": { "module": "messaging-nats/nats", "functionName": "consume" } },
+            "stopConsuming": { "inputMap": "#.input", "low": { "module": "messaging-nats/nats", "functionName": "stopConsuming" } }
+        }
+    },
+    {
+        "type": "service",
+        "id": "messaging-nats",
+        "interface": "messaging-broker-interface",
+        "implementation": "messaging-nats-implementation"
+    }
+]

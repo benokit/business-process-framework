@@ -44,6 +44,9 @@ implementation/
     http-server/                 # HTTP server (Express); routes from `endpoint` data elements
     sequence-generator/          # Monotonic integer counters per named sequence
     mongodb-client/              # Shared MongoDB connection (connect/disconnect/getCollection)
+    transaction/                 # MongoDB-backed transactions; inTransaction pipeline keyword
+    messaging/                   # Broker-agnostic messaging facade (publish/startConsuming/stopConsuming)
+    messaging-nats/              # NATS JetStream broker implementation
 ```
 
 ## Implementation patterns
@@ -119,11 +122,13 @@ The template's `implementation` receives `{ _ctx, input, node }` where `input` i
 
 Tests use **Mocha + Chai**. Each infrastructure package has its own `package.json` with `"test": "mocha --exit"`.
 
-MongoDB-dependent tests require a running instance. Start one with:
+MongoDB-dependent tests require a running instance. NATS-dependent tests require NATS with JetStream. Both skip gracefully when unavailable. Start all infrastructure with:
 ```
 docker compose -f environments/docker-compose.yml up -d
 ```
-Default URL: `mongodb://admin:password@localhost:27017/admin` (override via `MONGODB_URL` env var). Tests skip gracefully when MongoDB is unreachable.
+
+- MongoDB default: `mongodb://admin:password@localhost:27017/admin` (override via `MONGODB_URL`)
+- NATS default: `nats://localhost:4222` (override via `NATS_URL`)
 
 ## Key conventions
 

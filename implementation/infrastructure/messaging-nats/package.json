@@ -1,0 +1,19 @@
+{
+    "name": "messaging-nats",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        "./nats": "./src/messaging-nats.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "core": "*",
+        "nats": "^2.29.0"
+    },
+    "devDependencies": {
+        "chai": "*",
+        "mocha": "*"
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "name": "messaging",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/messaging.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "core": "*"
+    }
+}

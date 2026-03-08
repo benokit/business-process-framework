@@ -119,23 +119,70 @@ service:
     }
 }
 
-{
-    type: service,
-    id: entity,
-    implementation: [
-        {
-            inputMap: {
-                context: #
-                program: {
-                    $literal: [
+------------ messaging ---------------
 
-                    ]
-                }
+implementation/infrastructure/messaging/
+    elements/
+    src/
+    package.json
+
+elements:
+
+
+{
+    type: data,
+    { kind: service-interface },
+    id: messaging-service-interface,
+    data: {
+        publish: {
+            input: {
+                !destination: string,
+                !messageEnvelope: @message-envelope
+            },
+            output: {
+                !messageId: string
             }
-            service: {
-                name: transaction,
-                method: executeInTransaction
+        },
+        startConsuming: {
+            input: {
+                !destination: string
+            },
+            output: {
+                consumers[]: string
+            }
+        },
+        stopConsuming: {
+            input: {
+                !destination: string
             }
         }
-    ]
+    }
+},
+{
+    type: schema,
+    id: message-consumer,
+    schema: {
+        !destination: string,
+        handler: @pipeline
+    }
+},
+{
+    type: schema,
+    id: message-destination,
+    schema: {
+        messageBus: string,
+        topology=1: [queue, topic],
+        name: string
+    }
+},
+{
+    type: schema,
+    id: message-envelope
+    schema: {
+        !timestampUTC: string,
+        !messageId: string,
+        !group: string,
+        !correlation: string,
+        !message: object
+    }
 }

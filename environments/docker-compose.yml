@@ -38,5 +38,13 @@ services:
         --username admin --password password --authenticationDatabase admin
         --eval "try { rs.status(); } catch(e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }); }"
 
+  nats:
+    image: nats:alpine
+    container_name: nats
+    restart: always
+    command: "-js"
+    ports:
+      - "4222:4222"
+
 volumes:
   mongo_data:

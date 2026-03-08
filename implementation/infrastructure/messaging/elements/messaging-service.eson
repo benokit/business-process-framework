@@ -1,0 +1,63 @@
+[
+    {
+        "type": "data",
+        "id": "messaging-implementation",
+        "data": {
+            "publish": [
+                { "name": "destination", "inputMap": { "id": "#.input.destination" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "broker", "inputMap": { "id": "#.destination.data.broker" }, "service": { "id": "data", "method": "getData" } },
+                { "dynamic": { "service": { "id": "#.broker.data.service", "method": "publish" } }, "inputMap": { "destination": "#.destination.data", "broker": "#.broker.data", "envelope": "#.input.envelope" } }
+            ],
+            "startConsuming": [
+                { "name": "destination", "inputMap": { "id": "#.input.destination" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "broker", "inputMap": { "id": "#.destination.data.broker" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "allConsumers", "inputMap": { "kind": "message-consumer" }, "service": { "id": "data", "method": "getDataOfKind" } },
+                {
+                    "name": "consumers",
+                    "set": {
+                        "$let": {
+                            "destData": "#.destination.data",
+                            "brokerData": "#.broker.data",
+                            "brokerId": "#.broker.data.service",
+                            "destId": "#.destination.id"
+                        },
+                        "$map": {
+                            "_fn": {
+                                "destination": "@destData",
+                                "broker": "@brokerData",
+                                "brokerId": "@brokerId",
+                                "consumer": "#.data"
+                            },
+                            "_over": {
+                                "$filter": {
+                                    "_predicate": { "$eq": ["#.data.destination", "@destId"] },
+                                    "_collection": "#.allConsumers.items"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "forEach": [
+                        {
+                            "dynamic": { "service": { "id": "#.input.brokerId", "method": "consume" } },
+                            "inputMap": { "destination": "#.input.destination", "broker": "#.input.broker", "consumer": "#.input.consumer" }
+                        }
+                    ],
+                    "inputMap": "#.consumers"
+                }
+            ],
+            "stopConsuming": [
+                { "name": "destination", "inputMap": { "id": "#.input.destination" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "broker", "inputMap": { "id": "#.destination.data.broker" }, "service": { "id": "data", "method": "getData" } },
+                { "dynamic": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } }, "inputMap": { "destination": "#.destination.data", "broker": "#.broker.data" } }
+            ]
+        }
+    },
+    {
+        "type": "service",
+        "id": "messaging",
+        "interface": "messaging-interface",
+        "implementation": "messaging-implementation"
+    }
+]

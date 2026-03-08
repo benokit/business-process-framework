@@ -1,0 +1,136 @@
+[
+    {
+        "type": "schema",
+        "id": "message-envelope",
+        "schema": {
+            "!messageId": "string",
+            "!timestampUTC": "string",
+            "!group": "string",
+            "!correlation": "string",
+            "!message": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "message-destination",
+        "schema": {
+            "!broker": "string",
+            "!topology": "string",
+            "!name": "string",
+            "publisher": {
+                "transactionalOutbox": "boolean"
+            },
+            "consumer": {
+                "concurrency": "number",
+                "retry": {
+                    "attempts": "number",
+                    "backoff": "number"
+                }
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "id": "message-consumer",
+        "schema": {
+            "!destination": "string",
+            "name": "string",
+            "!handler": "@impl-schema"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "message-broker",
+        "schema": {
+            "!service": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-publish-input",
+        "schema": {
+            "!destination": "string",
+            "!envelope": "@message-envelope"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-publish-output",
+        "schema": {
+            "!messageId": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-consuming-input",
+        "schema": {
+            "!destination": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-start-consuming-output",
+        "schema": {
+            "consumers[]": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-broker-publish-input",
+        "schema": {
+            "!destination": "object",
+            "!broker": "object",
+            "!envelope": "@message-envelope"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-broker-consume-input",
+        "schema": {
+            "!destination": "object",
+            "!broker": "object",
+            "!consumer": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "messaging-broker-stop-consuming-input",
+        "schema": {
+            "!destination": "object",
+            "!broker": "object"
+        }
+    },
+    {
+        "type": "data",
+        "id": "messaging-broker-interface",
+        "data": {
+            "publish": {
+                "input": "@messaging-broker-publish-input",
+                "output": "@messaging-publish-output"
+            },
+            "consume": {
+                "input": "@messaging-broker-consume-input"
+            },
+            "stopConsuming": {
+                "input": "@messaging-broker-stop-consuming-input"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "messaging-interface",
+        "data": {
+            "publish": {
+                "input": "@messaging-publish-input",
+                "output": "@messaging-publish-output"
+            },
+            "startConsuming": {
+                "input": "@messaging-consuming-input",
+                "output": "@messaging-start-consuming-output"
+            },
+            "stopConsuming": {
+                "input": "@messaging-consuming-input"
+            }
+        }
+    }
+]

@@ -5,7 +5,8 @@ import { has, isArray, isPlainObject, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 
 export {
-    execute
+    execute,
+    executeMethod
 };
 
 async function execute(serviceId, methodName, input, _ctx = {}) {
