@@ -18,7 +18,8 @@
         "id": "execute-in-transaction-input",
         "schema": {
             "config": "object",
-            "!program": {}
+            "!program": {},
+            "programInput": {}
         }
     },
     {

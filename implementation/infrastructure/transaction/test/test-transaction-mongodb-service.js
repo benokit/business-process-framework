@@ -128,7 +128,7 @@ describe('transaction-mongodb (service elements)', function () {
                 { "name": "inner", "inputMap": { "program": "#.input.innerProgram" }, "service": { "id": "transaction-mongodb", "method": "executeInTransaction" } },
                 { "return": { "outer": "#._ctx.transaction", "inner": "#.inner" } }
             ];
-            const result = await execute(SERVICE, 'executeInTransaction', { program: outerProgram, innerProgram });
+            const result = await execute(SERVICE, 'executeInTransaction', { program: outerProgram, programInput: { innerProgram } });
             expect(result.outer.sessionId).to.be.a('number');
             expect(result.inner.sessionId).to.equal(result.outer.sessionId);
         });

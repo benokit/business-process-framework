@@ -59,13 +59,11 @@ Low-level session management. Each method operates on a MongoDB `ClientSession` 
 
 High-level service. Wraps a program in a transaction: begins, executes the program, commits on success, rolls back and rethrows on failure.
 
-| Method                 | Key input fields       | Returns             |
-|------------------------|------------------------|---------------------|
-| `executeInTransaction` | `program`, `config?`   | result of `program` |
+| Method                 | Key input fields                       | Returns             |
+|------------------------|----------------------------------------|---------------------|
+| `executeInTransaction` | `program`, `programInput?`, `config?`  | result of `program` |
 
-`program` is a single pipeline item or an array of items (same format as a service method implementation). `config` is passed as `options` to `beginTransaction`.
-
-The program executes with the full outer context available, so steps within `program` can reference `#.txn` (the active `{ sessionId }`) and `#.input` (the original `executeInTransaction` input).
+`program` is a single pipeline item or an array of items (same format as a service method implementation). `programInput` is passed as `#.input` to the program. `config` is passed as `options` to `beginTransaction`.
 
 #### Nested transactions via `_ctx`
 

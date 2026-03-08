@@ -20,7 +20,7 @@
         "data": {
             "executeInTransaction": {
                 "if": "#._ctx.transaction",
-                "then": { "dynamic": { "execute": "#.input.program" } },
+                "then": { "inputMap": "#.input.programInput", "dynamic": { "execute": "#.input.program" } },
                 "else": [
                     {
                         "name": "txn",
@@ -35,6 +35,7 @@
                         "try": [
                             {
                                 "name": "result",
+                                "inputMap": "#.input.programInput",
                                 "dynamic": { "execute": "#.input.program" }
                             },
                             {

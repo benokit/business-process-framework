@@ -77,3 +77,64 @@ service:
         ]
     }
 }
+
+---------- transaction -----------
+
+{
+    type: service,
+    id: entity,
+    implementation: [
+        {
+            inTransaction: [
+
+            ]
+        }
+    ]
+}
+
+{
+    type: data,
+    id: inTransaction
+    meta: {
+        kind: pipeline-node
+    },
+    data: {
+        implementation: [
+            {
+                name: transactionInput,
+                set: {
+                    context: #.context,
+                    program: #.inTransaction
+                }
+            },
+            {
+                inputMap: #.inTransactionInput,
+                service: {
+                    name: transaction,
+                    method: executeInTransaction
+                } 
+            }
+        ]
+    }
+}
+
+{
+    type: service,
+    id: entity,
+    implementation: [
+        {
+            inputMap: {
+                context: #
+                program: {
+                    $literal: [
+
+                    ]
+                }
+            }
+            service: {
+                name: transaction,
+                method: executeInTransaction
+            }
+        }
+    ]
+}
