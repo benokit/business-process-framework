@@ -1,0 +1,74 @@
+[
+    {
+        "type": "schema",
+        "id": "transactional-outbox-put-input",
+        "schema": {
+            "!destination": "string",
+            "!envelope": "@message-envelope"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "transactional-outbox-put-output",
+        "schema": {
+            "!messageId": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "transactional-outbox-run-input",
+        "schema": {
+            "lockIntervalInMilliseconds": "number",
+            "idleIntervalInMilliseconds": "number"
+        }
+    },
+    {
+        "type": "data",
+        "id": "transactional-outbox-interface",
+        "data": {
+            "put": {
+                "input": "@transactional-outbox-put-input",
+                "output": "@transactional-outbox-put-output"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "transactional-outbox-processor-interface",
+        "data": {
+            "run": {
+                "input": "@transactional-outbox-run-input"
+            },
+            "stop": {
+                "input": {}
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "transactional-outbox-implementation",
+        "data": {
+            "put": { "low": { "module": "transactional-outbox", "functionName": "put" } }
+        }
+    },
+    {
+        "type": "data",
+        "id": "transactional-outbox-processor-implementation",
+        "data": {
+            "run":  { "inputMap": "#.input", "low": { "module": "transactional-outbox/processor", "functionName": "run" } },
+            "stop": { "low": { "module": "transactional-outbox/processor", "functionName": "stop" } }
+        }
+    },
+    {
+        "type": "service",
+        "id": "transactional-outbox",
+        "interface": "transactional-outbox-interface",
+        "implementation": "transactional-outbox-implementation"
+    },
+    {
+        "type": "service",
+        "id": "transactional-outbox-processor",
+        "interface": "transactional-outbox-processor-interface",
+        "implementation": "transactional-outbox-processor-implementation"
+    }
+]

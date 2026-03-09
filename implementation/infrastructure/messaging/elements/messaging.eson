@@ -18,7 +18,11 @@
             "!topology": "string",
             "!name": "string",
             "publisher": {
-                "transactionalOutbox": "boolean"
+                "transactionalOutbox": "boolean",
+                "retry": {
+                    "attempts": "number",
+                    "backoff": "number"
+                }
             },
             "consumer": {
                 "concurrency": "number",

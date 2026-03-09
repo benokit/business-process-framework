@@ -35,4 +35,8 @@ async function rollbackTransaction({ input: { sessionId } }) {
     return { sessionId };
 }
 
-export { beginTransaction, commitTransaction, rollbackTransaction };
+function getSession(sessionId) {
+    return sessions.get(sessionId);
+}
+
+export { beginTransaction, commitTransaction, rollbackTransaction, getSession };

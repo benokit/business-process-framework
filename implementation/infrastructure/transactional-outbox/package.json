@@ -1,0 +1,21 @@
+{
+    "name": "transactional-outbox",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/transactional-outbox.js",
+        "./processor": "./src/transactional-outbox-processor.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "core": "*",
+        "mongodb-client": "*",
+        "transaction": "*"
+    },
+    "devDependencies": {
+        "chai": "*",
+        "mocha": "*"
+    }
+}

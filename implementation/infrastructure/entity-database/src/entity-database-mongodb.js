@@ -1,20 +1,17 @@
 import { ObjectId } from 'mongodb';
 import { getCollection } from 'mongodb-client';
 
-const indexedCollections = new Set();
-
-async function ensureBusinessKeyIndex(col) {
-    if (indexedCollections.has(col.collectionName)) return;
-    await col.createIndex({ businessKey: 1 }, { unique: true });
-    indexedCollections.add(col.collectionName);
-}
+const COLLECTION_PROPS = {
+    indices: [
+        { key: { businessKey: 1 }, options: { unique: true } }
+    ]
+};
 
 async function create({ input: { collection, businessKey, data } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
-    const col = getCollection(collection);
-    await ensureBusinessKeyIndex(col);
+    const col = await getCollection(collection, COLLECTION_PROPS);
     const doc = { businessKey, version: 1, data };
     const result = await col.insertOne(doc);
     if (!result.acknowledged) {
@@ -24,14 +21,14 @@ async function create({ input: { collection, businessKey, data } }) {
 }
 
 async function read({ input: { collection, id, businessKey } }) {
-    const col = getCollection(collection);
+    const col = await getCollection(collection, COLLECTION_PROPS);
     const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
     const result = await col.findOne(criteria);
     return result ? toRecord(result) : null;
 }
 
 async function update({ input: { collection, id, businessKey, version, data } }) {
-    const col = getCollection(collection);
+    const col = await getCollection(collection, COLLECTION_PROPS);
     const criteria = businessKey ? { businessKey, version } : { _id: ObjectId.createFromHexString(id), version };
     const result = await col.findOneAndUpdate(
         criteria,
@@ -45,7 +42,7 @@ async function update({ input: { collection, id, businessKey, version, data } })
 }
 
 async function del({ input: { collection, id, businessKey, version } }) {
-    const col = getCollection(collection);
+    const col = await getCollection(collection, COLLECTION_PROPS);
     const criteria = businessKey ? { businessKey } : { _id: ObjectId.createFromHexString(id) };
     if (version !== undefined) {
         criteria.version = version;
@@ -58,7 +55,7 @@ async function del({ input: { collection, id, businessKey, version } }) {
 }
 
 async function list({ input: { collection, filter = {}, sort, limit = 100, skip = 0 } }) {
-    const col = getCollection(collection);
+    const col = await getCollection(collection, COLLECTION_PROPS);
     const mongoFilter = Object.fromEntries(
         Object.entries(filter).map(([k, v]) => [`data.${k}`, v])
     );

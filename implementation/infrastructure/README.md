@@ -104,7 +104,9 @@ Broker-agnostic messaging framework. Concrete broker implementations are provide
 | `broker` | id of the `message-broker` data element |
 | `topology` | `"queue"` or `"topic"` |
 | `name` | destination name on the broker |
-| `publisher.transactionalOutbox` | route publishes through the transactional outbox |
+| `publisher.transactionalOutbox` | when `true`, `messaging.publish` routes through `transactional-outbox.put` instead of the broker directly — see [`transactional-outbox`](#transactional-outbox) |
+| `publisher.retry.attempts` | max publish retry attempts in the outbox processor |
+| `publisher.retry.backoff` | base backoff in ms for outbox publish retries (exponential: `backoff * 2^retryCount`) |
 | `consumer.concurrency` | number of parallel consumers |
 | `consumer.retry.attempts` | max retry count on handler failure |
 | `consumer.retry.backoff` | delay between retries (ms) |
@@ -192,3 +194,95 @@ await disconnect();
 ```
 
 > **Note:** Start NATS with JetStream enabled: `nats -js` or `docker compose up nats`.
+
+---
+
+## `transactional-outbox`
+
+Guarantees at-least-once message delivery by persisting outbox items to MongoDB within the same business transaction, then publishing them asynchronously. Depends on `transaction` and `mongodb-client`.
+
+### Pattern
+
+1. Within an `inTransaction` block, call `transactional-outbox.put` alongside your business writes. The insert joins the active MongoDB session, so the outbox item is atomically committed or rolled back with the rest of the transaction.
+2. Run `transactional-outbox-processor` in the background. It polls the outbox, publishes each item to its broker, and marks it processed. On broker failure it retries with exponential backoff; after exhausting attempts it marks the item failed.
+
+The `messaging.publish` pipeline integrates this transparently: when a `message-destination` has `publisher.transactionalOutbox: true`, calling `messaging.publish` routes to `transactional-outbox.put` automatically.
+
+### `transactional-outbox` service
+
+| Method | Key input fields | Returns |
+| --- | --- | --- |
+| `put` | `destination`, `envelope` | `{ messageId }` |
+
+`destination` is the `id` of a `message-destination` data element. `envelope` is a `message-envelope`. Must be called within an `inTransaction` block to guarantee atomicity with business data.
+
+### `transactional-outbox-processor`
+
+| Method | Key input fields                                             | Returns |
+|--------|--------------------------------------------------------------|---------|
+| `run`  | `lockIntervalInMilliseconds?`, `idleIntervalInMilliseconds?` | `{}`    |
+| `stop` | —                                                            | `{}`    |
+
+`run` starts a background loop; `stop` signals it to halt and waits for the current iteration to finish before returning. Defaults: `lockIntervalInMilliseconds = 30000`, `idleIntervalInMilliseconds = 1000`.
+
+### Processor loop
+
+Each iteration:
+
+1. **Find and lock** (in a MongoDB transaction): groups all `status=0` items by `envelope.group`, takes the earliest `envelope.timestampUTC` per group, filters to items with `processAfterTimestampUTC ≤ now`, picks the one with the smallest `processAfterTimestampUTC`, and advances its `processAfterTimestampUTC` by `lockIntervalInMilliseconds`. This prevents concurrent processor instances from double-processing the same item. Write conflicts (`TransientTransactionError`) are retried automatically.
+2. **Publish**: resolves the destination's broker and calls the broker service directly (bypassing outbox re-routing). On success marks the item `status = 1` (`processed`) and records `processedAt`.
+3. **On failure**: retries up to `destination.publisher.retry.attempts` times with delay `backoff * 2^retryCount` ms. After exhaustion marks `status = 2` (`failed`).
+4. **Idle**: if no eligible item is found, sleeps `idleIntervalInMilliseconds` before the next iteration.
+
+### Outbox item shape (MongoDB collection `transactional-outbox`)
+
+| Field | Description |
+| --- | --- |
+| `destination` | `message-destination` element id |
+| `envelope` | the `message-envelope` to publish |
+| `status` | `0` waiting · `1` processed · `2` failed |
+| `retryCount` | number of failed publish attempts so far |
+| `processAfterTimestampUTC` | earliest time this item may be picked up |
+| `processedAt` | ISO timestamp set when `status` becomes `1` |
+
+### Indices
+
+The collection is created with three indices on first access:
+
+| Index key | Purpose |
+| --- | --- |
+| `{ status, processAfterTimestampUTC }` | main filter in the processor query |
+| `{ envelope.group, envelope.timestampUTC }` | group-ordering sort |
+| `{ envelope.messageId }` (unique) | prevents duplicate inserts |
+
+### Example
+
+```json
+[
+    {
+        "type": "data",
+        "id": "order-events",
+        "data": {
+            "broker": "my-nats-broker",
+            "topology": "topic",
+            "name": "order-events",
+            "publisher": {
+                "transactionalOutbox": true,
+                "retry": { "attempts": 5, "backoff": 500 }
+            }
+        }
+    }
+]
+```
+
+```json
+{
+    "inTransaction": [
+        { "service": { "id": "entity-database-mongodb", "method": "create" }, "inputMap": "..." },
+        { "service": { "id": "messaging", "method": "publish" },
+          "inputMap": { "destination": "order-events", "envelope": "#.envelope" } }
+    ]
+}
+```
+
+> **Note:** Requires MongoDB replica set or sharded cluster (transactions). The processor must be started explicitly via `transactional-outbox-processor.run`.
