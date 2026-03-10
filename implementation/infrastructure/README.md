@@ -139,6 +139,27 @@ Broker-agnostic messaging framework. Concrete broker implementations are provide
 
 `channel` is the `id` of a `message-channel` data element in all methods.
 
+### `publish` pipeline keyword
+
+This package registers an [execution node template](../core/README.md#execution-node-templates) that adds `publish` as a first-class pipeline keyword — a shorthand for `messaging.publish`:
+
+```json
+{ "publish": { "channel": "order-events", "envelope": { ... } } }
+```
+
+`channel` is the id of a `message-channel` data element. `envelope` is a `message-envelope` object. For dynamic values, use `dynamic` to evaluate context references before the node runs:
+
+```json
+{
+    "dynamic": {
+        "publish": {
+            "channel": "order-events",
+            "envelope": "#.myEnvelope"
+        }
+    }
+}
+```
+
 ### Routing
 
 The `messaging` service is a fully declarative router. For each method it resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsuming` uses `data.getDataOfKind` to discover all `message-consumer` elements for the channel and calls `broker.consume` for each one.

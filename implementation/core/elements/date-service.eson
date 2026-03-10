@@ -1,0 +1,13 @@
+{
+    "type": "service",
+    "id": "date",
+    "interface": {
+        "now": {
+            "input":  {},
+            "output": { "!value": "string" }
+        }
+    },
+    "implementation": {
+        "now": { "low": { "module": "core/date", "functionName": "now" } }
+    }
+}

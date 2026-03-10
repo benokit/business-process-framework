@@ -10,7 +10,9 @@
     "./elements-registry": "./src/elements-registry.js",
     "./schema": "./src/schema.js",
     "./elements": "./src/elements.js",
-    "./elements-loader": "./src/elements-loader.js"
+    "./elements-loader": "./src/elements-loader.js",
+    "./random": "./src/random.js",
+    "./date": "./src/date.js"
   },
   "scripts": {
     "test": "mocha"

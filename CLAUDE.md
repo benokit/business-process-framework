@@ -118,6 +118,60 @@ A `data` element with `meta.kind = "execution-node-template"` registers a new pi
 
 The template's `implementation` receives `{ _ctx, input, node }` where `input` is the node's input after `inputMap` and `node` is the full pipeline item. `inputMap`/`outputMap` are handled externally and are not the template's concern. The `transaction` package uses this to provide the `inTransaction` keyword — see [infrastructure/README.md](implementation/infrastructure/README.md#intransaction-pipeline-keyword).
 
+## LambdaJSON internals
+
+Source: `implementation/node_modules/lambdajson-js/src/` (`js-compiler.js`, `primitives.js`).
+
+### Context and references
+
+- `"#"` — entire input value
+- `"#.field"` / `"#.a.b"` — lodash path into input (lodash `get`)
+- `"@name"` — read a variable from the `$let` scope
+- `"\\literal"` — escape: produces the string `literal` verbatim
+
+### Expression classification (compiler decision tree)
+
+An object is compiled as one of three forms, checked in order:
+
+1. **Primitive** — ≤2 keys, ALL keys are registered primitives (e.g. `$head`, `$filter`, `$let`+one other primitive). Handled by `compilePrimitive`.
+2. **Function call** — ≤2 keys, ALL keys start with `$`, but NOT all are registered primitives (i.e. the non-`$let` key is a `$let`-defined operator). Handled by `compileFunction`; looks up the operator in the current `$let` vars at runtime.
+3. **Plain object** — everything else. Compiled key-by-key; `$`-prefixed keys have no special meaning here — `$let` defined in a plain object does NOT propagate to sibling keys.
+
+### `$let` scope rules
+
+`$let` only propagates its vars to sibling expressions when the object is classified as a **Primitive** or **Function call** (cases 1–2 above). The correct pattern is always `{ "$let": {...}, "$someOperator": ... }` with exactly two keys.
+
+`$`-prefixed keys in `$let` store the compiled function unevaluated (making it callable as an operator); non-`$`-prefixed keys are evaluated immediately and stored as values (accessible via `@name`).
+
+### Defining a reusable operator with `$let`
+
+```json
+{
+    "$let": { "$fallback": { "$head": { "$filter": { "_predicate": "#", "_collection": "#" } } } },
+    "$in": {
+        "field1": { "$fallback": ["#.preferred", "#.default"] },
+        "field2": { "$fallback": ["#.preferred", "#.default"] }
+    }
+}
+```
+
+`$in` (and `$return`) are identity primitives — they pass the value through unchanged. They exist specifically to pair with `$let` when the output is an object literal rather than a single primitive call.
+
+**`_fn` is NOT a standalone lambda.** It is only a named argument key used inside specific primitives (`$map`, `$apply`, etc.) via `parsePrimitiveArgs`. Defining `{ "_fn": { ... } }` in `$let` compiles to an object, not a callable function.
+
+### Available primitives (selected)
+
+| Primitive | Signature | Notes |
+| --- | --- | --- |
+| `$head` | `array → first` | First element |
+| `$tail` | `array → rest` | All but first |
+| `$filter` | `{ _predicate, _collection? }` | `_predicate` receives each element as `#` |
+| `$map` | `{ _fn, _over? }` | `_fn` receives each element as `#.` sub-fields |
+| `$let` | — | Variable scope declaration; always paired with another `$` key |
+| `$in` / `$return` | passthrough | Identity; used to pair with `$let` for object output |
+| `$apply` | `{ _fn, _to? }` | Applies `_fn` to result of `_to` |
+| `$` | expression | Creates a closure: `v => expr(v)` |
+
 ## Running tests
 
 Tests use **Mocha + Chai**. Each infrastructure package has its own `package.json` with `"test": "mocha --exit"`.

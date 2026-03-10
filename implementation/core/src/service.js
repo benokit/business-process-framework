@@ -150,8 +150,8 @@ async function resolveItemExecutor(item) {
 
     if (has(item, keyword.throw)) {
         return async input => {
-            const error = await executeMapping(item.throw, input); 
-            throw error; 
+            const error = await executeMapping(item.throw, input);
+            throw error;
         }
     }
 

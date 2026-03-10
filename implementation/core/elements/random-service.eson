@@ -1,0 +1,18 @@
+{
+    "type": "service",
+    "id": "random",
+    "interface": {
+        "guid": {
+            "input":  {},
+            "output": { "!value": "string" }
+        },
+        "uuid": {
+            "input":  {},
+            "output": { "!value": "string" }
+        }
+    },
+    "implementation": {
+        "guid": { "low": { "module": "core/random", "functionName": "guid" } },
+        "uuid": { "low": { "module": "core/random", "functionName": "uuid" } }
+    }
+}

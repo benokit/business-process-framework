@@ -69,5 +69,36 @@
         "id": "messaging",
         "interface": "messaging-interface",
         "implementation": "messaging-implementation"
+    },
+    {
+        "type": "data",
+        "id": "publish-node-template",
+        "meta": { "kind": "execution-node-template" },
+        "data": {
+            "keyword": "publish",
+            "implementation": [
+                { "name": "id", "service": { "id": "random", "method": "guid" } },
+                { "name": "ts", "service": { "id": "date",   "method": "now"  } },
+                {
+                    "name": "envelope",
+                    "set": {
+                        "$let": {
+                            "$fallback": { "$head": { "$filter": { "_predicate": "#", "_collection": "#" } } }
+                        },
+                        "$in": {
+                            "messageId":    { "$fallback": ["#.node.publish.envelope.messageId",    "#.id.value"] },
+                            "timestampUTC": { "$fallback": ["#.node.publish.envelope.timestampUTC", "#.ts.value"] },
+                            "group":        { "$fallback": ["#.node.publish.envelope.group",        "#._ctx.group"] },
+                            "correlation":  { "$fallback": ["#.node.publish.envelope.correlation",  "#._ctx.correlation"] },
+                            "message":      "#.node.publish.envelope.message"
+                        }
+                    }
+                },
+                {
+                    "inputMap": { "channel": "#.node.publish.channel", "envelope": "#.envelope" },
+                    "service": { "id": "messaging", "method": "publish" }
+                }
+            ]
+        }
     }
 ]
