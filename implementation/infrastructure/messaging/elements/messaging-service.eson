@@ -23,27 +23,26 @@
                 { "name": "broker", "inputMap": { "id": "#.channel.data.broker" }, "service": { "id": "data", "method": "getData" } },
                 { "name": "allConsumers", "inputMap": { "kind": "message-consumer" }, "service": { "id": "data", "method": "getDataOfKind" } },
                 {
+                    "name": "channelConsumers",
+                    "set": {
+                        "$let": { "channelId": "#.channel.id" },
+                        "$filter": {
+                            "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
+                            "_collection": "#.allConsumers.items"
+                        }
+                    }
+                },
+                {
                     "name": "consumers",
                     "set": {
                         "$let": {
                             "channelData": "#.channel.data",
                             "brokerData": "#.broker.data",
-                            "brokerId": "#.broker.data.service",
-                            "channelId": "#.channel.id"
+                            "brokerId": "#.broker.data.service"
                         },
                         "$map": {
-                            "_fn": {
-                                "channel": "@channelData",
-                                "broker": "@brokerData",
-                                "brokerId": "@brokerId",
-                                "consumer": "#.data"
-                            },
-                            "_over": {
-                                "$filter": {
-                                    "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
-                                    "_collection": "#.allConsumers.items"
-                                }
-                            }
+                            "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data" },
+                            "_over": "#.channelConsumers"
                         }
                     }
                 },
