@@ -91,13 +91,13 @@ async function processItem(item) {
     const col = await getCollection(COLLECTION, COLLECTION_PROPS);
     try {
         // Resolve broker directly to avoid re-routing back through the transactional outbox
-        const destElement = await execute('data', 'getData', { id: item.destination });
+        const destElement = await execute('data', 'getData', { id: item.channel });
         const destData = destElement.data;
         const brokerElement = await execute('data', 'getData', { id: destData.broker });
         const brokerData = brokerElement.data;
 
         await execute(brokerData.service, 'publish', {
-            destination: destData,
+            channel: destData,
             broker: brokerData,
             envelope: item.envelope
         });
@@ -110,7 +110,7 @@ async function processItem(item) {
 
 async function handlePublishFailure(col, item) {
     try {
-        const destElement = await execute('data', 'getData', { id: item.destination });
+        const destElement = await execute('data', 'getData', { id: item.channel });
         const retryConfig = destElement?.data?.publisher?.retry;
         const maxAttempts = retryConfig?.attempts ?? 3;
         const backoff = retryConfig?.backoff ?? 1000;

@@ -95,15 +95,15 @@ Broker-agnostic messaging framework. Concrete broker implementations are provide
 
 ### Abstractions
 
-**`message-broker`** — a `data` element with `meta.kind = "message-broker"` holding broker-specific connection config. Referenced by destinations by `id`.
+**`message-broker`** — a `data` element with `meta.kind = "message-broker"` holding broker-specific connection config. Referenced by channels by `id`.
 
-**`message-destination`** — a `data` element describing a publish/consume endpoint:
+**`message-channel`** — a `data` element describing a publish/consume endpoint:
 
 | Field | Description |
 | --- | --- |
 | `broker` | id of the `message-broker` data element |
 | `topology` | `"queue"` or `"topic"` |
-| `name` | destination name on the broker |
+| `name` | channel name on the broker |
 | `publisher.transactionalOutbox` | when `true`, `messaging.publish` routes through `transactional-outbox.put` instead of the broker directly — see [`transactional-outbox`](#transactional-outbox) |
 | `publisher.retry.attempts` | max publish retry attempts in the outbox processor |
 | `publisher.retry.backoff` | base backoff in ms for outbox publish retries (exponential: `backoff * 2^retryCount`) |
@@ -115,7 +115,7 @@ Broker-agnostic messaging framework. Concrete broker implementations are provide
 
 | Field | Description |
 | --- | --- |
-| `destination` | id of the `message-destination` data element |
+| `channel` | id of the `message-channel` data element |
 | `name` | optional name for logging / monitoring |
 | `handler` | pipeline executed for each received message; receives the `message-envelope` as `#.input` |
 
@@ -133,15 +133,15 @@ Broker-agnostic messaging framework. Concrete broker implementations are provide
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |---|
-| `publish` | `destination`, `envelope` | `{ messageId }` |
-| `startConsuming` | `destination` | `{ consumers[] }` — names of activated consumers |
-| `stopConsuming` | `destination` | — |
+| `publish` | `channel`, `envelope` | `{ messageId }` |
+| `startConsuming` | `channel` | `{ consumers[] }` — names of activated consumers |
+| `stopConsuming` | `channel` | — |
 
-`destination` is the `id` of a `message-destination` data element in all methods.
+`channel` is the `id` of a `message-channel` data element in all methods.
 
 ### Routing
 
-The `messaging` service is a fully declarative router. For each method it resolves the `message-broker` data element from the destination and delegates dynamically to the service named in `broker.data.service`. `startConsuming` uses `data.getDataOfKind` to discover all `message-consumer` elements for the destination and calls `broker.consume` for each one.
+The `messaging` service is a fully declarative router. For each method it resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsuming` uses `data.getDataOfKind` to discover all `message-consumer` elements for the channel and calls `broker.consume` for each one.
 
 ### Broker interface (`messaging-broker-interface`)
 
@@ -149,9 +149,9 @@ Broker services implement this interface. Methods receive data objects directly 
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
-| `publish` | `destination`, `broker`, `envelope` | `{ messageId }` |
-| `consume` | `destination`, `broker`, `consumer` | — |
-| `stopConsuming` | `destination`, `broker` | — |
+| `publish` | `channel`, `broker`, `envelope` | `{ messageId }` |
+| `consume` | `channel`, `broker`, `consumer` | — |
+| `stopConsuming` | `channel`, `broker` | — |
 
 `consumer` includes the resolved `handler` pipeline. The broker calls `executeMethod(consumer.handler, envelope, _ctx)` to dispatch each message.
 
@@ -180,8 +180,8 @@ NATS JetStream implementation of `messaging-broker-interface`. Requires NATS wit
 | Aspect | Detail |
 | --- | --- |
 | Transport | NATS JetStream (persistent, at-least-once delivery) |
-| Stream | One JetStream stream per destination, auto-created on first use |
-| `topology: "queue"` | Competing consumers — one message delivered to one handler instance; all consumers share a durable consumer group keyed on `destinationId` |
+| Stream | One JetStream stream per channel, auto-created on first use |
+| `topology: "queue"` | Competing consumers — one message delivered to one handler instance; all consumers share a durable consumer group keyed on `channelId` |
 | `topology: "topic"` | Fan-out — each `message-consumer` has its own durable consumer and receives every message |
 | Retry | On handler failure the message is redelivered up to `consumer.retry.attempts` times with `consumer.retry.backoff` ms delay; after exhaustion the message is terminated (`msg.term()`) |
 | `disconnect()` | Drains all connections; call on application shutdown |
@@ -206,15 +206,15 @@ Guarantees at-least-once message delivery by persisting outbox items to MongoDB 
 1. Within an `inTransaction` block, call `transactional-outbox.put` alongside your business writes. The insert joins the active MongoDB session, so the outbox item is atomically committed or rolled back with the rest of the transaction.
 2. Run `transactional-outbox-processor` in the background. It polls the outbox, publishes each item to its broker, and marks it processed. On broker failure it retries with exponential backoff; after exhausting attempts it marks the item failed.
 
-The `messaging.publish` pipeline integrates this transparently: when a `message-destination` has `publisher.transactionalOutbox: true`, calling `messaging.publish` routes to `transactional-outbox.put` automatically.
+The `messaging.publish` pipeline integrates this transparently: when a `message-channel` has `publisher.transactionalOutbox: true`, calling `messaging.publish` routes to `transactional-outbox.put` automatically.
 
 ### `transactional-outbox` service
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
-| `put` | `destination`, `envelope` | `{ messageId }` |
+| `put` | `channel`, `envelope` | `{ messageId }` |
 
-`destination` is the `id` of a `message-destination` data element. `envelope` is a `message-envelope`. Must be called within an `inTransaction` block to guarantee atomicity with business data.
+`channel` is the `id` of a `message-channel` data element. `envelope` is a `message-envelope`. Must be called within an `inTransaction` block to guarantee atomicity with business data.
 
 ### `transactional-outbox-processor`
 
@@ -230,15 +230,15 @@ The `messaging.publish` pipeline integrates this transparently: when a `message-
 Each iteration:
 
 1. **Find and lock** (in a MongoDB transaction): groups all `status=0` items by `envelope.group`, takes the earliest `envelope.timestampUTC` per group, filters to items with `processAfterTimestampUTC ≤ now`, picks the one with the smallest `processAfterTimestampUTC`, and advances its `processAfterTimestampUTC` by `lockIntervalInMilliseconds`. This prevents concurrent processor instances from double-processing the same item. Write conflicts (`TransientTransactionError`) are retried automatically.
-2. **Publish**: resolves the destination's broker and calls the broker service directly (bypassing outbox re-routing). On success marks the item `status = 1` (`processed`) and records `processedAt`.
-3. **On failure**: retries up to `destination.publisher.retry.attempts` times with delay `backoff * 2^retryCount` ms. After exhaustion marks `status = 2` (`failed`).
+2. **Publish**: resolves the channel's broker and calls the broker service directly (bypassing outbox re-routing). On success marks the item `status = 1` (`processed`) and records `processedAt`.
+3. **On failure**: retries up to `channel.publisher.retry.attempts` times with delay `backoff * 2^retryCount` ms. After exhaustion marks `status = 2` (`failed`).
 4. **Idle**: if no eligible item is found, sleeps `idleIntervalInMilliseconds` before the next iteration.
 
 ### Outbox item shape (MongoDB collection `transactional-outbox`)
 
 | Field | Description |
 | --- | --- |
-| `destination` | `message-destination` element id |
+| `channel` | `message-channel` element id |
 | `envelope` | the `message-envelope` to publish |
 | `status` | `0` waiting · `1` processed · `2` failed |
 | `retryCount` | number of failed publish attempts so far |
@@ -280,7 +280,7 @@ The collection is created with three indices on first access:
     "inTransaction": [
         { "service": { "id": "entity-database-mongodb", "method": "create" }, "inputMap": "..." },
         { "service": { "id": "messaging", "method": "publish" },
-          "inputMap": { "destination": "order-events", "envelope": "#.envelope" } }
+          "inputMap": { "channel": "order-events", "envelope": "#.envelope" } }
     ]
 }
 ```

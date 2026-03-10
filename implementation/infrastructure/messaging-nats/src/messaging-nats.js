@@ -6,7 +6,7 @@ const jc = JSONCodec();
 // broker.url → { nc, js, jsm }
 const connections = new Map();
 
-// `${broker.url}:${destination.name}` → Subscription[]
+// `${broker.url}:${channel.name}` → Subscription[]
 const activeSubscriptions = new Map();
 
 // stream names confirmed to exist: `${broker.url}:${streamName}`
@@ -33,22 +33,22 @@ async function ensureStream(jsm, brokerUrl, streamName) {
     initializedStreams.add(key);
 }
 
-async function publish({ input: { destination, broker, envelope } }) {
+async function publish({ input: { channel, broker, envelope } }) {
     const { js, jsm } = await getConnection(broker.url);
-    await ensureStream(jsm, broker.url, destination.name);
-    await js.publish(destination.name, jc.encode(envelope));
+    await ensureStream(jsm, broker.url, channel.name);
+    await js.publish(channel.name, jc.encode(envelope));
     return { messageId: envelope.messageId };
 }
 
-async function consume({ _ctx, input: { destination, broker, consumer } }) {
+async function consume({ _ctx, input: { channel, broker, consumer } }) {
     const { js, jsm } = await getConnection(broker.url);
-    await ensureStream(jsm, broker.url, destination.name);
+    await ensureStream(jsm, broker.url, channel.name);
 
-    const topology = destination.topology;
-    const retryAttempts = destination.consumer?.retry?.attempts ?? 3;
-    const retryBackoff = destination.consumer?.retry?.backoff ?? 1000;
+    const topology = channel.topology;
+    const retryAttempts = channel.consumer?.retry?.attempts ?? 3;
+    const retryBackoff = channel.consumer?.retry?.backoff ?? 1000;
     const consumerName = consumer.name;
-    const durableName = topology === 'queue' ? destination.name : consumerName;
+    const durableName = topology === 'queue' ? channel.name : consumerName;
 
     const opts = consumerOpts();
     opts.durable(durableName);
@@ -56,11 +56,11 @@ async function consume({ _ctx, input: { destination, broker, consumer } }) {
     opts.ackExplicit();
     opts.deliverTo(createInbox());
     if (topology === 'queue') {
-        opts.queue(destination.name);
+        opts.queue(channel.name);
     }
 
-    const sub = await js.subscribe(destination.name, opts);
-    const subKey = `${broker.url}:${destination.name}`;
+    const sub = await js.subscribe(channel.name, opts);
+    const subKey = `${broker.url}:${channel.name}`;
     if (!activeSubscriptions.has(subKey)) {
         activeSubscriptions.set(subKey, []);
     }
@@ -88,8 +88,8 @@ async function consume({ _ctx, input: { destination, broker, consumer } }) {
     })();
 }
 
-async function stopConsuming({ input: { destination, broker } }) {
-    const subKey = `${broker.url}:${destination.name}`;
+async function stopConsuming({ input: { channel, broker } }) {
+    const subKey = `${broker.url}:${channel.name}`;
     const subs = activeSubscriptions.get(subKey) ?? [];
     for (const sub of subs) {
         sub.unsubscribe();

@@ -133,14 +133,14 @@ elements:
     id: transactional-outbox-service,
     interface: {
         put: {
-            !destination: string,
+            !channel: string,
             !envelope: @message-envelope 
         }
     }
 }
 
 transactional outbox item:
-    - destination
+    - channel
     - retryCount
     - processAfterTimestampUTC
     - status: 
@@ -154,7 +154,7 @@ transactional outbox item:
         - ...
 
 initial transactional outbox item:
-    - destination = input.destination
+    - channel = input.channel
     - retryCount = 0
     - status = 0
     - processAfterTimestampUTC = input.envelope.timestampUTC 
@@ -179,14 +179,14 @@ transactional outbox processor loop:
  - update item.processAfterTimestampUTC += lockIntervalInMilliseconds
 }
 - try 
-  - publish item.envelope on item.destination
+  - publish item.envelope on item.channel
   - update:
     - item.status = 1
 - catch 
-  - if doRetry(destination, item.retryCount)
+  - if doRetry(channel, item.retryCount)
     - update
       - item.retryCount += 1
-      - item.processAfterTimestampUTC += computeRetryDelay(item.retryCount, destination.publish.retry)
+      - item.processAfterTimestampUTC += computeRetryDelay(item.retryCount, channel.publish.retry)
   - else 
     - update 
       - item.status = 2

@@ -2,13 +2,13 @@ import { getCollection } from 'mongodb-client';
 import { getSession } from 'transaction/mongodb';
 import { COLLECTION, COLLECTION_PROPS } from './collection.js';
 
-async function put({ _ctx, input: { destination, envelope } }) {
+async function put({ _ctx, input: { channel, envelope } }) {
     const session = _ctx?.transaction?.sessionId != null
         ? getSession(_ctx.transaction.sessionId)
         : undefined;
 
     const item = {
-        destination,
+        channel,
         retryCount: 0,
         status: 0,
         processAfterTimestampUTC: envelope.timestampUTC,

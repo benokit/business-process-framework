@@ -3,7 +3,7 @@
         "type": "schema",
         "id": "transactional-outbox-put-input",
         "schema": {
-            "!destination": "string",
+            "!channel": "string",
             "!envelope": "@message-envelope"
         }
     },

@@ -14,7 +14,7 @@ const COLLECTION = 'transactional-outbox';
 
 const TEST_BROKER_ID = 'test-outbox-broker';
 const TEST_BROKER_SERVICE = 'test-outbox-broker-service';
-const TEST_DEST_ID = 'test-outbox-destination';
+const TEST_CHANNEL_ID = 'test-outbox-channel';
 
 function makeEnvelope(id) {
     return {
@@ -68,7 +68,7 @@ describe('transactional-outbox', function () {
         });
         registerElement({
             type: 'data',
-            id: TEST_DEST_ID,
+            id: TEST_CHANNEL_ID,
             data: {
                 broker: TEST_BROKER_ID,
                 topology: 'queue',
@@ -96,7 +96,7 @@ describe('transactional-outbox', function () {
         it('inserts an outbox item with status=0', async function () {
             const envelope = makeEnvelope('put-1');
             const result = await execute('transactional-outbox', 'put', {
-                destination: TEST_DEST_ID,
+                channel: TEST_CHANNEL_ID,
                 envelope
             });
             expect(result).to.deep.equal({ messageId: 'put-1' });
@@ -104,7 +104,7 @@ describe('transactional-outbox', function () {
             const items = await getCollection(COLLECTION).find({}).toArray();
             expect(items).to.have.length(1);
             const [item] = items;
-            expect(item.destination).to.equal(TEST_DEST_ID);
+            expect(item.channel).to.equal(TEST_CHANNEL_ID);
             expect(item.status).to.equal(0);
             expect(item.retryCount).to.equal(0);
             expect(item.processAfterTimestampUTC).to.equal(envelope.timestampUTC);
@@ -116,7 +116,7 @@ describe('transactional-outbox', function () {
             const envelope = makeEnvelope('put-rollback');
             const program = [
                 {
-                    inputMap: { destination: TEST_DEST_ID, envelope: envelope },
+                    inputMap: { channel: TEST_CHANNEL_ID, envelope: envelope },
                     service: { id: 'transactional-outbox', method: 'put' }
                 },
                 { throw: 'deliberate rollback' }
@@ -138,7 +138,7 @@ describe('transactional-outbox', function () {
             const envelope = makeEnvelope('put-commit');
             const program = [
                 {
-                    inputMap: { destination: TEST_DEST_ID, envelope: envelope },
+                    inputMap: { channel: TEST_CHANNEL_ID, envelope: envelope },
                     service: { id: 'transactional-outbox', method: 'put' }
                 }
             ];
@@ -158,7 +158,7 @@ describe('transactional-outbox', function () {
             this.timeout(6000);
             const col = getCollection(COLLECTION);
             const envelope = makeEnvelope('proc-ok');
-            await execute('transactional-outbox', 'put', { destination: TEST_DEST_ID, envelope });
+            await execute('transactional-outbox', 'put', { channel: TEST_CHANNEL_ID, envelope });
 
             await run({ input: { lockIntervalInMilliseconds: 5000, idleIntervalInMilliseconds: 50 } });
             await waitFor(() => col.findOne({ 'envelope.messageId': 'proc-ok', status: 1 }), 4000);
@@ -174,7 +174,7 @@ describe('transactional-outbox', function () {
             const envelope = makeEnvelope('proc-future');
             const futureTime = new Date(Date.now() + 60_000).toISOString();
             await col.insertOne({
-                destination: TEST_DEST_ID,
+                channel: TEST_CHANNEL_ID,
                 retryCount: 0,
                 status: 0,
                 processAfterTimestampUTC: futureTime,
@@ -200,8 +200,8 @@ describe('transactional-outbox', function () {
             const envelopeNewer = { ...makeEnvelope('group-newer'), group: 'shared-group', timestampUTC: newerTs };
 
             await col.insertMany([
-                { destination: TEST_DEST_ID, retryCount: 0, status: 0, processAfterTimestampUTC: olderTs, envelope: envelopeOlder },
-                { destination: TEST_DEST_ID, retryCount: 0, status: 0, processAfterTimestampUTC: newerTs, envelope: envelopeNewer }
+                { channel: TEST_CHANNEL_ID, retryCount: 0, status: 0, processAfterTimestampUTC: olderTs, envelope: envelopeOlder },
+                { channel: TEST_CHANNEL_ID, retryCount: 0, status: 0, processAfterTimestampUTC: newerTs, envelope: envelopeNewer }
             ]);
 
             await run({ input: { lockIntervalInMilliseconds: 5000, idleIntervalInMilliseconds: 50 } });
@@ -223,7 +223,7 @@ describe('transactional-outbox', function () {
 
             const FAIL_SERVICE = 'test-fail-broker-service';
             const FAIL_BROKER = 'test-fail-broker';
-            const FAIL_DEST = 'test-fail-destination';
+            const FAIL_CHANNEL = 'test-fail-channel';
 
             registerElement({
                 type: 'service',
@@ -237,7 +237,7 @@ describe('transactional-outbox', function () {
                 data: { service: FAIL_SERVICE }
             });
             registerElement({
-                type: 'data', id: FAIL_DEST,
+                type: 'data', id: FAIL_CHANNEL,
                 data: {
                     broker: FAIL_BROKER,
                     topology: 'queue',
@@ -248,7 +248,7 @@ describe('transactional-outbox', function () {
 
             const envelope = makeEnvelope('proc-fail');
             await col.insertOne({
-                destination: FAIL_DEST,
+                channel: FAIL_CHANNEL,
                 retryCount: 0,
                 status: 0,
                 processAfterTimestampUTC: new Date().toISOString(),

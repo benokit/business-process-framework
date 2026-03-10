@@ -12,7 +12,7 @@
     },
     {
         "type": "schema",
-        "id": "message-destination",
+        "id": "message-channel",
         "schema": {
             "!broker": "string",
             "!topology": "string",
@@ -37,7 +37,7 @@
         "type": "schema",
         "id": "message-consumer",
         "schema": {
-            "!destination": "string",
+            "!channel": "string",
             "name": "string",
             "!handler": "@impl-schema"
         }
@@ -53,7 +53,7 @@
         "type": "schema",
         "id": "messaging-publish-input",
         "schema": {
-            "!destination": "string",
+            "!channel": "string",
             "!envelope": "@message-envelope"
         }
     },
@@ -68,7 +68,7 @@
         "type": "schema",
         "id": "messaging-consuming-input",
         "schema": {
-            "!destination": "string"
+            "!channel": "string"
         }
     },
     {
@@ -82,7 +82,7 @@
         "type": "schema",
         "id": "messaging-broker-publish-input",
         "schema": {
-            "!destination": "object",
+            "!channel": "object",
             "!broker": "object",
             "!envelope": "@message-envelope"
         }
@@ -91,7 +91,7 @@
         "type": "schema",
         "id": "messaging-broker-consume-input",
         "schema": {
-            "!destination": "object",
+            "!channel": "object",
             "!broker": "object",
             "!consumer": "object"
         }
@@ -100,7 +100,7 @@
         "type": "schema",
         "id": "messaging-broker-stop-consuming-input",
         "schema": {
-            "!destination": "object",
+            "!channel": "object",
             "!broker": "object"
         }
     },
