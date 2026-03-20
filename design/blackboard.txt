@@ -119,78 +119,58 @@ service:
     }
 }
 
------------- messaging transactional outbox ---------------
+-------- entity -------
 
-implementation/infrastructure/messaging/
-    elements/
-    src/
-    package.json
+Entity type is a simple concept that defines:
 
-elements:
+- classification
+- identification
+- meaning (described in terms of dimensions)
+- data model
+- states model (states, transitions)
 
-{
-    type: service,
-    id: transactional-outbox-service,
-    interface: {
-        put: {
-            !channel: string,
-            !envelope: @message-envelope 
-        }
+Each entity type permits:
+
+- data versioning
+    - data relative diff
+    - valid from
+- history
+    - entity relative diff
+    - timestamp 
+    - user 
+
+Entity state model is multidimensional and consists of:
+    - states: {
+        dimA: [stateA_1, stateA_2, ...],
+        dimB: [stateB_1, stateB_2, ...],
+        ...
     }
-}
+    - transactions: vectors (from - to)
+        - name
+        - from: {
+            dimA: stateA,
+            dimB: stateB,
+            ...
+        }
+        - to: {
+            dim A: stateA',
+            dim C: stateC',
+            ...
+        }
 
-transactional outbox item:
-    - channel
-    - retryCount
-    - processAfterTimestampUTC
-    - status: 
-        - 0: waiting
-        - 1: processed
-        - 2: failed
-    - envelope
-        - timestampUTC
-        - group
-        - message
-        - ...
+Entity type capabilities are extensible with generic entity components.
 
-initial transactional outbox item:
-    - channel = input.channel
-    - retryCount = 0
-    - status = 0
-    - processAfterTimestampUTC = input.envelope.timestampUTC 
-    - envelope = input.envelope
+Entity components are generic representations or projections of entities, which 
+can be used in entity type agnostic contexts.
 
-items are stored in mongodb collection: transactional-outbox
+Entity components have the following properties:
+    - id
+    - data schema
+    - 
 
-there is transactional outbox processor service 
-- methods
-    - run 
-        - lockIntervalInMilliseconds
-        - idleIntervalInMilliseconds
-    - stop
 
-transactional outbox processor loop:
 
-- inTransaction: {
- - read item from transactional outbox: 
-     let firstInGroups = map (head . (sortBy message.timestampUTC asc)) $ (groupBy message.group $ filter status = 0 $ items)
-     item =  head . (sortBy processAfterTimestampUTC desc) $ firstInGroups
-     return item 
- - update item.processAfterTimestampUTC += lockIntervalInMilliseconds
-}
-- try 
-  - publish item.envelope on item.channel
-  - update:
-    - item.status = 1
-- catch 
-  - if doRetry(channel, item.retryCount)
-    - update
-      - item.retryCount += 1
-      - item.processAfterTimestampUTC += computeRetryDelay(item.retryCount, channel.publish.retry)
-  - else 
-    - update 
-      - item.status = 2
-   
+
 
 
 
