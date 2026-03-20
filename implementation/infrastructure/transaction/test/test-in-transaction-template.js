@@ -1,31 +1,28 @@
 import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { MongoClient } from 'mongodb';
+import pg from 'pg';
 import { loadElements } from 'core/elements-loader';
 import { execute } from 'core/service';
-import { connect, disconnect } from 'mongodb-client';
+import { connect, disconnect } from 'postgres-client';
 import { registerElement } from 'core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');
-const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://admin:password@localhost:27017/admin';
+const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'test-in-transaction-template';
 
 describe('inTransaction node template', function () {
     let connected = false;
-    let transactionsSupported = false;
 
     before(async function () {
-        const probe = new MongoClient(MONGODB_URL, { serverSelectionTimeoutMS: 2000 });
+        const probe = new pg.Pool({ connectionString: POSTGRES_URL, max: 1 });
         try {
-            await probe.connect();
-            await probe.db().command({ ping: 1 });
-            const info = await probe.db().admin().command({ isMaster: 1 });
-            transactionsSupported = !!(info.setName || info.msg === 'isdbgrid');
-            await probe.close();
+            const client = await probe.connect();
+            client.release();
+            await probe.end();
         } catch {
-            console.warn('\n  WARNING: MongoDB not reachable — tests skipped\n');
+            console.warn('\n  WARNING: PostgreSQL not reachable — tests skipped\n');
             this.skip();
         }
         await loadElements([ELEMENTS_DIR]);
@@ -74,20 +71,17 @@ describe('inTransaction node template', function () {
         await disconnect();
     });
 
-    it('executes the program inside a transaction', async function () {
-        if (!transactionsSupported) return this.skip();
+    it('executes the program inside a transaction', async () => {
         const result = await execute(SERVICE, 'captureTransaction', {});
         expect(result).to.have.property('sessionId').that.is.a('number');
     });
 
-    it('forwards node input (inputMap result) to the program', async function () {
-        if (!transactionsSupported) return this.skip();
+    it('forwards node input (inputMap result) to the program', async () => {
         const result = await execute(SERVICE, 'forwardInput', { payload: { x: 99 } });
         expect(result).to.deep.equal({ x: 99 });
     });
 
-    it('propagates errors thrown inside the program', async function () {
-        if (!transactionsSupported) return this.skip();
+    it('propagates errors thrown inside the program', async () => {
         let error;
         try {
             await execute(SERVICE, 'throwInside', {});
@@ -97,15 +91,13 @@ describe('inTransaction node template', function () {
         expect(error).to.equal('inner error');
     });
 
-    it('reuses the outer transaction when nested', async function () {
-        if (!transactionsSupported) return this.skip();
+    it('reuses the outer transaction when nested', async () => {
         const result = await execute(SERVICE, 'nestedInTransaction', {});
         expect(result.outer.sessionId).to.be.a('number');
         expect(result.inner.sessionId).to.equal(result.outer.sessionId);
     });
 
-    it('starts a fresh transaction for sequential inTransaction nodes', async function () {
-        if (!transactionsSupported) return this.skip();
+    it('starts a fresh transaction for sequential inTransaction nodes', async () => {
         const result = await execute(SERVICE, 'sequential', {});
         expect(result.first.sessionId).to.be.a('number');
         expect(result.second.sessionId).to.be.a('number');

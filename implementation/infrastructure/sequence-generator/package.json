@@ -3,18 +3,17 @@
   "version": "1.0.0",
   "type": "module",
   "exports": {
-    "./mongodb": "./src/sequence-generator-mongodb.js"
+    ".": "./src/sequence-generator.js"
   },
   "scripts": {
     "test": "mocha --exit"
   },
   "dependencies": {
     "core": "*",
-    "mongodb-client": "*"
+    "postgres-client": "*"
   },
   "devDependencies": {
     "chai": "*",
-    "mocha": "*",
-    "mongodb": "*"
+    "mocha": "*"
   }
 }

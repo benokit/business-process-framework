@@ -1,6 +1,6 @@
-import { getCollection, getClient } from 'mongodb-client';
+import { getPool } from 'postgres-client';
 import { execute } from 'core/service';
-import { COLLECTION, COLLECTION_PROPS } from './collection.js';
+import { initSchema } from './transactional-outbox.js';
 
 let running = false;
 let stopRequested = false;
@@ -41,56 +41,47 @@ async function loop({ lockIntervalInMilliseconds, idleIntervalInMilliseconds }) 
 }
 
 async function findAndLockItem(lockIntervalInMilliseconds) {
-    const col = await getCollection(COLLECTION, COLLECTION_PROPS);
-    const client = getClient();
-    const session = client.startSession();
+    await initSchema();
+    const pool = getPool();
+    const client = await pool.connect();
     try {
-        while (true) {
-            try {
-                session.startTransaction();
-                const now = new Date().toISOString();
+        await client.query('BEGIN');
+        const now = new Date().toISOString();
+        const lockedUntil = new Date(Date.now() + lockIntervalInMilliseconds).toISOString();
 
-                // Group waiting items by envelope.group, take the earliest per group (by timestampUTC),
-                // then pick the one with the earliest processAfterTimestampUTC that is due now.
-                const items = await col.aggregate([
-                    { $match: { status: 0, processAfterTimestampUTC: { $lte: now } } },
-                    { $sort: { 'envelope.timestampUTC': 1 } },
-                    { $group: { _id: '$envelope.group', doc: { $first: '$$ROOT' } } },
-                    { $replaceRoot: { newRoot: '$doc' } },
-                    { $sort: { processAfterTimestampUTC: 1 } },
-                    { $limit: 1 }
-                ], { session }).toArray();
+        // Group pending items by envelope.group, take the earliest per group (by timestampUTC),
+        // then pick the one with the earliest processAfterTimestampUTC that is due now.
+        const result = await client.query(`
+            WITH group_earliest AS (
+                SELECT DISTINCT ON (message_group) *
+                FROM transactional_outbox
+                WHERE status = 0 AND process_after_timestamp_utc <= $1
+                ORDER BY message_group, message_timestamp_utc ASC
+            ),
+            candidate AS (
+                SELECT id FROM group_earliest
+                ORDER BY process_after_timestamp_utc ASC
+                LIMIT 1
+            )
+            UPDATE transactional_outbox
+            SET process_after_timestamp_utc = $2
+            WHERE id = (SELECT id FROM candidate)
+            RETURNING *
+        `, [now, lockedUntil]);
 
-                if (items.length === 0) {
-                    await session.abortTransaction();
-                    return null;
-                }
-
-                const item = items[0];
-                const lockedUntil = new Date(new Date(now).getTime() + lockIntervalInMilliseconds).toISOString();
-
-                await col.updateOne(
-                    { _id: item._id },
-                    { $set: { processAfterTimestampUTC: lockedUntil } },
-                    { session }
-                );
-
-                await session.commitTransaction();
-                return item;
-            } catch (err) {
-                try { await session.abortTransaction(); } catch {}
-                if (!err.errorLabels?.includes('TransientTransactionError')) throw err;
-            }
-        }
+        await client.query('COMMIT');
+        return result.rows.length ? result.rows[0] : null;
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw err;
     } finally {
-        await session.endSession();
+        client.release();
     }
 }
 
 async function processItem(item) {
-    const col = await getCollection(COLLECTION, COLLECTION_PROPS);
+    const pool = getPool();
     try {
-        // Resolve broker directly to avoid re-routing back through the transactional outbox
         const destElement = await execute('data', 'getData', { id: item.channel });
         const destData = destElement.data;
         const brokerElement = await execute('data', 'getData', { id: destData.broker });
@@ -102,28 +93,35 @@ async function processItem(item) {
             envelope: item.envelope
         });
 
-        await col.updateOne({ _id: item._id }, { $set: { status: 1, processedAt: new Date().toISOString() } });
+        await pool.query(
+            `UPDATE transactional_outbox SET status = 1, processed_at = $1 WHERE id = $2`,
+            [new Date().toISOString(), item.id]
+        );
     } catch (err) {
-        await handlePublishFailure(col, item);
+        await handlePublishFailure(item);
     }
 }
 
-async function handlePublishFailure(col, item) {
+async function handlePublishFailure(item) {
+    const pool = getPool();
     try {
         const destElement = await execute('data', 'getData', { id: item.channel });
         const retryConfig = destElement?.data?.publisher?.retry;
         const maxAttempts = retryConfig?.attempts ?? 3;
         const backoff = retryConfig?.backoff ?? 1000;
 
-        if (item.retryCount < maxAttempts) {
-            const delay = backoff * Math.pow(2, item.retryCount);
+        if (item.retry_count < maxAttempts) {
+            const delay = backoff * Math.pow(2, item.retry_count);
             const retryAfter = new Date(Date.now() + delay).toISOString();
-            await col.updateOne(
-                { _id: item._id },
-                { $set: { processAfterTimestampUTC: retryAfter, retryCount: item.retryCount + 1 } }
+            await pool.query(
+                `UPDATE transactional_outbox SET process_after_timestamp_utc = $1, retry_count = retry_count + 1 WHERE id = $2`,
+                [retryAfter, item.id]
             );
         } else {
-            await col.updateOne({ _id: item._id }, { $set: { status: 2 } });
+            await pool.query(
+                `UPDATE transactional_outbox SET status = 2 WHERE id = $1`,
+                [item.id]
+            );
         }
     } catch (err) {
         console.error('transactional-outbox-processor: failed to handle publish failure:', err);

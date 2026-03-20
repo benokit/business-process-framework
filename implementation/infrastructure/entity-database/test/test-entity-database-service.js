@@ -1,28 +1,28 @@
 import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { MongoClient } from 'mongodb';
+import pg from 'pg';
 import { loadElements } from 'core/elements-loader';
 import { execute } from 'core/service';
-import { connect, disconnect, getCollection } from 'mongodb-client';
+import { connect, disconnect, getPool } from 'postgres-client';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');
-const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://admin:password@localhost:27017/admin';
+const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const COLLECTION = `test-service-element-${Date.now()}`;
-const SERVICE = 'entity-database-mongodb';
+const SERVICE = 'entity-database';
 
-describe('entity-database-mongodb (service element)', function () {
+describe('entity-database (service element)', function () {
     let connected = false;
 
     before(async function () {
-        const probe = new MongoClient(MONGODB_URL, { serverSelectionTimeoutMS: 2000 });
+        const probe = new pg.Pool({ connectionString: POSTGRES_URL, max: 1 });
         try {
-            await probe.connect();
-            await probe.db().command({ ping: 1 });
-            await probe.close();
+            const client = await probe.connect();
+            client.release();
+            await probe.end();
         } catch {
-            console.warn('\n  WARNING: MongoDB not reachable — service element tests skipped\n');
+            console.warn('\n  WARNING: PostgreSQL not reachable — service element tests skipped\n');
             this.skip();
         }
         await loadElements([ELEMENTS_DIR]);
@@ -32,7 +32,7 @@ describe('entity-database-mongodb (service element)', function () {
 
     after(async function () {
         if (!connected) return;
-        await getCollection(COLLECTION).drop().catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE collection = $1`, [COLLECTION]).catch(() => {});
         await disconnect();
     });
 
@@ -99,7 +99,7 @@ describe('entity-database-mongodb (service element)', function () {
         });
 
         it('returns null for a non-existent id', async () => {
-            const result = await execute(SERVICE, 'read', { collection: COLLECTION, id: '000000000000000000000000' });
+            const result = await execute(SERVICE, 'read', { collection: COLLECTION, id: '00000000-0000-0000-0000-000000000000' });
             expect(result).to.be.null;
         });
 

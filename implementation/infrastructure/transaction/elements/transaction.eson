@@ -24,7 +24,7 @@
     },
     {
         "type": "data",
-        "id": "transaction-mongodb-low-interface",
+        "id": "transaction-low-interface",
         "data": {
             "beginTransaction": {
                 "input": "@transaction-begin-input",

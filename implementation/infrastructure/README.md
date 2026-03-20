@@ -14,11 +14,13 @@ Generic document store with optimistic concurrency. Each document carries an `id
 
 `businessKey` must be a non-empty string, unique per collection. `update` and `delete` use optimistic locking via `version`.
 
+All entities are stored in a single PostgreSQL table (`entities`) with columns `id` (UUID), `collection`, `business_key`, `version`, and `data` (JSONB). The table is created automatically on first use.
+
 ---
 
 ## `sequence-generator`
 
-Monotonically increasing integer counter per named sequence.
+Monotonically increasing integer counter per named sequence. Backed by native PostgreSQL sequences, created on first use.
 
 | Method | Key input fields | Returns             |
 |--------|------------------|---------------------|
@@ -41,11 +43,11 @@ Endpoint data elements shape: `{ method, path, controller: { service, method } }
 
 ## `transaction`
 
-MongoDB-backed transaction lifecycle. Provides two services:
+PostgreSQL-backed transaction lifecycle. Provides two services:
 
-### `transaction-mongodb-low`
+### `transaction-low`
 
-Low-level session management. Each method operates on a MongoDB `ClientSession` identified by a UUID `sessionId`.
+Low-level session management. Each method operates on a PostgreSQL client connection identified by a numeric `sessionId`.
 
 | Method                | Key input fields | Returns              |
 |-----------------------|------------------|----------------------|
@@ -53,9 +55,7 @@ Low-level session management. Each method operates on a MongoDB `ClientSession` 
 | `commitTransaction`   | `sessionId`      | `{ sessionId }`      |
 | `rollbackTransaction` | `sessionId`      | `{ sessionId }`      |
 
-`options` is passed directly to MongoDB's `session.startTransaction()` (e.g. `{ readConcern, writeConcern }`).
-
-### `transaction-mongodb`
+### `transaction`
 
 High-level service. Wraps a program in a transaction: begins, executes the program, commits on success, rolls back and rethrows on failure.
 
@@ -63,7 +63,7 @@ High-level service. Wraps a program in a transaction: begins, executes the progr
 |------------------------|----------------------------------------|---------------------|
 | `executeInTransaction` | `program`, `programInput?`, `config?`  | result of `program` |
 
-`program` is a single pipeline item or an array of items (same format as a service method implementation). `programInput` is passed as `#.input` to the program. `config` is passed as `options` to `beginTransaction`.
+`program` is a single pipeline item or an array of items (same format as a service method implementation). `programInput` is passed as `#.input` to the program.
 
 #### Nested transactions via `_ctx`
 
@@ -84,8 +84,6 @@ This package also registers an [execution node template](../core/README.md#execu
 ```
 
 The node's input (after `inputMap`, if present) becomes the sub-pipeline's input; the sub-pipeline's result is the node's output (`outputMap` applies as normal). Nested `inTransaction` nodes reuse the outermost transaction; sequential ones each start a fresh transaction.
-
-> **Note:** MongoDB transactions require a replica set or sharded cluster. They are not supported on a standalone `mongod`.
 
 ---
 
@@ -220,11 +218,11 @@ await disconnect();
 
 ## `transactional-outbox`
 
-Guarantees at-least-once message delivery by persisting outbox items to MongoDB within the same business transaction, then publishing them asynchronously. Depends on `transaction` and `mongodb-client`.
+Guarantees at-least-once message delivery by persisting outbox items to PostgreSQL within the same business transaction, then publishing them asynchronously. Depends on `transaction` and `postgres-client`.
 
 ### Pattern
 
-1. Within an `inTransaction` block, call `transactional-outbox.put` alongside your business writes. The insert joins the active MongoDB session, so the outbox item is atomically committed or rolled back with the rest of the transaction.
+1. Within an `inTransaction` block, call `transactional-outbox.put` alongside your business writes. The insert joins the active PostgreSQL transaction, so the outbox item is atomically committed or rolled back with the rest of the transaction.
 2. Run `transactional-outbox-processor` in the background. It polls the outbox, publishes each item to its broker, and marks it processed. On broker failure it retries with exponential backoff; after exhausting attempts it marks the item failed.
 
 The `messaging.publish` pipeline integrates this transparently: when a `message-channel` has `publisher.transactionalOutbox: true`, calling `messaging.publish` routes to `transactional-outbox.put` automatically.
@@ -250,31 +248,36 @@ The `messaging.publish` pipeline integrates this transparently: when a `message-
 
 Each iteration:
 
-1. **Find and lock** (in a MongoDB transaction): groups all `status=0` items by `envelope.group`, takes the earliest `envelope.timestampUTC` per group, filters to items with `processAfterTimestampUTC ≤ now`, picks the one with the smallest `processAfterTimestampUTC`, and advances its `processAfterTimestampUTC` by `lockIntervalInMilliseconds`. This prevents concurrent processor instances from double-processing the same item. Write conflicts (`TransientTransactionError`) are retried automatically.
-2. **Publish**: resolves the channel's broker and calls the broker service directly (bypassing outbox re-routing). On success marks the item `status = 1` (`processed`) and records `processedAt`.
+1. **Find and lock** (in a PostgreSQL transaction): groups all `status=0` items by `envelope.group`, takes the earliest `envelope.timestampUTC` per group, filters to items with `process_after_timestamp_utc ≤ now`, picks the one with the smallest `process_after_timestamp_utc`, and advances its `process_after_timestamp_utc` by `lockIntervalInMilliseconds`. This prevents concurrent processor instances from double-processing the same item. Implemented as a single atomic CTE `UPDATE … RETURNING`.
+2. **Publish**: resolves the channel's broker and calls the broker service directly (bypassing outbox re-routing). On success marks the item `status = 1` (`processed`) and records `processed_at`.
 3. **On failure**: retries up to `channel.publisher.retry.attempts` times with delay `backoff * 2^retryCount` ms. After exhaustion marks `status = 2` (`failed`).
 4. **Idle**: if no eligible item is found, sleeps `idleIntervalInMilliseconds` before the next iteration.
 
-### Outbox item shape (MongoDB collection `transactional-outbox`)
+### Outbox table (`transactional_outbox`)
 
-| Field | Description |
+| Column | Description |
 | --- | --- |
+| `id` | UUID primary key |
 | `channel` | `message-channel` element id |
-| `envelope` | the `message-envelope` to publish |
+| `message_id` | `envelope.messageId` — promoted for deduplication index |
+| `message_group` | `envelope.group` — promoted for group-ordering index |
+| `message_timestamp_utc` | `envelope.timestampUTC` — promoted for group-ordering index |
+| `envelope` | the full `message-envelope` payload (JSONB) |
 | `status` | `0` waiting · `1` processed · `2` failed |
-| `retryCount` | number of failed publish attempts so far |
-| `processAfterTimestampUTC` | earliest time this item may be picked up |
-| `processedAt` | ISO timestamp set when `status` becomes `1` |
+| `retry_count` | number of failed publish attempts so far |
+| `process_after_timestamp_utc` | earliest time this item may be picked up (ISO string) |
+| `processed_at` | ISO timestamp set when `status` becomes `1` |
+| `created_at` | row creation timestamp |
+
+The table and its indices are created automatically on first use.
 
 ### Indices
 
-The collection is created with three indices on first access:
-
-| Index key | Purpose |
+| Index | Purpose |
 | --- | --- |
-| `{ status, processAfterTimestampUTC }` | main filter in the processor query |
-| `{ envelope.group, envelope.timestampUTC }` | group-ordering sort |
-| `{ envelope.messageId }` (unique) | prevents duplicate inserts |
+| `(status, process_after_timestamp_utc)` | main filter in the processor query |
+| `(message_group, message_timestamp_utc)` | group-ordering sort |
+| `(message_id)` (unique) | prevents duplicate inserts |
 
 ### Example
 
@@ -299,11 +302,11 @@ The collection is created with three indices on first access:
 ```json
 {
     "inTransaction": [
-        { "service": { "id": "entity-database-mongodb", "method": "create" }, "inputMap": "..." },
+        { "service": { "id": "entity-database", "method": "create" }, "inputMap": "..." },
         { "service": { "id": "messaging", "method": "publish" },
           "inputMap": { "channel": "order-events", "envelope": "#.envelope" } }
     ]
 }
 ```
 
-> **Note:** Requires MongoDB replica set or sharded cluster (transactions). The processor must be started explicitly via `transactional-outbox-processor.run`.
+> **Note:** The processor must be started explicitly via `transactional-outbox-processor.run`.

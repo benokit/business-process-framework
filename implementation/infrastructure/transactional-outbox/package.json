@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "core": "*",
-        "mongodb-client": "*",
+        "postgres-client": "*",
         "transaction": "*"
     },
     "devDependencies": {

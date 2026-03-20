@@ -1,22 +1,22 @@
 import { expect } from 'chai';
-import { MongoClient } from 'mongodb';
-import { connect, disconnect, getCollection } from 'mongodb-client';
-import { next } from '../src/sequence-generator-mongodb.js';
+import pg from 'pg';
+import { connect, disconnect } from 'postgres-client';
+import { next } from '../src/sequence-generator.js';
 
-const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://admin:password@localhost:27017/admin';
+const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SEQUENCE = `test-seq-${Date.now()}`;
 
-describe('sequence-generator-mongodb', function () {
+describe('sequence-generator', function () {
     let connected = false;
 
     before(async function () {
-        const probe = new MongoClient(MONGODB_URL, { serverSelectionTimeoutMS: 2000 });
+        const probe = new pg.Pool({ connectionString: POSTGRES_URL, max: 1 });
         try {
-            await probe.connect();
-            await probe.db().command({ ping: 1 });
-            await probe.close();
+            const client = await probe.connect();
+            client.release();
+            await probe.end();
         } catch {
-            console.warn('\n  WARNING: MongoDB not reachable at default URL — sequence-generator tests skipped\n');
+            console.warn('\n  WARNING: PostgreSQL not reachable — sequence-generator tests skipped\n');
             this.skip();
         }
         await connect();
@@ -25,7 +25,6 @@ describe('sequence-generator-mongodb', function () {
 
     after(async function () {
         if (!connected) return;
-        await getCollection('sequences').deleteMany({ _id: { $regex: `^test-seq-` } }).catch(() => {});
         await disconnect();
     });
 

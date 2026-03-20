@@ -1,22 +1,22 @@
 import { expect } from 'chai';
-import { MongoClient } from 'mongodb';
-import { connect, disconnect, getCollection } from 'mongodb-client';
-import * as db from '../src/entity-database-mongodb.js';
+import pg from 'pg';
+import { connect, disconnect, getPool } from 'postgres-client';
+import * as db from '../src/entity-database.js';
 
-const MONGODB_URL = process.env.MONGODB_URL ?? 'mongodb://admin:password@localhost:27017/admin';
+const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const COLLECTION = `test-entity-database-${Date.now()}`;
 
-describe('entity-database-mongodb', function () {
+describe('entity-database', function () {
     let connected = false;
 
     before(async function () {
-        const probe = new MongoClient(MONGODB_URL, { serverSelectionTimeoutMS: 2000 });
+        const probe = new pg.Pool({ connectionString: POSTGRES_URL, max: 1 });
         try {
-            await probe.connect();
-            await probe.db().command({ ping: 1 });
-            await probe.close();
+            const client = await probe.connect();
+            client.release();
+            await probe.end();
         } catch {
-            console.warn('\n  WARNING: MongoDB not reachable at default URL — entity-database tests skipped\n');
+            console.warn('\n  WARNING: PostgreSQL not reachable — entity-database tests skipped\n');
             this.skip();
         }
         await connect();
@@ -25,7 +25,7 @@ describe('entity-database-mongodb', function () {
 
     after(async function () {
         if (!connected) return;
-        await getCollection(COLLECTION).drop().catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE collection = $1`, [COLLECTION]).catch(() => {});
         await disconnect();
     });
 
@@ -88,7 +88,7 @@ describe('entity-database-mongodb', function () {
         });
 
         it('returns null for a non-existent id', async () => {
-            const result = await db.read({ input: { collection: COLLECTION, id: '000000000000000000000000' } });
+            const result = await db.read({ input: { collection: COLLECTION, id: '00000000-0000-0000-0000-000000000000' } });
             expect(result).to.be.null;
         });
 

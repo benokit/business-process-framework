@@ -1,22 +1,22 @@
 [
     {
         "type": "data",
-        "id": "transaction-mongodb-low-implementation",
+        "id": "transaction-low-implementation",
         "data": {
-            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "beginTransaction" } },
-            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "commitTransaction" } },
-            "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "transaction/mongodb", "functionName": "rollbackTransaction" } }
+            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "beginTransaction" } },
+            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "commitTransaction" } },
+            "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "rollbackTransaction" } }
         }
     },
     {
         "type": "service",
-        "id": "transaction-mongodb-low",
-        "interface": "transaction-mongodb-low-interface",
-        "implementation": "transaction-mongodb-low-implementation"
+        "id": "transaction-low",
+        "interface": "transaction-low-interface",
+        "implementation": "transaction-low-implementation"
     },
     {
         "type": "data",
-        "id": "transaction-mongodb-implementation",
+        "id": "transaction-implementation",
         "data": {
             "executeInTransaction": {
                 "if": "#._ctx.transaction",
@@ -25,7 +25,7 @@
                     {
                         "name": "txn",
                         "inputMap": { "options": "#.input.config" },
-                        "service": { "id": "transaction-mongodb-low", "method": "beginTransaction" }
+                        "service": { "id": "transaction-low", "method": "beginTransaction" }
                     },
                     {
                         "name": "_ctx",
@@ -40,7 +40,7 @@
                             },
                             {
                                 "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
-                                "service": { "id": "transaction-mongodb-low", "method": "commitTransaction" }
+                                "service": { "id": "transaction-low", "method": "commitTransaction" }
                             },
                             {
                                 "return": "#.result"
@@ -49,7 +49,7 @@
                         "catch": [
                             {
                                 "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
-                                "service": { "id": "transaction-mongodb-low", "method": "rollbackTransaction" }
+                                "service": { "id": "transaction-low", "method": "rollbackTransaction" }
                             },
                             {
                                 "throw": "#.error"
@@ -66,9 +66,9 @@
     },
     {
         "type": "service",
-        "id": "transaction-mongodb",
+        "id": "transaction",
         "interface": "transaction-interface",
-        "implementation": "transaction-mongodb-implementation"
+        "implementation": "transaction-implementation"
     },
     {
         "type": "data",
@@ -79,7 +79,7 @@
             "implementation": [
                 {
                     "inputMap": { "program": "#.node.inTransaction", "programInput": "#.input" },
-                    "service": { "id": "transaction-mongodb", "method": "executeInTransaction" }
+                    "service": { "id": "transaction", "method": "executeInTransaction" }
                 }
             ]
         }

@@ -22,5 +22,18 @@
                 "output": "@sequence-next-output"
             }
         }
+    },
+    {
+        "type": "data",
+        "id": "sequence-generator-implementation",
+        "data": {
+            "next": { "inputMap": "#.input", "low": { "module": "sequence-generator", "functionName": "next" } }
+        }
+    },
+    {
+        "type": "service",
+        "id": "sequence-generator",
+        "interface": "sequence-generator-interface",
+        "implementation": "sequence-generator-implementation"
     }
 ]

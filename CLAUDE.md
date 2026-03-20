@@ -40,11 +40,11 @@ implementation/
 
   infrastructure/
     README.md                    # Service interface reference
-    entity-database/             # Generic document store (CRUD + businessKey)
+    entity-database/             # Generic document store (CRUD + businessKey); PostgreSQL, single `entities` table
     http-server/                 # HTTP server (Express); routes from `endpoint` data elements
-    sequence-generator/          # Monotonic integer counters per named sequence
-    mongodb-client/              # Shared MongoDB connection (connect/disconnect/getCollection)
-    transaction/                 # MongoDB-backed transactions; inTransaction pipeline keyword
+    sequence-generator/          # Monotonic integer counters per named sequence; native PostgreSQL sequences
+    postgres-client/             # Shared PostgreSQL connection pool (connect/disconnect/getPool)
+    transaction/                 # PostgreSQL-backed transactions; inTransaction pipeline keyword
     messaging/                   # Broker-agnostic messaging facade (publish/startConsuming/stopConsuming)
     messaging-nats/              # NATS JetStream broker implementation
 ```
@@ -176,12 +176,12 @@ An object is compiled as one of three forms, checked in order:
 
 Tests use **Mocha + Chai**. Each infrastructure package has its own `package.json` with `"test": "mocha --exit"`.
 
-MongoDB-dependent tests require a running instance. NATS-dependent tests require NATS with JetStream. Both skip gracefully when unavailable. Start all infrastructure with:
+PostgreSQL-dependent tests require a running instance. NATS-dependent tests require NATS with JetStream. Both skip gracefully when unavailable. Start all infrastructure with:
 ```
 docker compose -f environments/docker-compose.yml up -d
 ```
 
-- MongoDB default: `mongodb://admin:password@localhost:27017/admin` (override via `MONGODB_URL`)
+- PostgreSQL default: `postgresql://admin:password@localhost:5432/app` (override via `POSTGRES_URL`)
 - NATS default: `nats://localhost:4222` (override via `NATS_URL`)
 
 ## Key conventions

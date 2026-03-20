@@ -91,5 +91,22 @@
                 "output": "@entity-database-list-output"
             }
         }
+    },
+    {
+        "type": "data",
+        "id": "entity-database-implementation",
+        "data": {
+            "create": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "create" } },
+            "read":   { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "read" } },
+            "update": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "update" } },
+            "delete": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "delete" } },
+            "list":   { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "list" } }
+        }
+    },
+    {
+        "type": "service",
+        "id": "entity-database",
+        "interface": "entity-database-interface",
+        "implementation": "entity-database-implementation"
     }
 ]

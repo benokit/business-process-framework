@@ -3,14 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "exports": {
-    "./mongodb": "./src/entity-database-mongodb.js"
+    ".": "./src/entity-database.js"
   },
   "scripts": {
     "test": "mocha --exit"
   },
   "dependencies": {
     "core": "*",
-    "mongodb": "^6.13.0",
-    "mongodb-client": "*"
+    "postgres-client": "*"
   }
 }
