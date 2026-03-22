@@ -189,5 +189,5 @@ docker compose -f environments/docker-compose.yml up -d
 - `.eson` files contain arrays of element objects (or a single object).
 - `!` prefix on a schema key = required field.
 - Service errors are thrown as strings (not Error objects).
-- `entity-record` shape: `{ id, businessKey, version, data, state }` — `id` and `businessKey` both uniquely identify a document within a collection. `businessKey` is a required non-empty string on create. `state` is a separate JSONB field decoupled from `data`, defaults to `{}`.
-- Optimistic concurrency: `update` and `delete` require `version` and fail if it doesn't match.
+- `entity-record` shape: `{ id, businessKey, revision, data, state }` — `id` and `businessKey` both uniquely identify a document within a collection. `businessKey` is a required non-empty string on create. `state` is a separate JSONB field decoupled from `data`, defaults to `{}`.
+- Optimistic concurrency: `update` and `delete` require `revision` and fail if it doesn't match.

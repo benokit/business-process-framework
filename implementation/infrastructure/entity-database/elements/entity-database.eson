@@ -5,7 +5,7 @@
         "schema": {
             "!id": "string",
             "!businessKey": "string",
-            "!version": "number",
+            "!revision": "number",
             "!data": "object",
             "state": "object",
             "!timestampUtc": "string"
@@ -26,8 +26,8 @@
         "id": "entity-database-read-input",
         "schema": {
             "$data#1": [
-                { "!entityType": "string", "!id": "string", "version": "number" },
-                { "!entityType": "string", "!businessKey": "string", "version": "number" }
+                { "!entityType": "string", "!id": "string", "revision": "number" },
+                { "!entityType": "string", "!businessKey": "string", "revision": "number" }
             ]
         }
     },
@@ -36,8 +36,8 @@
         "id": "entity-database-update-input",
         "schema": {
             "$data#1": [
-                { "!entityType": "string", "!id": "string", "!version": "number", "data": "object", "state": "object" },
-                { "!entityType": "string", "!businessKey": "string", "!version": "number", "data": "object", "state": "object" }
+                { "!entityType": "string", "!id": "string", "!revision": "number", "data": "object", "state": "object" },
+                { "!entityType": "string", "!businessKey": "string", "!revision": "number", "data": "object", "state": "object" }
             ]
         }
     },
@@ -46,8 +46,8 @@
         "id": "entity-database-delete-input",
         "schema": {
             "$data#1": [
-                { "!entityType": "string", "!id": "string", "version": "number" },
-                { "!entityType": "string", "!businessKey": "string", "version": "number" }
+                { "!entityType": "string", "!id": "string", "revision": "number" },
+                { "!entityType": "string", "!businessKey": "string", "revision": "number" }
             ]
         }
     },

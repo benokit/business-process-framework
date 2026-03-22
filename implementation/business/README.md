@@ -97,13 +97,13 @@ Example entity type definition:
 | --- | --- | --- |
 | `create` | `entityType`, `businessKey`, `data`, `initialState?` | `entity-record` |
 | `read` | `entityType`, `businessKey` | `entity-record` |
-| `update` | `entityType`, `businessKey`, `version`, `data` | `entity-record` |
-| `delete` | `entityType`, `businessKey`, `version?` | `entity-record` |
+| `update` | `entityType`, `businessKey`, `revision`, `data` | `entity-record` |
+| `delete` | `entityType`, `businessKey`, `revision?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
 | `amend` | `entityType`, `businessKey`, `data`, `validFrom?` | `entity-record` |
 | `execute` | `entityType`, `businessKey`, `componentId`, `methodId`, `input?` | varies |
 
-`create` and `update` validate `data` against the entity type's `dataSchema` before writing. `update` and `delete` use optimistic concurrency via `version`.
+`create` and `update` validate `data` against the entity type's `dataSchema` before writing. `update` and `delete` use optimistic concurrency via `revision`.
 
 ### On-create event handlers
 

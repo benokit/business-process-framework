@@ -12,7 +12,7 @@ async function initSchema() {
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             entity_type TEXT NOT NULL,
             business_key TEXT NOT NULL,
-            version INTEGER NOT NULL DEFAULT 1,
+            revision INTEGER NOT NULL DEFAULT 1,
             data JSONB NOT NULL DEFAULT '{}',
             state JSONB NOT NULL DEFAULT '{}',
             timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -23,12 +23,23 @@ async function initSchema() {
         CREATE TABLE IF NOT EXISTS entity_history (
             id UUID NOT NULL,
             entity_type TEXT NOT NULL,
-            version INTEGER NOT NULL,
+            revision INTEGER NOT NULL,
             data_patch JSONB NOT NULL,
             state_patch JSONB NOT NULL,
             timestamp_utc TIMESTAMPTZ NOT NULL,
-            PRIMARY KEY (id, version)
+            PRIMARY KEY (id, revision)
         )
+    `);
+    // Migrate column name from version → revision if needed
+    await getPool().query(`
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='entities' AND column_name='version') THEN
+                ALTER TABLE entities RENAME COLUMN version TO revision;
+            END IF;
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='entity_history' AND column_name='version') THEN
+                ALTER TABLE entity_history RENAME COLUMN version TO revision;
+            END IF;
+        END $$
     `);
 }
 
@@ -49,7 +60,7 @@ async function create({ input: { entityType, businessKey, data, state = {} } }) 
     }
 }
 
-async function read({ input: { entityType, id, businessKey, version } }) {
+async function read({ input: { entityType, id, businessKey, revision } }) {
     await initSchema();
     try {
         let result;
@@ -66,14 +77,14 @@ async function read({ input: { entityType, id, businessKey, version } }) {
         }
         if (!result.rows.length) return null;
         const current = result.rows[0];
-        if (version === undefined || version === current.version) return toRecord(current);
-        if (version < 1 || version > current.version) return null;
+        if (revision === undefined || revision === current.revision) return toRecord(current);
+        if (revision < 1 || revision > current.revision) return null;
 
         const history = await getPool().query(
-            `SELECT version, data_patch, state_patch, timestamp_utc FROM entity_history
-             WHERE id = $1 AND version >= $2 AND version < $3
-             ORDER BY version DESC`,
-            [current.id, version, current.version]
+            `SELECT revision, data_patch, state_patch, timestamp_utc FROM entity_history
+             WHERE id = $1 AND revision >= $2 AND revision < $3
+             ORDER BY revision DESC`,
+            [current.id, revision, current.revision]
         );
         let data = current.data;
         let state = current.state ?? {};
@@ -83,14 +94,14 @@ async function read({ input: { entityType, id, businessKey, version } }) {
             state = applyPatch(state, row.state_patch).newDocument;
             timestampUtc = row.timestamp_utc;
         }
-        return { id: current.id, businessKey: current.business_key, version, data, state, timestampUtc: toIso(timestampUtc) };
+        return { id: current.id, businessKey: current.business_key, revision, data, state, timestampUtc: toIso(timestampUtc) };
     } catch (err) {
         if (err.code === '22P02') return null; // invalid UUID format
         throw err;
     }
 }
 
-async function update({ input: { entityType, id, businessKey, version, data, state } }) {
+async function update({ input: { entityType, id, businessKey, revision, data, state } }) {
     await initSchema();
     const client = await getPool().connect();
     try {
@@ -98,42 +109,42 @@ async function update({ input: { entityType, id, businessKey, version, data, sta
         let current;
         if (businessKey) {
             const r = await client.query(
-                'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2 AND version = $3 FOR UPDATE',
-                [entityType, businessKey, version]
+                'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2 AND revision = $3 FOR UPDATE',
+                [entityType, businessKey, revision]
             );
             current = r.rows[0];
         } else {
             const r = await client.query(
-                'SELECT * FROM entities WHERE entity_type = $1 AND id = $2 AND version = $3 FOR UPDATE',
-                [entityType, id, version]
+                'SELECT * FROM entities WHERE entity_type = $1 AND id = $2 AND revision = $3 FOR UPDATE',
+                [entityType, id, revision]
             );
             current = r.rows[0];
         }
-        if (!current) throw 'update failed: document not found or version mismatch';
+        if (!current) throw 'update failed: document not found or revision mismatch';
 
         const newData = data !== undefined ? data : current.data;
         const newState = state !== undefined ? state : current.state ?? {};
         const dataPatch = data !== undefined ? patchCompare(data, current.data) : [];
         const statePatch = state !== undefined ? patchCompare(state, current.state ?? {}) : [];
         await client.query(
-            `INSERT INTO entity_history (id, entity_type, version, data_patch, state_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5, $6)`,
-            [current.id, current.entity_type, current.version, JSON.stringify(dataPatch), JSON.stringify(statePatch), current.timestamp_utc]
+            `INSERT INTO entity_history (id, entity_type, revision, data_patch, state_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [current.id, current.entity_type, current.revision, JSON.stringify(dataPatch), JSON.stringify(statePatch), current.timestamp_utc]
         );
 
         let result;
         if (businessKey) {
             result = await client.query(
-                `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $3 AND business_key = $4 AND version = $5
+                `UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW()
+                 WHERE entity_type = $3 AND business_key = $4 AND revision = $5
                  RETURNING *`,
-                [JSON.stringify(newData), JSON.stringify(newState), entityType, businessKey, version]
+                [JSON.stringify(newData), JSON.stringify(newState), entityType, businessKey, revision]
             );
         } else {
             result = await client.query(
-                `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $3 AND id = $4 AND version = $5
+                `UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW()
+                 WHERE entity_type = $3 AND id = $4 AND revision = $5
                  RETURNING *`,
-                [JSON.stringify(newData), JSON.stringify(newState), entityType, id, version]
+                [JSON.stringify(newData), JSON.stringify(newState), entityType, id, revision]
             );
         }
         await client.query('COMMIT');
@@ -146,26 +157,26 @@ async function update({ input: { entityType, id, businessKey, version, data, sta
     }
 }
 
-async function del({ input: { entityType, id, businessKey, version } }) {
+async function del({ input: { entityType, id, businessKey, revision } }) {
     await initSchema();
     const client = await getPool().connect();
     try {
         await client.query('BEGIN');
         let result;
         if (businessKey) {
-            const sql = version !== undefined
-                ? 'DELETE FROM entities WHERE entity_type = $1 AND business_key = $2 AND version = $3 RETURNING *'
+            const sql = revision !== undefined
+                ? 'DELETE FROM entities WHERE entity_type = $1 AND business_key = $2 AND revision = $3 RETURNING *'
                 : 'DELETE FROM entities WHERE entity_type = $1 AND business_key = $2 RETURNING *';
-            const params = version !== undefined ? [entityType, businessKey, version] : [entityType, businessKey];
+            const params = revision !== undefined ? [entityType, businessKey, revision] : [entityType, businessKey];
             result = await client.query(sql, params);
         } else {
-            const sql = version !== undefined
-                ? 'DELETE FROM entities WHERE entity_type = $1 AND id = $2 AND version = $3 RETURNING *'
+            const sql = revision !== undefined
+                ? 'DELETE FROM entities WHERE entity_type = $1 AND id = $2 AND revision = $3 RETURNING *'
                 : 'DELETE FROM entities WHERE entity_type = $1 AND id = $2 RETURNING *';
-            const params = version !== undefined ? [entityType, id, version] : [entityType, id];
+            const params = revision !== undefined ? [entityType, id, revision] : [entityType, id];
             result = await client.query(sql, params);
         }
-        if (!result.rows.length) throw 'delete failed: document not found or version mismatch';
+        if (!result.rows.length) throw 'delete failed: document not found or revision mismatch';
         await client.query('DELETE FROM entity_history WHERE id = $1', [result.rows[0].id]);
         await client.query('COMMIT');
         return toRecord(result.rows[0]);
@@ -197,7 +208,7 @@ async function list({ input: { entityType, filter = {}, sort, limit = 100, skip 
 }
 
 function toRecord(row) {
-    return { id: row.id, businessKey: row.business_key, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
+    return { id: row.id, businessKey: row.business_key, revision: row.revision, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
 }
 
 function toIso(value) {

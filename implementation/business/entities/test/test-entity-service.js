@@ -31,7 +31,7 @@ describe('entity service', function () {
             },
             implementation: {
                 create: { return: '#.input' },
-                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', version: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
+                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', revision: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
                 update: { return: '#.input' },
                 delete: { return: '#.input' }
             }
@@ -286,19 +286,19 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('update', () => {
 
-        it('passes entityType, version and data to entity-database', async () => {
+        it('passes entityType, revision and data to entity-database', async () => {
             const result = await execute(SERVICE, 'update', {
-                entityType: 'order', businessKey: 'order-001', version: 2, data: { amount: 200, currency: 'USD' }
+                entityType: 'order', businessKey: 'order-001', revision: 2, data: { amount: 200, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
-            expect(result.version).to.equal(2);
+            expect(result.revision).to.equal(2);
             expect(result.data).to.deep.equal({ amount: 200, currency: 'USD' });
         });
 
         it('throws when data does not match the entity type dataSchema', async () => {
             let error;
-            try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', version: 1, data: { amount: 'bad' } }); }
+            try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
             expect(error).to.be.a('string').that.includes('validation failed');
         });
@@ -311,7 +311,7 @@ describe('entity service', function () {
         it('invokes registered handlers with the updated entity record', async () => {
             const _ctx = {};
             await execute(SERVICE, 'update', {
-                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-test', version: 1, data: { amount: 200, currency: 'USD' }
+                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-test', revision: 1, data: { amount: 200, currency: 'USD' }
             }, _ctx);
             expect(_ctx.updateHandlerCalledWith).to.exist;
             expect(_ctx.updateHandlerCalledWith.businessKey).to.equal('bk-update-handler-test');
@@ -319,14 +319,14 @@ describe('entity service', function () {
 
         it('update still returns the entity record when handlers are present', async () => {
             const result = await execute(SERVICE, 'update', {
-                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-return', version: 1, data: { amount: 50, currency: 'USD' }
+                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-return', revision: 1, data: { amount: 50, currency: 'USD' }
             });
             expect(result.businessKey).to.equal('bk-update-handler-return');
         });
 
         it('update works normally when no handlers are registered for the entity type', async () => {
             const result = await execute(SERVICE, 'update', {
-                entityType: 'order', businessKey: 'bk-no-update-handler', version: 1, data: { amount: 10, currency: 'USD' }
+                entityType: 'order', businessKey: 'bk-no-update-handler', revision: 1, data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
         });
@@ -336,13 +336,13 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('delete', () => {
 
-        it('passes entityType and version to entity-database', async () => {
+        it('passes entityType and revision to entity-database', async () => {
             const result = await execute(SERVICE, 'delete', {
-                entityType: 'order', businessKey: 'order-001', version: 1
+                entityType: 'order', businessKey: 'order-001', revision: 1
             });
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
-            expect(result.version).to.equal(1);
+            expect(result.revision).to.equal(1);
         });
 
     });

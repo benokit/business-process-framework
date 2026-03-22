@@ -31,11 +31,11 @@ describe('entity-database', function () {
 
     describe('create', () => {
 
-        it('returns an entity record with id, businessKey, version 1, and the given data', async () => {
+        it('returns an entity record with id, businessKey, revision 1, and the given data', async () => {
             const result = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-create-alice', data: { name: 'Alice' } } });
-            expect(result).to.include.keys('id', 'businessKey', 'version', 'data');
+            expect(result).to.include.keys('id', 'businessKey', 'revision', 'data');
             expect(result.businessKey).to.equal('bk-create-alice');
-            expect(result.version).to.equal(1);
+            expect(result.revision).to.equal(1);
             expect(result.data).to.deep.equal({ name: 'Alice' });
         });
 
@@ -83,7 +83,7 @@ describe('entity-database', function () {
             const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
             expect(result.id).to.equal(id);
             expect(result.businessKey).to.equal('bk-read-bob');
-            expect(result.version).to.equal(1);
+            expect(result.revision).to.equal(1);
             expect(result.data).to.deep.equal({ name: 'Bob' });
         });
 
@@ -114,23 +114,23 @@ describe('entity-database', function () {
     });
 
     describe('update by id', () => {
-        let id, version;
+        let id, revision;
 
         before(async () => {
-            ({ id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-carol', data: { name: 'Carol' } } }));
+            ({ id, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-carol', data: { name: 'Carol' } } }));
         });
 
-        it('updates data and increments version', async () => {
-            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, version, data: { name: 'Caroline' } } });
+        it('updates data and increments revision', async () => {
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, revision, data: { name: 'Caroline' } } });
             expect(result.id).to.equal(id);
-            expect(result.version).to.equal(2);
+            expect(result.revision).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Caroline' });
         });
 
-        it('throws when version does not match', async () => {
+        it('throws when revision does not match', async () => {
             let error;
             try {
-                await db.update({ input: { entityType: ENTITY_TYPE, id, version: 99, data: { name: 'X' } } });
+                await db.update({ input: { entityType: ENTITY_TYPE, id, revision: 99, data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -140,23 +140,23 @@ describe('entity-database', function () {
     });
 
     describe('update by businessKey', () => {
-        let version;
+        let revision;
 
         before(async () => {
-            ({ version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', data: { name: 'Diana' } } }));
+            ({ revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', data: { name: 'Diana' } } }));
         });
 
-        it('updates data and increments version', async () => {
-            const result = await db.update({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', version, data: { name: 'Di' } } });
+        it('updates data and increments revision', async () => {
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', revision, data: { name: 'Di' } } });
             expect(result.businessKey).to.equal('bk-update-bk-diana');
-            expect(result.version).to.equal(2);
+            expect(result.revision).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Di' });
         });
 
-        it('throws when version does not match', async () => {
+        it('throws when revision does not match', async () => {
             let error;
             try {
-                await db.update({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', version: 99, data: { name: 'X' } } });
+                await db.update({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-update-bk-diana', revision: 99, data: { name: 'X' } } });
             } catch (e) {
                 error = e;
             }
@@ -166,14 +166,14 @@ describe('entity-database', function () {
     });
 
     describe('delete by id', () => {
-        let id, version;
+        let id, revision;
 
         before(async () => {
-            ({ id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-dave', data: { name: 'Dave' } } }));
+            ({ id, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-dave', data: { name: 'Dave' } } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await db['delete']({ input: { entityType: ENTITY_TYPE, id, version } });
+            const result = await db['delete']({ input: { entityType: ENTITY_TYPE, id, revision } });
             expect(result.id).to.equal(id);
             expect(result.data).to.deep.equal({ name: 'Dave' });
         });
@@ -181,7 +181,7 @@ describe('entity-database', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await db['delete']({ input: { entityType: ENTITY_TYPE, id, version: 1 } });
+                await db['delete']({ input: { entityType: ENTITY_TYPE, id, revision: 1 } });
             } catch (e) {
                 error = e;
             }
@@ -191,14 +191,14 @@ describe('entity-database', function () {
     });
 
     describe('delete by businessKey', () => {
-        let version;
+        let revision;
 
         before(async () => {
-            ({ version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', data: { name: 'Eve' } } }));
+            ({ revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', data: { name: 'Eve' } } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await db['delete']({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', version } });
+            const result = await db['delete']({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', revision } });
             expect(result.businessKey).to.equal('bk-delete-bk-eve');
             expect(result.data).to.deep.equal({ name: 'Eve' });
         });
@@ -206,7 +206,7 @@ describe('entity-database', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await db['delete']({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', version: 1 } });
+                await db['delete']({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-delete-bk-eve', revision: 1 } });
             } catch (e) {
                 error = e;
             }
@@ -219,42 +219,42 @@ describe('entity-database', function () {
         let id, v1, v2, v3;
 
         before(async () => {
-            ({ id, version: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-iris', data: { name: 'Iris', score: 1 } } }));
-            ({ version: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v1, data: { name: 'Iris', score: 2 } } }));
-            ({ version: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v2, data: { name: 'Iris', score: 3 } } }));
+            ({ id, revision: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-iris', data: { name: 'Iris', score: 1 } } }));
+            ({ revision: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, revision: v1, data: { name: 'Iris', score: 2 } } }));
+            ({ revision: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, revision: v2, data: { name: 'Iris', score: 3 } } }));
         });
 
-        it('read without version returns current data', async () => {
+        it('read without revision returns current data', async () => {
             const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
-            expect(result.version).to.equal(v3);
+            expect(result.revision).to.equal(v3);
             expect(result.data.score).to.equal(3);
         });
 
-        it('read with current version returns current data', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v3 } });
+        it('read with current revision returns current data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: v3 } });
             expect(result.data.score).to.equal(3);
         });
 
-        it('read with previous version reconstructs v2 data', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v2 } });
-            expect(result.version).to.equal(v2);
+        it('read with previous revision reconstructs v2 data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: v2 } });
+            expect(result.revision).to.equal(v2);
             expect(result.data.score).to.equal(2);
         });
 
-        it('read with initial version reconstructs v1 data', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v1 } });
-            expect(result.version).to.equal(v1);
+        it('read with initial revision reconstructs v1 data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: v1 } });
+            expect(result.revision).to.equal(v1);
             expect(result.data.score).to.equal(1);
         });
 
-        it('read with out-of-range version returns null', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: 99 } });
+        it('read with out-of-range revision returns null', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: 99 } });
             expect(result).to.be.null;
         });
 
         it('delete removes history rows', async () => {
-            const { id: hId, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-jack', data: { x: 1 } } });
-            await db.update({ input: { entityType: ENTITY_TYPE, id: hId, version, data: { x: 2 } } });
+            const { id: hId, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-jack', data: { x: 1 } } });
+            await db.update({ input: { entityType: ENTITY_TYPE, id: hId, revision, data: { x: 2 } } });
             await db['delete']({ input: { entityType: ENTITY_TYPE, id: hId } });
             const pool = (await import('postgres-client')).getPool();
             const { rows } = await pool.query('SELECT * FROM entity_history WHERE id = $1', [hId]);
@@ -282,15 +282,15 @@ describe('entity-database', function () {
         });
 
         it('update stores the new state and returns it in the record', async () => {
-            const { id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update', data: { x: 1 }, state: { status: 'draft' } } });
-            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, version, data: { x: 2 }, state: { status: 'confirmed' } } });
+            const { id, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update', data: { x: 1 }, state: { status: 'draft' } } });
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, revision, data: { x: 2 }, state: { status: 'confirmed' } } });
             expect(result.state).to.deep.equal({ status: 'confirmed' });
         });
 
-        it('update defaults state to {} when omitted', async () => {
-            const { id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update-default', data: { x: 1 }, state: { status: 'draft' } } });
-            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, version, data: { x: 2 } } });
-            expect(result.state).to.deep.equal({});
+        it('update preserves state when omitted', async () => {
+            const { id, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update-preserve', data: { x: 1 }, state: { status: 'draft' } } });
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, revision, data: { x: 2 } } });
+            expect(result.state).to.deep.equal({ status: 'draft' });
         });
 
     });
@@ -299,24 +299,24 @@ describe('entity-database', function () {
         let id, v1, v2, v3;
 
         before(async () => {
-            ({ id, version: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-hist', data: { score: 1 }, state: { status: 'draft' } } }));
-            ({ version: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v1, data: { score: 2 }, state: { status: 'active' } } }));
-            ({ version: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v2, data: { score: 3 }, state: { status: 'closed' } } }));
+            ({ id, revision: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-hist', data: { score: 1 }, state: { status: 'draft' } } }));
+            ({ revision: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, revision: v1, data: { score: 2 }, state: { status: 'active' } } }));
+            ({ revision: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, revision: v2, data: { score: 3 }, state: { status: 'closed' } } }));
         });
 
-        it('read without version returns current state', async () => {
+        it('read without revision returns current state', async () => {
             const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
             expect(result.state).to.deep.equal({ status: 'closed' });
         });
 
-        it('read with previous version reconstructs v2 state', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v2 } });
+        it('read with previous revision reconstructs v2 state', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: v2 } });
             expect(result.state).to.deep.equal({ status: 'active' });
             expect(result.data.score).to.equal(2);
         });
 
-        it('read with initial version reconstructs v1 state', async () => {
-            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v1 } });
+        it('read with initial revision reconstructs v1 state', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, revision: v1 } });
             expect(result.state).to.deep.equal({ status: 'draft' });
             expect(result.data.score).to.equal(1);
         });

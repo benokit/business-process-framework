@@ -23,7 +23,7 @@
         "schema": {
             "!entityType": "string",
             "!businessKey": "string",
-            "!version": "number",
+            "!revision": "number",
             "!data": "object"
         }
     },
@@ -33,7 +33,7 @@
         "schema": {
             "!entityType": "string",
             "!businessKey": "string",
-            "version": "number"
+            "revision": "number"
         }
     },
     {
@@ -190,7 +190,7 @@
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
-                        "version": "#.input.version",
+                        "revision": "#.input.revision",
                         "data": "#.input.data",
                         "handlers": "#.handlers.items"
                     },
@@ -200,7 +200,7 @@
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
-                                "version": "#.input.version",
+                                "revision": "#.input.revision",
                                 "data": "#.input.data"
                             },
                             "service": { "id": "entity-database", "method": "update" }
@@ -222,7 +222,7 @@
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
-                        "version": "#.input.version"
+                        "revision": "#.input.revision"
                     },
                     "service": { "id": "entity-database", "method": "delete" }
                 }
@@ -285,7 +285,7 @@
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.current.businessKey",
-                        "version": "#.current.version",
+                        "revision": "#.current.revision",
                         "state": {
                             "dimensions": "#.newStateDims",
                             "fromTransition": "#.input.transition"
@@ -298,7 +298,7 @@
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
-                                "version": "#.input.version",
+                                "revision": "#.input.revision",
                                 "state": "#.input.state"
                             },
                             "service": { "id": "entity-database", "method": "update" }
@@ -329,7 +329,7 @@
                     "set": {
                         "id": "#.current.id",
                         "businessKey": "#.current.businessKey",
-                        "version": "#.current.version",
+                        "revision": "#.current.revision",
                         "data": "#.input.data",
                         "state": "#.current.state"
                     }
@@ -338,7 +338,7 @@
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.amended.businessKey",
-                        "version": "#.amended.version",
+                        "revision": "#.amended.revision",
                         "data": "#.amended.data",
                         "state": "#.amended.state"
                     },

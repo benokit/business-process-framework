@@ -83,7 +83,7 @@ describe('entity service — integration', function () {
         });
 
         expect(record.businessKey).to.equal('order-001');
-        expect(record.version).to.equal(1);
+        expect(record.revision).to.equal(1);
         expect(record.data).to.deep.equal({ amount: 250, currency: 'EUR' });
         expect(record.state.dimensions).to.deep.equal({ status: 'draft' });
     });
@@ -103,11 +103,11 @@ describe('entity service — integration', function () {
         const updated = await execute(SERVICE, 'update', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
-            version: record.version,
+            revision: record.revision,
             data: { amount: 300, currency: 'EUR', note: 'adjusted' }
         });
 
-        expect(updated.version).to.equal(record.version + 1);
+        expect(updated.revision).to.equal(record.revision + 1);
         expect(updated.data.amount).to.equal(300);
         expect(updated.data.note).to.equal('adjusted');
         record = updated;
@@ -122,7 +122,7 @@ describe('entity service — integration', function () {
 
         expect(transitioned.state.dimensions.status).to.equal('confirmed');
         expect(transitioned.state.fromTransition).to.equal('confirm');
-        expect(transitioned.version).to.equal(record.version + 1);
+        expect(transitioned.revision).to.equal(record.revision + 1);
         record = transitioned;
     });
 
