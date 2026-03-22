@@ -105,6 +105,16 @@ Example entity type definition:
 
 `create` and `update` validate `data` against the entity type's `dataSchema` before writing. `update` and `delete` use optimistic concurrency via `revision`.
 
+#### `amend` — business versioning
+
+`amend` replaces `data` without requiring a caller-supplied `revision`. It reads the current revision internally, then delegates to `entity-database amend`, which:
+
+1. Inserts the **previous** data into `entity_versions` as a permanent snapshot with `valid_to = validFrom`.
+2. Replaces `data` on the entity row and increments both `revision` and `version`.
+3. Leaves `state` untouched.
+
+Use `amend` when a change represents a new business version of the data (e.g. a contract amendment) rather than a routine update. `validFrom` marks the point in time from which the new data is effective; the snapshot stored in `entity_versions` is therefore the data that was valid **up to** that date.
+
 ### On-create event handlers
 
 Services registered with `meta.kind = "entity-event-handler/on-create/{entityType}"` are automatically invoked within the same transaction as `create`. Each handler must expose a single method `action` that receives the created `entity-record` as input.
@@ -130,6 +140,22 @@ Services registered with `meta.kind = "entity-event-handler/on-update/{entityTyp
     "type": "service",
     "id": "order-audit",
     "meta": { "kind": "entity-event-handler/on-update/order" },
+    "interface": { "action": { "input": "@entity-record", "output": {} } },
+    "implementation": { "action": [ ... ] }
+}
+```
+
+Multiple handlers for the same entity type are all invoked; registration order is not guaranteed.
+
+### On-amend event handlers
+
+Services registered with `meta.kind = "entity-event-handler/on-amend/{entityType}"` are automatically invoked within the same transaction as `amend`. Each handler must expose a single method `action` that receives the amended `entity-record` (already at the new version) as input.
+
+```json
+{
+    "type": "service",
+    "id": "order-amend-audit",
+    "meta": { "kind": "entity-event-handler/on-amend/order" },
     "interface": { "action": { "input": "@entity-record", "output": {} } },
     "implementation": { "action": [ ... ] }
 }

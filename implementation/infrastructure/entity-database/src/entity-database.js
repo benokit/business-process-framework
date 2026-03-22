@@ -13,6 +13,7 @@ async function initSchema() {
             entity_type TEXT NOT NULL,
             business_key TEXT NOT NULL,
             revision INTEGER NOT NULL DEFAULT 1,
+            version INTEGER NOT NULL DEFAULT 1,
             data JSONB NOT NULL DEFAULT '{}',
             state JSONB NOT NULL DEFAULT '{}',
             timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -30,16 +31,15 @@ async function initSchema() {
             PRIMARY KEY (id, revision)
         )
     `);
-    // Migrate column name from version → revision if needed
     await getPool().query(`
-        DO $$ BEGIN
-            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='entities' AND column_name='version') THEN
-                ALTER TABLE entities RENAME COLUMN version TO revision;
-            END IF;
-            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='entity_history' AND column_name='version') THEN
-                ALTER TABLE entity_history RENAME COLUMN version TO revision;
-            END IF;
-        END $$
+        CREATE TABLE IF NOT EXISTS entity_versions (
+            id UUID NOT NULL,
+            entity_type TEXT NOT NULL,
+            version INTEGER NOT NULL,
+            data JSONB NOT NULL,
+            valid_to TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY (id, version)
+        )
     `);
 }
 
@@ -94,7 +94,7 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
             state = applyPatch(state, row.state_patch).newDocument;
             timestampUtc = row.timestamp_utc;
         }
-        return { id: current.id, businessKey: current.business_key, revision, data, state, timestampUtc: toIso(timestampUtc) };
+        return { id: current.id, businessKey: current.business_key, revision, version: current.version, data, state, timestampUtc: toIso(timestampUtc) };
     } catch (err) {
         if (err.code === '22P02') return null; // invalid UUID format
         throw err;
@@ -131,22 +131,54 @@ async function update({ input: { entityType, id, businessKey, revision, data, st
             [current.id, current.entity_type, current.revision, JSON.stringify(dataPatch), JSON.stringify(statePatch), current.timestamp_utc]
         );
 
-        let result;
+        const result = await client.query(
+            `UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW()
+             WHERE id = $3 AND revision = $4
+             RETURNING *`,
+            [JSON.stringify(newData), JSON.stringify(newState), current.id, current.revision]
+        );
+        await client.query('COMMIT');
+        return toRecord(result.rows[0]);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+}
+
+async function amend({ input: { entityType, id, businessKey, revision, data, validFrom } }) {
+    await initSchema();
+    const client = await getPool().connect();
+    try {
+        await client.query('BEGIN');
+        let current;
         if (businessKey) {
-            result = await client.query(
-                `UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $3 AND business_key = $4 AND revision = $5
-                 RETURNING *`,
-                [JSON.stringify(newData), JSON.stringify(newState), entityType, businessKey, revision]
+            const r = await client.query(
+                'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2 AND revision = $3 FOR UPDATE',
+                [entityType, businessKey, revision]
             );
+            current = r.rows[0];
         } else {
-            result = await client.query(
-                `UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $3 AND id = $4 AND revision = $5
-                 RETURNING *`,
-                [JSON.stringify(newData), JSON.stringify(newState), entityType, id, revision]
+            const r = await client.query(
+                'SELECT * FROM entities WHERE entity_type = $1 AND id = $2 AND revision = $3 FOR UPDATE',
+                [entityType, id, revision]
             );
+            current = r.rows[0];
         }
+        if (!current) throw 'amend failed: document not found or revision mismatch';
+
+        await client.query(
+            `INSERT INTO entity_versions (id, entity_type, version, data, valid_to) VALUES ($1, $2, $3, $4, $5)`,
+            [current.id, current.entity_type, current.version, JSON.stringify(current.data), validFrom]
+        );
+
+        const result = await client.query(
+            `UPDATE entities SET data = $1, revision = revision + 1, version = version + 1, timestamp_utc = NOW()
+             WHERE id = $2 AND revision = $3
+             RETURNING *`,
+            [JSON.stringify(data), current.id, current.revision]
+        );
         await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
@@ -178,6 +210,7 @@ async function del({ input: { entityType, id, businessKey, revision } }) {
         }
         if (!result.rows.length) throw 'delete failed: document not found or revision mismatch';
         await client.query('DELETE FROM entity_history WHERE id = $1', [result.rows[0].id]);
+        await client.query('DELETE FROM entity_versions WHERE id = $1', [result.rows[0].id]);
         await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
@@ -188,31 +221,13 @@ async function del({ input: { entityType, id, businessKey, revision } }) {
     }
 }
 
-async function list({ input: { entityType, filter = {}, sort, limit = 100, skip = 0 } }) {
-    await initSchema();
-    let sql = 'SELECT * FROM entities WHERE entity_type = $1 AND data @> $2::jsonb';
-    const params = [entityType, JSON.stringify(filter)];
-    if (sort) {
-        const orderClauses = Object.entries(sort)
-            .map(([k, dir]) => {
-                const safeKey = k.replace(/[^a-zA-Z0-9_.]/g, '');
-                return `data->>'${safeKey}' ${dir >= 0 ? 'ASC' : 'DESC'}`;
-            })
-            .join(', ');
-        sql += ` ORDER BY ${orderClauses}`;
-    }
-    sql += ` LIMIT $3 OFFSET $4`;
-    params.push(limit, skip);
-    const result = await getPool().query(sql, params);
-    return { records: result.rows.map(toRecord) };
-}
 
 function toRecord(row) {
-    return { id: row.id, businessKey: row.business_key, revision: row.revision, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
+    return { id: row.id, businessKey: row.business_key, revision: row.revision, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
 }
 
 function toIso(value) {
     return value instanceof Date ? value.toISOString() : value;
 }
 
-export { create, read, update, del as delete, list };
+export { create, read, update, amend, del as delete };

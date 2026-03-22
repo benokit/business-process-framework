@@ -325,24 +325,43 @@
                     "service": { "id": "entity-database", "method": "read" }
                 },
                 {
-                    "name": "amended",
-                    "set": {
-                        "id": "#.current.id",
-                        "businessKey": "#.current.businessKey",
-                        "revision": "#.current.revision",
-                        "data": "#.input.data",
-                        "state": "#.current.state"
-                    }
+                    "name": "handlers",
+                    "inputMap": {
+                        "kind": { "$join": { "_strings": ["entity-event-handler/on-amend/", "#.input.entityType"] } }
+                    },
+                    "service": { "id": "data", "method": "getServicesOfKind" }
                 },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
-                        "businessKey": "#.amended.businessKey",
-                        "revision": "#.amended.revision",
-                        "data": "#.amended.data",
-                        "state": "#.amended.state"
+                        "businessKey": "#.input.businessKey",
+                        "revision": "#.current.revision",
+                        "data": "#.input.data",
+                        "validFrom": "#.input.validFrom",
+                        "handlers": "#.handlers.items"
                     },
-                    "service": { "id": "entity-database", "method": "update" }
+                    "inTransaction": [
+                        {
+                            "name": "amended",
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "revision": "#.input.revision",
+                                "data": "#.input.data",
+                                "validFrom": "#.input.validFrom"
+                            },
+                            "service": { "id": "entity-database", "method": "amend" }
+                        },
+                        { "name": "_ctx", "set": { "amendedEntity": "#.amended" } },
+                        {
+                            "inputMap": "#.input.handlers",
+                            "forEach": {
+                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
+                                "inputMap": "#._ctx.amendedEntity"
+                            }
+                        },
+                        { "return": "#.amended" }
+                    ]
                 }
             ],
             "execute": [

@@ -6,6 +6,7 @@
             "!id": "string",
             "!businessKey": "string",
             "!revision": "number",
+            "!version": "number",
             "!data": "object",
             "state": "object",
             "!timestampUtc": "string"
@@ -43,30 +44,22 @@
     },
     {
         "type": "schema",
+        "id": "entity-database-amend-input",
+        "schema": {
+            "$data#1": [
+                { "!entityType": "string", "!id": "string", "!revision": "number", "!data": "object", "validFrom": "string" },
+                { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!data": "object", "validFrom": "string" }
+            ]
+        }
+    },
+    {
+        "type": "schema",
         "id": "entity-database-delete-input",
         "schema": {
             "$data#1": [
                 { "!entityType": "string", "!id": "string", "revision": "number" },
                 { "!entityType": "string", "!businessKey": "string", "revision": "number" }
             ]
-        }
-    },
-    {
-        "type": "schema",
-        "id": "entity-database-list-input",
-        "schema": {
-            "!entityType": "string",
-            "filter": "object",
-            "sort": "object",
-            "limit": "number",
-            "skip": "number"
-        }
-    },
-    {
-        "type": "schema",
-        "id": "entity-database-list-output",
-        "schema": {
-            "records[]": "@entity-record"
         }
     },
     {
@@ -85,13 +78,13 @@
                 "input": "@entity-database-update-input",
                 "output": "@entity-record"
             },
+            "amend": {
+                "input": "@entity-database-amend-input",
+                "output": "@entity-record"
+            },
             "delete": {
                 "input": "@entity-database-delete-input",
                 "output": "@entity-record"
-            },
-            "list": {
-                "input": "@entity-database-list-input",
-                "output": "@entity-database-list-output"
             }
         }
     },
@@ -102,8 +95,8 @@
             "create": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "create" } },
             "read":   { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "read" } },
             "update": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "update" } },
-            "delete": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "delete" } },
-            "list":   { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "list" } }
+            "amend":  { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "amend" } },
+            "delete": { "inputMap": "#.input", "low": { "module": "entity-database", "functionName": "delete" } }
         }
     },
     {

@@ -27,12 +27,14 @@ describe('entity service', function () {
                 create: { input: {}, output: {} },
                 read:   { input: {}, output: {} },
                 update: { input: {}, output: {} },
+                amend:  { input: {}, output: {} },
                 delete: { input: {}, output: {} }
             },
             implementation: {
                 create: { return: '#.input' },
-                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', revision: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
+                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', revision: 1, version: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
                 update: { return: '#.input' },
+                amend:  { return: '#.input' },
                 delete: { return: '#.input' }
             }
         });

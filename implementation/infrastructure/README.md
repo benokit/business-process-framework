@@ -2,42 +2,62 @@
 
 ## `entity-database`
 
-Generic document store with optimistic concurrency and full version history. Each document carries an `id`, a unique `businessKey`, a `version`, a `data` object, and a `state` object. `data` and `state` are stored in separate JSONB columns so that FSM state transitions are decoupled from business data mutations.
+Generic document store with optimistic concurrency, full revision history, and business versioning. Each document carries an `id`, a unique `businessKey`, a `revision`, a `version`, a `data` object, and a `state` object. `data` and `state` are stored in separate JSONB columns so that FSM state transitions are decoupled from business data mutations.
 
-| Method   | Key input fields                                              | Returns         |
-|----------|---------------------------------------------------------------|-----------------|
-| `create` | `entityType`, `businessKey`, `data`, `state?`                 | `entity-record` |
-| `read`   | `entityType`, `id`/`businessKey`, `version?`                  | `entity-record` |
-| `update` | `entityType`, `id`/`businessKey`, `version`, `data`, `state?` | `entity-record` |
-| `delete` | `entityType`, `id`/`businessKey`, `version?`                  | `entity-record` |
-| `list`   | `entityType`, `filter?`, `sort?`, `limit?`, `skip?`           | `{ records[] }` |
+| Method   | Key input fields                                                | Returns         |
+|----------|-----------------------------------------------------------------|-----------------|
+| `create` | `entityType`, `businessKey`, `data`, `state?`                   | `entity-record` |
+| `read`   | `entityType`, `id`/`businessKey`, `revision?`                   | `entity-record` |
+| `update` | `entityType`, `id`/`businessKey`, `revision`, `data?`, `state?` | `entity-record` |
+| `amend`  | `entityType`, `id`/`businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
+| `delete` | `entityType`, `id`/`businessKey`, `revision?`                   | `entity-record` |
 
-`businessKey` must be a non-empty string, unique per `entityType`. `update` and `delete` use optimistic locking via `version`. `state` defaults to `{}` when omitted.
+`businessKey` must be a non-empty string, unique per `entityType`. `update`, `amend`, and `delete` use optimistic locking via `revision`. `state` defaults to `{}` when omitted.
 
-### Read with version (point-in-time snapshot)
+### `revision` vs `version`
 
-Passing `version` to `read` returns the entity's data as it was at that version rather than the current state:
+- **`revision`** — optimistic concurrency counter. Increments on every write (`update`, `amend`). Used for conflict detection.
+- **`version`** — business version counter. Starts at `1` and increments only on `amend`. Identifies distinct business-meaningful snapshots of `data`.
+
+### Read with revision (point-in-time snapshot)
+
+Passing `revision` to `read` returns the entity's data and state as they were at that revision:
 
 ```json
-{ "entityType": "order", "businessKey": "order-123", "version": 2 }
+{ "entityType": "order", "businessKey": "order-123", "revision": 2 }
 ```
 
-- Omitting `version` (or passing the current version) returns the current record unchanged.
-- Passing a version lower than the current one reconstructs the snapshot by applying stored reverse patches.
-- Passing a version higher than the current one, or `0`, returns `null`.
+- Omitting `revision` (or passing the current revision) returns the current record unchanged.
+- Passing a revision lower than the current one reconstructs the snapshot by applying stored reverse patches.
+- Passing a revision higher than the current one, or `0`, returns `null`.
+
+### `amend` — business versioning
+
+`amend` replaces `data` and creates a permanent snapshot of the **previous** data in `entity_versions`. `state` is never touched.
+
+```json
+{ "entityType": "order", "businessKey": "order-123", "revision": 3, "data": { ... }, "validFrom": "2025-01-01T00:00:00.000Z" }
+```
+
+- The current `data` (before the amendment) is inserted into `entity_versions` with `valid_to = validFrom`.
+- `revision` and `version` are both incremented on the `entities` row.
+- `validFrom` is optional; when omitted `valid_to` is `null`.
+
+Each row in `entity_versions` represents one business version of the data and holds the data that was **superseded** by the amendment (i.e. the data valid up to `valid_to`).
 
 ### History
 
-Every `update` records reverse JSON patches (RFC 6902) in a companion `entity_history` table — separate `data_patch` and `state_patch` columns. Each patch is computed as `compare(newValue, oldValue)` so applying it to a newer snapshot reconstructs the previous value. `delete` removes all history rows for the entity atomically.
+Every `update` records reverse JSON patches (RFC 6902) in a companion `entity_history` table — separate `data_patch` and `state_patch` columns. Each patch is computed as `compare(newValue, oldValue)` so applying it to a newer snapshot reconstructs the previous value. `amend` does **not** write to `entity_history`. `delete` removes all history and version rows for the entity atomically.
 
 ### Storage
 
 | Table | Columns | Purpose |
 | --- | --- | --- |
-| `entities` | `id`, `entity_type`, `business_key`, `version`, `data`, `state`, `timestamp_utc` | Current state of each entity |
-| `entity_history` | `id`, `entity_type`, `version`, `data_patch`, `state_patch`, `timestamp_utc` | Reverse patches for prior versions |
+| `entities` | `id`, `entity_type`, `business_key`, `revision`, `version`, `data`, `state`, `timestamp_utc` | Current state of each entity |
+| `entity_history` | `id`, `entity_type`, `revision`, `data_patch`, `state_patch`, `timestamp_utc` | Reverse patches for prior revisions |
+| `entity_versions` | `id`, `entity_type`, `version`, `data`, `valid_to` | Whole data snapshots per business version |
 
-Both tables are created automatically on first use. Patch columns store JSON Patch arrays (RFC 6902).
+All tables are created automatically on first use. Patch columns store JSON Patch arrays (RFC 6902).
 
 ---
 

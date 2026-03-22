@@ -70,6 +70,7 @@ describe('entity service — integration', function () {
         if (!connected) return;
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
+        await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await disconnect();
     });
 
@@ -150,6 +151,31 @@ describe('entity service — integration', function () {
 
         expect(cancelled.state.dimensions.status).to.equal('cancelled');
         expect(cancelled.state.fromTransition).to.equal('cancel');
+    });
+
+    it('amends the order data and records a version snapshot', async () => {
+        const amended = await execute(SERVICE, 'amend', {
+            entityType: ENTITY_TYPE,
+            businessKey: 'order-001',
+            data: { amount: 400, currency: 'EUR', note: 'amended' },
+            validFrom: '2025-01-01T00:00:00.000Z'
+        });
+
+        expect(amended.data.amount).to.equal(400);
+        expect(amended.data.note).to.equal('amended');
+        expect(amended.version).to.equal(2);
+        // state must be preserved unchanged by amend
+        expect(amended.state.dimensions.status).to.equal('cancelled');
+
+        // verify the snapshot was written to entity_versions
+        const { rows } = await getPool().query(
+            `SELECT * FROM entity_versions WHERE id = $1 ORDER BY version`,
+            [amended.id]
+        );
+        expect(rows).to.have.length(1);
+        expect(rows[0].version).to.equal(1);
+        expect(rows[0].data.amount).to.equal(300);
+        expect(new Date(rows[0].valid_to).toISOString()).to.equal('2025-01-01T00:00:00.000Z');
     });
 
     it('deletes the order', async () => {
