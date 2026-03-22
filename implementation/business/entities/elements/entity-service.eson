@@ -168,13 +168,41 @@
                     "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "name": "handlers",
+                    "inputMap": {
+                        "kind": { "$join": { "_strings": ["entity-event-handler/on-update/", "#.input.entityType"] } }
+                    },
+                    "service": { "id": "data", "method": "getServicesOfKind" }
+                },
+                {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "version": "#.input.version",
-                        "data": "#.input.data"
+                        "data": "#.input.data",
+                        "handlers": "#.handlers.items"
                     },
-                    "service": { "id": "entity-database", "method": "update" }
+                    "inTransaction": [
+                        {
+                            "name": "updated",
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "version": "#.input.version",
+                                "data": "#.input.data"
+                            },
+                            "service": { "id": "entity-database", "method": "update" }
+                        },
+                        { "name": "_ctx", "set": { "updatedEntity": "#.updated" } },
+                        {
+                            "inputMap": "#.input.handlers",
+                            "forEach": {
+                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
+                                "inputMap": "#._ctx.updatedEntity"
+                            }
+                        },
+                        { "return": "#.updated" }
+                    ]
                 }
             ],
             "delete": [

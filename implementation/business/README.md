@@ -41,9 +41,9 @@ Each entity type is a `data` element whose `data` field conforms to the `entity-
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
-| `create` | `entityType`, `businessKey`, `data` | `entity-record` |
+| `create` | `entityType`, `businessKey`, `data`, `state?` | `entity-record` |
 | `read` | `entityType`, `businessKey` | `entity-record` |
-| `update` | `entityType`, `businessKey`, `version`, `data` | `entity-record` |
+| `update` | `entityType`, `businessKey`, `version`, `data`, `state?` | `entity-record` |
 | `delete` | `entityType`, `businessKey`, `version?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
 | `amend` | `entityType`, `businessKey`, `data`, `validFrom?` | `entity-record` |
@@ -60,6 +60,22 @@ Services registered with `meta.kind = "entity-event-handler/on-create/{entityTyp
     "type": "service",
     "id": "order-notify",
     "meta": { "kind": "entity-event-handler/on-create/order" },
+    "interface": { "action": { "input": "@entity-record", "output": {} } },
+    "implementation": { "action": [ ... ] }
+}
+```
+
+Multiple handlers for the same entity type are all invoked; registration order is not guaranteed.
+
+### On-update event handlers
+
+Services registered with `meta.kind = "entity-event-handler/on-update/{entityType}"` are automatically invoked within the same transaction as `update`. Each handler must expose a single method `action` that receives the updated `entity-record` as input.
+
+```json
+{
+    "type": "service",
+    "id": "order-audit",
+    "meta": { "kind": "entity-event-handler/on-update/order" },
     "interface": { "action": { "input": "@entity-record", "output": {} } },
     "implementation": { "action": [ ... ] }
 }

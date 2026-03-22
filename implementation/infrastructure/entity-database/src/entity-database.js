@@ -14,6 +14,7 @@ async function initSchema() {
             business_key TEXT NOT NULL,
             version INTEGER NOT NULL DEFAULT 1,
             data JSONB NOT NULL DEFAULT '{}',
+            state JSONB NOT NULL DEFAULT '{}',
             timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             UNIQUE (entity_type, business_key)
         )
@@ -23,22 +24,23 @@ async function initSchema() {
             id UUID NOT NULL,
             entity_type TEXT NOT NULL,
             version INTEGER NOT NULL,
-            patch JSONB NOT NULL,
+            data_patch JSONB NOT NULL,
+            state_patch JSONB NOT NULL,
             timestamp_utc TIMESTAMPTZ NOT NULL,
             PRIMARY KEY (id, version)
         )
     `);
 }
 
-async function create({ input: { entityType, businessKey, data } }) {
+async function create({ input: { entityType, businessKey, data, state = {} } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
     await initSchema();
     try {
         const result = await getPool().query(
-            `INSERT INTO entities (entity_type, business_key, data, timestamp_utc) VALUES ($1, $2, $3, NOW()) RETURNING *`,
-            [entityType, businessKey, JSON.stringify(data)]
+            `INSERT INTO entities (entity_type, business_key, data, state, timestamp_utc) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
+            [entityType, businessKey, JSON.stringify(data), JSON.stringify(state)]
         );
         return toRecord(result.rows[0]);
     } catch (err) {
@@ -68,25 +70,27 @@ async function read({ input: { entityType, id, businessKey, version } }) {
         if (version < 1 || version > current.version) return null;
 
         const history = await getPool().query(
-            `SELECT version, patch, timestamp_utc FROM entity_history
+            `SELECT version, data_patch, state_patch, timestamp_utc FROM entity_history
              WHERE id = $1 AND version >= $2 AND version < $3
              ORDER BY version DESC`,
             [current.id, version, current.version]
         );
-        let data = JSON.parse(JSON.stringify(current.data));
+        let data = current.data;
+        let state = current.state ?? {};
         let timestampUtc = current.timestamp_utc;
         for (const row of history.rows) {
-            data = applyPatch(data, row.patch).newDocument;
+            data = applyPatch(data, row.data_patch).newDocument;
+            state = applyPatch(state, row.state_patch).newDocument;
             timestampUtc = row.timestamp_utc;
         }
-        return { id: current.id, businessKey: current.business_key, version, data, timestampUtc: toIso(timestampUtc) };
+        return { id: current.id, businessKey: current.business_key, version, data, state, timestampUtc: toIso(timestampUtc) };
     } catch (err) {
         if (err.code === '22P02') return null; // invalid UUID format
         throw err;
     }
 }
 
-async function update({ input: { entityType, id, businessKey, version, data } }) {
+async function update({ input: { entityType, id, businessKey, version, data, state = {} } }) {
     await initSchema();
     const client = await getPool().connect();
     try {
@@ -107,27 +111,28 @@ async function update({ input: { entityType, id, businessKey, version, data } })
         }
         if (!current) throw 'update failed: document not found or version mismatch';
 
-        // Reverse patch: apply to new data to reconstruct old data
-        const patch = patchCompare(data, current.data);
+        // Reverse patches: apply to new data/state to reconstruct old data/state
+        const dataPatch = patchCompare(data, current.data);
+        const statePatch = patchCompare(state, current.state ?? {});
         await client.query(
-            `INSERT INTO entity_history (id, entity_type, version, patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5)`,
-            [current.id, current.entity_type, current.version, JSON.stringify(patch), current.timestamp_utc]
+            `INSERT INTO entity_history (id, entity_type, version, data_patch, state_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5, $6)`,
+            [current.id, current.entity_type, current.version, JSON.stringify(dataPatch), JSON.stringify(statePatch), current.timestamp_utc]
         );
 
         let result;
         if (businessKey) {
             result = await client.query(
-                `UPDATE entities SET data = $1, version = version + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $2 AND business_key = $3 AND version = $4
+                `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
+                 WHERE entity_type = $3 AND business_key = $4 AND version = $5
                  RETURNING *`,
-                [JSON.stringify(data), entityType, businessKey, version]
+                [JSON.stringify(data), JSON.stringify(state), entityType, businessKey, version]
             );
         } else {
             result = await client.query(
-                `UPDATE entities SET data = $1, version = version + 1, timestamp_utc = NOW()
-                 WHERE entity_type = $2 AND id = $3 AND version = $4
+                `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
+                 WHERE entity_type = $3 AND id = $4 AND version = $5
                  RETURNING *`,
-                [JSON.stringify(data), entityType, id, version]
+                [JSON.stringify(data), JSON.stringify(state), entityType, id, version]
             );
         }
         await client.query('COMMIT');
@@ -191,7 +196,7 @@ async function list({ input: { entityType, filter = {}, sort, limit = 100, skip 
 }
 
 function toRecord(row) {
-    return { id: row.id, businessKey: row.business_key, version: row.version, data: row.data, timestampUtc: toIso(row.timestamp_utc) };
+    return { id: row.id, businessKey: row.business_key, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
 }
 
 function toIso(value) {

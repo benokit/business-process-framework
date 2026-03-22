@@ -68,6 +68,21 @@ describe('entity service', function () {
             ] }
         });
 
+        // Entity type and on-update handler used by update handler invocation tests.
+        registerElement({ type: 'data', id: 'order-with-update-handler', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-update-handler-on-update',
+            meta: { kind: 'entity-event-handler/on-update/order-with-update-handler' },
+            interface: { action: { input: {}, output: {} } },
+            implementation: { action: [
+                { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
+                { return: '#.input' }
+            ] }
+        });
+
         // Services used by the execute tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
         registerElement({ type: 'data', id: 'ctx-capture-component', data: {
@@ -224,6 +239,34 @@ describe('entity service', function () {
             try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', version: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
             expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('update — on-update event handlers', () => {
+
+        it('invokes registered handlers with the updated entity record', async () => {
+            const _ctx = {};
+            await execute(SERVICE, 'update', {
+                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-test', version: 1, data: { amount: 200, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.updateHandlerCalledWith).to.exist;
+            expect(_ctx.updateHandlerCalledWith.businessKey).to.equal('bk-update-handler-test');
+        });
+
+        it('update still returns the entity record when handlers are present', async () => {
+            const result = await execute(SERVICE, 'update', {
+                entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-return', version: 1, data: { amount: 50, currency: 'USD' }
+            });
+            expect(result.businessKey).to.equal('bk-update-handler-return');
+        });
+
+        it('update works normally when no handlers are registered for the entity type', async () => {
+            const result = await execute(SERVICE, 'update', {
+                entityType: 'order', businessKey: 'bk-no-update-handler', version: 1, data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
         });
 
     });

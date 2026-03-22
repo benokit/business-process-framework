@@ -263,6 +263,66 @@ describe('entity-database', function () {
 
     });
 
+    describe('state', () => {
+
+        it('create stores the provided state and returns it in the record', async () => {
+            const result = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-create', data: { x: 1 }, state: { status: 'draft' } } });
+            expect(result.state).to.deep.equal({ status: 'draft' });
+        });
+
+        it('create defaults state to {} when omitted', async () => {
+            const result = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-default', data: { x: 1 } } });
+            expect(result.state).to.deep.equal({});
+        });
+
+        it('read returns the stored state', async () => {
+            const { id } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-read', data: { x: 1 }, state: { status: 'pending' } } });
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
+            expect(result.state).to.deep.equal({ status: 'pending' });
+        });
+
+        it('update stores the new state and returns it in the record', async () => {
+            const { id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update', data: { x: 1 }, state: { status: 'draft' } } });
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, version, data: { x: 2 }, state: { status: 'confirmed' } } });
+            expect(result.state).to.deep.equal({ status: 'confirmed' });
+        });
+
+        it('update defaults state to {} when omitted', async () => {
+            const { id, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-update-default', data: { x: 1 }, state: { status: 'draft' } } });
+            const result = await db.update({ input: { entityType: ENTITY_TYPE, id, version, data: { x: 2 } } });
+            expect(result.state).to.deep.equal({});
+        });
+
+    });
+
+    describe('history — state', () => {
+        let id, v1, v2, v3;
+
+        before(async () => {
+            ({ id, version: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-state-hist', data: { score: 1 }, state: { status: 'draft' } } }));
+            ({ version: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v1, data: { score: 2 }, state: { status: 'active' } } }));
+            ({ version: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v2, data: { score: 3 }, state: { status: 'closed' } } }));
+        });
+
+        it('read without version returns current state', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
+            expect(result.state).to.deep.equal({ status: 'closed' });
+        });
+
+        it('read with previous version reconstructs v2 state', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v2 } });
+            expect(result.state).to.deep.equal({ status: 'active' });
+            expect(result.data.score).to.equal(2);
+        });
+
+        it('read with initial version reconstructs v1 state', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v1 } });
+            expect(result.state).to.deep.equal({ status: 'draft' });
+            expect(result.data.score).to.equal(1);
+        });
+
+    });
+
     describe('list', () => {
         const seeds = [
             { businessKey: 'bk-list-frank', data: { name: 'Frank', role: 'admin' } },
