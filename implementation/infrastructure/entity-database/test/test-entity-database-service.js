@@ -32,7 +32,7 @@ describe('entity-database (service element)', function () {
 
     after(async function () {
         if (!connected) return;
-        await getPool().query(`DELETE FROM entities WHERE collection = $1`, [ENTITY_TYPE]).catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await disconnect();
     });
 

@@ -25,7 +25,7 @@ describe('entity-database', function () {
 
     after(async function () {
         if (!connected) return;
-        await getPool().query(`DELETE FROM entities WHERE collection = $1`, [ENTITY_TYPE]).catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await disconnect();
     });
 
@@ -211,6 +211,54 @@ describe('entity-database', function () {
                 error = e;
             }
             expect(error).to.be.a('string').that.includes('delete failed');
+        });
+
+    });
+
+    describe('history', () => {
+        let id, v1, v2, v3;
+
+        before(async () => {
+            ({ id, version: v1 } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-iris', data: { name: 'Iris', score: 1 } } }));
+            ({ version: v2 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v1, data: { name: 'Iris', score: 2 } } }));
+            ({ version: v3 } = await db.update({ input: { entityType: ENTITY_TYPE, id, version: v2, data: { name: 'Iris', score: 3 } } }));
+        });
+
+        it('read without version returns current data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id } });
+            expect(result.version).to.equal(v3);
+            expect(result.data.score).to.equal(3);
+        });
+
+        it('read with current version returns current data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v3 } });
+            expect(result.data.score).to.equal(3);
+        });
+
+        it('read with previous version reconstructs v2 data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v2 } });
+            expect(result.version).to.equal(v2);
+            expect(result.data.score).to.equal(2);
+        });
+
+        it('read with initial version reconstructs v1 data', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: v1 } });
+            expect(result.version).to.equal(v1);
+            expect(result.data.score).to.equal(1);
+        });
+
+        it('read with out-of-range version returns null', async () => {
+            const result = await db.read({ input: { entityType: ENTITY_TYPE, id, version: 99 } });
+            expect(result).to.be.null;
+        });
+
+        it('delete removes history rows', async () => {
+            const { id: hId, version } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-jack', data: { x: 1 } } });
+            await db.update({ input: { entityType: ENTITY_TYPE, id: hId, version, data: { x: 2 } } });
+            await db['delete']({ input: { entityType: ENTITY_TYPE, id: hId } });
+            const pool = (await import('postgres-client')).getPool();
+            const { rows } = await pool.query('SELECT * FROM entity_history WHERE id = $1', [hId]);
+            expect(rows).to.have.length(0);
         });
 
     });

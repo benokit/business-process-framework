@@ -2,19 +2,42 @@
 
 ## `entity-database`
 
-Generic document store with optimistic concurrency. Each document carries an `id`, a unique `businessKey`, a `version`, and a `data` object.
+Generic document store with optimistic concurrency and full version history. Each document carries an `id`, a unique `businessKey`, a `version`, and a `data` object.
 
-| Method   | Key input fields                                    | Returns         |
-|----------|-----------------------------------------------------|-----------------|
-| `create` | `collection`, `businessKey`, `data`                 | `entity-record` |
-| `read`   | `collection`, `id` **or** `businessKey`             | `entity-record` |
-| `update` | `collection`, `id`/`businessKey`, `version`, `data` | `entity-record` |
-| `delete` | `collection`, `id`/`businessKey`, `version?`        | `entity-record` |
-| `list`   | `collection`, `filter?`, `sort?`, `limit?`, `skip?` | `{ records[] }` |
+| Method   | Key input fields                                        | Returns         |
+|----------|---------------------------------------------------------|-----------------|
+| `create` | `entityType`, `businessKey`, `data`                     | `entity-record` |
+| `read`   | `entityType`, `id`/`businessKey`, `version?`            | `entity-record` |
+| `update` | `entityType`, `id`/`businessKey`, `version`, `data`     | `entity-record` |
+| `delete` | `entityType`, `id`/`businessKey`, `version?`            | `entity-record` |
+| `list`   | `entityType`, `filter?`, `sort?`, `limit?`, `skip?`     | `{ records[] }` |
 
-`businessKey` must be a non-empty string, unique per collection. `update` and `delete` use optimistic locking via `version`.
+`businessKey` must be a non-empty string, unique per `entityType`. `update` and `delete` use optimistic locking via `version`.
 
-All entities are stored in a single PostgreSQL table (`entities`) with columns `id` (UUID), `collection`, `business_key`, `version`, and `data` (JSONB). The table is created automatically on first use.
+### Read with version (point-in-time snapshot)
+
+Passing `version` to `read` returns the entity's data as it was at that version rather than the current state:
+
+```json
+{ "entityType": "order", "businessKey": "order-123", "version": 2 }
+```
+
+- Omitting `version` (or passing the current version) returns the current record unchanged.
+- Passing a version lower than the current one reconstructs the snapshot by applying stored reverse patches.
+- Passing a version higher than the current one, or `0`, returns `null`.
+
+### History
+
+Every `update` records a reverse JSON patch (RFC 6902) in a companion `entity_history` table. The patch is computed as `compare(newData, oldData)` — applying it to a newer snapshot reconstructs the previous data. `delete` removes all history rows for the entity atomically.
+
+### Storage
+
+| Table | Columns | Purpose |
+| --- | --- | --- |
+| `entities` | `id`, `entity_type`, `business_key`, `version`, `data`, `timestamp_utc` | Current state of each entity |
+| `entity_history` | `id`, `entity_type`, `version`, `patch`, `timestamp_utc` | Reverse patches for prior versions |
+
+Both tables are created automatically on first use. The `patch` column stores a JSON Patch array (RFC 6902).
 
 ---
 

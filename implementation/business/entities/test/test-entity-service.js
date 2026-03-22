@@ -37,6 +37,11 @@ describe('entity service', function () {
             }
         });
 
+        // Entity type definition used by CRUD validation tests.
+        registerElement({ type: 'data', id: 'order', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+
         // Services used by the execute tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
         registerElement({ type: 'data', id: 'ctx-capture-component', data: {
@@ -90,11 +95,11 @@ describe('entity service', function () {
 
         it('passes entityType to entity-database', async () => {
             const result = await execute(SERVICE, 'create', {
-                entityType: 'order', businessKey: 'order-001', data: { amount: 100 }
+                entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
-            expect(result.data).to.deep.equal({ amount: 100 });
+            expect(result.data).to.deep.equal({ amount: 100, currency: 'USD' });
         });
 
         it('throws when entityType is missing', async () => {
@@ -102,6 +107,20 @@ describe('entity service', function () {
             try { await execute(SERVICE, 'create', { businessKey: 'order-001', data: {} }); }
             catch (e) { error = e; }
             expect(error).to.be.a('string').that.includes('input is not valid');
+        });
+
+        it('throws when data does not match the entity type dataSchema', async () => {
+            let error;
+            try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001', data: { amount: 'not-a-number' } }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('succeeds when data matches the entity type dataSchema', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
         });
 
         it('throws when businessKey is missing', async () => {
@@ -138,12 +157,19 @@ describe('entity service', function () {
 
         it('passes entityType, version and data to entity-database', async () => {
             const result = await execute(SERVICE, 'update', {
-                entityType: 'order', businessKey: 'order-001', version: 2, data: { amount: 200 }
+                entityType: 'order', businessKey: 'order-001', version: 2, data: { amount: 200, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.version).to.equal(2);
-            expect(result.data).to.deep.equal({ amount: 200 });
+            expect(result.data).to.deep.equal({ amount: 200, currency: 'USD' });
+        });
+
+        it('throws when data does not match the entity type dataSchema', async () => {
+            let error;
+            try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', version: 1, data: { amount: 'bad' } }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
         });
 
     });

@@ -6,7 +6,8 @@
             "!id": "string",
             "!businessKey": "string",
             "!version": "number",
-            "!data": "object"
+            "!data": "object",
+            "!timestampUtc": "string"
         }
     },
     {
@@ -23,8 +24,8 @@
         "id": "entity-database-read-input",
         "schema": {
             "$data#1": [
-                { "!entityType": "string", "!id": "string" },
-                { "!entityType": "string", "!businessKey": "string" }
+                { "!entityType": "string", "!id": "string", "version": "number" },
+                { "!entityType": "string", "!businessKey": "string", "version": "number" }
             ]
         }
     },

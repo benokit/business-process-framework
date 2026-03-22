@@ -104,6 +104,15 @@
         "data": {
             "create": [
                 {
+                    "name": "entityTypeDef",
+                    "inputMap": { "id": "#.input.entityType" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
+                    "inputMap": "#.input.data",
+                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                },
+                {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
@@ -122,6 +131,15 @@
                 }
             ],
             "update": [
+                {
+                    "name": "entityTypeDef",
+                    "inputMap": { "id": "#.input.entityType" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
+                    "inputMap": "#.input.data",
+                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
