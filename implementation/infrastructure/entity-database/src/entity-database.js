@@ -90,7 +90,7 @@ async function read({ input: { entityType, id, businessKey, version } }) {
     }
 }
 
-async function update({ input: { entityType, id, businessKey, version, data, state = {} } }) {
+async function update({ input: { entityType, id, businessKey, version, data, state } }) {
     await initSchema();
     const client = await getPool().connect();
     try {
@@ -111,9 +111,10 @@ async function update({ input: { entityType, id, businessKey, version, data, sta
         }
         if (!current) throw 'update failed: document not found or version mismatch';
 
-        // Reverse patches: apply to new data/state to reconstruct old data/state
-        const dataPatch = patchCompare(data, current.data);
-        const statePatch = patchCompare(state, current.state ?? {});
+        const newData = data !== undefined ? data : current.data;
+        const newState = state !== undefined ? state : current.state ?? {};
+        const dataPatch = data !== undefined ? patchCompare(data, current.data) : [];
+        const statePatch = state !== undefined ? patchCompare(state, current.state ?? {}) : [];
         await client.query(
             `INSERT INTO entity_history (id, entity_type, version, data_patch, state_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5, $6)`,
             [current.id, current.entity_type, current.version, JSON.stringify(dataPatch), JSON.stringify(statePatch), current.timestamp_utc]
@@ -125,14 +126,14 @@ async function update({ input: { entityType, id, businessKey, version, data, sta
                 `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
                  WHERE entity_type = $3 AND business_key = $4 AND version = $5
                  RETURNING *`,
-                [JSON.stringify(data), JSON.stringify(state), entityType, businessKey, version]
+                [JSON.stringify(newData), JSON.stringify(newState), entityType, businessKey, version]
             );
         } else {
             result = await client.query(
                 `UPDATE entities SET data = $1, state = $2, version = version + 1, timestamp_utc = NOW()
                  WHERE entity_type = $3 AND id = $4 AND version = $5
                  RETURNING *`,
-                [JSON.stringify(data), JSON.stringify(state), entityType, id, version]
+                [JSON.stringify(newData), JSON.stringify(newState), entityType, id, version]
             );
         }
         await client.query('COMMIT');

@@ -5,7 +5,8 @@
         "schema": {
             "!entityType": "string",
             "!businessKey": "string",
-            "!data": "object"
+            "!data": "object",
+            "initialState": "string"
         }
     },
     {
@@ -113,6 +114,15 @@
                     "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "name": "initialState",
+                    "set": {
+                        "$get": {
+                            "_object": "#.entityTypeDef.data.statesModel.initialStates",
+                            "_path": { "$coalesce": ["#.input.initialState", "default"] }
+                        }
+                    }
+                },
+                {
                     "name": "handlers",
                     "inputMap": {
                         "kind": { "$join": { "_strings": ["entity-event-handler/on-create/", "#.input.entityType"] } }
@@ -124,6 +134,7 @@
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "data": "#.input.data",
+                        "initialState": "#.initialState",
                         "handlers": "#.handlers.items"
                     },
                     "inTransaction": [
@@ -132,7 +143,8 @@
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
-                                "data": "#.input.data"
+                                "data": "#.input.data",
+                                "state": "#.input.initialState"
                             },
                             "service": { "id": "entity-database", "method": "create" }
                         },
@@ -217,6 +229,11 @@
             ],
             "transition": [
                 {
+                    "name": "entityTypeDef",
+                    "inputMap": { "id": "#.input.entityType" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
                     "name": "current",
                     "inputMap": {
                         "entityType": "#.input.entityType",
@@ -225,22 +242,77 @@
                     "service": { "id": "entity-database", "method": "read" }
                 },
                 {
-                    "name": "updated",
-                    "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "transition": "#.input.transition",
-                        "record": "#.current"
+                    "name": "transitionDef",
+                    "set": {
+                        "$get": {
+                            "_object": "#.entityTypeDef.data.statesModel.transitions",
+                            "_path": "#.input.transition"
+                        }
+                    }
+                },
+                {
+                    "if": { "$negate": "#.transitionDef" },
+                    "then": [{ "throw": "transition is not defined" }],
+                    "else": [{ "return": "#" }]
+                },
+                {
+                    "if": {
+                        "$negate": {
+                            "$let": { "from": "#.transitionDef.from", "dims": "#.current.state.dimensions" },
+                            "$all": {
+                                "_collection": { "$keys": "@from" },
+                                "_predicate": {
+                                    "$includes": {
+                                        "_collection": { "$get": { "_object": "@from", "_path": "#" } },
+                                        "_value": { "$get": { "_object": "@dims", "_path": "#" } }
+                                    }
+                                }
+                            }
+                        }
                     },
-                    "low": { "module": "entities", "functionName": "applyTransition" }
+                    "then": [{ "throw": "transition failed" }],
+                    "else": [{ "return": "#" }]
+                },
+                { "name": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
+                {
+                    "name": "handlers",
+                    "inputMap": {
+                        "kind": { "$join": { "_strings": ["entity-event-handler/on-transition/", "#.input.entityType"] } }
+                    },
+                    "service": { "id": "data", "method": "getServicesOfKind" }
                 },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
-                        "businessKey": "#.updated.businessKey",
-                        "version": "#.updated.version",
-                        "data": "#.updated.data"
+                        "businessKey": "#.current.businessKey",
+                        "version": "#.current.version",
+                        "state": {
+                            "dimensions": "#.newStateDims",
+                            "fromTransition": "#.input.transition"
+                        },
+                        "handlers": "#.handlers.items"
                     },
-                    "service": { "id": "entity-database", "method": "update" }
+                    "inTransaction": [
+                        {
+                            "name": "transitioned",
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "version": "#.input.version",
+                                "state": "#.input.state"
+                            },
+                            "service": { "id": "entity-database", "method": "update" }
+                        },
+                        { "name": "_ctx", "set": { "transitionedEntity": "#.transitioned" } },
+                        {
+                            "inputMap": "#.input.handlers",
+                            "forEach": {
+                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
+                                "inputMap": "#._ctx.transitionedEntity"
+                            }
+                        },
+                        { "return": "#.transitioned" }
+                    ]
                 }
             ],
             "amend": [
@@ -254,19 +326,21 @@
                 },
                 {
                     "name": "amended",
-                    "inputMap": {
-                        "record": "#.current",
+                    "set": {
+                        "id": "#.current.id",
+                        "businessKey": "#.current.businessKey",
+                        "version": "#.current.version",
                         "data": "#.input.data",
-                        "validFrom": "#.input.validFrom"
-                    },
-                    "low": { "module": "entities", "functionName": "applyAmendment" }
+                        "state": "#.current.state"
+                    }
                 },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.amended.businessKey",
                         "version": "#.amended.version",
-                        "data": "#.amended.data"
+                        "data": "#.amended.data",
+                        "state": "#.amended.state"
                     },
                     "service": { "id": "entity-database", "method": "update" }
                 }

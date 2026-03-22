@@ -1,19 +1,27 @@
 [
     {
         "type": "schema",
+        "id": "entity-state-data",
+        "schema": {
+            "fromTransition": "string",
+            "!dimensions{}": "string"
+        }
+    },
+    {
+        "type": "schema",
         "id": "entity-type-transition",
         "schema": {
-            "!name": "string",
-            "!from": "object",
-            "!to": "object"
+            "!from{}": "[string]",
+            "!to{}": "string"
         }
     },
     {
         "type": "schema",
         "id": "entity-type-states-model",
         "schema": {
-            "!states": "object",
-            "transitions[]": "@entity-type-transition"
+            "!states{}": "[string]",
+            "transitions{}": "@entity-type-transition",
+            "initialStates{}": "{string}"
         }
     },
     {

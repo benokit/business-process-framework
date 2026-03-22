@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "mocha --exit"
+    "test": "mocha --exit 'test/test-entity-service.js'",
+    "test:integration": "mocha --exit 'test/test-entity-service-integration.js'"
   },
   "dependencies": {
     "core": "*",

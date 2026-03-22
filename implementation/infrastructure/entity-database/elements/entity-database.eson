@@ -36,8 +36,8 @@
         "id": "entity-database-update-input",
         "schema": {
             "$data#1": [
-                { "!entityType": "string", "!id": "string", "!version": "number", "!data": "object", "state": "object" },
-                { "!entityType": "string", "!businessKey": "string", "!version": "number", "!data": "object", "state": "object" }
+                { "!entityType": "string", "!id": "string", "!version": "number", "data": "object", "state": "object" },
+                { "!entityType": "string", "!businessKey": "string", "!version": "number", "data": "object", "state": "object" }
             ]
         }
     },

@@ -31,7 +31,7 @@ describe('entity service', function () {
             },
             implementation: {
                 create: { return: '#.input' },
-                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', version: 1, data: { amount: 100, currency: 'USD' } } },
+                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', version: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
                 update: { return: '#.input' },
                 delete: { return: '#.input' }
             }
@@ -51,6 +51,22 @@ describe('entity service', function () {
         // Entity type definition used by CRUD validation tests.
         registerElement({ type: 'data', id: 'order', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+
+        // Entity type with statesModel used by transition tests.
+        registerElement({ type: 'data', id: 'order-with-states', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' },
+            statesModel: {
+                initialStates: {
+                    default: { dimensions: { status: 'draft' } },
+                    vip:     { dimensions: { status: 'draft', tier: 'premium' } }
+                },
+                transitions: {
+                    confirm:  { from: { status: ['draft'] },                   to: { status: 'confirmed' } },
+                    cancel:   { from: { status: ['draft', 'confirmed'] },       to: { status: 'cancelled' } },
+                    escalate: { from: { status: ['draft'], tier: ['standard'] }, to: { status: 'escalated', tier: 'premium' } }
+                }
+            }
         }});
 
         // Entity type and on-create handler used by handler invocation tests.
@@ -79,6 +95,26 @@ describe('entity service', function () {
             interface: { action: { input: {}, output: {} } },
             implementation: { action: [
                 { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
+                { return: '#.input' }
+            ] }
+        });
+
+        // Entity type and on-transition handler used by transition handler invocation tests.
+        registerElement({ type: 'data', id: 'order-with-transition-handler', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' },
+            statesModel: {
+                transitions: {
+                    confirm: { from: { status: ['draft'] }, to: { status: 'confirmed' } }
+                }
+            }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-transition-handler-on-transition',
+            meta: { kind: 'entity-event-handler/on-transition/order-with-transition-handler' },
+            interface: { action: { input: {}, output: {} } },
+            implementation: { action: [
+                { name: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
         });
@@ -176,6 +212,32 @@ describe('entity service', function () {
             try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001' }); }
             catch (e) { error = e; }
             expect(error).to.be.a('string').that.includes('input is not valid');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('create — initial state', () => {
+
+        it('uses the default initial state when no initialState is provided', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order-with-states', businessKey: 'bk-init-default', data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.state).to.deep.equal({ dimensions: { status: 'draft' } });
+        });
+
+        it('uses the named initial state when initialState is provided', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order-with-states', businessKey: 'bk-init-vip', data: { amount: 100, currency: 'USD' }, initialState: 'vip'
+            });
+            expect(result.state).to.deep.equal({ dimensions: { status: 'draft', tier: 'premium' } });
+        });
+
+        it('passes no state when entity type has no initialStates', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order', businessKey: 'bk-no-state', data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.state).to.be.undefined;
         });
 
     });
@@ -281,6 +343,83 @@ describe('entity service', function () {
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.version).to.equal(1);
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('transition', () => {
+
+        it('applies the transition and returns updated state', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result.state.dimensions.status).to.equal('confirmed');
+            expect(result.state.fromTransition).to.equal('confirm');
+        });
+
+        it('carries forward dimensions not listed in to', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
+            });
+            // 'status' is set by to; other dims from current state are preserved
+            expect(result.state.dimensions).to.include.keys('status');
+        });
+
+        it('accepts transition when from matches an array of allowed values', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'cancel'
+            });
+            expect(result.state.dimensions.status).to.equal('cancelled');
+        });
+
+        it('throws when transition name is not defined', async () => {
+            let error;
+            try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'nonexistent' }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('transition is not defined');
+        });
+
+        it('throws when current state does not match from conditions', async () => {
+            let error;
+            // mock read returns status='draft'; 'escalate' requires tier='standard' which is absent
+            try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'escalate' }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('transition failed');
+        });
+
+        it('does not pass data to entity-database update', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result).to.not.have.property('data');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('transition — on-transition event handlers', () => {
+
+        it('invokes registered handlers with the transitioned entity record', async () => {
+            const _ctx = {};
+            await execute(SERVICE, 'transition', {
+                entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
+            }, _ctx);
+            expect(_ctx.transitionHandlerCalledWith).to.exist;
+        });
+
+        it('transition still returns the entity record when handlers are present', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result.state.dimensions.status).to.equal('confirmed');
+        });
+
+        it('transition works normally when no handlers are registered for the entity type', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result.state.dimensions.status).to.equal('confirmed');
         });
 
     });

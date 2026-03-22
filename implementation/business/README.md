@@ -15,10 +15,61 @@ Each entity type is a `data` element whose `data` field conforms to the `entity-
 | Field | Description |
 | --- | --- |
 | `dataSchema` | CJSL schema validated against `data` on every `create` and `update` |
-| `statesModel` | Optional finite-state model (`states` map + `transitions[]`) used by `transition` |
+| `statesModel` | Optional finite-state model (see below) used by `transition` |
 | `dataVersioning` | Optional `{ enabled, validFrom }` flags for temporal data versioning |
 | `history` | Optional `{ enabled }` flag |
 | `dimensions` | Arbitrary grouping metadata |
+
+### States model and transitions
+
+`statesModel` defines the valid states and transitions for an entity type:
+
+```json
+{
+    "states": { "draft": ["open", "closed"], "status": ["pending", "approved"] },
+    "transitions": {
+        "approve": {
+            "from": { "status": ["pending"] },
+            "to":   { "status": "approved" }
+        },
+        "close": {
+            "from": { "status": ["pending", "approved"] },
+            "to":   { "draft": "closed" }
+        }
+    },
+    "initialStates": {
+        "default": { "dimensions": { "status": "pending", "draft": "open" } },
+        "open":    { "dimensions": { "status": "pending", "draft": "open" } }
+    }
+}
+```
+
+**`initialStates`** is an optional map of name → initial `entity-state-data` object. When an entity is created, the `initialState` input field selects the preset by name; if omitted, the `"default"` key is used. If neither the named preset nor `"default"` exists, the entity is created with an empty state.
+
+**Entity state** is stored separately from `data` as an `entity-state-data` object:
+
+```json
+{ "dimensions": { "status": "pending", "draft": "open" }, "fromTransition": "submit" }
+```
+
+- `dimensions` — a map of dimension name → current value (all values are strings)
+- `fromTransition` — name of the last transition that produced this state
+
+**Transition definition** (schema `entity-type-transition`):
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `from` | `{dim: [string]}` | Required pre-conditions. Each entry maps a dimension to its set of allowed values. A dimension absent from `from` is a wildcard (any current value is accepted). |
+| `to` | `{dim: string}` | Post-state. Each entry sets the named dimension to the given value. Dimensions absent from `to` are carried forward unchanged from the current state. |
+
+When `transition` is called:
+
+1. The named transition is looked up in `transitions`; throws `"transition is not defined"` if absent.
+2. Every dimension listed in `from` is checked — the entity's current value for that dimension must appear in the allowed array; throws `"transition failed"` if any check fails.
+3. The new state is formed by merging `to` onto the current `dimensions` (carry-forward).
+4. The entity is updated with the new state inside a transaction.
+
+Example entity type definition:
 
 ```json
 {
@@ -27,11 +78,14 @@ Each entity type is a `data` element whose `data` field conforms to the `entity-
     "data": {
         "dataSchema": { "!amount": "number", "!currency": "string" },
         "statesModel": {
-            "states": { "draft": {}, "confirmed": {}, "cancelled": {} },
-            "transitions": [
-                { "name": "confirm",  "from": { "draft": true },     "to": { "confirmed": true } },
-                { "name": "cancel",   "from": { "draft": true },     "to": { "cancelled": true } }
-            ]
+            "states": { "status": ["draft", "confirmed", "cancelled"] },
+            "transitions": {
+                "confirm": { "from": { "status": ["draft"] },              "to": { "status": "confirmed" } },
+                "cancel":  { "from": { "status": ["draft", "confirmed"] }, "to": { "status": "cancelled" } }
+            },
+            "initialStates": {
+                "default": { "dimensions": { "status": "draft" } }
+            }
         }
     }
 }
@@ -41,9 +95,9 @@ Each entity type is a `data` element whose `data` field conforms to the `entity-
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
-| `create` | `entityType`, `businessKey`, `data`, `state?` | `entity-record` |
+| `create` | `entityType`, `businessKey`, `data`, `initialState?` | `entity-record` |
 | `read` | `entityType`, `businessKey` | `entity-record` |
-| `update` | `entityType`, `businessKey`, `version`, `data`, `state?` | `entity-record` |
+| `update` | `entityType`, `businessKey`, `version`, `data` | `entity-record` |
 | `delete` | `entityType`, `businessKey`, `version?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
 | `amend` | `entityType`, `businessKey`, `data`, `validFrom?` | `entity-record` |
@@ -76,6 +130,22 @@ Services registered with `meta.kind = "entity-event-handler/on-update/{entityTyp
     "type": "service",
     "id": "order-audit",
     "meta": { "kind": "entity-event-handler/on-update/order" },
+    "interface": { "action": { "input": "@entity-record", "output": {} } },
+    "implementation": { "action": [ ... ] }
+}
+```
+
+Multiple handlers for the same entity type are all invoked; registration order is not guaranteed.
+
+### On-transition event handlers
+
+Services registered with `meta.kind = "entity-event-handler/on-transition/{entityType}"` are automatically invoked within the same transaction as `transition`. Each handler must expose a single method `action` that receives the transitioned `entity-record` (already at the new state) as input.
+
+```json
+{
+    "type": "service",
+    "id": "order-transition-notify",
+    "meta": { "kind": "entity-event-handler/on-transition/order" },
     "interface": { "action": { "input": "@entity-record", "output": {} } },
     "implementation": { "action": [ ... ] }
 }
