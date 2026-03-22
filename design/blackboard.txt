@@ -119,7 +119,7 @@ service:
     }
 }
 
--------- entity -------
+-------- entity type -------
 
 Entity type is a simple concept that defines:
 
@@ -132,10 +132,10 @@ Entity type is a simple concept that defines:
 Each entity type permits:
 
 - data versioning
-    - data relative diff
+    - data relative diff (use fast-json-patch)
     - valid from
 - history
-    - entity relative diff
+    - entity relative diff (use fast-json-patch)
     - timestamp 
     - user 
 
@@ -158,15 +158,36 @@ Entity state model is multidimensional and consists of:
             ...
         }
 
-Entity type capabilities are extensible with generic entity components.
-
-Entity components are generic representations or projections of entities, which 
-can be used in entity type agnostic contexts.
-
-Entity components have the following properties:
+Entity type capabilities are extensible with entity components.
+Entity components are compositional elements that combine an entity type and am entity component service into a single logical unit.
+An entity component element has the following properties:
     - id
-    - data schema
-    - 
+    - entity type
+    - service context mapping: entity data -> entity component service context
+    - entity component service (id)
+
+Entity component service is an element that combines execution context schema with a service. It is a wrapper around a service 
+that describes to a caller which context is expected by the internal service.
+It has the following properties:
+    - id 
+    - context schema 
+    - service (id) 
+
+A service referenced in entity component service element can assume it will have in the _ctx the 
+following information provided by the invoker:
+- _ctx
+    - entity context
+        - entity type 
+        - data (in the shape described by the context schema)
+
+------- entity service ----------
+
+entity service is a entity type agnostic service element with the following methods:
+
+- CRUD by entity type, business key 
+- transition by entity type, business key, transition name 
+- amend by entity type, business key, data, valid from
+- execute by entity type, business key, entity component id, entity component service method id, method input
 
 
 

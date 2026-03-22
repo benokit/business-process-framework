@@ -1,0 +1,251 @@
+[
+    {
+        "type": "schema",
+        "id": "entity-create-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-read-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-update-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!version": "number",
+            "!data": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-delete-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "version": "number"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-transition-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!transition": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-amend-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!data": "object",
+            "validFrom": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-execute-input",
+        "schema": {
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!componentId": "string",
+            "!methodId": "string",
+            "input": "object"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-service-interface",
+        "data": {
+            "create": {
+                "input": "@entity-create-input",
+                "output": "@entity-record"
+            },
+            "read": {
+                "input": "@entity-read-input",
+                "output": "@entity-record"
+            },
+            "update": {
+                "input": "@entity-update-input",
+                "output": "@entity-record"
+            },
+            "delete": {
+                "input": "@entity-delete-input",
+                "output": "@entity-record"
+            },
+            "transition": {
+                "input": "@entity-transition-input",
+                "output": "@entity-record"
+            },
+            "amend": {
+                "input": "@entity-amend-input",
+                "output": "@entity-record"
+            },
+            "execute": {
+                "input": "@entity-execute-input"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-service-implementation",
+        "data": {
+            "create": [
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey",
+                        "data": "#.input.data"
+                    },
+                    "service": { "id": "entity-database", "method": "create" }
+                }
+            ],
+            "read": [
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey"
+                    },
+                    "service": { "id": "entity-database", "method": "read" }
+                }
+            ],
+            "update": [
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey",
+                        "version": "#.input.version",
+                        "data": "#.input.data"
+                    },
+                    "service": { "id": "entity-database", "method": "update" }
+                }
+            ],
+            "delete": [
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey",
+                        "version": "#.input.version"
+                    },
+                    "service": { "id": "entity-database", "method": "delete" }
+                }
+            ],
+            "transition": [
+                {
+                    "name": "current",
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey"
+                    },
+                    "service": { "id": "entity-database", "method": "read" }
+                },
+                {
+                    "name": "updated",
+                    "inputMap": {
+                        "entityType": "#.input.entityType",
+                        "transition": "#.input.transition",
+                        "record": "#.current"
+                    },
+                    "low": { "module": "entities", "functionName": "applyTransition" }
+                },
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.updated.businessKey",
+                        "version": "#.updated.version",
+                        "data": "#.updated.data"
+                    },
+                    "service": { "id": "entity-database", "method": "update" }
+                }
+            ],
+            "amend": [
+                {
+                    "name": "current",
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey"
+                    },
+                    "service": { "id": "entity-database", "method": "read" }
+                },
+                {
+                    "name": "amended",
+                    "inputMap": {
+                        "record": "#.current",
+                        "data": "#.input.data",
+                        "validFrom": "#.input.validFrom"
+                    },
+                    "low": { "module": "entities", "functionName": "applyAmendment" }
+                },
+                {
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.amended.businessKey",
+                        "version": "#.amended.version",
+                        "data": "#.amended.data"
+                    },
+                    "service": { "id": "entity-database", "method": "update" }
+                }
+            ],
+            "execute": [
+                {
+                    "name": "current",
+                    "inputMap": {
+                        "collection": "#.input.entityType",
+                        "businessKey": "#.input.businessKey"
+                    },
+                    "service": { "id": "entity-database", "method": "read" }
+                },
+                {
+                    "name": "component",
+                    "inputMap": { "id": "#.input.componentId" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
+                    "name": "componentService",
+                    "inputMap": { "id": "#.component.data.componentService" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
+                    "name": "mappedContext",
+                    "dynamic": { "set": "#.component.data.contextMapping" }
+                },
+                {
+                    "name": "_ctx",
+                    "set": {
+                        "entityContext": {
+                            "entityType": "#.input.entityType",
+                            "data": "#.mappedContext"
+                        }
+                    }
+                },
+                {
+                    "inputMap": "#.input.input",
+                    "dynamic": {
+                        "service": {
+                            "id": "#.componentService.data.service",
+                            "method": "#.input.methodId"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "type": "service",
+        "id": "entity",
+        "interface": "entity-service-interface",
+        "implementation": "entity-service-implementation"
+    }
+]

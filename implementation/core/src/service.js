@@ -37,6 +37,7 @@ const keyword = {
     catch: 'catch',
     finally: 'finally',
     throw: 'throw',
+    validateSchema: 'validateSchema',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
     dynamic: 'dynamic',
@@ -152,6 +153,16 @@ async function resolveItemExecutor(item) {
         return async input => {
             const error = await executeMapping(item.throw, input);
             throw error;
+        }
+    }
+
+    if (has(item, keyword.validateSchema)) {
+        return async ({ input }) => {
+            const result = validateSchema(item.validateSchema, input);
+            if (!result.isValid) {
+                throw 'validation failed: ' + JSON.stringify(result.errors);
+            }
+            return input;
         }
     }
 

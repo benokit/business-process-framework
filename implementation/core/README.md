@@ -52,6 +52,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `forEach` | Applies an implementation to each element of the input array |
 | `try` / `catch` / `finally` | Error handling; if `try` body throws, `catch` body executes (optional); `finally` body always executes after `try` and `catch` regardless of outcome, and its return value is discarded |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
+| `validateSchema` | Validates the node's `input` against a CJSL schema (inline object or `"@schemaId"` reference). Throws a string error if invalid; returns `input` unchanged on success. Use `inputMap` to select which part of the context to validate |
 | `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the item (with `dynamic` removed) and the merged item is executed as a normal static item |
 | `publish` | Publishes a message via the `messaging` service: `{ "channel": "<channel-id>", "envelope": { ... } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/README.md#publish-pipeline-keyword) |
 | *custom* | Any keyword registered via an `execution-node-template` data element (see [Execution node templates](#execution-node-templates)) |

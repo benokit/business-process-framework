@@ -1,0 +1,64 @@
+[
+    {
+        "type": "schema",
+        "id": "entity-type-transition",
+        "schema": {
+            "!name": "string",
+            "!from": "object",
+            "!to": "object"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-type-states-model",
+        "schema": {
+            "!states": "object",
+            "transitions[]": "@entity-type-transition"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-type-data-versioning",
+        "schema": {
+            "enabled": "boolean",
+            "validFrom": "boolean"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-type-history",
+        "schema": {
+            "enabled": "boolean"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-type-data",
+        "schema": {
+            "dimensions": "object",
+            "dataSchema": "@schema",
+            "statesModel": "@entity-type-states-model",
+            "dataVersioning": "@entity-type-data-versioning",
+            "history": "@entity-type-history"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-component-service-data",
+        "meta": { "kind": "entity-component-service" },
+        "schema": {
+            "!contextSchema": "string",
+            "!service": "string"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-component-data",
+        "meta": { "kind": "entity-component" },
+        "schema": {
+            "!entityType": "string",
+            "!contextMapping": "object",
+            "!componentService": "string"
+        }
+    }
+]
