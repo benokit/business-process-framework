@@ -11,7 +11,7 @@ Elements are of three possible types:
 
 Each element has an `id` and an optional `meta` object for identification and classification. The framework recognises one reserved property inside `meta`:
 
-- `kind` — a string tag used to group elements within a type (e.g. all services that represent a particular category). Elements without a `kind` are still fully functional; `kind` is purely for querying.
+- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getDataOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
 
 ## Schema
 
@@ -145,8 +145,10 @@ const result = await execute(serviceId, methodName, input);
 const element = getElement(type, id);
 
 // Retrieve all elements of a given type, optionally filtered by meta.kind.
-const allServices  = getElements('service');
-const kindFiltered = getElements('service', 'my-kind');
+// Passing a kind prefix returns all elements whose kind starts with that prefix.
+const allServices      = getElements('service');
+const kindFiltered     = getElements('data', 'entity-component');        // exact + all children
+const childrenOnly     = getElements('data', 'entity-component/on-update'); // subtree only
 ```
 
 ## Example

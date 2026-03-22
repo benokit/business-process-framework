@@ -59,13 +59,21 @@ function getDataOfKind(kind) {
     return { items: elements.map(el => getData(el.id)).filter(Boolean) };
 }
 
+function getServicesOfKind(kind) {
+    const elements = getElements('service', kind);
+    return { items: elements.map(el => el.id) };
+}
+
 function getDataLow({ input }) { return getData(input); }
 function getDataOfKindLow({ input }) { return getDataOfKind(input); }
+function getServicesOfKindLow({ input }) { return getServicesOfKind(input); }
 
 export {
     getData,
     getDataOfKind,
+    getServicesOfKind,
     evaluateData,
     getDataLow,
-    getDataOfKindLow
+    getDataOfKindLow,
+    getServicesOfKindLow
 };

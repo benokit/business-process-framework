@@ -17,8 +17,12 @@ function indexByKind(element) {
     const kind = element.meta?.kind;
     if (kind === undefined) return;
     const bucket = kindIndex[element.type];
-    if (!bucket[kind]) bucket[kind] = [];
-    bucket[kind].push(element);
+    const parts = kind.split('/');
+    for (let i = 1; i <= parts.length; i++) {
+        const prefix = parts.slice(0, i).join('/');
+        if (!bucket[prefix]) bucket[prefix] = [];
+        bucket[prefix].push(element);
+    }
 }
 
 function registerElement(element) {

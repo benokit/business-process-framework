@@ -14,6 +14,13 @@
         }
     },
     {
+        "type": "schema",
+        "id": "data-services-list-output",
+        "schema": {
+            "items[]": "string"
+        }
+    },
+    {
         "type": "service",
         "id": "data",
         "interface": {
@@ -24,11 +31,16 @@
             "getDataOfKind": {
                 "input":  "@data-get-kind-input",
                 "output": "@data-element-list"
+            },
+            "getServicesOfKind": {
+                "input":  "@data-get-kind-input",
+                "output": "@data-services-list-output"
             }
         },
         "implementation": {
-            "getData":       { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getDataLow" } },
-            "getDataOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKindLow" } }
+            "getData":           { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getDataLow" } },
+            "getDataOfKind":     { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKindLow" } },
+            "getServicesOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getServicesOfKindLow" } }
         }
     }
 ]

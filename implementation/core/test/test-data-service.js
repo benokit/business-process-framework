@@ -13,11 +13,14 @@ describe('data service', function () {
     before(async function () {
         await loadElements([ELEMENTS_DIR]);
 
-        registerElement({ type: 'data', id: 'ds-plain',       data: { value: 42 } });
-        registerElement({ type: 'data', id: 'ds-ref',         data: { '/ref': 'ds-plain' } });
-        registerElement({ type: 'data', id: 'ds-kind-alpha',  meta: { kind: 'ds-kind' }, data: { name: 'alpha' } });
-        registerElement({ type: 'data', id: 'ds-kind-beta',   meta: { kind: 'ds-kind' }, data: { name: 'beta'  } });
-        registerElement({ type: 'data', id: 'ds-other-kind',  meta: { kind: 'ds-other' }, data: { name: 'other' } });
+        registerElement({ type: 'data', id: 'ds-plain',              data: { value: 42 } });
+        registerElement({ type: 'data', id: 'ds-ref',               data: { '/ref': 'ds-plain' } });
+        registerElement({ type: 'data', id: 'ds-kind-alpha',        meta: { kind: 'ds-kind' }, data: { name: 'alpha' } });
+        registerElement({ type: 'data', id: 'ds-kind-beta',         meta: { kind: 'ds-kind' }, data: { name: 'beta'  } });
+        registerElement({ type: 'data', id: 'ds-other-kind',        meta: { kind: 'ds-other' }, data: { name: 'other' } });
+        registerElement({ type: 'data', id: 'ds-hier-on-update',     meta: { kind: 'ds-hier/on-update' },     data: { name: 'on-update' } });
+        registerElement({ type: 'data', id: 'ds-hier-on-transition', meta: { kind: 'ds-hier/on-transition' }, data: { name: 'on-transition' } });
+        registerElement({ type: 'data', id: 'ds-hier-deep',          meta: { kind: 'ds-hier/on-update/pre' }, data: { name: 'pre' } });
     });
 
     describe('getData', () => {
@@ -76,6 +79,34 @@ describe('data service', function () {
         it('returns an empty list when no items match', async () => {
             const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-no-such-kind' });
             expect(items).to.be.an('array').that.is.empty;
+        });
+
+    });
+
+    describe('getDataOfKind — hierarchical kinds', () => {
+
+        it('returns all children when querying a parent kind', async () => {
+            const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-hier' });
+            const names = items.map(el => el.data.name);
+            expect(names).to.include.members(['on-update', 'on-transition', 'pre']);
+        });
+
+        it('returns exact match and its descendants when querying an intermediate kind', async () => {
+            const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-hier/on-update' });
+            const names = items.map(el => el.data.name);
+            expect(names).to.include.members(['on-update', 'pre']);
+            expect(names).to.not.include('on-transition');
+        });
+
+        it('returns only the exact element when querying a leaf kind', async () => {
+            const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-hier/on-transition' });
+            expect(items).to.have.length(1);
+            expect(items[0].data.name).to.equal('on-transition');
+        });
+
+        it('does not return parent-kind elements when querying a child kind', async () => {
+            const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-hier/on-update' });
+            expect(items.every(el => el.meta.kind.startsWith('ds-hier/on-update'))).to.be.true;
         });
 
     });

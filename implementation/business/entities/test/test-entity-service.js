@@ -37,10 +37,36 @@ describe('entity service', function () {
             }
         });
 
+        // Mock inTransaction template — executes the program inline without a real DB transaction.
+        registerElement({
+            type: 'data',
+            id: 'mock-in-transaction-template',
+            meta: { kind: 'execution-node-template' },
+            data: {
+                keyword: 'inTransaction',
+                implementation: [{ dynamic: { execute: '#.node.inTransaction' }, inputMap: '#.input' }]
+            }
+        });
+
         // Entity type definition used by CRUD validation tests.
         registerElement({ type: 'data', id: 'order', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
+
+        // Entity type and on-create handler used by handler invocation tests.
+        registerElement({ type: 'data', id: 'order-with-handler', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-handler-on-create',
+            meta: { kind: 'entity-event-handler/on-create/order-with-handler' },
+            interface: { action: { input: {}, output: {} } },
+            implementation: { action: [
+                { name: '_ctx', set: { handlerCalledWith: '#.input' } },
+                { return: '#.input' }
+            ] }
+        });
 
         // Services used by the execute tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
@@ -135,6 +161,34 @@ describe('entity service', function () {
             try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001' }); }
             catch (e) { error = e; }
             expect(error).to.be.a('string').that.includes('input is not valid');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('create — on-create event handlers', () => {
+
+        it('invokes registered handlers with the created entity record', async () => {
+            const _ctx = {};
+            await execute(SERVICE, 'create', {
+                entityType: 'order-with-handler', businessKey: 'bk-handler-test', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.handlerCalledWith).to.exist;
+            expect(_ctx.handlerCalledWith.businessKey).to.equal('bk-handler-test');
+        });
+
+        it('create still returns the entity record when handlers are present', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order-with-handler', businessKey: 'bk-handler-return', data: { amount: 50, currency: 'USD' }
+            });
+            expect(result.businessKey).to.equal('bk-handler-return');
+        });
+
+        it('create works normally when no handlers are registered for the entity type', async () => {
+            const result = await execute(SERVICE, 'create', {
+                entityType: 'order', businessKey: 'bk-no-handler', data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
         });
 
     });
