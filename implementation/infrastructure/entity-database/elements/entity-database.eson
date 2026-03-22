@@ -13,7 +13,7 @@
         "type": "schema",
         "id": "entity-database-create-input",
         "schema": {
-            "!collection": "string",
+            "!entityType": "string",
             "!businessKey": "string",
             "!data": "object"
         }
@@ -23,8 +23,8 @@
         "id": "entity-database-read-input",
         "schema": {
             "$data#1": [
-                { "!collection": "string", "!id": "string" },
-                { "!collection": "string", "!businessKey": "string" }
+                { "!entityType": "string", "!id": "string" },
+                { "!entityType": "string", "!businessKey": "string" }
             ]
         }
     },
@@ -33,8 +33,8 @@
         "id": "entity-database-update-input",
         "schema": {
             "$data#1": [
-                { "!collection": "string", "!id": "string", "!version": "number", "!data": "object" },
-                { "!collection": "string", "!businessKey": "string", "!version": "number", "!data": "object" }
+                { "!entityType": "string", "!id": "string", "!version": "number", "!data": "object" },
+                { "!entityType": "string", "!businessKey": "string", "!version": "number", "!data": "object" }
             ]
         }
     },
@@ -43,8 +43,8 @@
         "id": "entity-database-delete-input",
         "schema": {
             "$data#1": [
-                { "!collection": "string", "!id": "string", "version": "number" },
-                { "!collection": "string", "!businessKey": "string", "version": "number" }
+                { "!entityType": "string", "!id": "string", "version": "number" },
+                { "!entityType": "string", "!businessKey": "string", "version": "number" }
             ]
         }
     },
@@ -52,7 +52,7 @@
         "type": "schema",
         "id": "entity-database-list-input",
         "schema": {
-            "!collection": "string",
+            "!entityType": "string",
             "filter": "object",
             "sort": "object",
             "limit": "number",

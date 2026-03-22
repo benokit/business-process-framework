@@ -105,7 +105,7 @@
             "create": [
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "data": "#.input.data"
                     },
@@ -115,7 +115,7 @@
             "read": [
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
                     "service": { "id": "entity-database", "method": "read" }
@@ -124,7 +124,7 @@
             "update": [
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "version": "#.input.version",
                         "data": "#.input.data"
@@ -135,7 +135,7 @@
             "delete": [
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "version": "#.input.version"
                     },
@@ -146,7 +146,7 @@
                 {
                     "name": "current",
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
                     "service": { "id": "entity-database", "method": "read" }
@@ -162,7 +162,7 @@
                 },
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.updated.businessKey",
                         "version": "#.updated.version",
                         "data": "#.updated.data"
@@ -174,7 +174,7 @@
                 {
                     "name": "current",
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
                     "service": { "id": "entity-database", "method": "read" }
@@ -190,7 +190,7 @@
                 },
                 {
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.amended.businessKey",
                         "version": "#.amended.version",
                         "data": "#.amended.data"
@@ -202,7 +202,7 @@
                 {
                     "name": "current",
                     "inputMap": {
-                        "collection": "#.input.entityType",
+                        "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
                     "service": { "id": "entity-database", "method": "read" }

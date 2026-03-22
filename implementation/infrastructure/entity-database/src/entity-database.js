@@ -17,7 +17,7 @@ async function initSchema() {
     `);
 }
 
-async function create({ input: { collection, businessKey, data } }) {
+async function create({ input: { entityType, businessKey, data } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
@@ -25,7 +25,7 @@ async function create({ input: { collection, businessKey, data } }) {
     try {
         const result = await getPool().query(
             `INSERT INTO entities (collection, business_key, data) VALUES ($1, $2, $3) RETURNING *`,
-            [collection, businessKey, JSON.stringify(data)]
+            [entityType, businessKey, JSON.stringify(data)]
         );
         return toRecord(result.rows[0]);
     } catch (err) {
@@ -34,19 +34,19 @@ async function create({ input: { collection, businessKey, data } }) {
     }
 }
 
-async function read({ input: { collection, id, businessKey } }) {
+async function read({ input: { entityType, id, businessKey } }) {
     await initSchema();
     try {
         let result;
         if (businessKey) {
             result = await getPool().query(
                 'SELECT * FROM entities WHERE collection = $1 AND business_key = $2',
-                [collection, businessKey]
+                [entityType, businessKey]
             );
         } else {
             result = await getPool().query(
                 'SELECT * FROM entities WHERE collection = $1 AND id = $2',
-                [collection, id]
+                [entityType, id]
             );
         }
         return result.rows.length ? toRecord(result.rows[0]) : null;
@@ -56,7 +56,7 @@ async function read({ input: { collection, id, businessKey } }) {
     }
 }
 
-async function update({ input: { collection, id, businessKey, version, data } }) {
+async function update({ input: { entityType, id, businessKey, version, data } }) {
     await initSchema();
     let result;
     if (businessKey) {
@@ -64,44 +64,44 @@ async function update({ input: { collection, id, businessKey, version, data } })
             `UPDATE entities SET data = $1, version = version + 1
              WHERE collection = $2 AND business_key = $3 AND version = $4
              RETURNING *`,
-            [JSON.stringify(data), collection, businessKey, version]
+            [JSON.stringify(data), entityType, businessKey, version]
         );
     } else {
         result = await getPool().query(
             `UPDATE entities SET data = $1, version = version + 1
              WHERE collection = $2 AND id = $3 AND version = $4
              RETURNING *`,
-            [JSON.stringify(data), collection, id, version]
+            [JSON.stringify(data), entityType, id, version]
         );
     }
     if (result.rows.length === 0) throw 'update failed: document not found or version mismatch';
     return toRecord(result.rows[0]);
 }
 
-async function del({ input: { collection, id, businessKey, version } }) {
+async function del({ input: { entityType, id, businessKey, version } }) {
     await initSchema();
     let result;
     if (businessKey) {
         const sql = version !== undefined
             ? 'DELETE FROM entities WHERE collection = $1 AND business_key = $2 AND version = $3 RETURNING *'
             : 'DELETE FROM entities WHERE collection = $1 AND business_key = $2 RETURNING *';
-        const params = version !== undefined ? [collection, businessKey, version] : [collection, businessKey];
+        const params = version !== undefined ? [entityType, businessKey, version] : [entityType, businessKey];
         result = await getPool().query(sql, params);
     } else {
         const sql = version !== undefined
             ? 'DELETE FROM entities WHERE collection = $1 AND id = $2 AND version = $3 RETURNING *'
             : 'DELETE FROM entities WHERE collection = $1 AND id = $2 RETURNING *';
-        const params = version !== undefined ? [collection, id, version] : [collection, id];
+        const params = version !== undefined ? [entityType, id, version] : [entityType, id];
         result = await getPool().query(sql, params);
     }
     if (result.rows.length === 0) throw 'delete failed: document not found or version mismatch';
     return toRecord(result.rows[0]);
 }
 
-async function list({ input: { collection, filter = {}, sort, limit = 100, skip = 0 } }) {
+async function list({ input: { entityType, filter = {}, sort, limit = 100, skip = 0 } }) {
     await initSchema();
     let sql = 'SELECT * FROM entities WHERE collection = $1 AND data @> $2::jsonb';
-    const params = [collection, JSON.stringify(filter)];
+    const params = [entityType, JSON.stringify(filter)];
     if (sort) {
         const orderClauses = Object.entries(sort)
             .map(([k, dir]) => {

@@ -588,6 +588,79 @@ describe('service tests', () => {
 
     });
 
+    describe('validateSchema', () => {
+
+        before(() => {
+            registerService('svc-validate-schema', {
+                checkInline: {
+                    impl: { validateSchema: { '!name': 'string', '!age': 'number' } }
+                },
+                checkRef: {
+                    impl: [
+                        { validateSchema: '@svc-validate-schema-input' },
+                        { return: '#.input' }
+                    ]
+                },
+                checkWithInputMap: {
+                    impl: {
+                        inputMap: '#.input.payload',
+                        validateSchema: { '!amount': 'number' }
+                    }
+                },
+                passthroughOnSuccess: {
+                    impl: [
+                        { validateSchema: { '!x': 'number' } },
+                        { return: '#.input' }
+                    ]
+                }
+            });
+            registerElement({
+                type: 'schema',
+                id: 'svc-validate-schema-input',
+                schema: { '!code': 'string' }
+            });
+        });
+
+        it('throws when a required field is missing (inline schema)', async () => {
+            let error;
+            try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice' }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('throws when a field has the wrong type (inline schema)', async () => {
+            let error;
+            try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice', age: 'not-a-number' }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('throws when validation fails against a registered schema reference', async () => {
+            let error;
+            try { await execute('svc-validate-schema', 'checkRef', {}); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('passes and returns input unchanged when input is valid', async () => {
+            const result = await execute('svc-validate-schema', 'passthroughOnSuccess', { x: 42 });
+            expect(result).to.deep.equal({ x: 42 });
+        });
+
+        it('validates the inputMap result, not the full context', async () => {
+            let error;
+            try { await execute('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 'not-a-number' } }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('passes when only the inputMap result satisfies the schema', async () => {
+            const result = await execute('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 99 }, extra: 'ignored' });
+            expect(result).to.deep.equal({ amount: 99 });
+        });
+
+    });
+
     describe('$low custom lambdajson primitives', () => {
 
         before(() => {

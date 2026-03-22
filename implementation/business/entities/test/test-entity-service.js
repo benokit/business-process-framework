@@ -31,7 +31,7 @@ describe('entity service', function () {
             },
             implementation: {
                 create: { return: '#.input' },
-                read:   { return: { collection: '#.input.collection', businessKey: '#.input.businessKey', id: 'rec-1', version: 1, data: { amount: 100, currency: 'USD' } } },
+                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', version: 1, data: { amount: 100, currency: 'USD' } } },
                 update: { return: '#.input' },
                 delete: { return: '#.input' }
             }
@@ -88,11 +88,11 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('create', () => {
 
-        it('maps entityType to collection', async () => {
+        it('passes entityType to entity-database', async () => {
             const result = await execute(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'order-001', data: { amount: 100 }
             });
-            expect(result.collection).to.equal('order');
+            expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.data).to.deep.equal({ amount: 100 });
         });
@@ -123,11 +123,11 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('read', () => {
 
-        it('maps entityType to collection and forwards businessKey', async () => {
+        it('passes entityType and businessKey to entity-database', async () => {
             const result = await execute(SERVICE, 'read', {
                 entityType: 'order', businessKey: 'order-001'
             });
-            expect(result.collection).to.equal('order');
+            expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
         });
 
@@ -136,11 +136,11 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('update', () => {
 
-        it('maps entityType to collection and forwards version and data', async () => {
+        it('passes entityType, version and data to entity-database', async () => {
             const result = await execute(SERVICE, 'update', {
                 entityType: 'order', businessKey: 'order-001', version: 2, data: { amount: 200 }
             });
-            expect(result.collection).to.equal('order');
+            expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.version).to.equal(2);
             expect(result.data).to.deep.equal({ amount: 200 });
@@ -151,11 +151,11 @@ describe('entity service', function () {
     // -------------------------------------------------------------------------
     describe('delete', () => {
 
-        it('maps entityType to collection and forwards version', async () => {
+        it('passes entityType and version to entity-database', async () => {
             const result = await execute(SERVICE, 'delete', {
                 entityType: 'order', businessKey: 'order-001', version: 1
             });
-            expect(result.collection).to.equal('order');
+            expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.version).to.equal(1);
         });
