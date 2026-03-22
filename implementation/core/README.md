@@ -54,7 +54,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
 | `validateSchema` | Validates the node's `input` against a CJSL schema (inline object or `"@schemaId"` reference). Throws a string error if invalid; returns `input` unchanged on success. Use `inputMap` to select which part of the context to validate |
 | `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the item (with `dynamic` removed) and the merged item is executed as a normal static item |
-| `publish` | Publishes a message via the `messaging` service: `{ "channel": "<channel-id>", "envelope": { ... } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/README.md#publish-pipeline-keyword) |
+| `publish` | Publishes a message via the `messaging` service: `{ "channel": "<channel-id>", "envelope": { ... } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/messaging/README.md#publish-pipeline-keyword) |
 | *custom* | Any keyword registered via an `execution-node-template` data element (see [Execution node templates](#execution-node-templates)) |
 
 ### Per-item modifiers
@@ -126,7 +126,7 @@ When a pipeline item carries the registered keyword, the executor runs the templ
 
 `inputMap` and `outputMap` on the outer pipeline item are applied by the standard executor before and after the template runs; the template does not need to handle them.
 
-For a real-world example see [`inTransaction`](../infrastructure/README.md#intransaction-pipeline-keyword) in the `transaction` package.
+For a real-world example see [`inTransaction`](../infrastructure/transaction/README.md#intransaction-pipeline-keyword) in the `transaction` package.
 
 ## Runtime API
 

@@ -39,7 +39,7 @@ implementation/
       data-service.eson          # Built-in `data` service (getData, getDataOfKind)
 
   infrastructure/
-    README.md                    # Service interface reference
+    README.md                    # Navigation index — links to per-package READMEs
     entity-database/             # Generic document store (CRUD + businessKey); PostgreSQL, single `entities` table
     http-server/                 # HTTP server (Express); routes from `endpoint` data elements
     sequence-generator/          # Monotonic integer counters per named sequence; native PostgreSQL sequences
@@ -116,7 +116,7 @@ A `data` element with `meta.kind = "execution-node-template"` registers a new pi
 }
 ```
 
-The template's `implementation` receives `{ _ctx, input, node }` where `input` is the node's input after `inputMap` and `node` is the full pipeline item. `inputMap`/`outputMap` are handled externally and are not the template's concern. The `transaction` package uses this to provide the `inTransaction` keyword — see [infrastructure/README.md](implementation/infrastructure/README.md#intransaction-pipeline-keyword).
+The template's `implementation` receives `{ _ctx, input, node }` where `input` is the node's input after `inputMap` and `node` is the full pipeline item. `inputMap`/`outputMap` are handled externally and are not the template's concern. The `transaction` package uses this to provide the `inTransaction` keyword — see [transaction/README.md](implementation/infrastructure/transaction/README.md#intransaction-pipeline-keyword).
 
 ## LambdaJSON internals
 
@@ -171,6 +171,38 @@ An object is compiled as one of three forms, checked in order:
 | `$in` / `$return` | passthrough | Identity; used to pair with `$let` for object output |
 | `$apply` | `{ _fn, _to? }` | Applies `_fn` to result of `_to` |
 | `$` | expression | Creates a closure: `v => expr(v)` |
+
+## Documentation structure
+
+READMEs are organised as a directed graph. Each level owns a specific scope; detail lives at the lowest relevant node.
+
+### README map
+
+| File | Role |
+| --- | --- |
+| `README.md` | Framework overview + navigation table to core / infrastructure / business |
+| `implementation/core/README.md` | Full core spec: elements, pipeline keywords, execution node templates, runtime API |
+| `implementation/infrastructure/README.md` | Index only — one-line description + link per package |
+| `implementation/infrastructure/<pkg>/README.md` | Full detail for that infrastructure package |
+| `implementation/business/README.md` | Index only — one-line description + link per package |
+| `implementation/business/<pkg>/README.md` | Full detail for that business package |
+
+### Navigation guide
+
+When looking for information, go to the lowest-level README that owns it:
+
+- **Framework concepts** (elements, pipelines, `_ctx`, lambdaJSON) → `implementation/core/README.md`
+- **A specific infrastructure service** (methods, storage, config) → `implementation/infrastructure/<pkg>/README.md`
+- **Entity lifecycle, states, event handlers** → `implementation/business/entities/README.md`
+- **Cross-service integration patterns** (e.g. outbox + transaction) → each package's own README; cross-link between them
+
+### Philosophy — rules to follow when writing or updating docs
+
+1. **One owner per fact.** Each piece of information lives in exactly one README. All other files that need to reference it use a markdown link — never copy the prose.
+2. **Detail at the leaf, summary at the root.** Package READMEs contain full detail. Index READMEs (`infrastructure/README.md`, `business/README.md`) contain only a table with one-line descriptions and links.
+3. **No duplicate examples.** If a pattern repeats (e.g. multiple event-handler hooks), document it once with a table of variants and a single representative example.
+4. **Update the owner, not the reference.** When a feature changes, update the owning README. Any referencing README that links to it automatically stays correct.
+5. **Add a per-package README for every new package** — even a minimal one (method table + one-liner). Add a row to the parent index at the same time.
 
 ## Running tests
 

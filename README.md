@@ -28,4 +28,8 @@ The pipeline keyword set is open for extension: packages can register **executio
 
 ## Getting started
 
-See [implementation/core/README.md](implementation/core/README.md) for the element specification, runtime API, and examples.
+| | |
+| --- | --- |
+| [Core](implementation/core/README.md) | Element specification, pipeline keywords, runtime API, examples |
+| [Infrastructure](implementation/infrastructure/README.md) | Database, transactions, messaging, HTTP server |
+| [Business](implementation/business/README.md) | Entity lifecycle, states, event handlers, components |
