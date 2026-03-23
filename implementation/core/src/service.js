@@ -10,11 +10,15 @@ export {
 };
 
 async function execute(serviceId, methodName, input, _ctx = {}) {
+    if (!_ctx._execution) _ctx._execution = { trace: [] };
+    const traceStart = _ctx._execution.trace.length;
     const service = getElement('service', serviceId)
     const iface = getData(service.interface);
     validateInputAgainstInterface(iface.data[methodName], input);
     const impl = getData(service.implementation).data[methodName];
-    return await executeMethod(impl, input, _ctx);
+    const result = await executeMethod(impl, input, _ctx);
+    _ctx._execution.trace.splice(traceStart);
+    return result;
 }
 
 function validateInputAgainstInterface(methodInterface, input) {
@@ -54,111 +58,113 @@ async function executeMethod(implementation, input, _ctx = {}) {
 
 async function executeMethodWithContext(implementation, context) {
     if (!isArray(implementation)) {
-        return await executeItem(implementation, context);
+        return await executeNode(implementation, context);
     }
 
-    for (const item of implementation.slice(0, -1)) {
-        const output = await executeItem(item, context);
-        if (item.name) {
-            if (has(item, keyword.set) && isPlainObject(context[item.name]) && isPlainObject(output)) {
-                merge(context[item.name], output);
+    for (const node of implementation.slice(0, -1)) {
+        const output = await executeNode(node, context);
+        if (node.name) {
+            if (has(node, keyword.set) && isPlainObject(context[node.name]) && isPlainObject(output)) {
+                merge(context[node.name], output);
             } else {
-                context[item.name] = output;
+                context[node.name] = output;
             }
         }
     }
 
-    const lastItem = implementation.at(-1);
-    return await executeItem(lastItem, context);
+    const lastNode = implementation.at(-1);
+    return await executeNode(lastNode, context);
 }
 
-async function executeItem(item, context) {
-    let staticItem = item;
-    if (has(item, keyword.dynamic)) {
-        const dynamicPart = await executeMapping(item.dynamic, context);
-        const { [keyword.dynamic]: _, ...rest } = item;
-        staticItem = { ...rest, ...dynamicPart };
+async function executeNode(node, context) {
+    let staticNode = node;
+    if (has(node, keyword.dynamic)) {
+        const dynamicPart = await executeMapping(node.dynamic, context);
+        const { [keyword.dynamic]: _, ...rest } = node;
+        staticNode = { ...rest, ...dynamicPart };
     }
 
-    const nodeInput = has(staticItem, keyword.inputMap)
-        ? { _ctx: context._ctx, input: await executeMapping(staticItem.inputMap, context) }
+    context._ctx?._execution?.trace?.push(nodeLabel(staticNode));
+
+    const nodeInput = has(staticNode, keyword.inputMap)
+        ? { _ctx: context._ctx, input: await executeMapping(staticNode.inputMap, context) }
         : context;
-    const exec = await resolveItemExecutor(staticItem);
+    const exec = await resolveNodeExecutor(staticNode);
     const result = await exec(nodeInput);
-    const output = has(staticItem, keyword.outputMap) ? (await executeMapping(staticItem.outputMap, result)) : result;
+    const output = has(staticNode, keyword.outputMap) ? (await executeMapping(staticNode.outputMap, result)) : result;
     return output;
 }
 
-async function resolveItemExecutor(item) {
-    if (has(item, keyword.service)) {
-        return async ({ _ctx, input }) => await execute(item.service.id, item.service.method, input, _ctx);
+async function resolveNodeExecutor(node) {
+    if (has(node, keyword.service)) {
+        return async ({ _ctx, input }) => await execute(node.service.id, node.service.method, input, _ctx);
     }
 
-    if (has(item, keyword.execute)) {
-        return async input => await executeMethodWithContext(item.execute, input);
+    if (has(node, keyword.execute)) {
+        return async input => await executeMethodWithContext(node.execute, input);
     }
 
-    if (has(item, keyword.low)) {
-        const g = (await import(item.low.module))[item.low.functionName];
+    if (has(node, keyword.low)) {
+        const g = (await import(node.low.module))[node.low.functionName];
         return async input => await g(input)
     }
 
-    if (has(item, keyword.return)) {
-        return async input => await executeMapping(item.return, input);
+    if (has(node, keyword.return)) {
+        return async input => await executeMapping(node.return, input);
     }
 
-    if (has(item, keyword.set)) {
-        return async input => await executeMapping(item.set, input);
+    if (has(node, keyword.set)) {
+        return async input => await executeMapping(node.set, input);
     }
 
-    if (has(item, keyword.if)) {
+    if (has(node, keyword.if)) {
         return async input => {
-            const condition = await executeMapping(item.if, input);
+            const condition = await executeMapping(node.if, input);
             if (condition) {
-                return await executeMethodWithContext(item.then, input);
+                return await executeMethodWithContext(node.then, input);
             } else {
-                return await executeMethodWithContext(item.else, input);
+                return await executeMethodWithContext(node.else, input);
             }
         }
     }
 
-    if (has(item, keyword.forEach)) {
+    if (has(node, keyword.forEach)) {
         return async ({ _ctx, input }) => {
             const result = [];
             for (const x of input) {
-                result.push(await executeMethod(item.forEach, x, _ctx));
+                result.push(await executeMethod(node.forEach, x, _ctx));
             }
             return result;
         }
     }
 
-    if (has(item, keyword.try)) {
+    if (has(node, keyword.try)) {
         return async input => {
             try {
                 try {
-                    return await executeMethodWithContext(item.try, input);
+                    return await executeMethodWithContext(node.try, input);
                 } catch (error) {
-                    if (!has(item, keyword.catch)) throw error;
-                    return await executeMethodWithContext(item.catch, { _ctx: input._ctx, context: input, error });
+                    if (!has(node, keyword.catch)) throw error;
+                    return await executeMethodWithContext(node.catch, { _ctx: input._ctx, context: input, error });
                 }
             } finally {
-                if (has(item, keyword.finally)) {
-                    await executeMethodWithContext(item.finally, input);
+                if (has(node, keyword.finally)) {
+                    await executeMethodWithContext(node.finally, input);
                 }
             }
         }
     }
 
-    if (has(item, keyword.throw)) {
+    if (has(node, keyword.throw)) {
         return async input => {
-            const error = await executeMapping(item.throw, input);
+            const error = await executeMapping(node.throw, input);
             throw error;
         }
     }
 
-    if (has(item, keyword.validateSchema)) {
+    if (has(node, keyword.validateSchema)) {
         return async ({ input }) => {
-            const result = validateSchema(item.validateSchema, input);
+            const result = validateSchema(node.validateSchema, input);
             if (!result.isValid) {
                 throw 'validation failed: ' + JSON.stringify(result.errors);
             }
@@ -166,10 +172,10 @@ async function resolveItemExecutor(item) {
         }
     }
 
-    if (has(item, keyword.switch)) {
+    if (has(node, keyword.switch)) {
         return async input => {
-            const value = await executeMapping(item.switch.value, input);
-            const g = item.switch.cases[value] || item.switch.cases[keyword.default];
+            const value = await executeMapping(node.switch.value, input);
+            const g = node.switch.cases[value] || node.switch.cases[keyword.default];
             return await executeMethodWithContext(g, input);
         }
     }
@@ -177,10 +183,19 @@ async function resolveItemExecutor(item) {
     const templates = getDataOfKind('execution-node-template').items;
     for (const template of templates) {
         const { keyword: kw, implementation } = template.data;
-        if (has(item, kw)) {
-            return async ({ _ctx, input }) => await executeMethodWithContext(implementation, { _ctx, input, node: item });
+        if (has(node, kw)) {
+            return async ({ _ctx, input }) => await executeMethodWithContext(implementation, { _ctx, input, node });
         }
     }
+}
+
+function nodeLabel(node) {
+    if (has(node, keyword.service)) return `${node.service.id}/${node.service.method}`;
+    if (node.name) return node.name;
+    for (const kw of Object.values(keyword)) {
+        if (has(node, kw)) return kw;
+    }
+    return 'unknown';
 }
 
 async function executeMapping(func, input) {
@@ -199,7 +214,7 @@ async function compileMapping(func) {
     }
 
     return compile(lambda, customPrimitives);
-} 
+}
 
 async function getCustomPrimitives(func) {
     const primitives = {}
