@@ -9,10 +9,12 @@ import { registerElement } from 'core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const ELEMENTS_DIR            = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR       = join(__dirname, '../../../core/elements');
-const ENTITY_DB_ELEMENTS_DIR  = join(__dirname, '../../../infrastructure/entity-database/elements');
+const ELEMENTS_DIR             = join(__dirname, '../elements');
+const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
+const ENTITY_DB_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/entity-database/elements');
 const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
+const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/messaging/elements');
+const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../../infrastructure/transactional-outbox/elements');
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'entity';
@@ -39,6 +41,8 @@ describe('entity service — integration', function () {
             CORE_ELEMENTS_DIR,
             ENTITY_DB_ELEMENTS_DIR,
             TRANSACTION_ELEMENTS_DIR,
+            MESSAGING_ELEMENTS_DIR,
+            OUTBOX_ELEMENTS_DIR,
             ELEMENTS_DIR
         ]);
 
@@ -71,6 +75,7 @@ describe('entity service — integration', function () {
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
+        await getPool().query(`DELETE FROM transactional_outbox WHERE channel = 'entity-events'`).catch(() => {});
         await disconnect();
     });
 
@@ -151,12 +156,14 @@ describe('entity service — integration', function () {
 
         expect(cancelled.state.dimensions.status).to.equal('cancelled');
         expect(cancelled.state.fromTransition).to.equal('cancel');
+        record = cancelled;
     });
 
     it('amends the order data and records a version snapshot', async () => {
         const amended = await execute(SERVICE, 'amend', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
+            revision: record.revision,
             data: { amount: 400, currency: 'EUR', note: 'amended' },
             validFrom: '2025-01-01T00:00:00.000Z'
         });

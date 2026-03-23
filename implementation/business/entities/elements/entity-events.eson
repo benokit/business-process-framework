@@ -1,0 +1,91 @@
+[
+    {
+        "type": "data",
+        "id": "entity-events-broker",
+        "meta": { "kind": "message-broker" },
+        "data": {
+            "service": "messaging-nats",
+            "url": "nats://localhost:4222"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-events",
+        "data": {
+            "broker": "entity-events-broker",
+            "topology": "topic",
+            "name": "entity-events",
+            "publisher": {
+                "transactionalOutbox": true,
+                "retry": { "attempts": 5, "backoff": 500 }
+            }
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-event-message",
+        "schema": {
+            "!eventType": "string",
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!revision": "number"
+        }
+    },
+    {
+        "type": "schema",
+        "id": "entity-event-publisher-input",
+        "schema": {
+            "!entityType": "string",
+            "!record": "@entity-record",
+            "!eventType": "string",
+            "correlationId": "string"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-event-publisher-interface",
+        "data": {
+            "publish": {
+                "input": "@entity-event-publisher-input",
+                "output": {}
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-event-publisher-implementation",
+        "data": {
+            "publish": [
+                {
+                    "name": "envelope",
+                    "set": {
+                        "messageId": { "$join": { "_strings": ["#.input.record.id", "\\-", "#.input.record.revision", "\\-", "#.input.eventType"] } },
+                        "timestampUTC": "#.input.record.timestampUtc",
+                        "group": "#.input.record.businessKey",
+                        "correlation": { "$coalesce": ["#.input.correlationId", ""] },
+                        "message": {
+                            "eventType": "#.input.eventType",
+                            "entityType": "#.input.entityType",
+                            "businessKey": "#.input.record.businessKey",
+                            "revision": "#.input.record.revision"
+                        }
+                    }
+                },
+                {
+                    "dynamic": {
+                        "publish": {
+                            "channel": "entity-events",
+                            "envelope": "#.envelope"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "type": "service",
+        "id": "entity-event-publisher",
+        "interface": "entity-event-publisher-interface",
+        "implementation": "entity-event-publisher-implementation"
+    }
+]

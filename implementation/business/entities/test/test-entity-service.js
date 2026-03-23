@@ -39,6 +39,14 @@ describe('entity service', function () {
             }
         });
 
+        // Mock entity-event-publisher — no-op; publishing is tested in integration tests.
+        registerElement({
+            type: 'service',
+            id: 'entity-event-publisher',
+            interface: { publish: { input: {}, output: {} } },
+            implementation: { publish: { return: {} } }
+        });
+
         // Mock inTransaction template — executes the program inline without a real DB transaction.
         registerElement({
             type: 'data',
@@ -345,6 +353,35 @@ describe('entity service', function () {
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.revision).to.equal(1);
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('amend', () => {
+
+        it('passes entityType, businessKey, revision and data to entity-database', async () => {
+            const result = await execute(SERVICE, 'amend', {
+                entityType: 'order', businessKey: 'order-001', revision: 3, data: { amount: 500, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
+            expect(result.businessKey).to.equal('order-001');
+            expect(result.revision).to.equal(3);
+            expect(result.data).to.deep.equal({ amount: 500, currency: 'USD' });
+        });
+
+        it('throws when data does not match the entity type dataSchema', async () => {
+            let error;
+            try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('validation failed');
+        });
+
+        it('throws when revision is missing', async () => {
+            let error;
+            try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
+            catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('input is not valid');
         });
 
     });

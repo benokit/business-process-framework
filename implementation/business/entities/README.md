@@ -66,12 +66,12 @@ When `transition` is called:
 | `update` | `entityType`, `businessKey`, `revision`, `data` | `entity-record` |
 | `delete` | `entityType`, `businessKey`, `revision?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
-| `amend` | `entityType`, `businessKey`, `data`, `validFrom?` | `entity-record` |
+| `amend` | `entityType`, `businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
 | `execute` | `entityType`, `businessKey`, `componentId`, `methodId`, `input?` | varies |
 
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
-- `amend` reads the current revision internally and wraps the database call with on-amend event handlers in a transaction. `state` is never modified. See [entity-database](../../infrastructure/entity-database/README.md#amend--business-versioning) for storage details.
+- `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [entity-database](../../infrastructure/entity-database/README.md#amend--business-versioning) for storage details.
 
 ## Event handlers
 

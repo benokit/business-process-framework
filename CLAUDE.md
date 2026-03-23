@@ -176,26 +176,6 @@ An object is compiled as one of three forms, checked in order:
 
 READMEs are organised as a directed graph. Each level owns a specific scope; detail lives at the lowest relevant node.
 
-### README map
-
-| File | Role |
-| --- | --- |
-| `README.md` | Framework overview + navigation table to core / infrastructure / business |
-| `implementation/core/README.md` | Full core spec: elements, pipeline keywords, execution node templates, runtime API |
-| `implementation/infrastructure/README.md` | Index only — one-line description + link per package |
-| `implementation/infrastructure/<pkg>/README.md` | Full detail for that infrastructure package |
-| `implementation/business/README.md` | Index only — one-line description + link per package |
-| `implementation/business/<pkg>/README.md` | Full detail for that business package |
-
-### Navigation guide
-
-When looking for information, go to the lowest-level README that owns it:
-
-- **Framework concepts** (elements, pipelines, `_ctx`, lambdaJSON) → `implementation/core/README.md`
-- **A specific infrastructure service** (methods, storage, config) → `implementation/infrastructure/<pkg>/README.md`
-- **Entity lifecycle, states, event handlers** → `implementation/business/entities/README.md`
-- **Cross-service integration patterns** (e.g. outbox + transaction) → each package's own README; cross-link between them
-
 ### Philosophy — rules to follow when writing or updating docs
 
 1. **One owner per fact.** Each piece of information lives in exactly one README. All other files that need to reference it use a markdown link — never copy the prose.

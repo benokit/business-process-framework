@@ -51,6 +51,7 @@
         "schema": {
             "!entityType": "string",
             "!businessKey": "string",
+            "!revision": "number",
             "!data": "object",
             "validFrom": "string"
         }
@@ -156,6 +157,15 @@
                                 "inputMap": "#._ctx.createdEntity"
                             }
                         },
+                        {
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "record": "#.created",
+                                "eventType": "created",
+                                "correlationId": "#._ctx.correlationId"
+                            },
+                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                        },
                         { "return": "#.created" }
                     ]
                 }
@@ -213,6 +223,15 @@
                                 "inputMap": "#._ctx.updatedEntity"
                             }
                         },
+                        {
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "record": "#.updated",
+                                "eventType": "updated",
+                                "correlationId": "#._ctx.correlationId"
+                            },
+                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                        },
                         { "return": "#.updated" }
                     ]
                 }
@@ -224,7 +243,27 @@
                         "businessKey": "#.input.businessKey",
                         "revision": "#.input.revision"
                     },
-                    "service": { "id": "entity-database", "method": "delete" }
+                    "inTransaction": [
+                        {
+                            "name": "deleted",
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "revision": "#.input.revision"
+                            },
+                            "service": { "id": "entity-database", "method": "delete" }
+                        },
+                        {
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "record": "#.deleted",
+                                "eventType": "deleted",
+                                "correlationId": "#._ctx.correlationId"
+                            },
+                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                        },
+                        { "return": "#.deleted" }
+                    ]
                 }
             ],
             "transition": [
@@ -311,18 +350,28 @@
                                 "inputMap": "#._ctx.transitionedEntity"
                             }
                         },
+                        {
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "record": "#.transitioned",
+                                "eventType": "transitioned",
+                                "correlationId": "#._ctx.correlationId"
+                            },
+                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                        },
                         { "return": "#.transitioned" }
                     ]
                 }
             ],
             "amend": [
                 {
-                    "name": "current",
-                    "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey"
-                    },
-                    "service": { "id": "entity-database", "method": "read" }
+                    "name": "entityTypeDef",
+                    "inputMap": { "id": "#.input.entityType" },
+                    "service": { "id": "data", "method": "getData" }
+                },
+                {
+                    "inputMap": "#.input.data",
+                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
                     "name": "handlers",
@@ -335,7 +384,7 @@
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
-                        "revision": "#.current.revision",
+                        "revision": "#.input.revision",
                         "data": "#.input.data",
                         "validFrom": "#.input.validFrom",
                         "handlers": "#.handlers.items"
@@ -359,6 +408,15 @@
                                 "dynamic": { "service": { "id": "#.input", "method": "action" } },
                                 "inputMap": "#._ctx.amendedEntity"
                             }
+                        },
+                        {
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "record": "#.amended",
+                                "eventType": "amended",
+                                "correlationId": "#._ctx.correlationId"
+                            },
+                            "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
                         { "return": "#.amended" }
                     ]

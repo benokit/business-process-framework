@@ -81,16 +81,11 @@
                 {
                     "name": "envelope",
                     "set": {
-                        "$let": {
-                            "$fallback": { "$head": { "$filter": { "_predicate": "#", "_collection": "#" } } }
-                        },
-                        "$in": {
-                            "messageId":    { "$fallback": ["#.node.publish.envelope.messageId",    "#.id.value"] },
-                            "timestampUTC": { "$fallback": ["#.node.publish.envelope.timestampUTC", "#.ts.value"] },
-                            "group":        { "$fallback": ["#.node.publish.envelope.group",        "#._ctx.group"] },
-                            "correlation":  { "$fallback": ["#.node.publish.envelope.correlation",  "#._ctx.correlation"] },
-                            "message":      "#.node.publish.envelope.message"
-                        }
+                        "messageId":    { "$coalesce": ["#.node.publish.envelope.messageId",    "#.id.value"] },
+                        "timestampUTC": { "$coalesce": ["#.node.publish.envelope.timestampUTC", "#.ts.value"] },
+                        "group":        { "$coalesce": ["#.node.publish.envelope.group",        "#._ctx.group"] },
+                        "correlation":  { "$coalesce": ["#.node.publish.envelope.correlation",  "#._ctx.correlation", ""] },
+                        "message":      "#.node.publish.envelope.message"
                     }
                 },
                 {
