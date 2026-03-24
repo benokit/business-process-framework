@@ -124,7 +124,7 @@ async function resolveNodeExecutor(node) {
             if (condition) {
                 return await executeMethodWithContext(node.then, input);
             } else {
-                return await executeMethodWithContext(node.else, input);
+                return node.else != null ? await executeMethodWithContext(node.else, input) : null;
             }
         }
     }

@@ -129,6 +129,79 @@ describe('entity service', function () {
             ] }
         });
 
+        // Entity type and before-update guard used by guard tests.
+        registerElement({ type: 'data', id: 'order-with-update-guard', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-update-guard-before-update',
+            kind: 'entity-guard/before-update/order-with-update-guard',
+            interface: { validate: { input: {}, output: {} } },
+            implementation: { validate: {
+                if: { '$lte': ['#.input.data.amount', 0] },
+                then: [{ return: ['amount must be positive'] }],
+                else: [{ return: [] }]
+            }}
+        });
+
+        // Entity type and before-amend guard used by guard tests.
+        registerElement({ type: 'data', id: 'order-with-amend-guard', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-amend-guard-before-amend',
+            kind: 'entity-guard/before-amend/order-with-amend-guard',
+            interface: { validate: { input: {}, output: {} } },
+            implementation: { validate: {
+                if: { '$lte': ['#.input.data.amount', 0] },
+                then: [{ return: ['amount must be positive'] }],
+                else: [{ return: [] }]
+            }}
+        });
+
+        // Entity type and before-transition guard used by guard tests.
+        registerElement({ type: 'data', id: 'order-with-transition-guard', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' },
+            statesModel: {
+                transitions: {
+                    confirm:   { from: { status: ['draft'] }, to: { status: 'confirmed' } },
+                    forbidden: { from: { status: ['draft'] }, to: { status: 'blocked' } }
+                }
+            }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-transition-guard-before-transition',
+            kind: 'entity-guard/before-transition/order-with-transition-guard',
+            interface: { validate: { input: {}, output: {} } },
+            implementation: { validate: {
+                if: { '$eq': ['#.input.transition', 'forbidden'] },
+                then: [{ return: ['transition forbidden by guard'] }],
+                else: [{ return: [] }]
+            }}
+        });
+
+        // Entity type with two before-update guards used by multi-guard test.
+        registerElement({ type: 'data', id: 'order-with-multi-guards', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            type: 'service',
+            id: 'order-with-multi-guards-guard-a',
+            kind: 'entity-guard/before-update/order-with-multi-guards',
+            interface: { validate: { input: {}, output: {} } },
+            implementation: { validate: { return: ['error from guard A'] } }
+        });
+        registerElement({
+            type: 'service',
+            id: 'order-with-multi-guards-guard-b',
+            kind: 'entity-guard/before-update/order-with-multi-guards',
+            interface: { validate: { input: {}, output: {} } },
+            implementation: { validate: { return: ['error from guard B'] } }
+        });
+
         // Services used by the execute tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
         registerElement({ type: 'data', id: 'ctx-capture-component', data: {
@@ -455,6 +528,104 @@ describe('entity service', function () {
         });
 
         it('transition works normally when no handlers are registered for the entity type', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result.state.dimensions.status).to.equal('confirmed');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('update — before-update guards', () => {
+
+        it('throws when a guard returns errors', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'update', {
+                    entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: -1, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('amount must be positive');
+        });
+
+        it('proceeds when a guard returns no errors', async () => {
+            const result = await execute(SERVICE, 'update', {
+                entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.data.amount).to.equal(100);
+        });
+
+        it('collects and joins errors from multiple guards', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'update', {
+                    entityType: 'order-with-multi-guards', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('error from guard A');
+            expect(error).to.be.a('string').that.includes('error from guard B');
+        });
+
+        it('proceeds normally when no guards are registered', async () => {
+            const result = await execute(SERVICE, 'update', {
+                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('amend — before-amend guards', () => {
+
+        it('throws when a guard returns errors', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'amend', {
+                    entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('amount must be positive');
+        });
+
+        it('proceeds when a guard returns no errors', async () => {
+            const result = await execute(SERVICE, 'amend', {
+                entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 50, currency: 'USD' }
+            });
+            expect(result.data.amount).to.equal(50);
+        });
+
+        it('proceeds normally when no guards are registered', async () => {
+            const result = await execute(SERVICE, 'amend', {
+                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('transition — before-transition guards', () => {
+
+        it('throws when a guard returns errors', async () => {
+            let error;
+            try {
+                await execute(SERVICE, 'transition', {
+                    entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'forbidden'
+                });
+            } catch (e) { error = e; }
+            expect(error).to.be.a('string').that.includes('transition forbidden by guard');
+        });
+
+        it('proceeds when a guard returns no errors', async () => {
+            const result = await execute(SERVICE, 'transition', {
+                entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'confirm'
+            });
+            expect(result.state.dimensions.status).to.equal('confirmed');
+        });
+
+        it('proceeds normally when no guards are registered', async () => {
             const result = await execute(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });

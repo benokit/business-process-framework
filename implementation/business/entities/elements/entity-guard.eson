@@ -1,0 +1,58 @@
+[
+    {
+        "type": "schema",
+        "id": "entity-guard-runner-input",
+        "schema": {
+            "!beforeEvent": "string",
+            "!entityType": "string",
+            "!entity": "object"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-guard-runner-interface",
+        "data": {
+            "run": {
+                "input": "@entity-guard-runner-input"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-guard-runner-implementation",
+        "data": {
+            "run": [
+                {
+                    "name": "guards",
+                    "inputMap": {
+                        "kind": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
+                    },
+                    "service": { "id": "data", "method": "getServicesOfKind" }
+                },
+                { "name": "_ctx", "set": { "guardInput": "#.input.entity" } },
+                {
+                    "name": "errorArrays",
+                    "inputMap": "#.guards.items",
+                    "forEach": {
+                        "dynamic": { "service": { "id": "#.input", "method": "validate" } },
+                        "inputMap": "#._ctx.guardInput"
+                    }
+                },
+                {
+                    "name": "errorMessage",
+                    "set": { "$join": { "_strings": { "$concat": "#.errorArrays" }, "_separator": ", " } }
+                },
+                {
+                    "if": "#.errorMessage",
+                    "then": [{ "throw": "#.errorMessage" }]
+                }
+            ]
+        }
+    },
+    {
+        "type": "service",
+        "id": "entity-guard-runner",
+        "interface": "entity-guard-runner-interface",
+        "implementation": "entity-guard-runner-implementation"
+    }
+]

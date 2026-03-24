@@ -190,6 +190,14 @@
                     "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "inputMap": {
+                        "beforeEvent": "before-update",
+                        "entityType": "#.input.entityType",
+                        "entity": "#.input"
+                    },
+                    "service": { "id": "entity-guard-runner", "method": "run" }
+                },
+                {
                     "name": "handlers",
                     "inputMap": {
                         "kind": { "$join": { "_strings": ["entity-event-handler/on-update/", "#.input.entityType"] } }
@@ -314,6 +322,14 @@
                 },
                 { "name": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
+                    "inputMap": {
+                        "beforeEvent": "before-transition",
+                        "entityType": "#.input.entityType",
+                        "entity": "#.input"
+                    },
+                    "service": { "id": "entity-guard-runner", "method": "run" }
+                },
+                {
                     "name": "handlers",
                     "inputMap": {
                         "kind": { "$join": { "_strings": ["entity-event-handler/on-transition/", "#.input.entityType"] } }
@@ -372,6 +388,14 @@
                 {
                     "inputMap": "#.input.data",
                     "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                },
+                {
+                    "inputMap": {
+                        "beforeEvent": "before-amend",
+                        "entityType": "#.input.entityType",
+                        "entity": "#.input"
+                    },
+                    "service": { "id": "entity-guard-runner", "method": "run" }
                 },
                 {
                     "name": "handlers",
