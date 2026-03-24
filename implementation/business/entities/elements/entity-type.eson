@@ -53,7 +53,7 @@
     {
         "type": "schema",
         "id": "entity-component-service-data",
-        "meta": { "kind": "entity-component-service" },
+        "kind": "entity-component-service",
         "schema": {
             "!contextSchema": "string",
             "!service": "string"
@@ -62,7 +62,7 @@
     {
         "type": "schema",
         "id": "entity-component-data",
-        "meta": { "kind": "entity-component" },
+        "kind": "entity-component",
         "schema": {
             "!entityType": "string",
             "!contextMapping": "object",

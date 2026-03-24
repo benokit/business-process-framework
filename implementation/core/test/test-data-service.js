@@ -15,12 +15,12 @@ describe('data service', function () {
 
         registerElement({ type: 'data', id: 'ds-plain',              data: { value: 42 } });
         registerElement({ type: 'data', id: 'ds-ref',               data: { '/ref': 'ds-plain' } });
-        registerElement({ type: 'data', id: 'ds-kind-alpha',        meta: { kind: 'ds-kind' }, data: { name: 'alpha' } });
-        registerElement({ type: 'data', id: 'ds-kind-beta',         meta: { kind: 'ds-kind' }, data: { name: 'beta'  } });
-        registerElement({ type: 'data', id: 'ds-other-kind',        meta: { kind: 'ds-other' }, data: { name: 'other' } });
-        registerElement({ type: 'data', id: 'ds-hier-on-update',     meta: { kind: 'ds-hier/on-update' },     data: { name: 'on-update' } });
-        registerElement({ type: 'data', id: 'ds-hier-on-transition', meta: { kind: 'ds-hier/on-transition' }, data: { name: 'on-transition' } });
-        registerElement({ type: 'data', id: 'ds-hier-deep',          meta: { kind: 'ds-hier/on-update/pre' }, data: { name: 'pre' } });
+        registerElement({ type: 'data', id: 'ds-kind-alpha',        kind: 'ds-kind',               data: { name: 'alpha' } });
+        registerElement({ type: 'data', id: 'ds-kind-beta',         kind: 'ds-kind',               data: { name: 'beta'  } });
+        registerElement({ type: 'data', id: 'ds-other-kind',        kind: 'ds-other',              data: { name: 'other' } });
+        registerElement({ type: 'data', id: 'ds-hier-on-update',     kind: 'ds-hier/on-update',     data: { name: 'on-update' } });
+        registerElement({ type: 'data', id: 'ds-hier-on-transition', kind: 'ds-hier/on-transition', data: { name: 'on-transition' } });
+        registerElement({ type: 'data', id: 'ds-hier-deep',          kind: 'ds-hier/on-update/pre', data: { name: 'pre' } });
     });
 
     describe('getData', () => {
@@ -73,7 +73,7 @@ describe('data service', function () {
 
         it('does not include items of a different kind', async () => {
             const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-kind' });
-            expect(items.every(el => el.meta.kind === 'ds-kind')).to.be.true;
+            expect(items.every(el => el.kind === 'ds-kind')).to.be.true;
         });
 
         it('returns an empty list when no items match', async () => {
@@ -106,7 +106,7 @@ describe('data service', function () {
 
         it('does not return parent-kind elements when querying a child kind', async () => {
             const { items } = await execute('data', 'getDataOfKind', { kind: 'ds-hier/on-update' });
-            expect(items.every(el => el.meta.kind.startsWith('ds-hier/on-update'))).to.be.true;
+            expect(items.every(el => el.kind.startsWith('ds-hier/on-update'))).to.be.true;
         });
 
     });

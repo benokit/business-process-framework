@@ -9,7 +9,7 @@ Elements are of three possible types:
 - `data`
 - `service`
 
-Each element has an `id` and an optional `meta` object for identification and classification. The framework recognises one reserved property inside `meta`:
+Each element has an `id` and an optional `meta` object for user-defined metadata. The framework recognises one top-level reserved property alongside `type` and `id`:
 
 - `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getDataOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
 
@@ -102,13 +102,13 @@ To call a host JS function as a custom lambdaJSON primitive, use the `$low` key 
 
 ## Execution node templates
 
-The set of pipeline keywords is open for extension. A `data` element with `meta.kind = "execution-node-template"` registers a new keyword that can be used in any pipeline:
+The set of pipeline keywords is open for extension. A `data` element with `kind = "execution-node-template"` registers a new keyword that can be used in any pipeline:
 
 ```json
 {
     "type": "data",
     "id": "my-node-template",
-    "meta": { "kind": "execution-node-template" },
+    "kind": "execution-node-template",
     "data": {
         "keyword": "myKeyword",
         "implementation": [ ... ]
@@ -144,7 +144,7 @@ const result = await execute(serviceId, methodName, input);
 // Retrieve a single element by type and id.
 const element = getElement(type, id);
 
-// Retrieve all elements of a given type, optionally filtered by meta.kind.
+// Retrieve all elements of a given type, optionally filtered by kind.
 // Passing a kind prefix returns all elements whose kind starts with that prefix.
 const allServices      = getElements('service');
 const kindFiltered     = getElements('data', 'entity-component');        // exact + all children

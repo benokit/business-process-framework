@@ -51,7 +51,7 @@ describe('entity service', function () {
         registerElement({
             type: 'data',
             id: 'mock-in-transaction-template',
-            meta: { kind: 'execution-node-template' },
+            kind: 'execution-node-template',
             data: {
                 keyword: 'inTransaction',
                 implementation: [{ dynamic: { execute: '#.node.inTransaction' }, inputMap: '#.input' }]
@@ -86,7 +86,7 @@ describe('entity service', function () {
         registerElement({
             type: 'service',
             id: 'order-with-handler-on-create',
-            meta: { kind: 'entity-event-handler/on-create/order-with-handler' },
+            kind: 'entity-event-handler/on-create/order-with-handler',
             interface: { action: { input: {}, output: {} } },
             implementation: { action: [
                 { name: '_ctx', set: { handlerCalledWith: '#.input' } },
@@ -101,7 +101,7 @@ describe('entity service', function () {
         registerElement({
             type: 'service',
             id: 'order-with-update-handler-on-update',
-            meta: { kind: 'entity-event-handler/on-update/order-with-update-handler' },
+            kind: 'entity-event-handler/on-update/order-with-update-handler',
             interface: { action: { input: {}, output: {} } },
             implementation: { action: [
                 { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
@@ -121,7 +121,7 @@ describe('entity service', function () {
         registerElement({
             type: 'service',
             id: 'order-with-transition-handler-on-transition',
-            meta: { kind: 'entity-event-handler/on-transition/order-with-transition-handler' },
+            kind: 'entity-event-handler/on-transition/order-with-transition-handler',
             interface: { action: { input: {}, output: {} } },
             implementation: { action: [
                 { name: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },

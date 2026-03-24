@@ -77,7 +77,7 @@ When `transition` is called:
 
 Handlers are invoked within the same transaction as their triggering method. Each handler is a `service` element with a single `action` method that receives the result `entity-record` as input. All matching handlers are invoked; registration order is not guaranteed.
 
-| Event | `meta.kind` | Triggering method |
+| Event | `kind` | Triggering method |
 | --- | --- | --- |
 | on-create | `entity-event-handler/on-create/{entityType}` | `create` |
 | on-update | `entity-event-handler/on-update/{entityType}` | `update` |
@@ -88,7 +88,7 @@ Handlers are invoked within the same transaction as their triggering method. Eac
 {
     "type": "service",
     "id": "order-notify",
-    "meta": { "kind": "entity-event-handler/on-create/order" },
+    "kind": "entity-event-handler/on-create/order",
     "interface": { "action": { "input": "@entity-record", "output": {} } },
     "implementation": { "action": [ ... ] }
 }

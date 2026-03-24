@@ -7,8 +7,8 @@ NATS JetStream implementation of [`messaging-broker-interface`](../messaging/REA
 ```json
 {
     "type": "data",
-    "meta": { "kind": "message-broker" },
     "id": "my-nats-broker",
+    "kind": "message-broker",
     "data": { "service": "messaging-nats", "url": "nats://localhost:4222" }
 }
 ```

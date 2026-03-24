@@ -73,7 +73,7 @@
     {
         "type": "data",
         "id": "in-transaction-node-template",
-        "meta": { "kind": "execution-node-template" },
+        "kind": "execution-node-template",
         "data": {
             "keyword": "inTransaction",
             "implementation": [

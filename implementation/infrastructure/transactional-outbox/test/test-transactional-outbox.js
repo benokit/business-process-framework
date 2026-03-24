@@ -82,7 +82,7 @@ describe('transactional-outbox', function () {
         registerElement({
             type: 'data',
             id: TEST_BROKER_ID,
-            meta: { kind: 'message-broker' },
+            kind: 'message-broker',
             data: { service: TEST_BROKER_SERVICE }
         });
         registerElement({
@@ -232,7 +232,7 @@ describe('transactional-outbox', function () {
             });
             registerElement({
                 type: 'data', id: FAIL_BROKER,
-                meta: { kind: 'message-broker' },
+                kind: 'message-broker',
                 data: { service: FAIL_SERVICE }
             });
             registerElement({

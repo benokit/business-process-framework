@@ -4,7 +4,7 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 
 ## Abstractions
 
-**`message-broker`** (`meta.kind = "message-broker"`) — broker connection config data element. Referenced by channels by id.
+**`message-broker`** (`kind = "message-broker"`) — broker connection config data element. Referenced by channels by id.
 
 **`message-channel`** — publish/consume endpoint data element:
 
@@ -20,7 +20,7 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 | `consumer.retry.attempts` | max retry count on handler failure |
 | `consumer.retry.backoff` | delay between retries (ms) |
 
-**`message-consumer`** (`meta.kind = "message-consumer"`) — discovered automatically by `startConsuming`:
+**`message-consumer`** (`kind = "message-consumer"`) — discovered automatically by `startConsuming`:
 
 | Field | Description |
 | --- | --- |

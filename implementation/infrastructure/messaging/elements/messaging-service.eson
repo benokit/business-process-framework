@@ -72,7 +72,7 @@
     {
         "type": "data",
         "id": "publish-node-template",
-        "meta": { "kind": "execution-node-template" },
+        "kind": "execution-node-template",
         "data": {
             "keyword": "publish",
             "implementation": [

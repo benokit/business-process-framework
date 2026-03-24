@@ -49,7 +49,7 @@ describe('messaging service (nats)', function () {
         const id = `consumer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         registerElement({
             type: 'data', id,
-            meta: { kind: 'message-consumer' },
+            kind: 'message-consumer',
             data: { channel: channelId, name: id, handler }
         });
         return id;

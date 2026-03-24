@@ -14,7 +14,7 @@ const kindIndex = {
 };
 
 function indexByKind(element) {
-    const kind = element.meta?.kind;
+    const kind = element.kind;
     if (kind === undefined) return;
     const bucket = kindIndex[element.type];
     const parts = kind.split('/');

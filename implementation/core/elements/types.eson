@@ -5,6 +5,7 @@
         "schema": {
             "!type=": "data",
             "!id": "string",
+            "kind": "string",
             "meta": "object",
             "!data": "object"
         }
@@ -24,6 +25,7 @@
                 {
                     "!type=": "schema",
                     "!id": "string",
+                    "kind": "string",
                     "meta": "object",
                     "!schema": "object"
                 },
@@ -31,6 +33,7 @@
                 {
                     "!type=": "service",
                     "!id": "string",
+                    "kind": "string",
                     "meta": "object",
                     "!interface{}": "@interface-schema",
                     "implementation{}": "@impl-schema"
