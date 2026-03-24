@@ -124,19 +124,11 @@
                     }
                 },
                 {
-                    "name": "handlers",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-event-handler/on-create/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
-                },
-                {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "data": "#.input.data",
-                        "initialState": "#.initialState",
-                        "handlers": "#.handlers.items"
+                        "initialState": "#.initialState"
                     },
                     "inTransaction": [
                         {
@@ -149,22 +141,14 @@
                             },
                             "service": { "id": "entity-database", "method": "create" }
                         },
-                        { "name": "_ctx", "set": { "createdEntity": "#.created" } },
-                        {
-                            "inputMap": "#.input.handlers",
-                            "forEach": {
-                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
-                                "inputMap": "#._ctx.createdEntity"
-                            }
-                        },
                         {
                             "inputMap": {
+                                "onEvent": "on-create",
                                 "entityType": "#.input.entityType",
-                                "record": "#.created",
                                 "eventType": "created",
-                                "correlation": "#._ctx.correlation"
+                                "entity": "#.created"
                             },
-                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                            "service": { "id": "entity-event-handler-runner", "method": "run" }
                         },
                         { "return": "#.created" }
                     ]
@@ -193,24 +177,16 @@
                     "inputMap": {
                         "beforeEvent": "before-update",
                         "entityType": "#.input.entityType",
-                        "entity": "#.input"
+                        "eventInput": "#.input"
                     },
                     "service": { "id": "entity-guard-runner", "method": "run" }
-                },
-                {
-                    "name": "handlers",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-event-handler/on-update/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
                 },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey",
                         "revision": "#.input.revision",
-                        "data": "#.input.data",
-                        "handlers": "#.handlers.items"
+                        "data": "#.input.data"
                     },
                     "inTransaction": [
                         {
@@ -223,22 +199,14 @@
                             },
                             "service": { "id": "entity-database", "method": "update" }
                         },
-                        { "name": "_ctx", "set": { "updatedEntity": "#.updated" } },
-                        {
-                            "inputMap": "#.input.handlers",
-                            "forEach": {
-                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
-                                "inputMap": "#._ctx.updatedEntity"
-                            }
-                        },
                         {
                             "inputMap": {
+                                "onEvent": "on-update",
                                 "entityType": "#.input.entityType",
-                                "record": "#.updated",
                                 "eventType": "updated",
-                                "correlation": "#._ctx.correlation"
+                                "entity": "#.updated"
                             },
-                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                            "service": { "id": "entity-event-handler-runner", "method": "run" }
                         },
                         { "return": "#.updated" }
                     ]
@@ -325,16 +293,9 @@
                     "inputMap": {
                         "beforeEvent": "before-transition",
                         "entityType": "#.input.entityType",
-                        "entity": "#.input"
+                        "eventInput": "#.input"
                     },
                     "service": { "id": "entity-guard-runner", "method": "run" }
-                },
-                {
-                    "name": "handlers",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-event-handler/on-transition/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
                 },
                 {
                     "inputMap": {
@@ -344,8 +305,7 @@
                         "state": {
                             "dimensions": "#.newStateDims",
                             "fromTransition": "#.input.transition"
-                        },
-                        "handlers": "#.handlers.items"
+                        }
                     },
                     "inTransaction": [
                         {
@@ -358,22 +318,14 @@
                             },
                             "service": { "id": "entity-database", "method": "update" }
                         },
-                        { "name": "_ctx", "set": { "transitionedEntity": "#.transitioned" } },
-                        {
-                            "inputMap": "#.input.handlers",
-                            "forEach": {
-                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
-                                "inputMap": "#._ctx.transitionedEntity"
-                            }
-                        },
                         {
                             "inputMap": {
+                                "onEvent": "on-transition",
                                 "entityType": "#.input.entityType",
-                                "record": "#.transitioned",
                                 "eventType": "transitioned",
-                                "correlation": "#._ctx.correlation"
+                                "entity": "#.transitioned"
                             },
-                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                            "service": { "id": "entity-event-handler-runner", "method": "run" }
                         },
                         { "return": "#.transitioned" }
                     ]
@@ -393,16 +345,9 @@
                     "inputMap": {
                         "beforeEvent": "before-amend",
                         "entityType": "#.input.entityType",
-                        "entity": "#.input"
+                        "eventInput": "#.input"
                     },
                     "service": { "id": "entity-guard-runner", "method": "run" }
-                },
-                {
-                    "name": "handlers",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-event-handler/on-amend/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
                 },
                 {
                     "inputMap": {
@@ -410,8 +355,7 @@
                         "businessKey": "#.input.businessKey",
                         "revision": "#.input.revision",
                         "data": "#.input.data",
-                        "validFrom": "#.input.validFrom",
-                        "handlers": "#.handlers.items"
+                        "validFrom": "#.input.validFrom"
                     },
                     "inTransaction": [
                         {
@@ -425,22 +369,14 @@
                             },
                             "service": { "id": "entity-database", "method": "amend" }
                         },
-                        { "name": "_ctx", "set": { "amendedEntity": "#.amended" } },
-                        {
-                            "inputMap": "#.input.handlers",
-                            "forEach": {
-                                "dynamic": { "service": { "id": "#.input", "method": "action" } },
-                                "inputMap": "#._ctx.amendedEntity"
-                            }
-                        },
                         {
                             "inputMap": {
+                                "onEvent": "on-amend",
                                 "entityType": "#.input.entityType",
-                                "record": "#.amended",
                                 "eventType": "amended",
-                                "correlation": "#._ctx.correlation"
+                                "entity": "#.amended"
                             },
-                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                            "service": { "id": "entity-event-handler-runner", "method": "run" }
                         },
                         { "return": "#.amended" }
                     ]

@@ -5,7 +5,7 @@
         "schema": {
             "!beforeEvent": "string",
             "!entityType": "string",
-            "!entity": "object"
+            "!eventInput": "object"
         }
     },
     {
@@ -29,7 +29,7 @@
                     },
                     "service": { "id": "data", "method": "getServicesOfKind" }
                 },
-                { "name": "_ctx", "set": { "guardInput": "#.input.entity" } },
+                { "name": "_ctx", "set": { "guardInput": "#.input.eventInput" } },
                 {
                     "name": "errorArrays",
                     "inputMap": "#.guards.items",

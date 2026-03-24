@@ -55,7 +55,8 @@ When `transition` is called:
 1. Looks up the named transition; throws `"transition is not defined"` if absent.
 2. Checks all `from` dimensions against current state; throws `"transition failed"` if any mismatch.
 3. Merges `to` onto current `dimensions`.
-4. Writes the new state inside a transaction.
+4. Runs `before-transition` guards; throws if any return errors.
+5. Writes the new state inside a transaction.
 
 ## `entity` service
 
@@ -72,6 +73,7 @@ When `transition` is called:
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
 - `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [entity-database](../../infrastructure/entity-database/README.md#amend--business-versioning) for storage details.
+- `update`, `amend`, and `transition` run guards before writing (see [Guards](#guards)).
 
 ## Event handlers
 
@@ -93,6 +95,34 @@ Handlers are invoked within the same transaction as their triggering method. Eac
     "implementation": { "action": [ ... ] }
 }
 ```
+
+## Guards
+
+Guards run **before** a mutating operation and can block it by throwing an error. Each guard is a `service` element with a single `validate` method that receives the full method input and returns an array of error strings (empty array = pass). All matching guards are invoked; every non-empty array is collected and joined with `", "` into a single thrown string.
+
+| Event | `kind` | Checked by |
+| --- | --- | --- |
+| before-update | `entity-guard/before-update/{entityType}` | `update` |
+| before-amend | `entity-guard/before-amend/{entityType}` | `amend` |
+| before-transition | `entity-guard/before-transition/{entityType}` | `transition` |
+
+Guards run outside the transaction — before the database write is attempted.
+
+```json
+{
+    "type": "service",
+    "id": "order-amount-guard",
+    "kind": "entity-guard/before-update/order",
+    "interface": { "validate": { "input": {}, "output": {} } },
+    "implementation": { "validate": {
+        "if": { "$lte": ["#.input.data.amount", 0] },
+        "then": [{ "return": ["amount must be positive"] }],
+        "else": [{ "return": [] }]
+    }}
+}
+```
+
+The `validate` input is the full entity service method input (e.g. for `update`: `{ entityType, businessKey, revision, data }`).
 
 ## Components
 

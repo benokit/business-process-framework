@@ -1,0 +1,60 @@
+[
+    {
+        "type": "schema",
+        "id": "entity-event-handler-runner-input",
+        "schema": {
+            "!onEvent": "string",
+            "!entityType": "string",
+            "!eventType": "string",
+            "!entity": "object"
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-event-handler-runner-interface",
+        "data": {
+            "run": {
+                "input": "@entity-event-handler-runner-input"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "entity-event-handler-runner-implementation",
+        "data": {
+            "run": [
+                {
+                    "name": "handlers",
+                    "inputMap": {
+                        "kind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
+                    },
+                    "service": { "id": "data", "method": "getServicesOfKind" }
+                },
+                { "name": "_ctx", "set": { "handlerInput": "#.input.entity" } },
+                {
+                    "inputMap": "#.handlers.items",
+                    "forEach": {
+                        "dynamic": { "service": { "id": "#.input", "method": "action" } },
+                        "inputMap": "#._ctx.handlerInput"
+                    }
+                },
+                {
+                    "inputMap": {
+                        "entityType": "#.input.entityType",
+                        "record": "#.input.entity",
+                        "eventType": "#.input.eventType",
+                        "correlation": "#._ctx.correlation"
+                    },
+                    "service": { "id": "entity-event-publisher", "method": "publish" }
+                },
+                { "return": "#.input.entity" }
+            ]
+        }
+    },
+    {
+        "type": "service",
+        "id": "entity-event-handler-runner",
+        "interface": "entity-event-handler-runner-interface",
+        "implementation": "entity-event-handler-runner-implementation"
+    }
+]
