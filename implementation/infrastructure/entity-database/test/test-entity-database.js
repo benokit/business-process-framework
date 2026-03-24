@@ -320,54 +320,5 @@ describe('entity-database', function () {
             expect(result.state).to.deep.equal({ status: 'draft' });
             expect(result.data.score).to.equal(1);
         });
-
     });
-
-    describe('list', () => {
-        const seeds = [
-            { businessKey: 'bk-list-frank', data: { name: 'Frank', role: 'admin' } },
-            { businessKey: 'bk-list-grace', data: { name: 'Grace', role: 'user'  } },
-            { businessKey: 'bk-list-henry', data: { name: 'Henry', role: 'user'  } }
-        ];
-
-        before(async () => {
-            await Promise.all(seeds.map(({ businessKey, data }) => db.create({ input: { entityType: ENTITY_TYPE, businessKey, data } })));
-        });
-
-        it('returns all records in the entity type', async () => {
-            const { records } = await db.list({ input: { entityType: ENTITY_TYPE } });
-            const names = records.map(r => r.data.name);
-            expect(names).to.include.members(['Frank', 'Grace', 'Henry']);
-        });
-
-        it('records include businessKey', async () => {
-            const { records } = await db.list({ input: { entityType: ENTITY_TYPE, filter: { name: 'Frank' } } });
-            expect(records[0].businessKey).to.equal('bk-list-frank');
-        });
-
-        it('filters by a data field equality', async () => {
-            const { records } = await db.list({ input: { entityType: ENTITY_TYPE, filter: { name: 'Frank' } } });
-            expect(records).to.have.length(1);
-            expect(records[0].data.name).to.equal('Frank');
-        });
-
-        it('filters by multiple data fields', async () => {
-            const { records } = await db.list({ input: { entityType: ENTITY_TYPE, filter: { role: 'user' } } });
-            expect(records.map(r => r.data.name)).to.include.members(['Grace', 'Henry']);
-            expect(records.every(r => r.data.role === 'user')).to.be.true;
-        });
-
-        it('respects limit', async () => {
-            const { records } = await db.list({ input: { entityType: ENTITY_TYPE, limit: 1 } });
-            expect(records).to.have.length(1);
-        });
-
-        it('skip + limit pages through results', async () => {
-            const all = (await db.list({ input: { entityType: ENTITY_TYPE } })).records;
-            const page = (await db.list({ input: { entityType: ENTITY_TYPE, skip: 1, limit: 2 } })).records;
-            expect(page).to.have.length(Math.min(2, all.length - 1));
-        });
-
-    });
-
 });

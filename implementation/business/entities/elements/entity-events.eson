@@ -38,7 +38,7 @@
             "!entityType": "string",
             "!record": "@entity-record",
             "!eventType": "string",
-            "correlationId": "string"
+            "correlation": "string"
         }
     },
     {
@@ -62,7 +62,7 @@
                         "messageId": { "$join": { "_strings": ["#.input.record.id", "\\-", "#.input.record.revision", "\\-", "#.input.eventType"] } },
                         "timestampUTC": "#.input.record.timestampUtc",
                         "group": "#.input.record.businessKey",
-                        "correlation": { "$coalesce": ["#.input.correlationId", ""] },
+                        "correlation": { "$coalesce": ["#.input.correlation", ""] },
                         "message": {
                             "eventType": "#.input.eventType",
                             "entityType": "#.input.entityType",

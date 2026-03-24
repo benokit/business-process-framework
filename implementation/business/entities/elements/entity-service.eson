@@ -162,7 +162,7 @@
                                 "entityType": "#.input.entityType",
                                 "record": "#.created",
                                 "eventType": "created",
-                                "correlationId": "#._ctx.correlationId"
+                                "correlation": "#._ctx.correlation"
                             },
                             "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
@@ -228,7 +228,7 @@
                                 "entityType": "#.input.entityType",
                                 "record": "#.updated",
                                 "eventType": "updated",
-                                "correlationId": "#._ctx.correlationId"
+                                "correlation": "#._ctx.correlation"
                             },
                             "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
@@ -258,7 +258,7 @@
                                 "entityType": "#.input.entityType",
                                 "record": "#.deleted",
                                 "eventType": "deleted",
-                                "correlationId": "#._ctx.correlationId"
+                                "correlation": "#._ctx.correlation"
                             },
                             "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
@@ -355,7 +355,7 @@
                                 "entityType": "#.input.entityType",
                                 "record": "#.transitioned",
                                 "eventType": "transitioned",
-                                "correlationId": "#._ctx.correlationId"
+                                "correlation": "#._ctx.correlation"
                             },
                             "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
@@ -414,7 +414,7 @@
                                 "entityType": "#.input.entityType",
                                 "record": "#.amended",
                                 "eventType": "amended",
-                                "correlationId": "#._ctx.correlationId"
+                                "correlation": "#._ctx.correlation"
                             },
                             "service": { "id": "entity-event-publisher", "method": "publish" }
                         },
