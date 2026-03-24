@@ -10,6 +10,7 @@ export {
 };
 
 async function execute(serviceId, methodName, input, _ctx = {}) {
+    if (!_ctx.timestampUTC) _ctx.timestampUTC = new Date().toISOString();
     if (!_ctx._execution) _ctx._execution = { trace: [] };
     const traceStart = _ctx._execution.trace.length;
     const service = getElement('service', serviceId)

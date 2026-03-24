@@ -77,12 +77,11 @@
             "keyword": "publish",
             "implementation": [
                 { "name": "id", "service": { "id": "random", "method": "guid" } },
-                { "name": "ts", "service": { "id": "date",   "method": "now"  } },
                 {
                     "name": "envelope",
                     "set": {
                         "messageId":    { "$coalesce": ["#.node.publish.envelope.messageId",    "#.id.value"] },
-                        "timestampUTC": { "$coalesce": ["#.node.publish.envelope.timestampUTC", "#.ts.value"] },
+                        "timestampUTC": { "$coalesce": ["#.node.publish.envelope.timestampUTC", "#._ctx.timestampUTC"] },
                         "group":        { "$coalesce": ["#.node.publish.envelope.group",        "#._ctx.group"] },
                         "correlation":  { "$coalesce": ["#.node.publish.envelope.correlation",  "#._ctx.correlation", ""] },
                         "message":      "#.node.publish.envelope.message"

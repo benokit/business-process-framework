@@ -11,8 +11,7 @@
     "./schema": "./src/schema.js",
     "./elements": "./src/elements.js",
     "./elements-loader": "./src/elements-loader.js",
-    "./random": "./src/random.js",
-    "./date": "./src/date.js"
+    "./random": "./src/random.js"
   },
   "scripts": {
     "test": "mocha"
