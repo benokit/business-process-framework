@@ -2,6 +2,53 @@
 
 Generic entity lifecycle management. An entity is a keyed, versioned document belonging to a named entity type.
 
+## HTTP API
+
+Endpoints are registered as `endpoint` data elements and served by the `http-server` package. All responses return the entity record as the JSON body unless noted otherwise.
+
+| Method | Path | Operation |
+| --- | --- | --- |
+| `POST` | `/entities/:entityType` | create |
+| `GET` | `/entities/:entityType/:businessKey` | read |
+| `PUT` | `/entities/:entityType/:businessKey` | update |
+| `DELETE` | `/entities/:entityType/:businessKey` | delete |
+| `POST` | `/entities/:entityType/:businessKey/transitions/:transition` | transition |
+| `PUT` | `/entities/:entityType/:businessKey/amend` | amend |
+| `POST` | `/entities/:entityType/:businessKey/execute/:componentId/:methodId` | execute |
+
+### Request
+
+| Header | Description |
+| --- | --- |
+| `X-Correlation-Id` | Optional. Propagated as `_ctx.correlation` through the execution graph. |
+| `If-Match` | Required for `update`, `delete`, and `amend`. Quoted revision, e.g. `"5"`. Enforces optimistic concurrency. |
+
+Request body fields per operation:
+
+| Operation | Body fields |
+| --- | --- |
+| `create` | `businessKey` (required), `data` (required), `initialState` (optional) |
+| `read` | — |
+| `update` | `data` (required) |
+| `delete` | — |
+| `transition` | — |
+| `amend` | `data` (required), `validFrom` (optional) |
+| `execute` | arbitrary — passed as `input` to the component method |
+
+### Response
+
+| Operation | Status | Body | Headers |
+| --- | --- | --- | --- |
+| `create` | `201` | entity record | `ETag: "<revision>"` |
+| `read` | `200` | entity record | `ETag: "<revision>"` |
+| `update` | `200` | entity record | `ETag: "<revision>"` |
+| `delete` | `200` | entity record | — |
+| `transition` | `200` | entity record | `ETag: "<revision>"` |
+| `amend` | `200` | entity record | `ETag: "<revision>"` |
+| `execute` | `200` | component method result | — |
+
+The `ETag` value is the entity revision formatted as a quoted integer (e.g. `"5"`). Pass it back as `If-Match` on subsequent mutating requests.
+
 ## Entity type definition
 
 Each entity type is a `data` element:

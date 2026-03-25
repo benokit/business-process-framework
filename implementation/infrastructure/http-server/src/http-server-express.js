@@ -20,8 +20,10 @@ async function start({ input = {}, endpointData = {} } = {}) {
                     query:   req.query,
                     headers: req.headers
                 });
-                const status = result?.status ?? 200;
-                const body   = result?.body   ?? null;
+                const status  = result?.status  ?? 200;
+                const body    = result?.body    ?? null;
+                const headers = result?.headers ?? {};
+                for (const [key, value] of Object.entries(headers)) res.set(key, value);
                 res.status(status).json(body);
             } catch (error) {
                 res.status(500).json({ error: String(error) });

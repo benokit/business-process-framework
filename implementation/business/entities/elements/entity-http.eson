@@ -1,0 +1,163 @@
+[
+    {
+        "type": "service",
+        "id": "entity-controller",
+        "interface": {
+            "create":     { "input": "object", "output": "object" },
+            "read":       { "input": "object", "output": "object" },
+            "update":     { "input": "object", "output": "object" },
+            "delete":     { "input": "object", "output": "object" },
+            "transition": { "input": "object", "output": "object" },
+            "amend":      { "input": "object", "output": "object" },
+            "execute":    { "input": "object", "output": "object" }
+        },
+        "implementation": {
+            "create": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":    "#.input.params.entityType",
+                        "businessKey":   "#.input.body.businessKey",
+                        "data":          "#.input.body.data",
+                        "initialState":  "#.input.body.initialState"
+                    },
+                    "service": { "id": "entity", "method": "create" }
+                },
+                {
+                    "return": {
+                        "status": 201,
+                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "body": "#.record"
+                    }
+                }
+            ],
+            "read": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey"
+                    },
+                    "service": { "id": "entity", "method": "read" }
+                },
+                {
+                    "return": {
+                        "status": 200,
+                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "body": "#.record"
+                    }
+                }
+            ],
+            "update": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "revision",
+                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey",
+                        "revision":    "#.revision",
+                        "data":        "#.input.body.data"
+                    },
+                    "service": { "id": "entity", "method": "update" }
+                },
+                {
+                    "return": {
+                        "status": 200,
+                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "body": "#.record"
+                    }
+                }
+            ],
+            "delete": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "revision",
+                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey",
+                        "revision":    "#.revision"
+                    },
+                    "service": { "id": "entity", "method": "delete" }
+                },
+                { "return": { "status": 200, "body": "#.record" } }
+            ],
+            "transition": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey",
+                        "transition":  "#.input.params.transition"
+                    },
+                    "service": { "id": "entity", "method": "transition" }
+                },
+                {
+                    "return": {
+                        "status": 200,
+                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "body": "#.record"
+                    }
+                }
+            ],
+            "amend": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "revision",
+                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                },
+                {
+                    "name": "record",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey",
+                        "revision":    "#.revision",
+                        "data":        "#.input.body.data",
+                        "validFrom":   "#.input.body.validFrom"
+                    },
+                    "service": { "id": "entity", "method": "amend" }
+                },
+                {
+                    "return": {
+                        "status": 200,
+                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "body": "#.record"
+                    }
+                }
+            ],
+            "execute": [
+                { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                {
+                    "name": "result",
+                    "inputMap": {
+                        "entityType":  "#.input.params.entityType",
+                        "businessKey": "#.input.params.businessKey",
+                        "componentId": "#.input.params.componentId",
+                        "methodId":    "#.input.params.methodId",
+                        "input":       "#.input.body"
+                    },
+                    "service": { "id": "entity", "method": "execute" }
+                },
+                { "return": { "status": 200, "body": "#.result" } }
+            ]
+        }
+    },
+
+    { "type": "data", "id": "entity-create-endpoint",     "kind": "endpoint", "data": { "method": "POST",   "path": "/entities/:entityType",                                              "controller": { "service": "entity-controller", "method": "create"     } } },
+    { "type": "data", "id": "entity-read-endpoint",       "kind": "endpoint", "data": { "method": "GET",    "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "read"       } } },
+    { "type": "data", "id": "entity-update-endpoint",     "kind": "endpoint", "data": { "method": "PUT",    "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "update"     } } },
+    { "type": "data", "id": "entity-delete-endpoint",     "kind": "endpoint", "data": { "method": "DELETE", "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "delete"     } } },
+    { "type": "data", "id": "entity-transition-endpoint", "kind": "endpoint", "data": { "method": "POST",   "path": "/entities/:entityType/:businessKey/transitions/:transition",         "controller": { "service": "entity-controller", "method": "transition" } } },
+    { "type": "data", "id": "entity-amend-endpoint",      "kind": "endpoint", "data": { "method": "PUT",    "path": "/entities/:entityType/:businessKey/amend",                           "controller": { "service": "entity-controller", "method": "amend"      } } },
+    { "type": "data", "id": "entity-execute-endpoint",    "kind": "endpoint", "data": { "method": "POST",   "path": "/entities/:entityType/:businessKey/execute/:componentId/:methodId", "controller": { "service": "entity-controller", "method": "execute"    } } }
+]
