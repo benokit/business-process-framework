@@ -1,5 +1,5 @@
 {
-  "name": "entities",
+  "name": "@business-framework/entities",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
@@ -7,7 +7,7 @@
     "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
   },
   "dependencies": {
-    "core": "*",
-    "entity-database": "*"
+    "@business-framework/core": "*",
+    "@business-framework/entity-database": "*"
   }
 }

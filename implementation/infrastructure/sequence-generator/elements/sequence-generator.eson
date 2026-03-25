@@ -27,7 +27,7 @@
         "type": "data",
         "id": "sequence-generator-implementation",
         "data": {
-            "next": { "inputMap": "#.input", "low": { "module": "sequence-generator", "functionName": "next" } }
+            "next": { "inputMap": "#.input", "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
         }
     },
     {

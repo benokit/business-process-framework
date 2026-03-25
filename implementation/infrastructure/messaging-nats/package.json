@@ -1,5 +1,5 @@
 {
-    "name": "messaging-nats",
+    "name": "@business-framework/messaging-nats",
     "version": "1.0.0",
     "type": "module",
     "exports": {
@@ -9,7 +9,7 @@
         "test": "mocha --exit"
     },
     "dependencies": {
-        "core": "*",
+        "@business-framework/core": "*",
         "nats": "^2.29.0"
     },
     "devDependencies": {

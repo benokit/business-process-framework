@@ -1,5 +1,5 @@
-import { getPool } from 'postgres-client';
-import { execute } from 'core/service';
+import { getPool } from '@business-framework/postgres-client';
+import { execute } from '@business-framework/core/service';
 import { initSchema } from './transactional-outbox.js';
 
 let running = false;

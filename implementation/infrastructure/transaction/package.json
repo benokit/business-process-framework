@@ -1,5 +1,5 @@
 {
-  "name": "transaction",
+  "name": "@business-framework/transaction",
   "version": "1.0.0",
   "type": "module",
   "exports": {
@@ -9,7 +9,7 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "core": "*",
-    "postgres-client": "*"
+    "@business-framework/core": "*",
+    "@business-framework/postgres-client": "*"
   }
 }

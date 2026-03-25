@@ -1,5 +1,5 @@
 {
-  "name": "http-server",
+  "name": "@business-framework/http-server",
   "version": "1.0.0",
   "type": "module",
   "exports": {
@@ -9,7 +9,7 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "core": "*",
+    "@business-framework/core": "*",
     "express": "^4.21.2"
   }
 }

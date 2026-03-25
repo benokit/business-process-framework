@@ -48,15 +48,15 @@
         "type": "data",
         "id": "transactional-outbox-implementation",
         "data": {
-            "put": { "low": { "module": "transactional-outbox", "functionName": "put" } }
+            "put": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
         }
     },
     {
         "type": "data",
         "id": "transactional-outbox-processor-implementation",
         "data": {
-            "run":  { "inputMap": "#.input", "low": { "module": "transactional-outbox/processor", "functionName": "run" } },
-            "stop": { "low": { "module": "transactional-outbox/processor", "functionName": "stop" } }
+            "run":  { "inputMap": "#.input", "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "run" } },
+            "stop": { "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "stop" } }
         }
     },
     {

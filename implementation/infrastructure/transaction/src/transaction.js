@@ -1,4 +1,4 @@
-import { getPool } from 'postgres-client';
+import { getPool } from '@business-framework/postgres-client';
 
 const clients = new Map();
 let nextId = 1;

@@ -1,5 +1,5 @@
-import { getPool } from 'postgres-client';
-import { getClient } from 'transaction';
+import { getPool } from '@business-framework/postgres-client';
+import { getClient } from '@business-framework/transaction';
 
 let schemaInitialized = false;
 

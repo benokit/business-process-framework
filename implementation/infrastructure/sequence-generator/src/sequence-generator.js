@@ -1,4 +1,4 @@
-import { getPool } from 'postgres-client';
+import { getPool } from '@business-framework/postgres-client';
 
 async function next({ input: { sequence } }) {
     const pool = getPool();

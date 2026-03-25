@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { connect as natsProbe } from 'nats';
-import { loadElements } from 'core/elements-loader';
-import { execute } from 'core/service';
-import { registerElement } from 'core/elements-registry';
-import { disconnect } from 'messaging-nats/nats';
+import { loadElements } from '@business-framework/core/elements-loader';
+import { execute } from '@business-framework/core/service';
+import { registerElement } from '@business-framework/core/elements-registry';
+import { disconnect } from '@business-framework/messaging-nats/nats';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';

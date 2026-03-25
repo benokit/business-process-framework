@@ -1,5 +1,5 @@
 {
-    "name": "transactional-outbox",
+    "name": "@business-framework/transactional-outbox",
     "version": "1.0.0",
     "type": "module",
     "exports": {
@@ -10,9 +10,9 @@
         "test": "mocha --exit"
     },
     "dependencies": {
-        "core": "*",
-        "postgres-client": "*",
-        "transaction": "*"
+        "@business-framework/core": "*",
+        "@business-framework/postgres-client": "*",
+        "@business-framework/transaction": "*"
     },
     "devDependencies": {
         "chai": "*",

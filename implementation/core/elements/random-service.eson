@@ -12,7 +12,7 @@
         }
     },
     "implementation": {
-        "guid": { "low": { "module": "core/random", "functionName": "guid" } },
-        "uuid": { "low": { "module": "core/random", "functionName": "uuid" } }
+        "guid": { "low": { "module": "@business-framework/core/random", "functionName": "guid" } },
+        "uuid": { "low": { "module": "@business-framework/core/random", "functionName": "uuid" } }
     }
 }

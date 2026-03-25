@@ -38,9 +38,9 @@
             }
         },
         "implementation": {
-            "getData":           { "inputMap": "#.input.id",   "low": { "module": "core/data", "functionName": "getDataLow" } },
-            "getDataOfKind":     { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getDataOfKindLow" } },
-            "getServicesOfKind": { "inputMap": "#.input.kind", "low": { "module": "core/data", "functionName": "getServicesOfKindLow" } }
+            "getData":           { "inputMap": "#.input.id",   "low": { "module": "@business-framework/core/data", "functionName": "getDataLow" } },
+            "getDataOfKind":     { "inputMap": "#.input.kind", "low": { "module": "@business-framework/core/data", "functionName": "getDataOfKindLow" } },
+            "getServicesOfKind": { "inputMap": "#.input.kind", "low": { "module": "@business-framework/core/data", "functionName": "getServicesOfKindLow" } }
         }
     }
 ]

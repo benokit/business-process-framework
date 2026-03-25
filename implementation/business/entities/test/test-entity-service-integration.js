@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import pg from 'pg';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { connect, disconnect, getPool } from 'postgres-client';
-import { loadElements } from 'core/elements-loader';
-import { execute } from 'core/service';
-import { registerElement } from 'core/elements-registry';
+import { connect, disconnect, getPool } from '@business-framework/postgres-client';
+import { loadElements } from '@business-framework/core/elements-loader';
+import { execute } from '@business-framework/core/service';
+import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

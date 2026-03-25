@@ -3,9 +3,9 @@
         "type": "data",
         "id": "transaction-low-implementation",
         "data": {
-            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "beginTransaction" } },
-            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "commitTransaction" } },
-            "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "transaction", "functionName": "rollbackTransaction" } }
+            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "beginTransaction" } },
+            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "commitTransaction" } },
+            "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "rollbackTransaction" } }
         }
     },
     {

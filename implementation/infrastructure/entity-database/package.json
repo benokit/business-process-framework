@@ -1,5 +1,5 @@
 {
-  "name": "entity-database",
+  "name": "@business-framework/entity-database",
   "version": "1.0.0",
   "type": "module",
   "exports": {
@@ -9,8 +9,8 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "core": "*",
+    "@business-framework/core": "*",
     "fast-json-patch": "*",
-    "postgres-client": "*"
+    "@business-framework/postgres-client": "*"
   }
 }

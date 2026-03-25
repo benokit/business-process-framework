@@ -1,5 +1,5 @@
 {
-  "name": "sequence-generator",
+  "name": "@business-framework/sequence-generator",
   "version": "1.0.0",
   "type": "module",
   "exports": {
@@ -9,8 +9,8 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "core": "*",
-    "postgres-client": "*"
+    "@business-framework/core": "*",
+    "@business-framework/postgres-client": "*"
   },
   "devDependencies": {
     "chai": "*",

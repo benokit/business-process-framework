@@ -1,4 +1,4 @@
-import { getPool } from 'postgres-client';
+import { getPool } from '@business-framework/postgres-client';
 import jsonPatchModule from 'fast-json-patch';
 const { compare: patchCompare, applyPatch } = jsonPatchModule;
 

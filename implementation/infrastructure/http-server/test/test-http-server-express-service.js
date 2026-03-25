@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
-import { loadElements } from 'core/elements-loader';
-import { execute } from 'core/service';
-import { registerElement } from 'core/elements-registry';
+import { loadElements } from '@business-framework/core/elements-loader';
+import { execute } from '@business-framework/core/service';
+import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTTP_SERVER_ELEMENTS_DIR = join(__dirname, '../elements');

@@ -1,5 +1,5 @@
 import express from 'express';
-import { execute } from 'core/service';
+import { execute } from '@business-framework/core/service';
 
 let server = null;
 

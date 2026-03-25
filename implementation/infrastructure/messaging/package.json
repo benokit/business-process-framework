@@ -1,5 +1,5 @@
 {
-    "name": "messaging",
+    "name": "@business-framework/messaging",
     "version": "1.0.0",
     "type": "module",
     "exports": {
@@ -9,6 +9,6 @@
         "test": "mocha --exit"
     },
     "dependencies": {
-        "core": "*"
+        "@business-framework/core": "*"
     }
 }

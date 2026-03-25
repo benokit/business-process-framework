@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import pg from 'pg';
-import { connect, disconnect, getPool } from 'postgres-client';
+import { connect, disconnect, getPool } from '@business-framework/postgres-client';
 import * as db from '../src/entity-database.js';
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
@@ -256,7 +256,7 @@ describe('entity-database', function () {
             const { id: hId, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-jack', data: { x: 1 } } });
             await db.update({ input: { entityType: ENTITY_TYPE, id: hId, revision, data: { x: 2 } } });
             await db['delete']({ input: { entityType: ENTITY_TYPE, id: hId } });
-            const pool = (await import('postgres-client')).getPool();
+            const pool = (await import('@business-framework/postgres-client')).getPool();
             const { rows } = await pool.query('SELECT * FROM entity_history WHERE id = $1', [hId]);
             expect(rows).to.have.length(0);
         });

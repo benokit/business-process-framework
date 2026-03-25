@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { execute } from 'core/service';
-import { registerElement } from 'core/elements-registry';
+import { execute } from '@business-framework/core/service';
+import { registerElement } from '@business-framework/core/elements-registry';
 
 const mathModuleUrl = new URL('./helpers/math.js', import.meta.url).href;
 

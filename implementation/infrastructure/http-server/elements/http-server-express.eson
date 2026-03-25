@@ -10,10 +10,10 @@
                     "inputMap": { "kind": "endpoint" }
                 },
                 {
-                    "low": { "module": "http-server/express", "functionName": "start" }
+                    "low": { "module": "@business-framework/http-server/express", "functionName": "start" }
                 }
             ],
-            "stop": { "inputMap": "#.input", "low": { "module": "http-server/express", "functionName": "stop" } }
+            "stop": { "inputMap": "#.input", "low": { "module": "@business-framework/http-server/express", "functionName": "stop" } }
         }
     },
     {
