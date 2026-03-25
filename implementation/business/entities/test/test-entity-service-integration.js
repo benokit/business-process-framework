@@ -63,7 +63,7 @@ describe('entity service — integration', function () {
                         cancel:  { from: { status: ['draft', 'confirmed'] }, to: { status: 'cancelled' } }
                     },
                     initialStates: {
-                        default: { dimensions: { status: 'draft' } }
+                        default: { status: 'draft' }
                     }
                 }
             }

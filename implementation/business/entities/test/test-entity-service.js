@@ -68,8 +68,8 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' },
             statesModel: {
                 initialStates: {
-                    default: { dimensions: { status: 'draft' } },
-                    vip:     { dimensions: { status: 'draft', tier: 'premium' } }
+                    default: { status: 'draft' },
+                    vip:     { status: 'draft', tier: 'premium' }
                 },
                 transitions: {
                     confirm:  { from: { status: ['draft'] },                   to: { status: 'confirmed' } },
@@ -87,8 +87,8 @@ describe('entity service', function () {
             type: 'service',
             id: 'order-with-handler-on-create',
             kind: 'entity-event-handler/on-create/order-with-handler',
-            interface: { action: { input: {}, output: {} } },
-            implementation: { action: [
+            interface: {run: { input: {}, output: {} } },
+            implementation: {run: [
                 { name: '_ctx', set: { handlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
@@ -102,8 +102,8 @@ describe('entity service', function () {
             type: 'service',
             id: 'order-with-update-handler-on-update',
             kind: 'entity-event-handler/on-update/order-with-update-handler',
-            interface: { action: { input: {}, output: {} } },
-            implementation: { action: [
+            interface: {run: { input: {}, output: {} } },
+            implementation: {run: [
                 { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
@@ -122,8 +122,8 @@ describe('entity service', function () {
             type: 'service',
             id: 'order-with-transition-handler-on-transition',
             kind: 'entity-event-handler/on-transition/order-with-transition-handler',
-            interface: { action: { input: {}, output: {} } },
-            implementation: { action: [
+            interface: {run: { input: {}, output: {} } },
+            implementation: {run: [
                 { name: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
@@ -316,11 +316,11 @@ describe('entity service', function () {
             expect(result.state).to.deep.equal({ dimensions: { status: 'draft', tier: 'premium' } });
         });
 
-        it('passes no state when entity type has no initialStates', async () => {
+        it('passes empty dimensions state when entity type has no initialStates', async () => {
             const result = await execute(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'bk-no-state', data: { amount: 100, currency: 'USD' }
             });
-            expect(result.state).to.be.undefined;
+            expect(result.state).to.deep.equal({ dimensions: {} });
         });
 
     });

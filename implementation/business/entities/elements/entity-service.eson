@@ -137,7 +137,7 @@
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
                                 "data": "#.input.data",
-                                "state": "#.input.initialState"
+                                "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
                             },
                             "service": { "id": "entity-database", "method": "create" }
                         },

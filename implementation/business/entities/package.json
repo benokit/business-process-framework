@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "mocha --exit 'test/test-entity-service.js'",
-    "test:integration": "mocha --exit 'test/test-entity-service-integration.js'"
+    "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
   },
   "dependencies": {
     "core": "*",

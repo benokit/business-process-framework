@@ -9,6 +9,7 @@ Each entity type is a `data` element:
 ```json
 {
     "type": "data",
+    "kind": "entity-type",
     "id": "order",
     "data": {
         "dataSchema": { "!amount": "number", "!currency": "string" },
@@ -19,7 +20,7 @@ Each entity type is a `data` element:
                 "cancel":  { "from": { "status": ["draft", "confirmed"] }, "to": { "status": "cancelled" } }
             },
             "initialStates": {
-                "default": { "dimensions": { "status": "draft" } }
+                "default": { "status": "draft" }
             }
         }
     }
@@ -42,7 +43,7 @@ Each entity type is a `data` element:
 - **`transitions`** — named transitions, each with:
   - `from` — maps dimension → allowed values. A dimension absent from `from` is a wildcard.
   - `to` — maps dimension → new value. Dimensions absent from `to` carry forward unchanged.
-- **`initialStates`** — optional map of name → initial state object. `"default"` is used when `initialState` is not supplied on `create`. If neither exists, the entity is created with empty state.
+- **`initialStates`** — optional map of name → dimensions map. `"default"` is used when `initialState` is not supplied on `create`. If neither exists, the entity is created with empty state.
 
 **Entity state** shape:
 
@@ -91,8 +92,8 @@ Handlers are invoked within the same transaction as their triggering method. Eac
     "type": "service",
     "id": "order-notify",
     "kind": "entity-event-handler/on-create/order",
-    "interface": { "action": { "input": "@entity-record", "output": {} } },
-    "implementation": { "action": [ ... ] }
+    "interface": { "run": { "input": "@entity-record", "output": {} } },
+    "implementation": { "run": [ ... ] }
 }
 ```
 

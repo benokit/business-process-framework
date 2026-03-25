@@ -59,7 +59,7 @@
                 {
                     "name": "envelope",
                     "set": {
-                        "messageId": { "$join": { "_strings": ["#.input.record.id", "\\-", "#.input.record.revision", "\\-", "#.input.eventType"] } },
+                        "messageId": { "$join": { "_strings": ["#.input.record.id", "-", "#.input.record.revision", "-", "#.input.eventType"] } },
                         "timestampUTC": "#.input.record.timestampUtc",
                         "group": "#.input.record.businessKey",
                         "correlation": { "$coalesce": ["#.input.correlation", ""] },
