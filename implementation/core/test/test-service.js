@@ -661,6 +661,47 @@ describe('service tests', () => {
 
     });
 
+    describe('$func pure-function primitives', () => {
+
+        before(() => {
+            registerElement({ type: 'data', kind: 'pure-function', id: 'double', data: { $multiply: ['#', 2] } });
+            registerElement({ type: 'data', kind: 'pure-function', id: 'add-ten', data: { $sum: ['#', 10] } });
+            registerService('svc-func', {
+                doubleInput:    { impl: { return: { '$func/double':  '#.input' } } },
+                doubleField:    { impl: { return: { '$func/double':  '#.input.n' } } },
+                addTenToField:  { impl: { return: { '$func/add-ten': '#.input.n' } } },
+                chainFunctions: { impl: { return: { '$func/double':  { '$func/add-ten': '#.input.n' } } } },
+                inPipeline: {
+                    impl: [
+                        { name: 'doubled', set: { '$func/double': '#.input.n' } },
+                        { return: { $sum: ['#.doubled', '#.input.n'] } }
+                    ]
+                }
+            });
+        });
+
+        it('should apply the pure function to the entire input', async () => {
+            expect(await execute('svc-func', 'doubleInput', 7)).to.equal(14);
+        });
+
+        it('should apply the pure function to a field extracted from input', async () => {
+            expect(await execute('svc-func', 'doubleField', { n: 5 })).to.equal(10);
+        });
+
+        it('should apply a different pure function to a field', async () => {
+            expect(await execute('svc-func', 'addTenToField', { n: 3 })).to.equal(13);
+        });
+
+        it('should support nesting pure function calls', async () => {
+            expect(await execute('svc-func', 'chainFunctions', { n: 4 })).to.equal(28);
+        });
+
+        it('should work as a set expression within a pipeline', async () => {
+            expect(await execute('svc-func', 'inPipeline', { n: 6 })).to.equal(18);
+        });
+
+    });
+
     describe('$low custom lambdajson primitives', () => {
 
         before(() => {

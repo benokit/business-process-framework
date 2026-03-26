@@ -1,6 +1,7 @@
 import { validateSchema } from './schema.js';
 import { getData, getDataOfKind } from './data.js';
 import { getElement } from './elements-registry.js';
+import { getPureFunctionPrimitives } from './pure-functions.js';
 import { has, isArray, isPlainObject, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 
@@ -218,7 +219,8 @@ async function compileMapping(func) {
 }
 
 async function getCustomPrimitives(func) {
-    const primitives = {}
+    const primitives = { ...getPureFunctionPrimitives() };
+
     if (!has(func, '$low')) {
         return primitives;
     }

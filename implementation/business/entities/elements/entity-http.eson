@@ -27,7 +27,7 @@
                 {
                     "return": {
                         "status": 201,
-                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
                         "body": "#.record"
                     }
                 }
@@ -45,7 +45,7 @@
                 {
                     "return": {
                         "status": 200,
-                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
                         "body": "#.record"
                     }
                 }
@@ -54,7 +54,7 @@
                 { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                 {
                     "name": "revision",
-                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                    "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                 },
                 {
                     "name": "record",
@@ -69,7 +69,7 @@
                 {
                     "return": {
                         "status": 200,
-                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
                         "body": "#.record"
                     }
                 }
@@ -78,7 +78,7 @@
                 { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                 {
                     "name": "revision",
-                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                    "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                 },
                 {
                     "name": "record",
@@ -105,7 +105,7 @@
                 {
                     "return": {
                         "status": 200,
-                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
                         "body": "#.record"
                     }
                 }
@@ -114,7 +114,7 @@
                 { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                 {
                     "name": "revision",
-                    "set": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, "_global": true } } }
+                    "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                 },
                 {
                     "name": "record",
@@ -130,7 +130,7 @@
                 {
                     "return": {
                         "status": 200,
-                        "headers": { "ETag": { "$printf": { "_template": "\"%d\"", "_args": ["#.record.revision"] } } },
+                        "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
                         "body": "#.record"
                     }
                 }
@@ -152,6 +152,9 @@
             ]
         }
     },
+
+    { "type": "data", "kind": "pure-function", "id": "make-etag",      "data": { "$printf": { "_template": "\"%d\"", "_args": ["#"] } } },
+    { "type": "data", "kind": "pure-function", "id": "parse-if-match", "data": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#", ""] }, "_global": true } } } },
 
     { "type": "data", "id": "entity-create-endpoint",     "kind": "endpoint", "data": { "method": "POST",   "path": "/entities/:entityType",                                              "controller": { "service": "entity-controller", "method": "create"     } } },
     { "type": "data", "id": "entity-read-endpoint",       "kind": "endpoint", "data": { "method": "GET",    "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "read"       } } },

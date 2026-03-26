@@ -100,6 +100,29 @@ To call a host JS function as a custom lambdaJSON primitive, use the `$low` key 
 
 `$low` registers named primitives that are available only within that expression. Each primitive wraps the host function as a unary lambdaJSON operator.
 
+### Pure functions
+
+A `data` element with `kind = "pure-function"` declares a named, reusable lambdaJSON function. Its `data` is a lambdaJSON expression in which `#` refers to the function's argument:
+
+```json
+{
+    "type": "data",
+    "kind": "pure-function",
+    "id": "double",
+    "data": { "$multiply": ["#", 2] }
+}
+```
+
+Pure functions are invoked inside any lambdaJSON expression with the `$func/<id>` primitive. The value is the argument expression, which is itself evaluated as lambdaJSON before being passed to the function:
+
+```json
+{ "return": { "$func/double": "#.input.n" } }
+```
+
+All registered pure functions are globally available in every lambdaJSON expression — no import step is required at the call site.
+
+Pure functions are compiled lazily on first invocation and the result is cached, so there is no compilation overhead for functions that are never called.
+
 ## Execution node templates
 
 The set of pipeline keywords is open for extension. A `data` element with `kind = "execution-node-template"` registers a new keyword that can be used in any pipeline:

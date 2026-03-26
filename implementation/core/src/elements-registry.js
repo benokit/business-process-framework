@@ -1,5 +1,6 @@
 import { isString } from 'lodash-es';
 import { registerSchema } from './schema.js';
+import { registerPureFunction } from './pure-functions.js';
 
 const registry = {
     service: {},
@@ -64,6 +65,7 @@ function registerElement(element) {
     if (element.type === 'data') {
         registry.data[element.id] = element;
         indexByKind(element);
+        if (element.kind === 'pure-function') registerPureFunction(element);
         return;
     }
 }

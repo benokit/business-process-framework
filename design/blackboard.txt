@@ -1,0 +1,30 @@
+
+[
+{
+    type: data,
+    kind: pure-function,
+    id: parseIfMatch,
+    data: { 
+        "$parseInt": { 
+            "$replace": { 
+                "_regex": "\"", 
+                "_substitute": "", 
+                "_string": { "$coalesce": ["#.input.headers.if-match", ""] }, 
+                "_global": true 
+            } 
+        } 
+    }
+},
+{
+    type: data,
+    kind: service-pipeline,
+    id: my-service-implementation,
+    data: [
+        {
+            return: {
+                $func/parseIfMatch: #.headers.if-match
+            }
+        }
+    ]
+}
+]
