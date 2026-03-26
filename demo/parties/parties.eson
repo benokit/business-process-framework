@@ -1,0 +1,44 @@
+[
+    {
+        "type": "data",
+        "kind": "entity-type",
+        "id": "party",
+        "data": {
+            "dataSchema": {
+                "!partyType": "string",
+                "!name": "string",
+                "taxId": "string",
+                "registrationNumber": "string",
+                "email": "string",
+                "phone": "string",
+                "address": {
+                    "street": "string",
+                    "city": "string",
+                    "country": "string"
+                }
+            },
+            "statesModel": {
+                "states": {
+                    "status": ["prospect", "verified", "blacklisted"]
+                },
+                "transitions": {
+                    "verify": {
+                        "from": { "status": ["prospect"] },
+                        "to": { "status": "verified" }
+                    },
+                    "blacklist": {
+                        "from": { "status": ["prospect", "verified"] },
+                        "to": { "status": "blacklisted" }
+                    },
+                    "reactivate": {
+                        "from": { "status": ["blacklisted"] },
+                        "to": { "status": "prospect" }
+                    }
+                },
+                "initialStates": {
+                    "default": { "status": "prospect" }
+                }
+            }
+        }
+    }
+]

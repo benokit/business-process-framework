@@ -1,9 +1,10 @@
-import { getPool } from '@business-framework/postgres-client';
+import { connect, getPool } from '@business-framework/postgres-client';
 
 const clients = new Map();
 let nextId = 1;
 
 async function beginTransaction() {
+    await connect();
     const client = await getPool().connect();
     await client.query('BEGIN');
     const sessionId = nextId++;

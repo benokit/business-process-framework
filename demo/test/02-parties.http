@@ -1,0 +1,95 @@
+@baseUrl = http://localhost:3000
+
+# =============================================================================
+# Parties — prospect → verified → blacklisted → prospect
+# =============================================================================
+
+### Create seller party (Acme Corp)
+# @name createAcme
+POST {{baseUrl}}/entities/party
+Content-Type: application/json
+
+{
+    "businessKey": "acme",
+    "data": {
+        "partyType": "company",
+        "name": "Acme Corp",
+        "taxId": "US-12-3456789",
+        "registrationNumber": "ACM-001",
+        "email": "contracts@acme.com",
+        "phone": "+1-555-0100",
+        "address": {
+            "street": "123 Main St",
+            "city": "New York",
+            "country": "US"
+        }
+    }
+}
+
+### Create buyer party (GloboCorp)
+# @name createGlobo
+POST {{baseUrl}}/entities/party
+Content-Type: application/json
+
+{
+    "businessKey": "globocorp",
+    "data": {
+        "partyType": "company",
+        "name": "GloboCorp",
+        "taxId": "US-98-7654321",
+        "email": "procurement@globocorp.com"
+    }
+}
+
+### Create individual party
+POST {{baseUrl}}/entities/party
+Content-Type: application/json
+
+{
+    "businessKey": "freelancer-001",
+    "data": {
+        "partyType": "individual",
+        "name": "Carol White",
+        "email": "carol@example.com",
+        "phone": "+1-555-0200"
+    }
+}
+
+### Read party — state should be "prospect"
+GET {{baseUrl}}/entities/party/acme
+
+### Verify Acme — prospect → verified
+POST {{baseUrl}}/entities/party/acme/transitions/verify
+
+### Verify GloboCorp
+POST {{baseUrl}}/entities/party/globocorp/transitions/verify
+
+### Blacklist a party
+POST {{baseUrl}}/entities/party/freelancer-001/transitions/blacklist
+
+### Try to verify a blacklisted party (should fail — invalid transition)
+POST {{baseUrl}}/entities/party/freelancer-001/transitions/verify
+
+### Reactivate blacklisted party back to prospect
+POST {{baseUrl}}/entities/party/freelancer-001/transitions/reactivate
+
+### Update party address (requires If-Match)
+PUT {{baseUrl}}/entities/party/acme
+Content-Type: application/json
+If-Match: {{createAcme.response.headers.etag}}
+
+{
+    "data": {
+        "partyType": "company",
+        "name": "Acme Corp",
+        "taxId": "US-12-3456789",
+        "registrationNumber": "ACM-001",
+        "email": "contracts@acme.com",
+        "phone": "+1-555-0100",
+        "address": {
+            "street": "456 Park Ave",
+            "city": "New York",
+            "country": "US"
+        }
+    }
+}

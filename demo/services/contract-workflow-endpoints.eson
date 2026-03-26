@@ -1,0 +1,48 @@
+[
+    {
+        "type": "service",
+        "id": "contract-workflow-controller",
+        "interface": {
+            "createAndSubmit": { "input": "object", "output": "object" },
+            "approve":         { "input": "object", "output": "object" }
+        },
+        "implementation": {
+            "createAndSubmit": [
+                {
+                    "name": "result",
+                    "inputMap": "#.input.body",
+                    "service": { "id": "contract-workflow", "method": "createAndSubmit" }
+                },
+                { "return": { "status": 200, "body": "#.result" } }
+            ],
+            "approve": [
+                {
+                    "name": "result",
+                    "inputMap": "#.input.body",
+                    "service": { "id": "contract-workflow", "method": "approve" }
+                },
+                { "return": { "status": 200, "body": "#.result" } }
+            ]
+        }
+    },
+    {
+        "type": "data",
+        "id": "contract-workflow-create-submit-endpoint",
+        "kind": "endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/services/contract-workflow/createAndSubmit",
+            "controller": { "service": "contract-workflow-controller", "method": "createAndSubmit" }
+        }
+    },
+    {
+        "type": "data",
+        "id": "contract-workflow-approve-endpoint",
+        "kind": "endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/services/contract-workflow/approve",
+            "controller": { "service": "contract-workflow-controller", "method": "approve" }
+        }
+    }
+]

@@ -1,0 +1,38 @@
+[
+    {
+        "type": "service",
+        "kind": "entity-event-handler/on-transition/contract",
+        "id": "contract-approval-handler",
+        "interface": {
+            "run": {
+                "input": {},
+                "output": {}
+            }
+        },
+        "implementation": {
+            "run": [
+                {
+                    "if": { "$eq": ["#.input.state.fromTransition", "approve"] },
+                    "then": [
+                        {
+                            "inputMap": {
+                                "channel": "contract-events",
+                                "envelope": {
+                                    "type": "contract-approved",
+                                    "contractKey": "#.input.businessKey",
+                                    "sellerPartyKey": "#.input.data.sellerPartyKey",
+                                    "buyerPartyKey": "#.input.data.buyerPartyKey",
+                                    "value": "#.input.data.value",
+                                    "currency": "#.input.data.currency",
+                                    "timestamp": "#.input.timestampUtc"
+                                }
+                            },
+                            "service": { "id": "messaging", "method": "publish" }
+                        }
+                    ]
+                },
+                { "return": {} }
+            ]
+        }
+    }
+]

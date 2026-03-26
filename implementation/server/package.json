@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node bootstrap.js"
+    "start": "node bootstrap.js",
+    "start-demo": "node bootstrap.js ../../demo"
   },
   "dependencies": {
     "@business-framework/core": "*",

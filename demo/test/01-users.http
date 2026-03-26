@@ -1,0 +1,65 @@
+@baseUrl = http://localhost:3000
+
+# =============================================================================
+# Users — create, read, update, suspend, reactivate
+# =============================================================================
+
+### Create admin user
+# @name createAdmin
+POST {{baseUrl}}/entities/user
+Content-Type: application/json
+
+{
+    "businessKey": "admin-001",
+    "data": {
+        "email": "alice@company.com",
+        "firstName": "Alice",
+        "lastName": "Smith",
+        "role": "admin"
+    }
+}
+
+### Create reviewer user
+# @name createReviewer
+POST {{baseUrl}}/entities/user
+Content-Type: application/json
+
+{
+    "businessKey": "reviewer-001",
+    "data": {
+        "email": "bob@company.com",
+        "firstName": "Bob",
+        "lastName": "Jones",
+        "role": "reviewer"
+    }
+}
+
+### Read user
+GET {{baseUrl}}/entities/user/admin-001
+
+### Update user — promote to superadmin (requires If-Match ETag from create response)
+PUT {{baseUrl}}/entities/user/admin-001
+Content-Type: application/json
+If-Match: {{createAdmin.response.headers.etag}}
+
+{
+    "data": {
+        "email": "alice@company.com",
+        "firstName": "Alice",
+        "lastName": "Smith",
+        "role": "superadmin"
+    }
+}
+
+### Suspend the reviewer
+POST {{baseUrl}}/entities/user/reviewer-001/transitions/suspend
+
+### Read suspended user — state.dimensions.status should be "suspended"
+GET {{baseUrl}}/entities/user/reviewer-001
+
+### Reactivate the reviewer
+POST {{baseUrl}}/entities/user/reviewer-001/transitions/reactivate
+
+### Delete user (requires If-Match)
+DELETE {{baseUrl}}/entities/user/reviewer-001
+If-Match: {{createReviewer.response.headers.etag}}

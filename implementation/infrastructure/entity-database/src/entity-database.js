@@ -1,4 +1,4 @@
-import { getPool } from '@business-framework/postgres-client';
+import { connect, getPool } from '@business-framework/postgres-client';
 import jsonPatchModule from 'fast-json-patch';
 const { compare: patchCompare, applyPatch } = jsonPatchModule;
 
@@ -6,6 +6,7 @@ let schemaInitialized = false;
 
 async function initSchema() {
     if (schemaInitialized) return;
+    await connect();
     schemaInitialized = true;
     await getPool().query(`
         CREATE TABLE IF NOT EXISTS entities (
