@@ -1,0 +1,14 @@
+{
+    "name": "@business-framework/logging",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        ".": "./src/logger.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "@business-framework/core": "*"
+    }
+}

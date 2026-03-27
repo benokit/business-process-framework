@@ -45,7 +45,7 @@ A method implementation is either a single item or a pipeline (array of items). 
 | `set` | Evaluates a lambdaJSON expression; result is the item output |
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
-| `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }` |
+| `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
 | `execute` | Executes a pipeline (single item or array) inline with the current input as context; primarily useful with `dynamic` to inject pipelines at runtime |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
@@ -99,6 +99,38 @@ To call a host JS function as a custom lambdaJSON primitive, use the `$low` key 
 ```
 
 `$low` registers named primitives that are available only within that expression. Each primitive wraps the host function as a unary lambdaJSON operator.
+
+### Calling convention for `low` functions
+
+A `low` pipeline item calls an exported JS function. The function always receives a single argument: **`{ _ctx, input }`** — the same nodeInput object the executor works with.
+
+- `input` is the result of `inputMap` (if present on the item), otherwise the full execution context.
+- `_ctx` is the shared context propagated through the execution graph.
+
+```js
+// module: ./math.js
+export function double({ input }) {
+    return input * 2;
+}
+```
+
+```json
+{ "inputMap": "#.input.value", "low": { "module": "./math.js", "functionName": "double" } }
+```
+
+If you need multiple fields, pass them via `inputMap` and destructure from `input`:
+
+```js
+export function add({ input: { a, b } }) {
+    return a + b;
+}
+```
+
+```json
+{ "inputMap": { "a": "#.input.a", "b": "#.input.b" }, "low": { "module": "./math.js", "functionName": "add" } }
+```
+
+The function's return value becomes the item's output (before any `outputMap` is applied).
 
 ### Pure functions
 

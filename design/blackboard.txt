@@ -1,0 +1,24 @@
+Logging
+
+implementation
+    infrastructure
+        logging
+            elements
+                log-service.eson
+            src 
+                logger.js 
+                    writes standard fields: timestamp, level, message, ...
+            
+
+
+in service execution pipeline (keyword log):
+
+[
+    {
+        log: 'something happened'
+        level: 'warn',
+        context: {
+            ...
+        }
+    }
+]

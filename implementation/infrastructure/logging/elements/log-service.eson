@@ -1,0 +1,54 @@
+[
+    {
+        "type": "schema",
+        "id": "log-input",
+        "schema": {
+            "!message": "string",
+            "level": "string",
+            "context": "object"
+        }
+    },
+    {
+        "type": "data",
+        "id": "logging-interface",
+        "data": {
+            "log": {
+                "input": "@log-input"
+            }
+        }
+    },
+    {
+        "type": "data",
+        "id": "logging-implementation",
+        "data": {
+            "log": {
+                "inputMap": "#.input",
+                "low": { "module": "@business-framework/logging", "functionName": "log" }
+            }
+        }
+    },
+    {
+        "type": "service",
+        "id": "logging",
+        "interface": "logging-interface",
+        "implementation": "logging-implementation"
+    },
+    {
+        "type": "data",
+        "id": "log-node-template",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "log",
+            "implementation": [
+                {
+                    "inputMap": {
+                        "message": "#.node.log",
+                        "level": "#.node.level",
+                        "context": "#.node.context"
+                    },
+                    "service": { "id": "logging", "method": "log" }
+                }
+            ]
+        }
+    }
+]

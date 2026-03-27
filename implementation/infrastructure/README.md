@@ -10,3 +10,4 @@
 | [`messaging`](messaging/README.md) | Broker-agnostic messaging facade; `publish` pipeline keyword |
 | [`messaging-nats`](messaging-nats/README.md) | NATS JetStream broker implementation |
 | [`transactional-outbox`](transactional-outbox/README.md) | At-least-once delivery via PostgreSQL-backed outbox |
+| [`logging`](logging/README.md) | Structured JSON logging; `log` pipeline keyword |
