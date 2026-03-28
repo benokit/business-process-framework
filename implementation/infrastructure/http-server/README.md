@@ -1,6 +1,6 @@
 # http-server
 
-Express HTTP server. On `start`, all `endpoint` data elements are loaded and registered as routes. Each endpoint maps an HTTP method + path to a service method.
+Express HTTP server. On `start`, all `http-endpoint` data elements are loaded and registered as routes. Each endpoint maps an HTTP method + path to a service method.
 
 ## Methods
 
@@ -9,12 +9,13 @@ Express HTTP server. On `start`, all `endpoint` data elements are loaded and reg
 | `start` | `port?`          | `{ port: number }` |
 | `stop`  | —                | `{}`               |
 
-## Endpoint data elements
+## http-endpoint data elements
 
 ```json
 {
     "type": "data",
     "id": "create-order",
+    "kind": "http-endpoint",
     "data": {
         "method": "POST",
         "path": "/orders",

@@ -4,7 +4,7 @@ Generic entity lifecycle management. An entity is a keyed, versioned document be
 
 ## HTTP API
 
-Endpoints are registered as `endpoint` data elements and served by the `http-server` package. All responses return the entity record as the JSON body unless noted otherwise.
+Endpoints are registered as `http-endpoint` data elements and served by the `http-server` package. All responses return the entity record as the JSON body unless noted otherwise.
 
 | Method | Path | Operation |
 | --- | --- | --- |

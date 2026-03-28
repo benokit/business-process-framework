@@ -7,7 +7,7 @@
                 {
                     "name": "endpointData",
                     "service": { "id": "data", "method": "getDataOfKind" },
-                    "inputMap": { "kind": "endpoint" }
+                    "inputMap": { "kind": "http-endpoint" }
                 },
                 {
                     "inputMap": "#.endpointData.items",

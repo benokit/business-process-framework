@@ -60,7 +60,7 @@ describe('http-server (service element)', function () {
         registerElement({
             type: 'data',
             id: 'test-echo-endpoint',
-            kind: 'endpoint',
+            kind: 'http-endpoint',
             data: {
                 method: 'POST',
                 path: '/echo',
