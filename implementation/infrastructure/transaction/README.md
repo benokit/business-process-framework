@@ -20,7 +20,7 @@ High-level service. Begins a transaction, executes a program, commits on success
 |------------------------|---------------------------------------|---------------------|
 | `executeInTransaction` | `program`, `programInput?`, `config?` | result of `program` |
 
-`program` is a single pipeline item or an array (same format as a service method implementation). `programInput` is passed as `#.input` to the program.
+`program` is a single pipeline node or an array (same format as a service method implementation). `programInput` is passed as `#.input` to the program.
 
 ## Transaction propagation via `_ctx`
 
