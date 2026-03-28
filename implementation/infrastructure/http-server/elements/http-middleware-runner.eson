@@ -1,24 +1,5 @@
 [
     {
-        "type": "data",
-        "id": "sort-by-ordering",
-        "kind": "pure-function",
-        "data": {
-            "$fold": {
-                "_init": [],
-                "_collection": "#",
-                "_with": {
-                    "$let": { "item": "#.1" },
-                    "$concat": [
-                        { "$filter": { "_collection": "#.0", "_predicate": { "$lt": ["#.data.ordering", "@item.data.ordering"] } } },
-                        ["@item"],
-                        { "$filter": { "_collection": "#.0", "_predicate": { "$gte": ["#.data.ordering", "@item.data.ordering"] } } }
-                    ]
-                }
-            }
-        }
-    },
-    {
         "type": "service",
         "id": "http-middleware-runner",
         "interface": {

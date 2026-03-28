@@ -16,7 +16,12 @@
                 },
                 {
                     "name": "sortedMiddlewares",
-                    "set": { "$func/sort-by-ordering": "#.middlewareData.items" }
+                    "set": {
+                        "$ascending": {
+                            "_collection": "#.middlewareData.items",
+                            "_by": "#.input.data.ordering"
+                        }
+                    }
                 },
                 {
                     "name": "registrations",
