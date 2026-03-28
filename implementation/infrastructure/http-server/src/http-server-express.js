@@ -1,35 +1,38 @@
 import express from 'express';
-import { execute } from '@business-framework/core/service';
+import { executeMethod } from '@business-framework/core/service';
 
+function createApp() {
+    const a = express();
+    a.use(express.json());
+    return a;
+}
+
+let app = createApp();
 let server = null;
 
-async function start({ input = {}, endpointData = {} } = {}) {
+function register({ input: { path, method, implementation } }) {
+    app[method.toLowerCase()](path, async (req, res) => {
+        try {
+            const result = await executeMethod(implementation, {
+                body:    req.body,
+                params:  req.params,
+                query:   req.query,
+                headers: req.headers
+            });
+            const status  = result?.status  ?? 200;
+            const body    = result?.body    ?? null;
+            const headers = result?.headers ?? {};
+            for (const [key, value] of Object.entries(headers)) res.set(key, value);
+            res.status(status).json(body);
+        } catch (error) {
+            res.status(500).json({ error: String(error) });
+        }
+    });
+    return {};
+}
+
+async function start({ input = {} } = {}) {
     const port = input.port ?? 3000;
-    const endpoints = endpointData.items ?? [];
-
-    const app = express();
-    app.use(express.json());
-
-    for (const endpoint of endpoints) {
-        const { method, path, controller } = endpoint.data;
-        app[method.toLowerCase()](path, async (req, res) => {
-            try {
-                const result = await execute(controller.service, controller.method, {
-                    body:    req.body,
-                    params:  req.params,
-                    query:   req.query,
-                    headers: req.headers
-                });
-                const status  = result?.status  ?? 200;
-                const body    = result?.body    ?? null;
-                const headers = result?.headers ?? {};
-                for (const [key, value] of Object.entries(headers)) res.set(key, value);
-                res.status(status).json(body);
-            } catch (error) {
-                res.status(500).json({ error: String(error) });
-            }
-        });
-    }
 
     await new Promise((resolve, reject) => {
         server = app.listen(port, resolve);
@@ -45,7 +48,8 @@ async function stop() {
         server.close((err) => err ? reject(err) : resolve());
     });
     server = null;
+    app = createApp();
     return {};
 }
 
-export { start, stop };
+export { start, stop, register };

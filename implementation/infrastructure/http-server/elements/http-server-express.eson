@@ -10,6 +10,23 @@
                     "inputMap": { "kind": "endpoint" }
                 },
                 {
+                    "inputMap": "#.endpointData.items",
+                    "forEach": {
+                        "inputMap": {
+                            "path": "#.input.data.path",
+                            "method": "#.input.data.method",
+                            "implementation": {
+                                "service": {
+                                    "id": "#.input.data.controller.service",
+                                    "method": "#.input.data.controller.method"
+                                }
+                            }
+                        },
+                        "low": { "module": "@business-framework/http-server/express", "functionName": "register" }
+                    }
+                },
+                {
+                    "inputMap": "#.input",
                     "low": { "module": "@business-framework/http-server/express", "functionName": "start" }
                 }
             ],

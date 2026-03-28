@@ -1,11 +1,17 @@
+js:
+ http-server-express.js
+    exports:
+        start
+        stop
+        register(endpoint: { path, method, implementation })
+            calls (service.js) executeMethod(implementation, request)
 
+eson:
+ service: http-server
+    start 
+        - collects all endpoints (kind: endpoint)
+        - registers all endpoints (low)
+        - starts low server 
+    stop 
+        - stop low server
 
-Service execution node keyword "execute":
-[
-    {
-        inputMap: {...},
-        execute: [
-            ... pipeline
-        ]
-    }
-]
