@@ -13,7 +13,7 @@
                         "service": { "id": "transactional-outbox", "method": "put" }
                     },
                     "else": {
-                        "dynamic": { "service": { "id": "#.broker.data.service", "method": "publish" } },
+                        "execute": { "service": { "id": "#.broker.data.service", "method": "publish" } },
                         "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data", "envelope": "#.input.envelope" }
                     }
                 }
@@ -49,7 +49,7 @@
                 {
                     "forEach": [
                         {
-                            "dynamic": { "service": { "id": "#.input.brokerId", "method": "consume" } },
+                            "execute": { "service": { "id": "#.input.brokerId", "method": "consume" } },
                             "inputMap": { "channel": "#.input.channel", "broker": "#.input.broker", "consumer": "#.input.consumer" }
                         }
                     ],
@@ -59,7 +59,7 @@
             "stopConsuming": [
                 { "name": "channel", "inputMap": { "id": "#.input.channel" }, "service": { "id": "data", "method": "getData" } },
                 { "name": "broker", "inputMap": { "id": "#.channel.data.broker" }, "service": { "id": "data", "method": "getData" } },
-                { "dynamic": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } }, "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } }
+                { "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } }, "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } }
             ]
         }
     },

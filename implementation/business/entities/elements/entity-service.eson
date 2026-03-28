@@ -112,7 +112,7 @@
                 },
                 {
                     "inputMap": "#.input.data",
-                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                    "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
                     "name": "initialState",
@@ -171,7 +171,7 @@
                 },
                 {
                     "inputMap": "#.input.data",
-                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                    "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
                     "inputMap": {
@@ -339,7 +339,7 @@
                 },
                 {
                     "inputMap": "#.input.data",
-                    "dynamic": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
+                    "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
                     "inputMap": {
@@ -403,7 +403,7 @@
                 },
                 {
                     "name": "mappedContext",
-                    "dynamic": { "set": "#.component.data.contextMapping" }
+                    "execute": { "set": "#.component.data.contextMapping" }
                 },
                 {
                     "name": "_ctx",
@@ -416,7 +416,7 @@
                 },
                 {
                     "inputMap": "#.input.input",
-                    "dynamic": {
+                    "execute": {
                         "service": {
                             "id": "#.componentService.data.service",
                             "method": "#.input.methodId"

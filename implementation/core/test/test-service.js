@@ -453,10 +453,10 @@ describe('service tests', () => {
                 },
                 pipeline: {
                     impl: {
-                        execute: [
+                        execute: { '$literal': [
                             { name: 'doubled', set: { $multiply: ['#.input.x', 2] } },
                             { return: { $sum: ['#.doubled', '#.input.x'] } }
-                        ]
+                        ] }
                     }
                 },
                 withInputMap: {
@@ -464,12 +464,44 @@ describe('service tests', () => {
                         inputMap: '#.input',
                         execute: { return: '#.input.x' }
                     }
+                },
+                fromContext: {
+                    impl: { execute: '#.input.pipeline' }
                 }
             });
 
-            registerService('svc-execute-dynamic', {
-                run: {
-                    impl: { dynamic: { execute: '#.input.pipeline' } }
+            registerService('svc-dyn-math', {
+                add:      { impl: { return: { $sum:      ['#.input.a', '#.input.b'] } } },
+                multiply: { impl: { return: { $multiply: ['#.input.a', '#.input.b'] } } }
+            });
+
+            registerService('svc-execute-dispatch', {
+                dispatch: {
+                    impl: {
+                        inputMap: { a: '#.input.a', b: '#.input.b' },
+                        execute: { service: { id: '#.input.svcId', method: '#.input.method' } }
+                    }
+                }
+            });
+
+            registerService('svc-execute-ctx', {
+                fullContextAccess: {
+                    impl: {
+                        inputMap: '#.input',
+                        execute: { return: '#.input.tag' }
+                    }
+                },
+                outputMapped: {
+                    impl: {
+                        execute: { set: { result: '#.input.v' } },
+                        outputMap: '#.result'
+                    }
+                },
+                inPipeline: {
+                    impl: [
+                        { name: 'computed', execute: { return: '#.input.x' } },
+                        { return: { $multiply: ['#.computed', 3] } }
+                    ]
                 }
             });
         });
@@ -486,9 +518,28 @@ describe('service tests', () => {
             expect(await execute('svc-execute', 'withInputMap', { x: 7 })).to.equal(7);
         });
 
-        it('should allow dynamic to inject a pipeline at runtime', async () => {
+        it('should evaluate the execute expression and use the result as a pipeline', async () => {
             const pipeline = { return: { $sum: ['#.input.a', '#.input.b'] } };
-            expect(await execute('svc-execute-dynamic', 'run', { pipeline, a: 3, b: 4 })).to.equal(7);
+            expect(await execute('svc-execute', 'fromContext', { pipeline, a: 3, b: 4 })).to.equal(7);
+        });
+
+        it('should evaluate the execute expression against the full context even when inputMap is present', async () => {
+            expect(await execute('svc-execute-ctx', 'fullContextAccess', { tag: 'hello' })).to.equal('hello');
+        });
+
+        it('should apply outputMap to the result of the executed pipeline', async () => {
+            expect(await execute('svc-execute-ctx', 'outputMapped', { v: 'extracted' })).to.equal('extracted');
+        });
+
+        it('should store the result of an execute step as a named step in the pipeline context', async () => {
+            expect(await execute('svc-execute-ctx', 'inPipeline', { x: 4 })).to.equal(12);
+        });
+
+        it('should dispatch to a service whose id and method are resolved dynamically from context', async () => {
+            expect(await execute('svc-execute-dispatch', 'dispatch',
+                { svcId: 'svc-dyn-math', method: 'add',      a: 3, b: 4 })).to.equal(7);
+            expect(await execute('svc-execute-dispatch', 'dispatch',
+                { svcId: 'svc-dyn-math', method: 'multiply', a: 3, b: 4 })).to.equal(12);
         });
 
     });
@@ -505,85 +556,6 @@ describe('service tests', () => {
 
         it('should call the host js function with the current context and return its result', async () => {
             expect(await execute('svc-low', 'echo', 'hello')).to.equal('hello');
-        });
-
-    });
-
-    describe('dynamic', () => {
-
-        before(() => {
-            registerService('svc-dynamic', {
-                literal: {
-                    impl: { dynamic: { return: 42 } }
-                },
-                fromInput: {
-                    impl: { dynamic: { return: '#.input.x' } }
-                },
-                fullContextWhenInputMapPresent: {
-                    // dynamic is evaluated against the full context even when inputMap is set;
-                    // '#.input.tag' is only reachable from the full context, not from the post-inputMap input
-                    impl: {
-                        inputMap: '#.input',
-                        dynamic: { return: '#.input.tag' }
-                    }
-                },
-                outputMapPreserved: {
-                    impl: {
-                        dynamic: { set: { result: '#.input.v' } },
-                        outputMap: '#.result'
-                    }
-                },
-                pipeline: {
-                    impl: [
-                        { name: 'computed', dynamic: { return: '#.input.x' } },
-                        { return: { $multiply: ['#.computed', 3] } }
-                    ]
-                }
-            });
-
-            registerService('svc-dyn-math', {
-                add:      { impl: { return: { $sum:      ['#.input.a', '#.input.b'] } } },
-                multiply: { impl: { return: { $multiply: ['#.input.a', '#.input.b'] } } }
-            });
-
-            registerService('svc-dynamic-service', {
-                // service id and method are resolved from context; inputMap shapes the operands
-                dispatch: {
-                    impl: {
-                        inputMap: { a: '#.input.a', b: '#.input.b' },
-                        dynamic: { service: { id: '#.input.svcId', method: '#.input.method' } }
-                    }
-                }
-            });
-        });
-
-        it('should resolve a literal item descriptor and execute it', async () => {
-            expect(await execute('svc-dynamic', 'literal', {})).to.equal(42);
-        });
-
-        it('should build the item descriptor using fields from the full context', async () => {
-            expect(await execute('svc-dynamic', 'fromInput', { x: 7 })).to.equal(7);
-        });
-
-        it('should evaluate dynamic against the full context even when inputMap is present', async () => {
-            // context = { input: { tag: 'hello' } }; '#.input.tag' is only reachable from the
-            // full context — the post-inputMap input has no 'input' field
-            expect(await execute('svc-dynamic', 'fullContextWhenInputMapPresent', { tag: 'hello' })).to.equal('hello');
-        });
-
-        it('should apply outputMap to the result of the dynamically resolved item', async () => {
-            expect(await execute('svc-dynamic', 'outputMapPreserved', { v: 'extracted' })).to.equal('extracted');
-        });
-
-        it('should store the result of a dynamic step as a named step in the pipeline context', async () => {
-            expect(await execute('svc-dynamic', 'pipeline', { x: 4 })).to.equal(12);
-        });
-
-        it('should dispatch to a service whose id and method are resolved dynamically from context', async () => {
-            expect(await execute('svc-dynamic-service', 'dispatch',
-                { svcId: 'svc-dyn-math', method: 'add',      a: 3, b: 4 })).to.equal(7);
-            expect(await execute('svc-dynamic-service', 'dispatch',
-                { svcId: 'svc-dyn-math', method: 'multiply', a: 3, b: 4 })).to.equal(12);
         });
 
     });

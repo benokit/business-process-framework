@@ -56,10 +56,10 @@ This package registers an [execution node template](../../core/README.md#executi
 { "publish": { "channel": "order-events", "envelope": { ... } } }
 ```
 
-For dynamic values, use `dynamic` to resolve context references before the node runs:
+For dynamic values, use `execute` to resolve context references before the node runs:
 
 ```json
-{ "dynamic": { "publish": { "channel": "order-events", "envelope": "#.myEnvelope" } } }
+{ "execute": { "publish": { "channel": "order-events", "envelope": "#.myEnvelope" } } }
 ```
 
 ## Routing

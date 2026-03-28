@@ -46,7 +46,6 @@ const keyword = {
     validateSchema: 'validateSchema',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
-    dynamic: 'dynamic',
     default: 'default'
 };
 
@@ -79,31 +78,27 @@ async function executeMethodWithContext(implementation, context) {
 }
 
 async function executeNode(node, context) {
-    let staticNode = node;
-    if (has(node, keyword.dynamic)) {
-        const dynamicPart = await executeMapping(node.dynamic, context);
-        const { [keyword.dynamic]: _, ...rest } = node;
-        staticNode = { ...rest, ...dynamicPart };
+    context._ctx?._execution?.trace?.push(nodeLabel(node));
+
+    const nodeInput = has(node, keyword.inputMap)
+        ? { _ctx: context._ctx, input: await executeMapping(node.inputMap, context) }
+        : context;
+
+    let result;
+    if (has(node, keyword.execute)) {
+        const pipeline = await executeMapping(node.execute, context);
+        result = await executeMethodWithContext(pipeline, nodeInput);
+    } else {
+        const exec = await resolveNodeExecutor(node);
+        result = await exec(nodeInput);
     }
 
-    context._ctx?._execution?.trace?.push(nodeLabel(staticNode));
-
-    const nodeInput = has(staticNode, keyword.inputMap)
-        ? { _ctx: context._ctx, input: await executeMapping(staticNode.inputMap, context) }
-        : context;
-    const exec = await resolveNodeExecutor(staticNode);
-    const result = await exec(nodeInput);
-    const output = has(staticNode, keyword.outputMap) ? (await executeMapping(staticNode.outputMap, result)) : result;
-    return output;
+    return has(node, keyword.outputMap) ? (await executeMapping(node.outputMap, result)) : result;
 }
 
 async function resolveNodeExecutor(node) {
     if (has(node, keyword.service)) {
         return async ({ _ctx, input }) => await execute(node.service.id, node.service.method, input, _ctx);
-    }
-
-    if (has(node, keyword.execute)) {
-        return async input => await executeMethodWithContext(node.execute, input);
     }
 
     if (has(node, keyword.low)) {

@@ -46,14 +46,13 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
-| `execute` | Executes a pipeline (single node or array) inline with the current input as context; primarily useful with `dynamic` to inject pipelines at runtime |
+| `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |
 | `try` / `catch` / `finally` | Error handling; if `try` body throws, `catch` body executes (optional); `finally` body always executes after `try` and `catch` regardless of outcome, and its return value is discarded |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
 | `validateSchema` | Validates the node's `input` against a CJSL schema (inline object or `"@schemaId"` reference). Throws a string error if invalid; returns `input` unchanged on success. Use `inputMap` to select which part of the context to validate |
-| `dynamic` | Evaluates a lambdaJSON expression against the full context; the result is merged into the node (with `dynamic` removed) and the merged node is executed as a normal static node |
 | `publish` | Publishes a message via the `messaging` service: `{ "channel": "<channel-id>", "envelope": { ... } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/messaging/README.md#publish-pipeline-keyword) |
 | *custom* | Any keyword registered via an `execution-node-template` data element (see [Execution node templates](#execution-node-templates)) |
 
@@ -65,8 +64,6 @@ Any node (regardless of keyword) accepts these optional fields:
 - `inputMap` — lambdaJSON expression evaluated against the current context; its result is passed as the node's input instead of the full context
 - `outputMap` — lambdaJSON expression applied to the node's raw output before it is stored or returned
 
-When `dynamic` is used, `inputMap` and `outputMap` belong to the outer node, not to the dynamic object. The `dynamic` expression is evaluated first against the full context; only then does `inputMap` (from the merged node) narrow the input for the resolved executor.
-
 ### Execution context
 
 The execution context is an object available throughout a method's pipeline:
@@ -74,7 +71,7 @@ The execution context is an object available throughout a method's pipeline:
 - `input` — the method's validated input value
 - `<name>` — the output of any preceding pipeline node that carries a `name`
 
-All branch keywords (`if`, `switch`, `execute`) pass the full context into their bodies (or the `inputMap` result if one is present). Two special cases:
+All branch keywords (`if`, `switch`) pass the full context into their bodies (or the `inputMap` result if one is present). For `execute`, the expression is evaluated against the full context and the resulting pipeline runs with the `inputMap` result (or full context if no `inputMap`). Two special cases:
 
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
 - **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer named steps are accessible as `#.context.<name>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.

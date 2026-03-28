@@ -34,7 +34,7 @@
                     "name": "errorArrays",
                     "inputMap": "#.guards.items",
                     "forEach": {
-                        "dynamic": { "service": { "id": "#.input", "method": "validate" } },
+                        "execute": { "service": { "id": "#.input", "method": "validate" } },
                         "inputMap": "#._ctx.guardInput"
                     }
                 },

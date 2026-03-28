@@ -9,8 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const CHANNEL_ID = 'publish-template-test-channel';
 
-// A service that uses the `publish` keyword with an envelope supplied dynamically
-// via `dynamic`, so tests can control the envelope through the service input.
+// A service that uses the `publish` keyword with an envelope supplied via execute,
+// so tests can control the envelope through the service input.
 const TEST_PUBLISHER = {
     type: 'service',
     id: 'publish-template-test-publisher',
@@ -18,7 +18,7 @@ const TEST_PUBLISHER = {
         send: { input: { envelope: 'object' }, output: {} }
     },
     implementation: {
-        send: { dynamic: { publish: { channel: CHANNEL_ID, envelope: '#.input.envelope' } } }
+        send: { execute: { publish: { channel: CHANNEL_ID, envelope: '#.input.envelope' } } }
     }
 };
 

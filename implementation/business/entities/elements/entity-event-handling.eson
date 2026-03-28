@@ -34,7 +34,7 @@
                 {
                     "inputMap": "#.handlers.items",
                     "forEach": {
-                        "dynamic": { "service": { "id": "#.input", "method": "run" } },
+                        "execute": { "service": { "id": "#.input", "method": "run" } },
                         "inputMap": "#._ctx.handlerInput"
                     }
                 },

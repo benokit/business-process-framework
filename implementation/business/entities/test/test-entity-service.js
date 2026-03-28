@@ -54,7 +54,7 @@ describe('entity service', function () {
             kind: 'execution-node-template',
             data: {
                 keyword: 'inTransaction',
-                implementation: [{ dynamic: { execute: '#.node.inTransaction' }, inputMap: '#.input' }]
+                implementation: [{ execute: '#.node.inTransaction', inputMap: '#.input' }]
             }
         });
 
