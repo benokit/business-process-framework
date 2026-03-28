@@ -73,6 +73,11 @@
     },
     {
         "type": "schema",
+        "id": "function-schema",
+        "schema": "object"
+    },
+    {
+        "type": "schema",
         "id": "impl-item-common-schema",
         "schema": {
             "name": "string",

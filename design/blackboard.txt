@@ -1,17 +1,30 @@
-js:
- http-server-express.js
-    exports:
-        start
-        stop
-        register(endpoint: { path, method, implementation })
-            calls (service.js) executeMethod(implementation, request)
+http service middleware 
+ input: (http-endpoint-id, httpRequest, next)
 
-eson:
- service: http-server
-    start 
-        - collects all endpoints (kind: endpoint)
-        - registers all endpoints (low)
-        - starts low server 
-    stop 
-        - stop low server
+{
+    type: data,
+    id: error-handler
+    kind: http-middleware,
+    data: {
+        ordering: 1.5,
+        implementation: [
+            {
+                try: {
+                    inputMapping: #.httpInput
+                    execute: next
+                },
+                catch: {
+                    log: #.error,
+                    level: error,
+                    context: {
+                        trace: _ctx.execution.trace
+                    }
+                }
+            }
+        ]
+    }
+}
+
+
+
 

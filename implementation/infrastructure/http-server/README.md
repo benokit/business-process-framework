@@ -23,3 +23,29 @@ Express HTTP server. On `start`, all `http-endpoint` data elements are loaded an
     }
 }
 ```
+
+## http-middleware data elements
+
+Middlewares are executed in ascending `ordering` before the endpoint controller. Each middleware receives `{ endpointId, httpRequest, next }` as input, where `next` is a pipeline node that continues the chain (and ultimately calls the controller).
+
+```json
+{
+    "type": "data",
+    "id": "error-handler",
+    "kind": "http-middleware",
+    "data": {
+        "ordering": 10,
+        "implementation": [
+            {
+                "try": {
+                    "inputMap": "#.input.httpRequest",
+                    "execute": "#.input.next"
+                },
+                "catch": {
+                    "throw": "#.error"
+                }
+            }
+        ]
+    }
+}
+```

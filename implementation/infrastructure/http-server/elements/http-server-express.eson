@@ -10,16 +10,44 @@
                     "inputMap": { "kind": "http-endpoint" }
                 },
                 {
-                    "inputMap": "#.endpointData.items",
+                    "name": "middlewareData",
+                    "service": { "id": "data", "method": "getDataOfKind" },
+                    "inputMap": { "kind": "http-middleware" }
+                },
+                {
+                    "name": "sortedMiddlewares",
+                    "set": { "$func/sort-by-ordering": "#.middlewareData.items" }
+                },
+                {
+                    "name": "registrations",
+                    "set": {
+                        "$let": { "middlewares": "#.sortedMiddlewares" },
+                        "$map": {
+                            "_over": "#.endpointData.items",
+                            "_fn": { "endpoint": "#", "middlewares": "@middlewares" }
+                        }
+                    }
+                },
+                {
+                    "inputMap": "#.registrations",
                     "forEach": {
                         "inputMap": {
-                            "path": "#.input.data.path",
-                            "method": "#.input.data.method",
+                            "path": "#.input.endpoint.data.path",
+                            "method": "#.input.endpoint.data.method",
                             "implementation": {
-                                "service": {
-                                    "id": "#.input.data.controller.service",
-                                    "method": "#.input.data.controller.method"
-                                }
+                                "inputMap": {
+                                    "endpointId": "#.input.endpoint.id",
+                                    "httpRequest": "\\#.input",
+                                    "middlewares": { "\\$literal": "#.input.middlewares" },
+                                    "index": 0,
+                                    "controllerImpl": {
+                                        "service": {
+                                            "id": "#.input.endpoint.data.controller.service",
+                                            "method": "#.input.endpoint.data.controller.method"
+                                        }
+                                    }
+                                },
+                                "service": { "id": "http-middleware-runner", "method": "run" }
                             }
                         },
                         "low": { "module": "@business-framework/http-server/express", "functionName": "register" }

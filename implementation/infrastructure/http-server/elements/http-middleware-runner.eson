@@ -1,0 +1,74 @@
+[
+    {
+        "type": "data",
+        "id": "sort-by-ordering",
+        "kind": "pure-function",
+        "data": {
+            "$fold": {
+                "_init": [],
+                "_collection": "#",
+                "_with": {
+                    "$let": { "item": "#.1" },
+                    "$concat": [
+                        { "$filter": { "_collection": "#.0", "_predicate": { "$lt": ["#.data.ordering", "@item.data.ordering"] } } },
+                        ["@item"],
+                        { "$filter": { "_collection": "#.0", "_predicate": { "$gte": ["#.data.ordering", "@item.data.ordering"] } } }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "type": "service",
+        "id": "http-middleware-runner",
+        "interface": {
+            "run": {
+                "input": "object",
+                "output": "object"
+            }
+        },
+        "implementation": {
+            "run": [
+                {
+                    "name": "currentMiddleware",
+                    "set": {
+                        "$get": {
+                            "_object": "#.input.middlewares",
+                            "_path": "#.input.index"
+                        }
+                    }
+                },
+                {
+                    "if": "#.currentMiddleware",
+                    "then": [
+                        {
+                            "name": "nextNode",
+                            "set": {
+                                "inputMap": {
+                                    "endpointId": "#.input.endpointId",
+                                    "httpRequest": "\\#.input",
+                                    "middlewares": { "\\$literal": "#.input.middlewares" },
+                                    "index": { "$sum": ["#.input.index", 1] },
+                                    "controllerImpl": { "\\$literal": "#.input.controllerImpl" }
+                                },
+                                "service": { "id": "http-middleware-runner", "method": "run" }
+                            }
+                        },
+                        {
+                            "inputMap": {
+                                "endpointId": "#.input.endpointId",
+                                "httpRequest": "#.input.httpRequest",
+                                "next": "#.nextNode"
+                            },
+                            "execute": "#.currentMiddleware.data.implementation"
+                        }
+                    ],
+                    "else": {
+                        "inputMap": "#.input.httpRequest",
+                        "execute": "#.input.controllerImpl"
+                    }
+                }
+            ]
+        }
+    }
+]

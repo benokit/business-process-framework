@@ -26,6 +26,13 @@
         }
     },
     {
+        "type": "schema",
+        "id": "http-middleware",
+        "schema": {
+            "!ordering": "number"
+        }
+    },
+    {
         "type": "data",
         "id": "http-server-interface",
         "data": {
