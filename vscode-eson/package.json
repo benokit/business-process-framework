@@ -71,7 +71,11 @@
                 "id": "eson",
                 "aliases": ["ESON", "eson"],
                 "extensions": [".eson"],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "icon": {
+                    "light": "./icons/eson-light.svg",
+                    "dark": "./icons/eson-dark.svg"
+                }
             }
         ],
         "grammars": [
