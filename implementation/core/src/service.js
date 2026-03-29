@@ -11,16 +11,31 @@ export {
 };
 
 async function execute(serviceId, methodName, input, _ctx = {}) {
-    if (!_ctx.timestampUTC) _ctx.timestampUTC = new Date().toISOString();
-    if (!_ctx._execution) _ctx._execution = { trace: [] };
-    const traceStart = _ctx._execution.trace.length;
-    const service = getElement('service', serviceId)
-    const iface = getData(service.interface);
-    validateInputAgainstInterface(iface.data[methodName], input);
-    const impl = getData(service.implementation).data[methodName];
-    const result = await executeMethod(impl, input, _ctx);
-    _ctx._execution.trace.splice(traceStart);
-    return result;
+    const isRoot = !_ctx._execution;
+    try {
+        const service = getElement('service', serviceId);
+        const iface = getData(service.interface);
+        validateInputAgainstInterface(iface.data[methodName], input);
+        const impl = getData(service.implementation).data[methodName];
+        return await executeMethod(impl, input, _ctx);
+    } catch (e) {
+        if (!isRoot) throw e;
+        if (e && e._isExecutionDiagnostic) {
+            e.service = serviceId;
+            e.method = methodName;
+            throw e;
+        }
+        const execution = _ctx._execution;
+        throw {
+            _isExecutionDiagnostic: true,
+            service: serviceId,
+            method: methodName,
+            trace: execution ? [...execution.trace] : [],
+            node: execution?.current?.node ?? null,
+            phase: execution?.current?.phase ?? null,
+            cause: e
+        };
+    }
 }
 
 function validateInputAgainstInterface(methodInterface, input) {
@@ -54,11 +69,26 @@ const keyword = {
 };
 
 async function executeMethod(implementation, input, _ctx = {}) {
-    const context = {
-        _ctx,
-        input
-    };
-    return await executeMethodWithContext(implementation, context);
+    if (!_ctx.timestampUTC) _ctx.timestampUTC = new Date().toISOString();
+    const isRoot = !_ctx._execution;
+    if (!_ctx._execution) _ctx._execution = { trace: [] };
+    const traceStart = _ctx._execution.trace.length;
+    const context = { _ctx, input };
+    try {
+        const result = await executeMethodWithContext(implementation, context);
+        _ctx._execution.trace.splice(traceStart);
+        return result;
+    } catch (e) {
+        if (!isRoot || (e && e._isExecutionDiagnostic)) throw e;
+        const execution = _ctx._execution;
+        throw {
+            _isExecutionDiagnostic: true,
+            trace: [...execution.trace],
+            node: execution.current?.node ?? null,
+            phase: execution.current?.phase ?? null,
+            cause: e
+        };
+    }
 }
 
 async function executeMethodWithContext(implementation, context) {
@@ -82,12 +112,18 @@ async function executeMethodWithContext(implementation, context) {
 }
 
 async function executeNode(node, context) {
-    context._ctx?._execution?.trace?.push(nodeLabel(node));
+    const execution = context._ctx?._execution;
+    execution?.trace?.push(nodeLabel(node));
 
-    const nodeInput = has(node, keyword.inputMap)
-        ? { _ctx: context._ctx, input: await executeMapping(node.inputMap, context) }
-        : context;
+    let nodeInput;
+    if (has(node, keyword.inputMap)) {
+        if (execution) execution.current = { node, phase: 'inputMap' };
+        nodeInput = { _ctx: context._ctx, input: await executeMapping(node.inputMap, context) };
+    } else {
+        nodeInput = context;
+    }
 
+    if (execution) execution.current = { node, phase: 'execute' };
     let result;
     if (has(node, keyword.execute)) {
         const pipeline = await executeMapping(node.execute, context);
@@ -101,7 +137,11 @@ async function executeNode(node, context) {
         result = await exec(nodeInput);
     }
 
-    return has(node, keyword.outputMap) ? (await executeMapping(node.outputMap, result)) : result;
+    if (has(node, keyword.outputMap)) {
+        if (execution) execution.current = { node, phase: 'outputMap' };
+        return await executeMapping(node.outputMap, result);
+    }
+    return result;
 }
 
 async function resolveNodeExecutor(node) {
@@ -226,12 +266,7 @@ function nodeLabel(node) {
 
 async function executeMapping(func, input) {
     const f = await compileMapping(func);
-    try {
     return f(input);
-    }
-    catch(e) {
-        console.log(func);
-    }
 }
 
 async function compileMapping(func) {

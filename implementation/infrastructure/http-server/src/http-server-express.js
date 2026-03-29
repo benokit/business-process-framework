@@ -25,7 +25,7 @@ function register({ input: { path, method, implementation } }) {
             for (const [key, value] of Object.entries(headers)) res.set(key, value);
             res.status(status).json(body);
         } catch (error) {
-            res.status(500).json({ error: String(error) });
+            res.status(500).json({ error });
         }
     });
     return {};
