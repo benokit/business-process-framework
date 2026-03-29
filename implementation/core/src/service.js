@@ -1,5 +1,5 @@
 import { validateSchema } from './schema.js';
-import { getData, getDataOfKind } from './data.js';
+import { getData, getDataOfKind, getServicesOfKind } from './data.js';
 import { getElement } from './elements-registry.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
 import { has, isArray, isPlainObject, merge } from 'lodash-es';
@@ -46,7 +46,11 @@ const keyword = {
     validateSchema: 'validateSchema',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
-    default: 'default'
+    default: 'default',
+    getData: 'getData',
+    getDataOfKind: 'getDataOfKind',
+    getServicesOfKind: 'getServicesOfKind',
+    executeRef: 'executeRef'
 };
 
 async function executeMethod(implementation, input, _ctx = {}) {
@@ -87,6 +91,10 @@ async function executeNode(node, context) {
     let result;
     if (has(node, keyword.execute)) {
         const pipeline = await executeMapping(node.execute, context);
+        result = await executeMethodWithContext(pipeline, nodeInput);
+    } else if (has(node, keyword.executeRef)) {
+        const id = await executeMapping(node.executeRef, context);
+        const pipeline = getData(id).data;
         result = await executeMethodWithContext(pipeline, nodeInput);
     } else {
         const exec = await resolveNodeExecutor(node);
@@ -169,6 +177,27 @@ async function resolveNodeExecutor(node) {
         }
     }
 
+    if (has(node, keyword.getData)) {
+        return async input => {
+            const id = await executeMapping(node[keyword.getData], input);
+            return getData(id);
+        }
+    }
+
+    if (has(node, keyword.getDataOfKind)) {
+        return async input => {
+            const kind = await executeMapping(node[keyword.getDataOfKind], input);
+            return getDataOfKind(kind);
+        }
+    }
+
+    if (has(node, keyword.getServicesOfKind)) {
+        return async input => {
+            const kind = await executeMapping(node[keyword.getServicesOfKind], input);
+            return getServicesOfKind(kind);
+        }
+    }
+
     if (has(node, keyword.switch)) {
         return async input => {
             const value = await executeMapping(node.switch.value, input);
@@ -197,7 +226,12 @@ function nodeLabel(node) {
 
 async function executeMapping(func, input) {
     const f = await compileMapping(func);
+    try {
     return f(input);
+    }
+    catch(e) {
+        console.log(func);
+    }
 }
 
 async function compileMapping(func) {

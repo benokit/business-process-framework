@@ -24,10 +24,7 @@
             "run": [
                 {
                     "name": "guards",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
+                    "getServicesOfKind": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
                 },
                 { "name": "_ctx", "set": { "guardInput": "#.input.eventInput" } },
                 {

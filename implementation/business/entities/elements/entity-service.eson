@@ -107,8 +107,7 @@
             "create": [
                 {
                     "name": "entityTypeDef",
-                    "inputMap": { "id": "#.input.entityType" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -166,8 +165,7 @@
             "update": [
                 {
                     "name": "entityTypeDef",
-                    "inputMap": { "id": "#.input.entityType" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -245,8 +243,7 @@
             "transition": [
                 {
                     "name": "entityTypeDef",
-                    "inputMap": { "id": "#.input.entityType" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.input.entityType"
                 },
                 {
                     "name": "current",
@@ -334,8 +331,7 @@
             "amend": [
                 {
                     "name": "entityTypeDef",
-                    "inputMap": { "id": "#.input.entityType" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -393,13 +389,11 @@
                 },
                 {
                     "name": "component",
-                    "inputMap": { "id": "#.input.componentId" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.input.componentId"
                 },
                 {
                     "name": "componentService",
-                    "inputMap": { "id": "#.component.data.componentService" },
-                    "service": { "id": "data", "method": "getData" }
+                    "getData": "#.component.data.componentService"
                 },
                 {
                     "name": "mappedContext",

@@ -25,10 +25,7 @@
             "run": [
                 {
                     "name": "handlers",
-                    "inputMap": {
-                        "kind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
-                    },
-                    "service": { "id": "data", "method": "getServicesOfKind" }
+                    "getServicesOfKind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
                 },
                 { "name": "_ctx", "set": { "handlerInput": "#.input.entity" } },
                 {

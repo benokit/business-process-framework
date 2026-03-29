@@ -4,8 +4,8 @@
         "id": "messaging-implementation",
         "data": {
             "publish": [
-                { "name": "channel", "inputMap": { "id": "#.input.channel" }, "service": { "id": "data", "method": "getData" } },
-                { "name": "broker", "inputMap": { "id": "#.channel.data.broker" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "channel", "getData": "#.input.channel" },
+                { "name": "broker", "getData": "#.channel.data.broker" },
                 {
                     "if": "#.channel.data.publisher.transactionalOutbox",
                     "then": {
@@ -19,9 +19,9 @@
                 }
             ],
             "startConsuming": [
-                { "name": "channel", "inputMap": { "id": "#.input.channel" }, "service": { "id": "data", "method": "getData" } },
-                { "name": "broker", "inputMap": { "id": "#.channel.data.broker" }, "service": { "id": "data", "method": "getData" } },
-                { "name": "allConsumers", "inputMap": { "kind": "message-consumer" }, "service": { "id": "data", "method": "getDataOfKind" } },
+                { "name": "channel", "getData": "#.input.channel" },
+                { "name": "broker", "getData": "#.channel.data.broker" },
+                { "name": "allConsumers", "getDataOfKind": "message-consumer" },
                 {
                     "name": "channelConsumers",
                     "set": {
@@ -57,8 +57,8 @@
                 }
             ],
             "stopConsuming": [
-                { "name": "channel", "inputMap": { "id": "#.input.channel" }, "service": { "id": "data", "method": "getData" } },
-                { "name": "broker", "inputMap": { "id": "#.channel.data.broker" }, "service": { "id": "data", "method": "getData" } },
+                { "name": "channel", "getData": "#.input.channel" },
+                { "name": "broker", "getData": "#.channel.data.broker" },
                 { "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } }, "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } }
             ]
         }

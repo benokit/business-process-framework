@@ -6,13 +6,11 @@
             "start": [
                 {
                     "name": "endpointData",
-                    "service": { "id": "data", "method": "getDataOfKind" },
-                    "inputMap": { "kind": "http-endpoint" }
+                    "getDataOfKind": "http-endpoint"
                 },
                 {
                     "name": "middlewareData",
-                    "service": { "id": "data", "method": "getDataOfKind" },
-                    "inputMap": { "kind": "http-middleware" }
+                    "getDataOfKind": "http-middleware"
                 },
                 {
                     "name": "sortedMiddlewares",
@@ -44,15 +42,14 @@
                                     "endpointId": "#.input.endpoint.id",
                                     "httpRequest": "\\#.input",
                                     "middlewares": { "\\$literal": "#.input.middlewares" },
-                                    "index": 0,
-                                    "controllerImpl": {
+                                    "controller": {
                                         "service": {
                                             "id": "#.input.endpoint.data.controller.service",
                                             "method": "#.input.endpoint.data.controller.method"
                                         }
                                     }
                                 },
-                                "service": { "id": "http-middleware-runner", "method": "run" }
+                                "executeRef": "http-middleware-runner"
                             }
                         },
                         "low": { "module": "@business-framework/http-server/express", "functionName": "register" }

@@ -45,8 +45,12 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `set` | Evaluates a lambdaJSON expression; result is the node output |
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
+| `getData` | Retrieves a data element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getData": "#.input.someId" }` |
+| `getDataOfKind` | Retrieves all data elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getDataOfKind": "my-kind" }`. Returns `{ items: [...] }` |
+| `getServicesOfKind` | Retrieves all service ids of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getServicesOfKind": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
 | `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
+| `executeRef` | Evaluates a lambdaJSON expression to resolve a data element id, loads that element, and executes its `data` value as a pipeline — equivalent to `execute` with the pipeline stored in a `data` element. |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |

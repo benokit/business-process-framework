@@ -1,55 +1,52 @@
 [
     {
-        "type": "service",
+        "type": "data",
         "id": "http-middleware-runner",
-        "interface": {
-            "run": {
-                "input": "object",
-                "output": "object"
+        "kind": "executable",
+        "meta": {
+            "inputSchema": {
+                "!middlewares[]": "object",
+                "!controller": "object",
+                "!httpRequest": "object",
+                "!endpointId": "string"
             }
         },
-        "implementation": {
-            "run": [
-                {
-                    "name": "currentMiddleware",
-                    "set": {
-                        "$get": {
-                            "_object": "#.input.middlewares",
-                            "_path": "#.input.index"
-                        }
-                    }
-                },
-                {
-                    "if": "#.currentMiddleware",
-                    "then": [
-                        {
-                            "name": "nextNode",
-                            "set": {
-                                "inputMap": {
-                                    "endpointId": "#.input.endpointId",
-                                    "httpRequest": "\\#.input",
-                                    "middlewares": { "\\$literal": "#.input.middlewares" },
-                                    "index": { "$sum": ["#.input.index", 1] },
-                                    "controllerImpl": { "\\$literal": "#.input.controllerImpl" }
-                                },
-                                "service": { "id": "http-middleware-runner", "method": "run" }
-                            }
-                        },
-                        {
+        "data": [
+            {
+                "name": "currentMiddleware",
+                "set": {
+                    "$head": "#.input.middlewares"
+                }
+            },
+            {
+                "if": "#.currentMiddleware",
+                "then": [
+                    {
+                        "name": "nextNode",
+                        "set": {
                             "inputMap": {
                                 "endpointId": "#.input.endpointId",
-                                "httpRequest": "#.input.httpRequest",
-                                "next": "#.nextNode"
+                                "httpRequest": "\\#.input",
+                                "middlewares": { "\\$literal": { "$tail": "#.input.middlewares" } },
+                                "controller": { "\\$literal": "#.input.controller" }
                             },
-                            "execute": "#.currentMiddleware.data.implementation"
+                            "executeRef": "http-middleware-runner"
                         }
-                    ],
-                    "else": {
-                        "inputMap": "#.input.httpRequest",
-                        "execute": "#.input.controllerImpl"
+                    },
+                    {
+                        "inputMap": {
+                            "endpointId": "#.input.endpointId",
+                            "httpRequest": "#.input.httpRequest",
+                            "next": "#.nextNode"
+                        },
+                        "execute": "#.currentMiddleware.data.implementation"
                     }
+                ],
+                "else": {
+                    "inputMap": "#.input.httpRequest",
+                    "execute": "#.input.controller"
                 }
-            ]
-        }
+            }
+        ]
     }
 ]
