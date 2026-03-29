@@ -1,0 +1,85 @@
+{
+    "name": "vscode-eson",
+    "displayName": "ESON – Business Process Framework",
+    "description": "Syntax highlighting for .eson files (elements, pipelines, LambdaJSON)",
+    "version": "0.1.0",
+    "publisher": "business-process-framework",
+    "engines": { "vscode": "^1.75.0" },
+    "categories": ["Programming Languages"],
+    "configurationDefaults": {
+        "editor.tokenColorCustomizations": {
+            "textMateRules": [
+                {
+                    "comment": "Object property keys — muted blue, same as JSON",
+                    "scope": "support.type.property-name.eson",
+                    "settings": { "foreground": "#9CDCFE" }
+                },
+                {
+                    "comment": "Execution node keywords (set, if, forEach, …)",
+                    "scope": "keyword.control.execution-node.eson",
+                    "settings": { "foreground": "#C586C0", "fontStyle": "bold" }
+                },
+                {
+                    "comment": "LambdaJSON $primitive functions",
+                    "scope": "support.function.lambda.eson",
+                    "settings": { "foreground": "#DCDCAA" }
+                },
+                {
+                    "comment": "LambdaJSON #path / #.field.path — clearly distinct from property names",
+                    "scope": "variable.other.readwrite.path.eson",
+                    "settings": { "foreground": "#4EC9B0" }
+                },
+                {
+                    "comment": "LambdaJSON @varRef / CJSL @schemaRef",
+                    "scope": "variable.other.constant.eson",
+                    "settings": { "foreground": "#4FC1FF" }
+                },
+                {
+                    "comment": "LambdaJSON \\\\escaped literal",
+                    "scope": "constant.other.literal.eson",
+                    "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
+                },
+                {
+                    "comment": "CJSL ! required-field operator",
+                    "scope": "keyword.operator.cjsl.required.eson",
+                    "settings": { "foreground": "#F44747", "fontStyle": "bold" }
+                },
+                {
+                    "comment": "CJSL required field name after !",
+                    "scope": "entity.name.tag.cjsl.eson",
+                    "settings": { "foreground": "#9CDCFE" }
+                },
+                {
+                    "comment": "CJSL modifiers: =, [], {}  and #, #& operators",
+                    "scope": [
+                        "keyword.operator.cjsl.modifier.eson",
+                        "keyword.operator.cjsl.eson"
+                    ],
+                    "settings": { "foreground": "#F44747" }
+                },
+                {
+                    "comment": "Plain string values",
+                    "scope": "string.quoted.double.eson",
+                    "settings": { "foreground": "#CE9178" }
+                }
+            ]
+        }
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "eson",
+                "aliases": ["ESON", "eson"],
+                "extensions": [".eson"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "eson",
+                "scopeName": "source.eson",
+                "path": "./syntaxes/eson.tmLanguage.json"
+            }
+        ]
+    }
+}

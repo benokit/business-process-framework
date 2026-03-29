@@ -1,0 +1,172 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "ESON",
+    "scopeName": "source.eson",
+    "fileTypes": ["eson"],
+    "patterns": [
+        { "include": "#value" }
+    ],
+    "repository": {
+
+        "value": {
+            "comment": "Any JSON value (used in array context and as object values)",
+            "patterns": [
+                { "include": "#object" },
+                { "include": "#array" },
+                { "include": "#value-string" },
+                { "include": "#number" },
+                { "include": "#constant" }
+            ]
+        },
+
+        "object": {
+            "name": "meta.structure.dictionary.eson",
+            "begin": "\\{",
+            "end": "\\}",
+            "beginCaptures": { "0": { "name": "punctuation.definition.dictionary.begin.eson" } },
+            "endCaptures": { "0": { "name": "punctuation.definition.dictionary.end.eson" } },
+            "patterns": [
+                { "include": "#key-string" },
+                { "include": "#value" },
+                { "match": ":", "name": "punctuation.separator.dictionary.key-value.eson" },
+                { "match": ",", "name": "punctuation.separator.dictionary.pair.eson" }
+            ]
+        },
+
+        "array": {
+            "name": "meta.structure.array.eson",
+            "begin": "\\[",
+            "end": "\\]",
+            "beginCaptures": { "0": { "name": "punctuation.definition.array.begin.eson" } },
+            "endCaptures": { "0": { "name": "punctuation.definition.array.end.eson" } },
+            "patterns": [
+                { "include": "#value" },
+                { "match": ",", "name": "punctuation.separator.array.eson" }
+            ]
+        },
+
+        "key-string": {
+            "comment": "Patterns for strings that are followed by a colon — they are object keys. Order: most specific first.",
+            "patterns": [
+                { "include": "#key-execution-node" },
+                { "include": "#key-lambda-primitive" },
+                { "include": "#key-cjsl-oneof" },
+                { "include": "#key-cjsl-allof" },
+                { "include": "#key-cjsl-required" },
+                { "include": "#key-plain" }
+            ]
+        },
+
+        "key-execution-node": {
+            "comment": "Pipeline node keywords used as object keys: set, if, forEach, etc.",
+            "name": "keyword.control.execution-node.eson",
+            "match": "\"(set|return|service|getData|getDataOfKind|getServicesOfKind|low|execute|executeRef|if|then|else|switch|forEach|try|catch|finally|throw|validateSchema|publish|inTransaction)\"(?=\\s*:)"
+        },
+
+        "key-lambda-primitive": {
+            "comment": "LambdaJSON $primitive as object key (expression object like {\"$map\": ...})",
+            "name": "support.function.lambda.eson",
+            "match": "\"\\$[a-zA-Z][a-zA-Z0-9_]*\"(?=\\s*:)"
+        },
+
+        "key-cjsl-oneof": {
+            "comment": "CJSL one-of schema key: $word#N  e.g. \"$data#1\"",
+            "match": "\"(\\$[a-zA-Z][a-zA-Z0-9_]*)(#)([0-9]+)\"(?=\\s*:)",
+            "captures": {
+                "1": { "name": "support.function.lambda.eson" },
+                "2": { "name": "keyword.operator.cjsl.eson" },
+                "3": { "name": "constant.numeric.cjsl.eson" }
+            }
+        },
+
+        "key-cjsl-allof": {
+            "comment": "CJSL allOf schema key: word#&  e.g. \"data#&\"",
+            "match": "\"([a-zA-Z][a-zA-Z0-9_-]*)(#&)\"(?=\\s*:)",
+            "captures": {
+                "1": { "name": "support.type.property-name.eson" },
+                "2": { "name": "keyword.operator.cjsl.eson" }
+            }
+        },
+
+        "key-cjsl-required": {
+            "comment": "CJSL required field key: !field, !field=, !field[], !field{}",
+            "match": "\"(!)(\\w[a-zA-Z0-9_.-]*)((?:=|\\[\\]|\\{\\})?)\"(?=\\s*:)",
+            "captures": {
+                "1": { "name": "keyword.operator.cjsl.required.eson" },
+                "2": { "name": "entity.name.tag.cjsl.eson" },
+                "3": { "name": "keyword.operator.cjsl.modifier.eson" }
+            }
+        },
+
+        "key-plain": {
+            "comment": "Regular object property key (e.g. \"type\", \"id\", \"interface\")",
+            "name": "support.type.property-name.eson",
+            "match": "\"[^\"]*\"(?=\\s*:)"
+        },
+
+        "value-string": {
+            "comment": "Patterns for strings used as values (not followed by colon). Order: most specific first.",
+            "patterns": [
+                { "include": "#value-lambda-path" },
+                { "include": "#value-lambda-escape" },
+                { "include": "#value-lambda-ref" },
+                { "include": "#value-lambda-primitive" },
+                { "include": "#value-string-plain" }
+            ]
+        },
+
+        "value-lambda-path": {
+            "comment": "LambdaJSON input reference: \"#\" or \"#.field.path\"",
+            "name": "variable.other.readwrite.path.eson",
+            "match": "\"#[^\"]*\""
+        },
+
+        "value-lambda-escape": {
+            "comment": "LambdaJSON escaped literal: \"\\\\value\" bypasses evaluation",
+            "name": "constant.other.literal.eson",
+            "match": "\"\\\\\\\\[^\"]*\""
+        },
+
+        "value-lambda-ref": {
+            "comment": "LambdaJSON @varName reference, or CJSL @schemaId reference",
+            "name": "variable.other.constant.eson",
+            "match": "\"@[a-zA-Z][a-zA-Z0-9_.-]*\""
+        },
+
+        "value-lambda-primitive": {
+            "comment": "LambdaJSON $primitive used as a plain string value (uncommon but valid)",
+            "name": "support.function.lambda.eson",
+            "match": "\"\\$[a-zA-Z][a-zA-Z0-9_]*\""
+        },
+
+        "value-string-plain": {
+            "comment": "Fallback plain string value",
+            "name": "string.quoted.double.eson",
+            "begin": "\"",
+            "end": "\"",
+            "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.eson" } },
+            "endCaptures": { "0": { "name": "punctuation.definition.string.end.eson" } },
+            "patterns": [
+                { "include": "#string-escape" }
+            ]
+        },
+
+        "string-escape": {
+            "name": "constant.character.escape.eson",
+            "match": "\\\\(?:[\"\\\\/bfnrt]|u[0-9a-fA-F]{4})"
+        },
+
+        "number": {
+            "name": "constant.numeric.eson",
+            "match": "-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b"
+        },
+
+        "constant": {
+            "patterns": [
+                { "match": "\\btrue\\b",  "name": "constant.language.boolean.true.eson" },
+                { "match": "\\bfalse\\b", "name": "constant.language.boolean.false.eson" },
+                { "match": "\\bnull\\b",  "name": "constant.language.null.eson" }
+            ]
+        }
+    }
+}
