@@ -62,7 +62,7 @@ describe('transaction (service elements)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('commitTransaction failed');
+            expect(error.cause).to.be.a('string').that.includes('commitTransaction failed');
         });
 
         it('rollbackTransaction throws for an unknown sessionId', async () => {
@@ -72,7 +72,7 @@ describe('transaction (service elements)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('rollbackTransaction failed');
+            expect(error.cause).to.be.a('string').that.includes('rollbackTransaction failed');
         });
 
     });
@@ -102,7 +102,7 @@ describe('transaction (service elements)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.equal('program error');
+            expect(error.cause).to.equal('program error');
         });
 
         it('exposes _ctx.transaction to the program', async () => {

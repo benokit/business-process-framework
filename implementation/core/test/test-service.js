@@ -31,14 +31,14 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-validate', 'greet', {}); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('should throw when an input field has the wrong type', async () => {
             let error;
             try { await execute('svc-validate', 'greet', { name: 42 }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
     });
@@ -340,7 +340,7 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-finally', 'rethrowWithFinally', { message: 'boom' }, _ctx); }
             catch (e) { error = e; }
-            expect(error).to.equal('boom');
+            expect(error.cause).to.equal('boom');
             expect(_ctx.log).to.equal('finally ran');
         });
 
@@ -349,7 +349,7 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-finally', 'noCatchWithFinally', { message: 'boom' }, _ctx); }
             catch (e) { error = e; }
-            expect(error).to.equal('boom');
+            expect(error.cause).to.equal('boom');
             expect(_ctx.log).to.equal('finally ran');
         });
 
@@ -367,7 +367,7 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-throw', 'fail', { message: 'custom error' }); }
             catch (e) { error = e; }
-            expect(error).to.equal('custom error');
+            expect(error.cause).to.equal('custom error');
         });
 
     });
@@ -597,21 +597,21 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice' }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when a field has the wrong type (inline schema)', async () => {
             let error;
             try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice', age: 'not-a-number' }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when validation fails against a registered schema reference', async () => {
             let error;
             try { await execute('svc-validate-schema', 'checkRef', {}); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('passes and returns input unchanged when input is valid', async () => {
@@ -623,7 +623,7 @@ describe('service tests', () => {
             let error;
             try { await execute('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 'not-a-number' } }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('passes when only the inputMap result satisfies the schema', async () => {

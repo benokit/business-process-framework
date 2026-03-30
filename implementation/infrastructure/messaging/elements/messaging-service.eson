@@ -1,7 +1,7 @@
 [
     {
         "type": "data",
-        "id": "messaging-implementation",
+        "id": "messaging-service-implementation",
         "data": {
             "publish": [
                 { "name": "channel", "getData": "#.input.channel" },
@@ -18,56 +18,93 @@
                     }
                 }
             ],
-            "startConsuming": [
-                { "name": "channel", "getData": "#.input.channel" },
-                { "name": "broker", "getData": "#.channel.data.broker" },
-                { "name": "allConsumers", "getDataOfKind": "message-consumer" },
+            "startConsumers": [
                 {
-                    "name": "channelConsumers",
-                    "set": {
-                        "$let": { "channelId": "#.channel.id" },
-                        "$filter": {
-                            "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
-                            "_collection": "#.allConsumers.items"
-                        }
-                    }
-                },
-                {
-                    "name": "consumers",
-                    "set": {
-                        "$let": {
-                            "channelData": "#.channel.data",
-                            "brokerData": "#.broker.data",
-                            "brokerId": "#.broker.data.service"
-                        },
-                        "$map": {
-                            "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data" },
-                            "_over": "#.channelConsumers"
-                        }
-                    }
-                },
-                {
-                    "forEach": [
+                    "if": "#.input.channel",
+                    "then": [
+                        { "name": "channel", "getData": "#.input.channel" },
+                        { "name": "broker", "getData": "#.channel.data.broker" },
+                        { "name": "allConsumers", "getDataOfKind": "message-consumer" },
                         {
-                            "execute": { "service": { "id": "#.input.brokerId", "method": "consume" } },
-                            "inputMap": { "channel": "#.input.channel", "broker": "#.input.broker", "consumer": "#.input.consumer" }
+                            "name": "channelConsumers",
+                            "set": {
+                                "$let": { "channelId": "#.channel.id" },
+                                "$filter": {
+                                    "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
+                                    "_collection": "#.allConsumers.items"
+                                }
+                            }
+                        },
+                        {
+                            "name": "consumers",
+                            "set": {
+                                "$let": {
+                                    "channelData": "#.channel.data",
+                                    "brokerData": "#.broker.data",
+                                    "brokerId": "#.broker.data.service"
+                                },
+                                "$map": {
+                                    "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data" },
+                                    "_over": "#.channelConsumers"
+                                }
+                            }
+                        },
+                        {
+                            "forEach": [
+                                {
+                                    "execute": { "service": { "id": "#.input.brokerId", "method": "consume" } },
+                                    "inputMap": { "channel": "#.input.channel", "broker": "#.input.broker", "consumer": "#.input.consumer" }
+                                }
+                            ],
+                            "inputMap": "#.consumers"
                         }
                     ],
-                    "inputMap": "#.consumers"
+                    "else": [
+                        { "name": "allChannels", "getDataOfKind": "message-channel" },
+                        {
+                            "forEach": [
+                                {
+                                    "service": { "id": "messaging-service", "method": "startConsumers" },
+                                    "inputMap": { "channel": "#.input.id" }
+                                }
+                            ],
+                            "inputMap": "#.allChannels.items"
+                        }
+                    ]
                 }
             ],
-            "stopConsuming": [
-                { "name": "channel", "getData": "#.input.channel" },
-                { "name": "broker", "getData": "#.channel.data.broker" },
-                { "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } }, "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } }
+            "stopConsumers": [
+                {
+                    "if": "#.input.channel",
+                    "then": [
+                        { "name": "channel", "getData": "#.input.channel" },
+                        { "name": "broker", "getData": "#.channel.data.broker" },
+                        {
+                            "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } },
+                            "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } 
+                        }
+                    ],
+                    "else": [
+                        { "name": "allChannels", "getDataOfKind": "message-channel" },
+                        {
+                            "forEach": [
+                                {
+                                    "service": { "id": "messaging-service", "method": "stopConsumers" },
+                                    "inputMap": { "channel": "#.input.id" }
+                                }
+                            ],
+                            "inputMap": "#.allChannels.items"
+                        }
+                    ]
+                }
             ]
         }
     },
     {
         "type": "service",
-        "id": "messaging",
-        "interface": "messaging-interface",
-        "implementation": "messaging-implementation"
+        "id": "messaging-service",
+        "interface": "messaging-service-interface",
+        "implementation": "messaging-service-implementation"
     },
     {
         "type": "data",
@@ -89,7 +126,7 @@
                 },
                 {
                     "inputMap": { "channel": "#.node.publish.channel", "envelope": "#.envelope" },
-                    "service": { "id": "messaging", "method": "publish" }
+                    "service": { "id": "messaging-service", "method": "publish" }
                 }
             ]
         }

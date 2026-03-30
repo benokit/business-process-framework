@@ -266,14 +266,14 @@ describe('entity service', function () {
             let error;
             try { await execute(SERVICE, 'create', { businessKey: 'order-001', data: {} }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('throws when data does not match the entity type dataSchema', async () => {
             let error;
             try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001', data: { amount: 'not-a-number' } }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('succeeds when data matches the entity type dataSchema', async () => {
@@ -287,14 +287,14 @@ describe('entity service', function () {
             let error;
             try { await execute(SERVICE, 'create', { entityType: 'order', data: {} }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('throws when data is missing', async () => {
             let error;
             try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001' }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
     });
@@ -383,7 +383,7 @@ describe('entity service', function () {
             let error;
             try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
     });
@@ -447,14 +447,14 @@ describe('entity service', function () {
             let error;
             try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('validation failed');
+            expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when revision is missing', async () => {
             let error;
             try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
     });
@@ -489,7 +489,7 @@ describe('entity service', function () {
             let error;
             try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'nonexistent' }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('transition is not defined');
+            expect(error.cause).to.be.a('string').that.includes('transition is not defined');
         });
 
         it('throws when current state does not match from conditions', async () => {
@@ -497,7 +497,7 @@ describe('entity service', function () {
             // mock read returns status='draft'; 'escalate' requires tier='standard' which is absent
             try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'escalate' }); }
             catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('transition failed');
+            expect(error.cause).to.be.a('string').that.includes('transition failed');
         });
 
         it('does not pass data to entity-database update', async () => {
@@ -546,7 +546,7 @@ describe('entity service', function () {
                     entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: -1, currency: 'USD' }
                 });
             } catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('amount must be positive');
+            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
         });
 
         it('proceeds when a guard returns no errors', async () => {
@@ -563,8 +563,8 @@ describe('entity service', function () {
                     entityType: 'order-with-multi-guards', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
                 });
             } catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('error from guard A');
-            expect(error).to.be.a('string').that.includes('error from guard B');
+            expect(error.cause).to.be.a('string').that.includes('error from guard A');
+            expect(error.cause).to.be.a('string').that.includes('error from guard B');
         });
 
         it('proceeds normally when no guards are registered', async () => {
@@ -586,7 +586,7 @@ describe('entity service', function () {
                     entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
                 });
             } catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('amount must be positive');
+            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
         });
 
         it('proceeds when a guard returns no errors', async () => {
@@ -615,7 +615,7 @@ describe('entity service', function () {
                     entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'forbidden'
                 });
             } catch (e) { error = e; }
-            expect(error).to.be.a('string').that.includes('transition forbidden by guard');
+            expect(error.cause).to.be.a('string').that.includes('transition forbidden by guard');
         });
 
         it('proceeds when a guard returns no errors', async () => {

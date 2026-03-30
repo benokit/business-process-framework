@@ -145,7 +145,7 @@ describe('transactional-outbox', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.equal('deliberate rollback');
+            expect(error.cause).to.equal('deliberate rollback');
             expect(await countAll()).to.equal(0);
         });
 

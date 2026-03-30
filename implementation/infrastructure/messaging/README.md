@@ -20,7 +20,7 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 | `consumer.retry.attempts` | max retry count on handler failure |
 | `consumer.retry.backoff` | delay between retries (ms) |
 
-**`message-consumer`** (`kind = "message-consumer"`) — discovered automatically by `startConsuming`:
+**`message-consumer`** (`kind = "message-consumer"`) — discovered automatically by `startConsumers`:
 
 | Field | Description |
 | --- | --- |
@@ -38,15 +38,15 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 | `correlation` | correlation id for tracing |
 | `message` | payload object |
 
-## `messaging` service interface
+## `messaging-service` service interface
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
 | `publish` | `channel`, `envelope` | `{ messageId }` |
-| `startConsuming` | `channel` | `{ consumers[] }` — names of activated consumers |
-| `stopConsuming` | `channel` | — |
+| `startConsumers` | `channel` *(optional)* | `{ consumers[] }` — names of activated consumers |
+| `stopConsumers` | `channel` *(optional)* | — |
 
-`channel` is the id of a `message-channel` data element in all methods.
+`channel` is the id of a `message-channel` data element. When omitted, the method applies to all channels.
 
 ## `publish` pipeline keyword
 
@@ -64,7 +64,7 @@ For dynamic values, use `execute` to resolve context references before the node 
 
 ## Routing
 
-For each method, `messaging` resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsuming` discovers all `message-consumer` elements for the channel via `getDataOfKind` and calls `broker.consume` for each one.
+For each method, `messaging-service` resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsumers` discovers all `message-consumer` elements for the channel via `getDataOfKind` and calls `broker.consume` for each one. When `channel` is omitted, both `startConsumers` and `stopConsumers` iterate over all `message-channel` elements and apply the operation to each.
 
 ## Broker interface (`messaging-broker-interface`)
 

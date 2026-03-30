@@ -66,14 +66,14 @@
     },
     {
         "type": "schema",
-        "id": "messaging-consuming-input",
+        "id": "messaging-consumers-input",
         "schema": {
-            "!channel": "string"
+            "channel": "string"
         }
     },
     {
         "type": "schema",
-        "id": "messaging-start-consuming-output",
+        "id": "messaging-start-consumers-output",
         "schema": {
             "consumers[]": "string"
         }
@@ -122,18 +122,18 @@
     },
     {
         "type": "data",
-        "id": "messaging-interface",
+        "id": "messaging-service-interface",
         "data": {
             "publish": {
                 "input": "@messaging-publish-input",
                 "output": "@messaging-publish-output"
             },
-            "startConsuming": {
-                "input": "@messaging-consuming-input",
-                "output": "@messaging-start-consuming-output"
+            "startConsumers": {
+                "input": "@messaging-consumers-input",
+                "output": "@messaging-start-consumers-output"
             },
-            "stopConsuming": {
-                "input": "@messaging-consuming-input"
+            "stopConsumers": {
+                "input": "@messaging-consumers-input"
             }
         }
     }

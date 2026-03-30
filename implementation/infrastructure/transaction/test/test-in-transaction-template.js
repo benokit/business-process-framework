@@ -88,7 +88,7 @@ describe('inTransaction node template', function () {
         } catch (e) {
             error = e;
         }
-        expect(error).to.equal('inner error');
+        expect(error.cause).to.equal('inner error');
     });
 
     it('reuses the outer transaction when nested', async () => {

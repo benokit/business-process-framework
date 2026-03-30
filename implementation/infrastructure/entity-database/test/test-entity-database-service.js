@@ -45,7 +45,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('throws when businessKey is missing from create', async () => {
@@ -55,7 +55,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
     });
@@ -145,7 +145,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('update failed');
+            expect(error.cause).to.be.a('string').that.includes('update failed');
         });
 
     });
@@ -171,7 +171,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('update failed');
+            expect(error.cause).to.be.a('string').that.includes('update failed');
         });
 
     });
@@ -196,7 +196,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('delete failed');
+            expect(error.cause).to.be.a('string').that.includes('delete failed');
         });
 
     });
@@ -221,7 +221,7 @@ describe('entity-database (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('delete failed');
+            expect(error.cause).to.be.a('string').that.includes('delete failed');
         });
 
     });

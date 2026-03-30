@@ -96,7 +96,8 @@ async function executeMethodWithContext(implementation, context) {
         return await executeNode(implementation, context);
     }
 
-    for (const node of implementation.slice(0, -1)) {
+    let result;
+    for (const node of implementation) {
         const output = await executeNode(node, context);
         if (node.name) {
             if (has(node, keyword.set) && isPlainObject(context[node.name]) && isPlainObject(output)) {
@@ -105,10 +106,9 @@ async function executeMethodWithContext(implementation, context) {
                 context[node.name] = output;
             }
         }
+        result = output;
     }
-
-    const lastNode = implementation.at(-1);
-    return await executeNode(lastNode, context);
+    return result;
 }
 
 async function executeNode(node, context) {

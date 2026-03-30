@@ -78,7 +78,7 @@ describe('http-server (service element)', function () {
             } catch (e) {
                 error = e;
             }
-            expect(error).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
     });
