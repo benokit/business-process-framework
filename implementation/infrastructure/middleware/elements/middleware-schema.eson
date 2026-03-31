@@ -1,0 +1,10 @@
+[
+    {
+        "type": "schema",
+        "id": "middleware",
+        "schema": {
+            "!ordering": "number",
+            "!implementation": "@impl-schema"
+        }
+    }
+]

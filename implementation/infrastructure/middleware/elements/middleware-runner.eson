@@ -1,14 +1,14 @@
 [
     {
         "type": "data",
-        "id": "http-middleware-runner",
+        "id": "middleware-runner",
         "kind": "executable",
         "meta": {
             "inputSchema": {
                 "!middlewares[]": "object",
-                "!controller": "object",
-                "!httpRequest": "object",
-                "!endpointId": "string"
+                "!action": "object",
+                "!input": "object",
+                "context": "object"
             }
         },
         "data": [
@@ -25,26 +25,26 @@
                         "name": "nextNode",
                         "set": {
                             "inputMap": {
-                                "endpointId": "#.input.endpointId",
-                                "httpRequest": "\\#.input",
+                                "context": "#.input.context",
+                                "input": "\\#.input",
                                 "middlewares": { "\\$literal": { "$tail": "#.input.middlewares" } },
-                                "controller": { "\\$literal": "#.input.controller" }
+                                "action": { "\\$literal": "#.input.action" }
                             },
-                            "executeRef": "http-middleware-runner"
+                            "executeRef": "middleware-runner"
                         }
                     },
                     {
                         "inputMap": {
-                            "endpointId": "#.input.endpointId",
-                            "httpRequest": "#.input.httpRequest",
+                            "context": "#.input.context",
+                            "input": "#.input.input",
                             "next": "#.nextNode"
                         },
                         "execute": "#.currentMiddleware.data.implementation"
                     }
                 ],
                 "else": {
-                    "inputMap": "#.input.httpRequest",
-                    "execute": "#.input.controller"
+                    "inputMap": "#.input.input",
+                    "execute": "#.input.action"
                 }
             }
         ]

@@ -8,7 +8,8 @@ import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTTP_SERVER_ELEMENTS_DIR = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR         = join(__dirname, '../../../core/elements');
+const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../middleware/elements');
+const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
 const SERVICE = 'http-server';
 
 function httpGet(url) {
@@ -43,7 +44,7 @@ function httpPost(url, payload) {
 describe('http-server (service element)', function () {
 
     before(async function () {
-        await loadElements([CORE_ELEMENTS_DIR, HTTP_SERVER_ELEMENTS_DIR]);
+        await loadElements([CORE_ELEMENTS_DIR, MIDDLEWARE_ELEMENTS_DIR, HTTP_SERVER_ELEMENTS_DIR]);
 
         // Minimal echo controller: returns its full input so result.body = req.body
         registerElement({

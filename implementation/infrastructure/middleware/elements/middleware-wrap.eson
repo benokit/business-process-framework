@@ -1,0 +1,40 @@
+[
+    {
+        "type": "data",
+        "id": "middleware-wrap",
+        "kind": "executable",
+        "meta": {
+            "inputSchema": {
+                "!middlewareKind": "string",
+                "!action": "object",
+                "context": "object"
+            }
+        },
+        "data": [
+            {
+                "name": "middlewareData",
+                "getDataOfKind": "#.input.middlewareKind"
+            },
+            {
+                "name": "sortedMiddlewares",
+                "set": {
+                    "$ascending": {
+                        "_collection": "#.middlewareData.items",
+                        "_by": "#.input.data.ordering"
+                    }
+                }
+            },
+            {
+                "return": {
+                    "inputMap": {
+                        "middlewares": { "\\$literal": "#.sortedMiddlewares" },
+                        "action": { "\\$literal": "#.input.action" },
+                        "context": "#.input.context",
+                        "input": "\\#.input"
+                    },
+                    "executeRef": "middleware-runner"
+                }
+            }
+        ]
+    }
+]

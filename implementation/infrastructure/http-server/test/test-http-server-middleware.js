@@ -8,7 +8,8 @@ import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTTP_SERVER_ELEMENTS_DIR = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR         = join(__dirname, '../../../core/elements');
+const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../middleware/elements');
+const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
 const SERVICE = 'http-server';
 
 function httpPost(url, payload) {
@@ -30,14 +31,14 @@ function httpPost(url, payload) {
     });
 }
 
-// Helper: builds an inputMap that merges `patch` into the httpRequest body and calls next
+// Helper: builds an inputMap that merges `patch` into the request body and calls next
 function injectIntoBody(patch) {
     return {
         inputMap: {
-            body: { $merge: ['#.input.httpRequest.body', patch] },
-            params: '#.input.httpRequest.params',
-            query:  '#.input.httpRequest.query',
-            headers: '#.input.httpRequest.headers'
+            body: { $merge: ['#.input.input.body', patch] },
+            params: '#.input.input.params',
+            query:  '#.input.input.query',
+            headers: '#.input.input.headers'
         },
         execute: '#.input.next'
     };
@@ -47,7 +48,7 @@ describe('http-middleware', function () {
     let port;
 
     before(async function () {
-        await loadElements([CORE_ELEMENTS_DIR, HTTP_SERVER_ELEMENTS_DIR]);
+        await loadElements([CORE_ELEMENTS_DIR, MIDDLEWARE_ELEMENTS_DIR, HTTP_SERVER_ELEMENTS_DIR]);
 
         // Controller: echoes request body back as the HTTP response body
         registerElement({
@@ -66,27 +67,27 @@ describe('http-middleware', function () {
 
         // ordering 1 — injects step1:true and sets lastStep:1
         registerElement({
-            type: 'data', id: 'mw-1', kind: 'http-middleware',
+            type: 'data', id: 'mw-1', kind: 'middleware/http',
             data: { ordering: 1, implementation: injectIntoBody({ step1: true, lastStep: 1 }) }
         });
 
         // ordering 2 — injects step2:true and overwrites lastStep:2
         registerElement({
-            type: 'data', id: 'mw-2', kind: 'http-middleware',
+            type: 'data', id: 'mw-2', kind: 'middleware/http',
             data: { ordering: 2, implementation: injectIntoBody({ step2: true, lastStep: 2 }) }
         });
 
         // ordering 3 — injects the endpointId into the body so we can assert it
         registerElement({
-            type: 'data', id: 'mw-3', kind: 'http-middleware',
+            type: 'data', id: 'mw-3', kind: 'middleware/http',
             data: {
                 ordering: 3,
                 implementation: {
                     inputMap: {
-                        body: { $merge: ['#.input.httpRequest.body', { endpointId: '#.input.endpointId' }] },
-                        params:  '#.input.httpRequest.params',
-                        query:   '#.input.httpRequest.query',
-                        headers: '#.input.httpRequest.headers'
+                        body: { $merge: ['#.input.input.body', { endpointId: '#.input.context.endpointId' }] },
+                        params:  '#.input.input.params',
+                        query:   '#.input.input.query',
+                        headers: '#.input.input.headers'
                     },
                     execute: '#.input.next'
                 }
@@ -127,7 +128,7 @@ describe('http-middleware short-circuit', function () {
     before(async function () {
         // ordering 0 — runs before mw-1/2/3 and returns without calling next
         registerElement({
-            type: 'data', id: 'mw-block', kind: 'http-middleware',
+            type: 'data', id: 'mw-block', kind: 'middleware/http',
             data: {
                 ordering: 0,
                 implementation: { return: { status: 403, body: { error: 'blocked' } } }

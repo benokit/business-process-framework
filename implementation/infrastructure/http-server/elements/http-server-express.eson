@@ -9,51 +9,31 @@
                     "getDataOfKind": "http-endpoint"
                 },
                 {
-                    "name": "middlewareData",
-                    "getDataOfKind": "http-middleware"
-                },
-                {
-                    "name": "sortedMiddlewares",
-                    "set": {
-                        "$ascending": {
-                            "_collection": "#.middlewareData.items",
-                            "_by": "#.input.data.ordering"
-                        }
-                    }
-                },
-                {
-                    "name": "registrations",
-                    "set": {
-                        "$let": { "middlewares": "#.sortedMiddlewares" },
-                        "$map": {
-                            "_over": "#.endpointData.items",
-                            "_fn": { "endpoint": "#", "middlewares": "@middlewares" }
-                        }
-                    }
-                },
-                {
-                    "inputMap": "#.registrations",
-                    "forEach": {
-                        "inputMap": {
-                            "path": "#.input.endpoint.data.path",
-                            "method": "#.input.endpoint.data.method",
-                            "implementation": {
-                                "inputMap": {
-                                    "endpointId": "#.input.endpoint.id",
-                                    "httpRequest": "\\#.input",
-                                    "middlewares": { "\\$literal": "#.input.middlewares" },
-                                    "controller": {
-                                        "service": {
-                                            "id": "#.input.endpoint.data.controller.service",
-                                            "method": "#.input.endpoint.data.controller.method"
-                                        }
+                    "inputMap": "#.endpointData.items",
+                    "forEach": [
+                        {
+                            "name": "wrappedAction",
+                            "inputMap": {
+                                "middlewareKind": "middleware/http",
+                                "action": {
+                                    "service": {
+                                        "id": "#.input.data.controller.service",
+                                        "method": "#.input.data.controller.method"
                                     }
                                 },
-                                "executeRef": "http-middleware-runner"
-                            }
+                                "context": { "endpointId": "#.input.id" }
+                            },
+                            "executeRef": "middleware-wrap"
                         },
-                        "low": { "module": "@business-framework/http-server/express", "functionName": "register" }
-                    }
+                        {
+                            "inputMap": {
+                                "path": "#.input.data.path",
+                                "method": "#.input.data.method",
+                                "implementation": "#.wrappedAction"
+                            },
+                            "low": { "module": "@business-framework/http-server/express", "functionName": "register" }
+                        }
+                    ]
                 },
                 {
                     "inputMap": "#.input",
