@@ -66,6 +66,37 @@ For dynamic values, use `execute` to resolve context references before the node 
 
 For each method, `messaging-service` resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsumers` discovers all `message-consumer` elements for the channel via `getDataOfKind` and calls `broker.consume` for each one. When `channel` is omitted, both `startConsumers` and `stopConsumers` iterate over all `message-channel` elements and apply the operation to each.
 
+## Messaging middleware
+
+Define `data` elements with `kind: "middleware/messaging"` to intercept message handling. All such elements are automatically collected and chained (in ascending `ordering`) around every consumer's handler when `startConsumers` is called.
+
+Each middleware receives `{ context, input, next }`:
+
+| Field | Description |
+| --- | --- |
+| `context.consumerId` | id of the `message-consumer` data element being started |
+| `input` | the `message-envelope` passed to the handler |
+| `next` | pipeline node to continue the chain (and ultimately invoke the handler) |
+
+```json
+{
+    "type": "data",
+    "id": "my-messaging-middleware",
+    "kind": "middleware/messaging",
+    "data": {
+        "ordering": 10,
+        "implementation": [
+            {
+                "inputMap": "#.input.input",
+                "execute": "#.input.next"
+            }
+        ]
+    }
+}
+```
+
+See [`middleware`](../middleware/README.md) for the underlying runner.
+
 ## Broker interface (`messaging-broker-interface`)
 
 Broker packages implement this interface. Methods receive resolved data objects (not ids).
@@ -73,7 +104,7 @@ Broker packages implement this interface. Methods receive resolved data objects 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
 | `publish` | `channel`, `broker`, `envelope` | `{ messageId }` |
-| `consume` | `channel`, `broker`, `consumer` | — |
+| `consume` | `channel`, `broker`, `consumer`, `handler` | — |
 | `stopConsuming` | `channel`, `broker` | — |
 
-`consumer` includes the resolved `handler` pipeline. The broker calls `executeMethod(consumer.handler, envelope, _ctx)` to dispatch each message.
+`handler` is the middleware-wrapped pipeline node to invoke per message. The broker calls `executeMethod(handler, envelope, _ctx)` to dispatch each message. `consumer` still carries the consumer config (retry, concurrency, etc.) but its `handler` field should not be used directly.

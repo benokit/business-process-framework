@@ -44,7 +44,7 @@
                                     "brokerId": "#.broker.data.service"
                                 },
                                 "$map": {
-                                    "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data" },
+                                    "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data", "consumerId": "#.id" },
                                     "_over": "#.channelConsumers"
                                 }
                             }
@@ -52,8 +52,22 @@
                         {
                             "forEach": [
                                 {
+                                    "name": "wrappedHandler",
+                                    "inputMap": {
+                                        "middlewareKind": "middleware/messaging",
+                                        "action": "#.input.consumer.handler",
+                                        "context": { "consumerId": "#.input.consumerId" }
+                                    },
+                                    "executeRef": "middleware-wrap"
+                                },
+                                {
                                     "execute": { "service": { "id": "#.input.brokerId", "method": "consume" } },
-                                    "inputMap": { "channel": "#.input.channel", "broker": "#.input.broker", "consumer": "#.input.consumer" }
+                                    "inputMap": {
+                                        "channel": "#.input.channel",
+                                        "broker": "#.input.broker",
+                                        "consumer": "#.input.consumer",
+                                        "handler": "#.wrappedHandler"
+                                    }
                                 }
                             ],
                             "inputMap": "#.consumers"

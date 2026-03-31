@@ -14,6 +14,7 @@ const CHANNEL_B_ID = 'svc-test-channel-b';
 before(async function () {
     await loadElements([
         join(__dirname, '../../../core/elements'),
+        join(__dirname, '../../middleware/elements'),
         join(__dirname, '../elements')
     ]);
 

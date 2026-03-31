@@ -40,7 +40,7 @@ async function publish({ input: { channel, broker, envelope } }) {
     return { messageId: envelope.messageId };
 }
 
-async function consume({ _ctx, input: { channel, broker, consumer } }) {
+async function consume({ _ctx, input: { channel, broker, consumer, handler } }) {
     const { js, jsm } = await getConnection(broker.url);
     await ensureStream(jsm, broker.url, channel.name);
 
@@ -72,7 +72,7 @@ async function consume({ _ctx, input: { channel, broker, consumer } }) {
             let attempt = 0;
             while (true) {
                 try {
-                    await executeMethod(consumer.handler, envelope, _ctx);
+                    await executeMethod(handler, envelope, _ctx);
                     msg.ack();
                     break;
                 } catch {
