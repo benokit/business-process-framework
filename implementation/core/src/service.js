@@ -1,13 +1,17 @@
 import { validateSchema } from './schema.js';
-import { getData, getDataOfKind, getServicesOfKind } from './data.js';
+import { getData } from './data.js';
 import { getElement } from './elements-registry.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
 import { has, isArray, isPlainObject, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
+import { executors } from './executors.js';
 
 export {
     execute,
-    executeMethod
+    executeMethod,
+    executeMethodWithContext,
+    executeMapping,
+    registerExecutionNodeTemplate
 };
 
 async function execute(serviceId, methodName, input, _ctx = {}) {
@@ -45,28 +49,20 @@ function validateInputAgainstInterface(methodInterface, input) {
     }
 }
 
+
 const keyword = {
     service: 'service',
-    low: 'low',
     execute: 'execute',
-    set: 'set',
-    if: 'if',
-    return: 'return',
-    forEach: 'forEach',
-    switch: 'switch',
-    try: 'try',
-    catch: 'catch',
-    finally: 'finally',
-    throw: 'throw',
-    validateSchema: 'validateSchema',
+    executeRef: 'executeRef',
     inputMap: 'inputMap',
     outputMap: 'outputMap',
-    default: 'default',
-    getData: 'getData',
-    getDataOfKind: 'getDataOfKind',
-    getServicesOfKind: 'getServicesOfKind',
-    executeRef: 'executeRef'
+    set: 'set'
 };
+
+function registerExecutionNodeTemplate(kw, implementation) {
+    executors[kw] = node => async ({ _ctx, input }) =>
+        await executeMethodWithContext(implementation, { _ctx, input, node });
+}
 
 async function executeMethod(implementation, input, _ctx = {}) {
     if (!_ctx.timestampUTC) _ctx.timestampUTC = new Date().toISOString();
@@ -133,8 +129,12 @@ async function executeNode(node, context) {
         const pipeline = getData(id).data;
         result = await executeMethodWithContext(pipeline, nodeInput);
     } else {
-        const exec = await resolveNodeExecutor(node);
-        result = await exec(nodeInput);
+        for (const key of Object.keys(node)) {
+            if (executors[key]) {
+                result = await executors[key](node)(nodeInput);
+                break;
+            }
+        }
     }
 
     if (has(node, keyword.outputMap)) {
@@ -144,121 +144,10 @@ async function executeNode(node, context) {
     return result;
 }
 
-async function resolveNodeExecutor(node) {
-    if (has(node, keyword.service)) {
-        return async ({ _ctx, input }) => await execute(node.service.id, node.service.method, input, _ctx);
-    }
-
-    if (has(node, keyword.low)) {
-        const g = (await import(node.low.module))[node.low.functionName];
-        return async input => await g(input)
-    }
-
-    if (has(node, keyword.return)) {
-        return async input => await executeMapping(node.return, input);
-    }
-
-    if (has(node, keyword.set)) {
-        return async input => await executeMapping(node.set, input);
-    }
-
-    if (has(node, keyword.if)) {
-        return async input => {
-            const condition = await executeMapping(node.if, input);
-            if (condition) {
-                return await executeMethodWithContext(node.then, input);
-            } else {
-                return node.else != null ? await executeMethodWithContext(node.else, input) : null;
-            }
-        }
-    }
-
-    if (has(node, keyword.forEach)) {
-        return async ({ _ctx, input }) => {
-            const result = [];
-            for (const x of input) {
-                result.push(await executeMethod(node.forEach, x, _ctx));
-            }
-            return result;
-        }
-    }
-
-    if (has(node, keyword.try)) {
-        return async input => {
-            try {
-                try {
-                    return await executeMethodWithContext(node.try, input);
-                } catch (error) {
-                    if (!has(node, keyword.catch)) throw error;
-                    return await executeMethodWithContext(node.catch, { _ctx: input._ctx, context: input, error });
-                }
-            } finally {
-                if (has(node, keyword.finally)) {
-                    await executeMethodWithContext(node.finally, input);
-                }
-            }
-        }
-    }
-
-    if (has(node, keyword.throw)) {
-        return async input => {
-            const error = await executeMapping(node.throw, input);
-            throw error;
-        }
-    }
-
-    if (has(node, keyword.validateSchema)) {
-        return async ({ input }) => {
-            const result = validateSchema(node.validateSchema, input);
-            if (!result.isValid) {
-                throw 'validation failed: ' + JSON.stringify(result.errors);
-            }
-            return input;
-        }
-    }
-
-    if (has(node, keyword.getData)) {
-        return async input => {
-            const id = await executeMapping(node[keyword.getData], input);
-            return getData(id);
-        }
-    }
-
-    if (has(node, keyword.getDataOfKind)) {
-        return async input => {
-            const kind = await executeMapping(node[keyword.getDataOfKind], input);
-            return getDataOfKind(kind);
-        }
-    }
-
-    if (has(node, keyword.getServicesOfKind)) {
-        return async input => {
-            const kind = await executeMapping(node[keyword.getServicesOfKind], input);
-            return getServicesOfKind(kind);
-        }
-    }
-
-    if (has(node, keyword.switch)) {
-        return async input => {
-            const value = await executeMapping(node.switch.value, input);
-            const g = node.switch.cases[value] || node.switch.cases[keyword.default];
-            return await executeMethodWithContext(g, input);
-        }
-    }
-
-    const templates = getDataOfKind('execution-node-template').items;
-    for (const template of templates) {
-        const { keyword: kw, implementation } = template.data;
-        if (has(node, kw)) {
-            return async ({ _ctx, input }) => await executeMethodWithContext(implementation, { _ctx, input, node });
-        }
-    }
-}
-
 function nodeLabel(node) {
     if (has(node, keyword.service)) return `${node.service.id}/${node.service.method}`;
     if (node.name) return node.name;
-    for (const kw of Object.values(keyword)) {
+    for (const kw of [...Object.keys(executors), keyword.execute, keyword.executeRef]) {
         if (has(node, kw)) return kw;
     }
     return 'unknown';

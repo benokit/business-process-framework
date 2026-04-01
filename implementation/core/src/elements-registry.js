@@ -1,6 +1,7 @@
 import { isString } from 'lodash-es';
 import { registerSchema } from './schema.js';
 import { registerPureFunction } from './pure-functions.js';
+import { registerExecutionNodeTemplate } from './service.js';
 
 const registry = {
     service: {},
@@ -66,6 +67,7 @@ function registerElement(element) {
         registry.data[element.id] = element;
         indexByKind(element);
         if (element.kind === 'pure-function') registerPureFunction(element);
+        if (element.kind === 'execution-node-template') registerExecutionNodeTemplate(element.data.keyword, element.data.implementation);
         return;
     }
 }
