@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "data-element",
-        "schema": {
+        "data":{
             "!type=": "data",
             "!id": "string",
             "kind": "string",
@@ -11,16 +11,16 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "data-element-list",
-        "schema": {
+        "data":{
             "items[]": "@data-element"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "types",
-        "schema": {
+        "data":{
             "$data#1": [
                 {
                     "!type=": "schema",
@@ -42,17 +42,17 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "interface-schema",
-        "schema": {
+        "data":{
             "!input": "@schema",
             "!output": "@schema"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "impl-schema",
-        "schema": {
+        "data":{
             "$data#1": [
                 "@impl-item-schema",
                 {
@@ -62,9 +62,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "impl-item-schema",
-        "schema": {
+        "data":{
             "data#&": [
                 "@impl-item-common-schema",
                 "@impl-item-specific-schema"
@@ -72,23 +72,23 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "function-schema",
-        "schema": "object"
+        "data":"object"
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "impl-item-common-schema",
-        "schema": {
+        "data":{
             "name": "string",
             "inputMap": "@function-schema",
             "outputMap": "@function-schema"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "impl-item-specific-schema",
-        "schema": {
+        "data":{
             "$data#1": [
                 {
                     "set": "object"
@@ -133,14 +133,14 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "schema",
-        "schema": "object"
+        "data":"object"
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "execution-node-template",
-        "schema": {
+        "data":{
             "!keyword": "string",
             "!implementation": "@impl-schema"
         }

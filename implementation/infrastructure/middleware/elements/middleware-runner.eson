@@ -1,6 +1,5 @@
 [
     {
-        "type": "data",
         "id": "middleware-runner",
         "kind": "executable",
         "meta": {

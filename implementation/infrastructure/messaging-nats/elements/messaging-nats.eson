@@ -1,14 +1,13 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "nats-broker",
-        "schema": {
+        "data":{
             "!service=": "messaging-nats",
             "!url": "string"
         }
     },
     {
-        "type": "data",
         "id": "messaging-nats-implementation",
         "data": {
             "publish":       { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "publish" } },
@@ -17,9 +16,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "messaging-nats",
-        "interface": "messaging-broker-interface",
-        "implementation": "messaging-nats-implementation"
+        "data": {
+            "interface": "messaging-broker-interface",
+            "implementation": "messaging-nats-implementation"
+        }
     }
 ]

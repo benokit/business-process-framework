@@ -30,34 +30,34 @@ describe('messaging-middleware', function () {
         // Mock broker: immediately invokes the wrapped handler with a test message
         // and appends the result to _ctx.results
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'mw-msg-test-broker-svc',
-            interface: 'messaging-broker-interface',
-            implementation: {
-                publish: { return: {} },
-                consume: [
-                    {
-                        name: 'result',
-                        inputMap: { value: 'original' },
-                        execute: '#.input.handler'
-                    },
-                    {
-                        name: '_ctx',
-                        set: { results: { $concat: ['#._ctx.results', ['#.result']] } }
-                    }
-                ],
-                stopConsuming: { return: null }
+            data: {
+                interface: 'messaging-broker-interface',
+                implementation: {
+                    publish: { return: {} },
+                    consume: [
+                        {
+                            name: 'result',
+                            inputMap: { value: 'original' },
+                            execute: '#.input.handler'
+                        },
+                        {
+                            name: '_ctx',
+                            set: { results: { $concat: ['#._ctx.results', ['#.result']] } }
+                        }
+                    ],
+                    stopConsuming: { return: null }
+                }
             }
         });
 
         registerElement({
-            type: 'data',
             id: BROKER_ID,
             data: { service: 'mw-msg-test-broker-svc' }
         });
 
         registerElement({
-            type: 'data',
             id: CHANNEL_ID,
             kind: 'message-channel',
             data: { broker: BROKER_ID, topology: 'queue', name: 'mw-msg-test-channel' }
@@ -65,7 +65,6 @@ describe('messaging-middleware', function () {
 
         // Consumer handler: echoes its input so middlewares' modifications are visible
         registerElement({
-            type: 'data',
             id: CONSUMER_ID,
             kind: 'message-consumer',
             data: {
@@ -77,19 +76,19 @@ describe('messaging-middleware', function () {
 
         // ordering 1 — injects step1:true and sets lastStep:1
         registerElement({
-            type: 'data', id: 'mw-msg-1', kind: 'middleware/messaging',
+            id: 'mw-msg-1', kind: 'middleware/messaging',
             data: { ordering: 1, implementation: injectIntoMessage({ step1: true, lastStep: 1 }) }
         });
 
         // ordering 2 — injects step2:true and overwrites lastStep:2
         registerElement({
-            type: 'data', id: 'mw-msg-2', kind: 'middleware/messaging',
+            id: 'mw-msg-2', kind: 'middleware/messaging',
             data: { ordering: 2, implementation: injectIntoMessage({ step2: true, lastStep: 2 }) }
         });
 
         // ordering 3 — captures consumerId from context into the message
         registerElement({
-            type: 'data', id: 'mw-msg-3', kind: 'middleware/messaging',
+            id: 'mw-msg-3', kind: 'middleware/messaging',
             data: {
                 ordering: 3,
                 implementation: {
@@ -127,7 +126,7 @@ describe('messaging-middleware short-circuit', function () {
     before(async function () {
         // ordering 0 — runs before mw-msg-1/2/3 and returns without calling next
         registerElement({
-            type: 'data', id: 'mw-msg-block', kind: 'middleware/messaging',
+            id: 'mw-msg-block', kind: 'middleware/messaging',
             data: {
                 ordering: 0,
                 implementation: { return: { error: 'blocked' } }

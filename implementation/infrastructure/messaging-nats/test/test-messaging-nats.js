@@ -31,7 +31,7 @@ describe('messaging service (nats)', function () {
             join(__dirname, '../elements')
         ]);
 
-        registerElement({ type: 'data', id: BROKER_ID, data: { service: 'messaging-nats', url: NATS_URL } });
+        registerElement({ id: BROKER_ID, data: { service: 'messaging-nats', url: NATS_URL } });
         available = true;
     });
 
@@ -42,14 +42,14 @@ describe('messaging service (nats)', function () {
 
     function makeChannel() {
         const id = `channel-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        registerElement({ type: 'data', id, data: { broker: BROKER_ID, topology: 'queue', name: id } });
+        registerElement({ id, data: { broker: BROKER_ID, topology: 'queue', name: id } });
         return id;
     }
 
     function makeConsumer(channelId, handler) {
         const id = `consumer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         registerElement({
-            type: 'data', id,
+            id,
             kind: 'message-consumer',
             data: { channel: channelId, name: id, handler }
         });
@@ -109,7 +109,7 @@ describe('messaging service (nats)', function () {
         this.timeout(5000);
 
         const channelId = `channel-topic-${Date.now()}`;
-        registerElement({ type: 'data', id: channelId, data: { broker: BROKER_ID, topology: 'topic', name: channelId } });
+        registerElement({ id: channelId, data: { broker: BROKER_ID, topology: 'topic', name: channelId } });
 
         const captureA = [{ name: '_ctx', set: { receivedA: '#.input' } }, { return: null }];
         const captureB = [{ name: '_ctx', set: { receivedB: '#.input' } }, { return: null }];

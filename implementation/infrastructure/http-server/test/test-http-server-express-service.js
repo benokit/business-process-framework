@@ -48,18 +48,19 @@ describe('http-server (service element)', function () {
 
         // Minimal echo controller: returns its full input so result.body = req.body
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'test-echo',
-            interface: {
-                echo: { input: 'object', output: 'object' }
-            },
-            implementation: {
-                echo: { return: '#.input' }
+            data: {
+                interface: {
+                    echo: { input: 'object', output: 'object' }
+                },
+                implementation: {
+                    echo: { return: '#.input' }
+                }
             }
         });
 
         registerElement({
-            type: 'data',
             id: 'test-echo-endpoint',
             kind: 'http-endpoint',
             data: {

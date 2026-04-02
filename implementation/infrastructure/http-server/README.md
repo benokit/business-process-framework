@@ -13,7 +13,6 @@ Express HTTP server. On `start`, all `http-endpoint` data elements are loaded an
 
 ```json
 {
-    "type": "data",
     "id": "create-order",
     "kind": "http-endpoint",
     "data": {
@@ -30,7 +29,6 @@ Middlewares are executed in ascending `ordering` before the endpoint controller.
 
 ```json
 {
-    "type": "data",
     "id": "error-handler",
     "kind": "http-middleware",
     "data": {

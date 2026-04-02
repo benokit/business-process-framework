@@ -1,15 +1,14 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "log-input",
-        "schema": {
+        "data":{
             "!message": "string",
             "level": "string",
             "context": "object"
         }
     },
     {
-        "type": "data",
         "id": "logging-interface",
         "data": {
             "log": {
@@ -18,7 +17,6 @@
         }
     },
     {
-        "type": "data",
         "id": "logging-implementation",
         "data": {
             "log": {
@@ -28,13 +26,14 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "logging",
-        "interface": "logging-interface",
-        "implementation": "logging-implementation"
+        "data": {
+            "interface": "logging-interface",
+            "implementation": "logging-implementation"
+        }
     },
     {
-        "type": "data",
         "id": "log-node-template",
         "kind": "execution-node-template",
         "data": {

@@ -1,41 +1,38 @@
 import { expect } from 'chai';
-import { getData, evaluateData } from '@business-framework/core/data';
-import { registerElement } from '@business-framework/core/elements-registry';
+import { evaluateData } from '@business-framework/core/data';
+import { getElement, registerElement } from '@business-framework/core/elements-registry';
 
 describe('data tests', () => {
 
-    describe('getData', () => {
+    describe('getElement', () => {
 
         it('should get simple data', () => {
             const element = {
-                type: 'data',
-                id: 'getData-simple',
+                id: 'getElement-simple',
                 data: { name: 'foo' }
             };
             registerElement(element);
-            expect(getData(element.id)).to.deep.equal(element);
+            expect(getElement(element.id)).to.deep.equal(element);
         });
 
         it('should return undefined for non-existent id', () => {
-            expect(getData('getData-no-such-id')).to.be.undefined;
+            expect(getElement('getElement-no-such-id')).to.be.undefined;
         });
 
-        it('should evaluate data on retrieval', () => {
+        it('should evaluate /data on retrieval', () => {
             registerElement({
-                type: 'data',
-                id: 'getData-eval',
-                data: { value: { '/literal': { '/ref': 'ignored' } } }
+                id: 'getElement-eval',
+                '/data': { value: { '/literal': { '/ref': 'ignored' } } }
             });
-            expect(getData('getData-eval').data).to.deep.equal({ value: { '/ref': 'ignored' } });
+            expect(getElement('getElement-eval').data).to.deep.equal({ value: { '/ref': 'ignored' } });
         });
 
         it('should cache and return the same reference on repeated calls', () => {
             registerElement({
-                type: 'data',
-                id: 'getData-cache',
+                id: 'getElement-cache',
                 data: { x: 1 }
             });
-            expect(getData('getData-cache')).to.equal(getData('getData-cache'));
+            expect(getElement('getElement-cache')).to.equal(getElement('getElement-cache'));
         });
     });
 
@@ -97,7 +94,6 @@ describe('data tests', () => {
         describe('/ref keyword', () => {
             it('should resolve /ref to the data of the referenced element', () => {
                 registerElement({
-                    type: 'data',
                     id: 'ref-target',
                     data: { color: 'blue' }
                 });
@@ -106,7 +102,6 @@ describe('data tests', () => {
 
             it('should evaluate the referenced element data', () => {
                 registerElement({
-                    type: 'data',
                     id: 'ref-target-with-literal',
                     data: { value: { '/literal': 42 } }
                 });
@@ -142,7 +137,6 @@ describe('data tests', () => {
 
             it('should evaluate /ref nested inside a plain object', () => {
                 registerElement({
-                    type: 'data',
                     id: 'nested-ref-target',
                     data: { n: 99 }
                 });

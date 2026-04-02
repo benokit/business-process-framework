@@ -1,7 +1,7 @@
 import { execute, executeMethod, executeMethodWithContext, executeMapping } from './service.js';
 import { validateSchema } from './schema.js';
-import { getData, getDataOfKind, getServicesOfKind } from './data.js';
 import { has } from 'lodash-es';
+import { getElement, getElementsOfKind } from './elements-registry.js';
 
 // Dictionary mapping execution keyword -> (node) => async executorFn.
 // Iterated over node properties to find the first matching executor.
@@ -67,19 +67,19 @@ export const executors = {
         return input;
     },
 
-    getData: node => async input => {
-        const id = await executeMapping(node.getData, input);
-        return getData(id);
+    getElement: node => async input => {
+        const id = await executeMapping(node.getElement, input);
+        return getElement(id);
     },
 
-    getDataOfKind: node => async input => {
-        const kind = await executeMapping(node.getDataOfKind, input);
-        return getDataOfKind(kind);
+    getElementOfKind: node => async input => {
+        const kind = await executeMapping(node.getElementOfKind, input);
+        return getElementsOfKind(kind);
     },
 
-    getServicesOfKind: node => async input => {
-        const kind = await executeMapping(node.getServicesOfKind, input);
-        return getServicesOfKind(kind);
+    getElementsOfKInd: node => async input => {
+        const kind = await executeMapping(node.getElementsOfKInd, input);
+        return getElementsOfKind(kind);
     },
 
     switch: node => async input => {

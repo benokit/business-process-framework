@@ -1,6 +1,5 @@
 [
     {
-        "type": "data",
         "id": "middleware-wrap",
         "kind": "executable",
         "meta": {
@@ -13,7 +12,7 @@
         "data": [
             {
                 "name": "middlewareData",
-                "getDataOfKind": "#.input.middlewareKind"
+                "getElementOfKind": "#.input.middlewareKind"
             },
             {
                 "name": "sortedMiddlewares",

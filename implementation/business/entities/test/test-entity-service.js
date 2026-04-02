@@ -21,8 +21,9 @@ describe('entity service', function () {
         // read echoes collection/businessKey and always includes a fixed data payload
         // so execute tests can rely on current.data fields.
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'entity-database',
+            data: {
             interface: {
                 create: { input: {}, output: {} },
                 read:   { input: {}, output: {} },
@@ -36,15 +37,17 @@ describe('entity service', function () {
                 update: { return: '#.input' },
                 amend:  { return: '#.input' },
                 delete: { return: '#.input' }
-            }
+            }}
         });
 
         // Mock entity-event-publisher — no-op; publishing is tested in integration tests.
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'entity-event-publisher',
+            data: {
             interface: { publish: { input: {}, output: {} } },
             implementation: { publish: { return: {} } }
+            }
         });
 
         // Mock inTransaction template — executes the program inline without a real DB transaction.
@@ -84,14 +87,16 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-handler-on-create',
             kind: 'entity-event-handler/on-create/order-with-handler',
+            data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
                 { name: '_ctx', set: { handlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
+            }
         });
 
         // Entity type and on-update handler used by update handler invocation tests.
@@ -99,14 +104,16 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-update-handler-on-update',
             kind: 'entity-event-handler/on-update/order-with-update-handler',
+            data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
                 { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
+            }
         });
 
         // Entity type and on-transition handler used by transition handler invocation tests.
@@ -119,14 +126,16 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-transition-handler-on-transition',
             kind: 'entity-event-handler/on-transition/order-with-transition-handler',
+            data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
                 { name: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
+            }
         });
 
         // Entity type and before-update guard used by guard tests.
@@ -134,15 +143,17 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-update-guard-before-update',
             kind: 'entity-guard/before-update/order-with-update-guard',
+            data: {
             interface: { validate: { input: {}, output: {} } },
             implementation: { validate: {
                 if: { '$lte': ['#.input.data.amount', 0] },
                 then: [{ return: ['amount must be positive'] }],
                 else: [{ return: [] }]
             }}
+            }
         });
 
         // Entity type and before-amend guard used by guard tests.
@@ -150,15 +161,17 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-amend-guard-before-amend',
             kind: 'entity-guard/before-amend/order-with-amend-guard',
+            data: {
             interface: { validate: { input: {}, output: {} } },
             implementation: { validate: {
                 if: { '$lte': ['#.input.data.amount', 0] },
                 then: [{ return: ['amount must be positive'] }],
                 else: [{ return: [] }]
             }}
+            }
         });
 
         // Entity type and before-transition guard used by guard tests.
@@ -172,15 +185,17 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-transition-guard-before-transition',
             kind: 'entity-guard/before-transition/order-with-transition-guard',
+            data: {
             interface: { validate: { input: {}, output: {} } },
             implementation: { validate: {
                 if: { '$eq': ['#.input.transition', 'forbidden'] },
                 then: [{ return: ['transition forbidden by guard'] }],
                 else: [{ return: [] }]
             }}
+            }
         });
 
         // Entity type with two before-update guards used by multi-guard test.
@@ -188,18 +203,22 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-multi-guards-guard-a',
             kind: 'entity-guard/before-update/order-with-multi-guards',
+            data: {
             interface: { validate: { input: {}, output: {} } },
             implementation: { validate: { return: ['error from guard A'] } }
+            }
         });
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'order-with-multi-guards-guard-b',
             kind: 'entity-guard/before-update/order-with-multi-guards',
+            data: {
             interface: { validate: { input: {}, output: {} } },
             implementation: { validate: { return: ['error from guard B'] } }
+            }
         });
 
         // Services used by the execute tests — each has a unique ID so no
@@ -214,9 +233,11 @@ describe('entity service', function () {
             service: 'ctx-capture-service'
         }});
         registerElement({
-            type: 'service', id: 'ctx-capture-service',
+            kind: 'service', id: 'ctx-capture-service',
+            data: {
             interface: { assess: { input: {}, output: {} } },
             implementation: { assess: { return: '#._ctx.entityContext' } }
+            }
         });
 
         registerElement({ type: 'data', id: 'dispatch-component', data: {
@@ -229,9 +250,11 @@ describe('entity service', function () {
             service: 'dispatch-service'
         }});
         registerElement({
-            type: 'service', id: 'dispatch-service',
+            kind: 'service', id: 'dispatch-service',
+            data: {
             interface: { run: { input: {}, output: {} } },
             implementation: { run: { return: { dispatched: true } } }
+            }
         });
 
         registerElement({ type: 'data', id: 'input-echo-component', data: {
@@ -244,9 +267,11 @@ describe('entity service', function () {
             service: 'input-echo-service'
         }});
         registerElement({
-            type: 'service', id: 'input-echo-service',
+            kind: 'service', id: 'input-echo-service',
+            data: {
             interface: { process: { input: {}, output: {} } },
             implementation: { process: { return: '#.input' } }
+            }
         });
     });
 

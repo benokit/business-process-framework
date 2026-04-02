@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "http-endpoint",
-        "schema": {
+        "data":{
             "!method": "string",
             "!path": "string",
             "!controller": {
@@ -12,21 +12,20 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "http-server-start-input",
-        "schema": {
+        "data":{
             "port": "number"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "http-server-start-output",
-        "schema": {
+        "data":{
             "!port": "number"
         }
     },
     {
-        "type": "data",
         "id": "http-server-interface",
         "data": {
             "start": {

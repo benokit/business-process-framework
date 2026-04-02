@@ -1,6 +1,5 @@
 [
     {
-        "type": "data",
         "id": "entity-events-broker",
         "kind": "message-broker",
         "data": {
@@ -9,7 +8,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-events",
         "data": {
             "broker": "entity-events-broker",
@@ -22,9 +20,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-event-message",
-        "schema": {
+        "data":{
             "!eventType": "string",
             "!entityType": "string",
             "!businessKey": "string",
@@ -32,9 +30,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-event-publisher-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!record": "@entity-record",
             "!eventType": "string",
@@ -42,7 +40,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-event-publisher-interface",
         "data": {
             "publish": {
@@ -52,7 +49,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-event-publisher-implementation",
         "data": {
             "publish": [
@@ -83,9 +79,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "entity-event-publisher",
-        "interface": "entity-event-publisher-interface",
-        "implementation": "entity-event-publisher-implementation"
+        "data": {
+            "interface": "entity-event-publisher-interface",
+            "implementation": "entity-event-publisher-implementation"
+        }
     }
 ]

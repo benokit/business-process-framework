@@ -1,20 +1,19 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "sequence-next-input",
-        "schema": {
+        "data":{
             "!sequence": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "sequence-next-output",
-        "schema": {
+        "data":{
             "!value": "number"
         }
     },
     {
-        "type": "data",
         "id": "sequence-generator-interface",
         "data": {
             "next": {
@@ -24,16 +23,17 @@
         }
     },
     {
-        "type": "data",
         "id": "sequence-generator-implementation",
         "data": {
             "next": { "inputMap": "#.input", "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "sequence-generator",
-        "interface": "sequence-generator-interface",
-        "implementation": "sequence-generator-implementation"
+        "data": {
+            "interface": "sequence-generator-interface",
+            "implementation": "sequence-generator-implementation"
+        }
     }
 ]

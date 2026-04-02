@@ -1,11 +1,10 @@
 [
     {
-        "type": "data",
         "id": "messaging-service-implementation",
         "data": {
             "publish": [
-                { "name": "channel", "getData": "#.input.channel" },
-                { "name": "broker", "getData": "#.channel.data.broker" },
+                { "name": "channel", "getElement": "#.input.channel" },
+                { "name": "broker", "getElement": "#.channel.data.broker" },
                 {
                     "if": "#.channel.data.publisher.transactionalOutbox",
                     "then": {
@@ -22,9 +21,9 @@
                 {
                     "if": "#.input.channel",
                     "then": [
-                        { "name": "channel", "getData": "#.input.channel" },
-                        { "name": "broker", "getData": "#.channel.data.broker" },
-                        { "name": "allConsumers", "getDataOfKind": "message-consumer" },
+                        { "name": "channel", "getElement": "#.input.channel" },
+                        { "name": "broker", "getElement": "#.channel.data.broker" },
+                        { "name": "allConsumers", "getElementOfKind": "message-consumer" },
                         {
                             "name": "channelConsumers",
                             "set": {
@@ -74,7 +73,7 @@
                         }
                     ],
                     "else": [
-                        { "name": "allChannels", "getDataOfKind": "message-channel" },
+                        { "name": "allChannels", "getElementOfKind": "message-channel" },
                         {
                             "forEach": [
                                 {
@@ -91,15 +90,15 @@
                 {
                     "if": "#.input.channel",
                     "then": [
-                        { "name": "channel", "getData": "#.input.channel" },
-                        { "name": "broker", "getData": "#.channel.data.broker" },
+                        { "name": "channel", "getElement": "#.input.channel" },
+                        { "name": "broker", "getElement": "#.channel.data.broker" },
                         {
                             "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } },
                             "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } 
                         }
                     ],
                     "else": [
-                        { "name": "allChannels", "getDataOfKind": "message-channel" },
+                        { "name": "allChannels", "getElementOfKind": "message-channel" },
                         {
                             "forEach": [
                                 {
@@ -115,13 +114,14 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "messaging-service",
-        "interface": "messaging-service-interface",
-        "implementation": "messaging-service-implementation"
+        "data": {
+            "interface": "messaging-service-interface",
+            "implementation": "messaging-service-implementation"
+        }
     },
     {
-        "type": "data",
         "id": "publish-node-template",
         "kind": "execution-node-template",
         "data": {

@@ -11,7 +11,7 @@ function registerService(id, methods) {
         iface[name] = { input: def.input ?? {}, output: def.output ?? {} };
         impl[name] = def.impl;
     }
-    registerElement({ type: 'service', id, interface: iface, implementation: impl });
+    registerElement({ kind: 'service', id, data: { interface: iface, implementation: impl } });
 }
 
 describe('service tests', () => {
@@ -587,9 +587,9 @@ describe('service tests', () => {
                 }
             });
             registerElement({
-                type: 'schema',
+                kind: 'schema',
                 id: 'svc-validate-schema-input',
-                schema: { '!code': 'string' }
+                data: { '!code': 'string' }
             });
         });
 
@@ -636,8 +636,8 @@ describe('service tests', () => {
     describe('$func pure-function primitives', () => {
 
         before(() => {
-            registerElement({ type: 'data', kind: 'pure-function', id: 'double', data: { $multiply: ['#', 2] } });
-            registerElement({ type: 'data', kind: 'pure-function', id: 'add-ten', data: { $sum: ['#', 10] } });
+            registerElement({ kind: 'pure-function', id: 'double', data: { $multiply: ['#', 2] } });
+            registerElement({ kind: 'pure-function', id: 'add-ten', data: { $sum: ['#', 10] } });
             registerService('svc-func', {
                 doubleInput:    { impl: { return: { '$func/double':  '#.input' } } },
                 doubleField:    { impl: { return: { '$func/double':  '#.input.n' } } },

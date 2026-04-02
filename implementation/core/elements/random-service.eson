@@ -1,18 +1,20 @@
 {
-    "type": "service",
+    "kind": "service",
     "id": "random",
-    "interface": {
-        "guid": {
-            "input":  {},
-            "output": { "!value": "string" }
+    "data": {
+        "interface": {
+            "guid": {
+                "input":  {},
+                "output": { "!value": "string" }
+            },
+            "uuid": {
+                "input":  {},
+                "output": { "!value": "string" }
+            }
         },
-        "uuid": {
-            "input":  {},
-            "output": { "!value": "string" }
+        "implementation": {
+            "guid": { "low": { "module": "@business-framework/core/random", "functionName": "guid" } },
+            "uuid": { "low": { "module": "@business-framework/core/random", "functionName": "uuid" } }
         }
-    },
-    "implementation": {
-        "guid": { "low": { "module": "@business-framework/core/random", "functionName": "guid" } },
-        "uuid": { "low": { "module": "@business-framework/core/random", "functionName": "uuid" } }
     }
 }

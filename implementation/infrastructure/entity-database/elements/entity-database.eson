@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-record",
-        "schema": {
+        "data":{
             "!id": "string",
             "!businessKey": "string",
             "!revision": "number",
@@ -13,9 +13,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-database-create-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!data": "object",
@@ -23,9 +23,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-database-read-input",
-        "schema": {
+        "data":{
             "$data#1": [
                 { "!entityType": "string", "!id": "string", "revision": "number" },
                 { "!entityType": "string", "!businessKey": "string", "revision": "number" }
@@ -33,9 +33,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-database-update-input",
-        "schema": {
+        "data":{
             "$data#1": [
                 { "!entityType": "string", "!id": "string", "!revision": "number", "data": "object", "state": "object" },
                 { "!entityType": "string", "!businessKey": "string", "!revision": "number", "data": "object", "state": "object" }
@@ -43,9 +43,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-database-amend-input",
-        "schema": {
+        "data":{
             "$data#1": [
                 { "!entityType": "string", "!id": "string", "!revision": "number", "!data": "object", "validFrom": "string" },
                 { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!data": "object", "validFrom": "string" }
@@ -53,9 +53,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-database-delete-input",
-        "schema": {
+        "data":{
             "$data#1": [
                 { "!entityType": "string", "!id": "string", "revision": "number" },
                 { "!entityType": "string", "!businessKey": "string", "revision": "number" }
@@ -63,7 +63,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-database-interface",
         "data": {
             "create": {
@@ -89,7 +88,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-database-implementation",
         "data": {
             "create": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "create" } },
@@ -100,9 +98,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "entity-database",
-        "interface": "entity-database-interface",
-        "implementation": "entity-database-implementation"
+        "data": {
+            "interface": "entity-database-interface",
+            "implementation": "entity-database-implementation"
+        }
     }
 ]

@@ -25,8 +25,9 @@ describe('entity-controller', function () {
         // Mock entity service: echoes input, captures _ctx, always returns RECORD.
         // capturedInput stored on _ctx so tests can inspect it after execute().
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'entity',
+            data: {
             interface: {
                 create:     { input: {}, output: {} },
                 read:       { input: {}, output: {} },
@@ -44,7 +45,7 @@ describe('entity-controller', function () {
                 transition: [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: { dimensions: { status: 'confirmed' } } } }],
                 amend:      [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
                 execute:    [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { ok: true } }]
-            }
+            }}
         });
     });
 

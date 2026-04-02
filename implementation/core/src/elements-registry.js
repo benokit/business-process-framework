@@ -1,88 +1,73 @@
-import { isString } from 'lodash-es';
 import { registerSchema } from './schema.js';
 import { registerPureFunction } from './pure-functions.js';
 import { registerExecutionNodeTemplate } from './service.js';
+import { evaluateData } from './data.js';
 
-const registry = {
-    service: {},
-    data: {},
-    schema: {}
-};
-
-const kindIndex = {
-    service: {},
-    data: {},
-    schema: {}
-};
+const registry = { };
+const kindIndex = { };
 
 function indexByKind(element) {
-    const kind = element.kind;
-    if (kind === undefined) return;
-    const bucket = kindIndex[element.type];
-    const parts = kind.split('/');
-    for (let i = 1; i <= parts.length; i++) {
-        const prefix = parts.slice(0, i).join('/');
-        if (!bucket[prefix]) bucket[prefix] = [];
-        bucket[prefix].push(element);
+    const kind = element.kind ?? 'data';
+    for (const subKind of subKinds(kind)) {
+        if (!kindIndex[subKind]) {
+            kindIndex[subKind] = new Set();
+        }
+        kindIndex[subKind].add(element);
     }
+}
+
+function subKinds(kind) {
+  const parts = kind.split('/');
+  return parts.map((_, i) => parts.slice(0, i + 1).join('/'));
+}
+
+const kindSpecificRegistrationEffect = {
+    'schema': (element) => {
+        const schema = {
+            $id: element.id,
+            $data: element.data
+        };
+        registerSchema(schema);
+        return;
+    },
+
+    'pure-function': registerPureFunction,
+
+    'execution-node-template': (element) => {
+        registerExecutionNodeTemplate(element.data.keyword, element.data.implementation)
+    } 
 }
 
 function registerElement(element) {
-    if (!element.type) {
-        return;
-    }
+    registry[element.id] = element;
+    indexByKind(element);
 
-    if (element.type === 'schema') {
-        const schema = {
-            $id: element.id,
-            $data: element.schema
-        };
-        registerSchema(schema);
-        registry.schema[element.id] = element;
-        indexByKind(element);
-        return;
-    }
+    kindSpecificRegistrationEffect[element.kind]?.(element);
+}
 
-    if (element.type === 'service') {
-        const serviceElement = { ...element };
+function getElement(id) {
+    const element = registry[id];
+    evaluateElement(element);
+    return element;
+}
 
-        if (!isString(element.interface)) {
-            const ifaceId = 'iface@' + element.id;
-            registry.data[ifaceId] = { type: 'data', id: ifaceId, data: element.interface };
-            serviceElement.interface = ifaceId;
-        }
-
-        if (!isString(element.implementation)) {
-            const implId = 'impl@' + element.id;
-            registry.data[implId] = { type: 'data', id: implId, data: element.implementation };
-            serviceElement.implementation = implId;
-        }
-
-        registry.service[serviceElement.id] = serviceElement;
-        indexByKind(serviceElement);
-        return;
-    }
-
-    if (element.type === 'data') {
-        registry.data[element.id] = element;
-        indexByKind(element);
-        if (element.kind === 'pure-function') registerPureFunction(element);
-        if (element.kind === 'execution-node-template') registerExecutionNodeTemplate(element.data.keyword, element.data.implementation);
-        return;
+function evaluateElement(element) {
+    if (!element) return;
+    if (!element['data'] && element['/data']) {
+        element['data'] = evaluateData(element['/data'])
     }
 }
 
-function getElement(type, id) {
-    return registry[type][id];
-}
-
-function getElements(type, kind) {
-    if (kind === undefined) return Object.values(registry[type]);
-    return kindIndex[type][kind] ?? [];
+function getElementsOfKind(kind) {
+    const elements = [...(kindIndex[kind] ?? [])];
+    for (const element of elements) {
+        evaluateElement(element);
+    }
+    return { items: elements };
 }
 
 export {
     registerElement,
     getElement,
-    getElements
+    getElementsOfKind
 }

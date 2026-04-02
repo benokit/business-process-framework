@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "message-envelope",
-        "schema": {
+        "data":{
             "!messageId": "string",
             "!timestampUTC": "string",
             "!group": "string",
@@ -11,9 +11,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "message-channel",
-        "schema": {
+        "data":{
             "!broker": "string",
             "!topology": "string",
             "!name": "string",
@@ -34,63 +34,63 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "message-consumer",
-        "schema": {
+        "data":{
             "!channel": "string",
             "name": "string",
             "!handler": "@impl-schema"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "message-broker",
-        "schema": {
+        "data":{
             "!service": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-publish-input",
-        "schema": {
+        "data":{
             "!channel": "string",
             "!envelope": "@message-envelope"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-publish-output",
-        "schema": {
+        "data":{
             "!messageId": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-consumers-input",
-        "schema": {
+        "data":{
             "channel": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-start-consumers-output",
-        "schema": {
+        "data":{
             "consumers[]": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-broker-publish-input",
-        "schema": {
+        "data":{
             "!channel": "object",
             "!broker": "object",
             "!envelope": "@message-envelope"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-broker-consume-input",
-        "schema": {
+        "data":{
             "!channel": "object",
             "!broker": "object",
             "!consumer": "object",
@@ -98,15 +98,14 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "messaging-broker-stop-consuming-input",
-        "schema": {
+        "data":{
             "!channel": "object",
             "!broker": "object"
         }
     },
     {
-        "type": "data",
         "id": "messaging-broker-interface",
         "data": {
             "publish": {
@@ -122,7 +121,6 @@
         }
     },
     {
-        "type": "data",
         "id": "messaging-service-interface",
         "data": {
             "publish": {

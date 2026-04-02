@@ -1,6 +1,6 @@
 import { getPool } from '@business-framework/postgres-client';
 import { execute } from '@business-framework/core/service';
-import { getData } from '@business-framework/core/data';
+import { getElement } from '@business-framework/core/elements-registry';
 import { initSchema } from './transactional-outbox.js';
 
 let running = false;
@@ -83,9 +83,9 @@ async function findAndLockItem(lockIntervalInMilliseconds) {
 async function processItem(item) {
     const pool = getPool();
     try {
-        const destElement = getData(item.channel);
+        const destElement = getElement(item.channel);
         const destData = destElement.data;
-        const brokerElement = getData(destData.broker);
+        const brokerElement = getElement(destData.broker);
         const brokerData = brokerElement.data;
 
         await execute(brokerData.service, 'publish', {
@@ -106,7 +106,7 @@ async function processItem(item) {
 async function handlePublishFailure(item) {
     const pool = getPool();
     try {
-        const destElement = getData(item.channel);
+        const destElement = getElement(item.channel);
         const retryConfig = destElement?.data?.publisher?.retry;
         const maxAttempts = retryConfig?.attempts ?? 3;
         const backoff = retryConfig?.backoff ?? 1000;

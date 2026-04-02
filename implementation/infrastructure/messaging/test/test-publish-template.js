@@ -12,13 +12,15 @@ const CHANNEL_ID = 'publish-template-test-channel';
 // A service that uses the `publish` keyword with an envelope supplied via execute,
 // so tests can control the envelope through the service input.
 const TEST_PUBLISHER = {
-    type: 'service',
+    kind: 'service',
     id: 'publish-template-test-publisher',
-    interface: {
-        send: { input: { envelope: 'object' }, output: {} }
-    },
-    implementation: {
-        send: { execute: { publish: { channel: CHANNEL_ID, envelope: '#.input.envelope' } } }
+    data: {
+        interface: {
+            send: { input: { envelope: 'object' }, output: {} }
+        },
+        implementation: {
+            send: { execute: { publish: { channel: CHANNEL_ID, envelope: '#.input.envelope' } } }
+        }
     }
 };
 
@@ -30,27 +32,27 @@ before(async function () {
 
     // Mock broker: captures the published envelope into _ctx.captured
     registerElement({
-        type: 'service',
+        kind: 'service',
         id: 'publish-template-mock-broker',
-        interface: 'messaging-broker-interface',
-        implementation: {
-            publish: [
-                { name: '_ctx', set: { captured: '#.input.envelope' } },
-                { return: { messageId: '#.input.envelope.messageId' } }
-            ],
-            consume:       { set: null },
-            stopConsuming: { set: null }
+        data: {
+            interface: 'messaging-broker-interface',
+            implementation: {
+                publish: [
+                    { name: '_ctx', set: { captured: '#.input.envelope' } },
+                    { return: { messageId: '#.input.envelope.messageId' } }
+                ],
+                consume:       { set: null },
+                stopConsuming: { set: null }
+            }
         }
     });
 
     registerElement({
-        type: 'data',
         id: 'publish-template-test-broker',
         data: { service: 'publish-template-mock-broker' }
     });
 
     registerElement({
-        type: 'data',
         id: CHANNEL_ID,
         data: { broker: 'publish-template-test-broker', topology: 'queue', name: CHANNEL_ID }
     });

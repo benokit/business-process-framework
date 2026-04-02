@@ -55,7 +55,6 @@ A pipeline node (ready to `execute`) that, when called with any `input`, runs th
 
 ```json
 {
-    "type": "data",
     "id": "my-middleware",
     "kind": "middleware",
     "data": {

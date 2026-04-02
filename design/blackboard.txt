@@ -1,29 +1,32 @@
-http service middleware 
- input: (http-endpoint-id, httpRequest, next)
+business/authorization
 
-{
-    type: data,
-    id: error-handler
-    kind: http-middleware,
-    data: {
-        ordering: 1.5,
-        implementation: [
-            {
-                try: {
-                    inputMapping: #.httpInput
-                    execute: next
-                },
-                catch: {
-                    log: #.error,
-                    level: error,
-                    context: {
-                        trace: _ctx.execution.trace
-                    }
-                }
-            }
-        ]
-    }
-}
+permissions:
+    - api level 
+        name: string
+        resource: string
+        level=1: [ GET 1, PUT 2, POST 3, DELETE 4 ]
+    - actor level
+        name: string
+        hierarchy
+        description: string
+
+- api level
+    - resource is a string that represents an API url (e.g. entities/party/)
+    - higher level implies permissions imply lower layer permissions, e.g. 
+        Having permission level POST for a resource implies PUT and GET or the same resource.
+        Having permission level GET for a resource is not enough for PUT operations on the resource.
+- actor level 
+    - permissions are resolved dynamically within an arbitrary context (filters, UI elements, limits)
+    - an assigned actor with highest hierarchy number is taken in permission resolution 
+        e.g if (user.actor = boss) limit = 1000 else if (user.actor = employee) limit = 100 else limit = 1
+            if user.actors = [boss, employee] and boss.hierarchy > employee.hierarchy then user.actor = boss
+
+
+roles:
+    name: string,
+    roles[]: string,
+    permissions[]: string
+
 
 
 

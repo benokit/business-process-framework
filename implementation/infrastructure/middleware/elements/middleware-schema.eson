@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "middleware",
-        "schema": {
+        "data":{
             "!ordering": "number",
             "!implementation": "@impl-schema"
         }

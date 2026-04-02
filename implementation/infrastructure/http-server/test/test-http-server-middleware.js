@@ -52,14 +52,15 @@ describe('http-middleware', function () {
 
         // Controller: echoes request body back as the HTTP response body
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: 'mw-echo',
-            interface: { echo: { input: 'object', output: 'object' } },
-            implementation: { echo: { return: '#.input' } }
+            data: {
+                interface: { echo: { input: 'object', output: 'object' } },
+                implementation: { echo: { return: '#.input' } }
+            }
         });
 
         registerElement({
-            type: 'data',
             id: 'mw-endpoint',
             kind: 'http-endpoint',
             data: { method: 'POST', path: '/mw-test', controller: { service: 'mw-echo', method: 'echo' } }
@@ -67,19 +68,19 @@ describe('http-middleware', function () {
 
         // ordering 1 — injects step1:true and sets lastStep:1
         registerElement({
-            type: 'data', id: 'mw-1', kind: 'middleware/http',
+            id: 'mw-1', kind: 'middleware/http',
             data: { ordering: 1, implementation: injectIntoBody({ step1: true, lastStep: 1 }) }
         });
 
         // ordering 2 — injects step2:true and overwrites lastStep:2
         registerElement({
-            type: 'data', id: 'mw-2', kind: 'middleware/http',
+            id: 'mw-2', kind: 'middleware/http',
             data: { ordering: 2, implementation: injectIntoBody({ step2: true, lastStep: 2 }) }
         });
 
         // ordering 3 — injects the endpointId into the body so we can assert it
         registerElement({
-            type: 'data', id: 'mw-3', kind: 'middleware/http',
+            id: 'mw-3', kind: 'middleware/http',
             data: {
                 ordering: 3,
                 implementation: {
@@ -128,7 +129,7 @@ describe('http-middleware short-circuit', function () {
     before(async function () {
         // ordering 0 — runs before mw-1/2/3 and returns without calling next
         registerElement({
-            type: 'data', id: 'mw-block', kind: 'middleware/http',
+            id: 'mw-block', kind: 'middleware/http',
             data: {
                 ordering: 0,
                 implementation: { return: { status: 403, body: { error: 'blocked' } } }

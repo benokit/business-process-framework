@@ -1,29 +1,28 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "transactional-outbox-put-input",
-        "schema": {
+        "data":{
             "!channel": "string",
             "!envelope": "@message-envelope"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "transactional-outbox-put-output",
-        "schema": {
+        "data":{
             "!messageId": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "transactional-outbox-run-input",
-        "schema": {
+        "data":{
             "lockIntervalInMilliseconds": "number",
             "idleIntervalInMilliseconds": "number"
         }
     },
     {
-        "type": "data",
         "id": "transactional-outbox-interface",
         "data": {
             "put": {
@@ -33,7 +32,6 @@
         }
     },
     {
-        "type": "data",
         "id": "transactional-outbox-processor-interface",
         "data": {
             "run": {
@@ -45,14 +43,12 @@
         }
     },
     {
-        "type": "data",
         "id": "transactional-outbox-implementation",
         "data": {
             "put": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
         }
     },
     {
-        "type": "data",
         "id": "transactional-outbox-processor-implementation",
         "data": {
             "run":  { "inputMap": "#.input", "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "run" } },
@@ -60,15 +56,19 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "transactional-outbox",
-        "interface": "transactional-outbox-interface",
-        "implementation": "transactional-outbox-implementation"
+        "data": {
+            "interface": "transactional-outbox-interface",
+            "implementation": "transactional-outbox-implementation"
+        }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "transactional-outbox-processor",
-        "interface": "transactional-outbox-processor-interface",
-        "implementation": "transactional-outbox-processor-implementation"
+        "data": {
+            "interface": "transactional-outbox-processor-interface",
+            "implementation": "transactional-outbox-processor-implementation"
+        }
     }
 ]

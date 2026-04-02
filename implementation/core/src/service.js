@@ -1,8 +1,7 @@
 import { validateSchema } from './schema.js';
-import { getData } from './data.js';
 import { getElement } from './elements-registry.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
-import { has, isArray, isPlainObject, merge } from 'lodash-es';
+import { has, isArray, isPlainObject, isString, merge } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 import { executors } from './executors.js';
 
@@ -17,11 +16,11 @@ export {
 async function execute(serviceId, methodName, input, _ctx = {}) {
     const isRoot = !_ctx._execution;
     try {
-        const service = getElement('service', serviceId);
-        const iface = getData(service.interface);
-        validateInputAgainstInterface(iface.data[methodName], input);
-        const impl = getData(service.implementation).data[methodName];
-        return await executeMethod(impl, input, _ctx);
+        const service = getElement(serviceId).data;
+        const iface = isString(service.interface) ? getElement(service.interface).data : service.interface;
+        validateInputAgainstInterface(iface[methodName], input);
+        const impl = isString(service.implementation) ? getElement(service.implementation).data : service.implementation;
+        return await executeMethod(impl[methodName], input, _ctx);
     } catch (e) {
         if (!isRoot) throw e;
         if (e && e._isExecutionDiagnostic) {
@@ -126,7 +125,7 @@ async function executeNode(node, context) {
         result = await executeMethodWithContext(pipeline, nodeInput);
     } else if (has(node, keyword.executeRef)) {
         const id = await executeMapping(node.executeRef, context);
-        const pipeline = getData(id).data;
+        const pipeline = getElement(id).data;
         result = await executeMethodWithContext(pipeline, nodeInput);
     } else {
         for (const key of Object.keys(node)) {

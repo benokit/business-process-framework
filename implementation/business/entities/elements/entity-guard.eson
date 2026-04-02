@@ -1,15 +1,14 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-guard-runner-input",
-        "schema": {
+        "data":{
             "!beforeEvent": "string",
             "!entityType": "string",
             "!eventInput": "object"
         }
     },
     {
-        "type": "data",
         "id": "entity-guard-runner-interface",
         "data": {
             "run": {
@@ -18,20 +17,19 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-guard-runner-implementation",
         "data": {
             "run": [
                 {
                     "name": "guards",
-                    "getServicesOfKind": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
+                    "getElementsOfKInd": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
                 },
                 { "name": "_ctx", "set": { "guardInput": "#.input.eventInput" } },
                 {
                     "name": "errorArrays",
                     "inputMap": "#.guards.items",
                     "forEach": {
-                        "execute": { "service": { "id": "#.input", "method": "validate" } },
+                        "execute": { "service": { "id": "#.input.id", "method": "validate" } },
                         "inputMap": "#._ctx.guardInput"
                     }
                 },
@@ -47,9 +45,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "entity-guard-runner",
-        "interface": "entity-guard-runner-interface",
-        "implementation": "entity-guard-runner-implementation"
+        "data": {
+            "interface": "entity-guard-runner-interface",
+            "implementation": "entity-guard-runner-implementation"
+        }
     }
 ]

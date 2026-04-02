@@ -55,7 +55,6 @@ Each entity type is a `data` element:
 
 ```json
 {
-    "type": "data",
     "kind": "entity-type",
     "id": "order",
     "data": {
@@ -136,7 +135,7 @@ Handlers are invoked within the same transaction as their triggering method. Eac
 
 ```json
 {
-    "type": "service",
+    "kind": "service",
     "id": "order-notify",
     "kind": "entity-event-handler/on-create/order",
     "interface": { "run": { "input": "@entity-record", "output": {} } },
@@ -158,7 +157,7 @@ Guards run outside the transaction — before the database write is attempted.
 
 ```json
 {
-    "type": "service",
+    "kind": "service",
     "id": "order-amount-guard",
     "kind": "entity-guard/before-update/order",
     "interface": { "validate": { "input": {}, "output": {} } },

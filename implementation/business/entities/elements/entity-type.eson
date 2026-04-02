@@ -1,48 +1,48 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-state-data",
-        "schema": {
+        "data":{
             "fromTransition": "string",
             "!dimensions{}": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-type-transition",
-        "schema": {
+        "data":{
             "!from{}": "[string]",
             "!to{}": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-type-states-model",
-        "schema": {
+        "data":{
             "!states{}": "[string]",
             "transitions{}": "@entity-type-transition",
             "initialStates{}": "{string}"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-type-data-versioning",
-        "schema": {
+        "data":{
             "enabled": "boolean",
             "validFrom": "boolean"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-type-history",
-        "schema": {
+        "data":{
             "enabled": "boolean"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-type-data",
-        "schema": {
+        "data":{
             "dimensions": "object",
             "dataSchema": "@schema",
             "statesModel": "@entity-type-states-model",
@@ -51,19 +51,19 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-component-service-data",
         "kind": "entity-component-service",
-        "schema": {
+        "data":{
             "!contextSchema": "string",
             "!service": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-component-data",
         "kind": "entity-component",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!contextMapping": "object",
             "!componentService": "string"

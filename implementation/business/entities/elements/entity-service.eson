@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-create-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!data": "object",
@@ -10,17 +10,17 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-read-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-update-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
@@ -28,27 +28,27 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-delete-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "revision": "number"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-transition-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!transition": "string"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-amend-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
@@ -57,9 +57,9 @@
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-execute-input",
-        "schema": {
+        "data":{
             "!entityType": "string",
             "!businessKey": "string",
             "!componentId": "string",
@@ -68,7 +68,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-service-interface",
         "data": {
             "create": {
@@ -101,13 +100,12 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-service-implementation",
         "data": {
             "create": [
                 {
                     "name": "entityTypeDef",
-                    "getData": "#.input.entityType"
+                    "getElement": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -165,7 +163,7 @@
             "update": [
                 {
                     "name": "entityTypeDef",
-                    "getData": "#.input.entityType"
+                    "getElement": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -243,7 +241,7 @@
             "transition": [
                 {
                     "name": "entityTypeDef",
-                    "getData": "#.input.entityType"
+                    "getElement": "#.input.entityType"
                 },
                 {
                     "name": "current",
@@ -331,7 +329,7 @@
             "amend": [
                 {
                     "name": "entityTypeDef",
-                    "getData": "#.input.entityType"
+                    "getElement": "#.input.entityType"
                 },
                 {
                     "inputMap": "#.input.data",
@@ -389,11 +387,11 @@
                 },
                 {
                     "name": "component",
-                    "getData": "#.input.componentId"
+                    "getElement": "#.input.componentId"
                 },
                 {
                     "name": "componentService",
-                    "getData": "#.component.data.componentService"
+                    "getElement": "#.component.data.componentService"
                 },
                 {
                     "name": "mappedContext",
@@ -421,9 +419,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "entity",
-        "interface": "entity-service-interface",
-        "implementation": "entity-service-implementation"
+        "data": {
+            "interface": "entity-service-interface",
+            "implementation": "entity-service-implementation"
+        }
     }
 ]

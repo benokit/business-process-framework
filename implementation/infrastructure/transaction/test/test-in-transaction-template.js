@@ -30,38 +30,40 @@ describe('inTransaction node template', function () {
         connected = true;
 
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: SERVICE,
-            interface: {
-                captureTransaction:  { input: {}, output: {} },
-                forwardInput:        { input: {}, output: {} },
-                throwInside:         { input: {}, output: {} },
-                nestedInTransaction: { input: {}, output: {} },
-                sequential:          { input: {}, output: {} }
-            },
-            implementation: {
-                captureTransaction: {
-                    inTransaction: { return: '#._ctx.transaction' }
+            data: {
+                interface: {
+                    captureTransaction:  { input: {}, output: {} },
+                    forwardInput:        { input: {}, output: {} },
+                    throwInside:         { input: {}, output: {} },
+                    nestedInTransaction: { input: {}, output: {} },
+                    sequential:          { input: {}, output: {} }
                 },
-                forwardInput: {
-                    inTransaction: { return: '#.input' },
-                    inputMap: '#.input.payload'
-                },
-                throwInside: {
-                    inTransaction: { throw: 'inner error' }
-                },
-                nestedInTransaction: {
-                    inTransaction: [
-                        { name: 'outer', return: '#._ctx.transaction' },
-                        { name: 'inner', inTransaction: { return: '#._ctx.transaction' } },
-                        { return: { outer: '#.outer', inner: '#.inner' } }
+                implementation: {
+                    captureTransaction: {
+                        inTransaction: { return: '#._ctx.transaction' }
+                    },
+                    forwardInput: {
+                        inTransaction: { return: '#.input' },
+                        inputMap: '#.input.payload'
+                    },
+                    throwInside: {
+                        inTransaction: { throw: 'inner error' }
+                    },
+                    nestedInTransaction: {
+                        inTransaction: [
+                            { name: 'outer', return: '#._ctx.transaction' },
+                            { name: 'inner', inTransaction: { return: '#._ctx.transaction' } },
+                            { return: { outer: '#.outer', inner: '#.inner' } }
+                        ]
+                    },
+                    sequential: [
+                        { name: 'first',  inTransaction: { return: '#._ctx.transaction' } },
+                        { name: 'second', inTransaction: { return: '#._ctx.transaction' } },
+                        { return: { first: '#.first', second: '#.second' } }
                     ]
-                },
-                sequential: [
-                    { name: 'first',  inTransaction: { return: '#._ctx.transaction' } },
-                    { name: 'second', inTransaction: { return: '#._ctx.transaction' } },
-                    { return: { first: '#.first', second: '#.second' } }
-                ]
+                }
             }
         });
     });

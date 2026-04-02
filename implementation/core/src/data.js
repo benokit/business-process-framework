@@ -1,26 +1,5 @@
 import { isArray, isPlainObject, mapValues, merge } from 'lodash-es';
-import { getElement, getElements } from './elements-registry.js';
-
-const dataCache = {};
-
-function getData(dataId) {
-
-    if (dataCache[dataId]) {
-        return dataCache[dataId];
-    }
-
-    const element = getElement('data', dataId);
-
-    if (!element) {
-        return;
-    }
-
-    const evaluatedData = { ...element, data: evaluateData(element.data) }
-
-    dataCache[dataId] = evaluatedData;
-
-    return evaluatedData;
-}
+import { getElement } from './elements-registry.js';
 
 const keyword = {
     literal: '/literal',
@@ -43,7 +22,7 @@ function evaluateData(data) {
         }
 
         if (data[keyword.ref]) {
-            return getData(data[keyword.ref]).data;
+            return evaluateData(getElement(data[keyword.ref]).data);
         }
 
         if (data[keyword.merge]) {
@@ -54,26 +33,6 @@ function evaluateData(data) {
     }
 }
 
-function getDataOfKind(kind) {
-    const elements = getElements('data', kind);
-    return { items: elements.map(el => getData(el.id)).filter(Boolean) };
-}
-
-function getServicesOfKind(kind) {
-    const elements = getElements('service', kind);
-    return { items: elements.map(el => el.id) };
-}
-
-function getDataLow({ input }) { return getData(input); }
-function getDataOfKindLow({ input }) { return getDataOfKind(input); }
-function getServicesOfKindLow({ input }) { return getServicesOfKind(input); }
-
 export {
-    getData,
-    getDataOfKind,
-    getServicesOfKind,
-    evaluateData,
-    getDataLow,
-    getDataOfKindLow,
-    getServicesOfKindLow
+    evaluateData
 };

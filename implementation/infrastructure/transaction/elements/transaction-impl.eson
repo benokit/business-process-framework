@@ -1,6 +1,5 @@
 [
     {
-        "type": "data",
         "id": "transaction-low-implementation",
         "data": {
             "beginTransaction":    { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "beginTransaction" } },
@@ -9,13 +8,14 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "transaction-low",
-        "interface": "transaction-low-interface",
-        "implementation": "transaction-low-implementation"
+        "data": {
+            "interface": "transaction-low-interface",
+            "implementation": "transaction-low-implementation"
+        }
     },
     {
-        "type": "data",
         "id": "transaction-implementation",
         "data": {
             "executeInTransaction": {
@@ -65,13 +65,14 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "transaction",
-        "interface": "transaction-interface",
-        "implementation": "transaction-implementation"
+        "data": {
+            "interface": "transaction-interface",
+            "implementation": "transaction-implementation"
+        }
     },
     {
-        "type": "data",
         "id": "in-transaction-node-template",
         "kind": "execution-node-template",
         "data": {

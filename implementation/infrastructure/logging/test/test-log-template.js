@@ -14,24 +14,26 @@ before(async function () {
     ]);
 
     registerElement({
-        type: 'service',
+        kind: 'service',
         id: 'log-template-test',
-        interface: {
-            logDefault:      { input: {}, output: {} },
-            logWithLevel:    { input: {}, output: {} },
-            logWithContext:  { input: {}, output: {} },
-            logAndReturn:    { input: {}, output: {} },
-            logError:        { input: {}, output: {} }
-        },
-        implementation: {
-            logDefault:     { log: 'default message' },
-            logWithLevel:   { log: 'warn message', level: 'warn' },
-            logWithContext: { log: 'ctx message', context: { orderId: 7 } },
-            logAndReturn:   [
-                { log: 'step logged' },
-                { return: { done: true } }
-            ],
-            logError:       { log: 'error message', level: 'error' }
+        data: {
+            interface: {
+                logDefault:      { input: {}, output: {} },
+                logWithLevel:    { input: {}, output: {} },
+                logWithContext:  { input: {}, output: {} },
+                logAndReturn:    { input: {}, output: {} },
+                logError:        { input: {}, output: {} }
+            },
+            implementation: {
+                logDefault:     { log: 'default message' },
+                logWithLevel:   { log: 'warn message', level: 'warn' },
+                logWithContext: { log: 'ctx message', context: { orderId: 7 } },
+                logAndReturn:   [
+                    { log: 'step logged' },
+                    { return: { done: true } }
+                ],
+                logError:       { log: 'error message', level: 'error' }
+            }
         }
     });
 });

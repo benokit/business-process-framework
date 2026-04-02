@@ -20,55 +20,52 @@ before(async function () {
 
     // Mock broker: appends consumer names / channel names to _ctx for assertions
     registerElement({
-        type: 'service',
+        kind: 'service',
         id: 'svc-test-mock-broker',
-        interface: 'messaging-broker-interface',
-        implementation: {
-            publish: { return: { messageId: 'test' } },
-            consume: [
-                {
-                    name: '_ctx',
-                    set: { consumed: { $concat: ['#._ctx.consumed', ['#.input.consumer.name']] } }
-                }
-            ],
-            stopConsuming: [
-                {
-                    name: '_ctx',
-                    set: { stopped: { $concat: ['#._ctx.stopped', ['#.input.channel.name']] } }
-                }
-            ]
+        data: {
+            interface: 'messaging-broker-interface',
+            implementation: {
+                publish: { return: { messageId: 'test' } },
+                consume: [
+                    {
+                        name: '_ctx',
+                        set: { consumed: { $concat: ['#._ctx.consumed', ['#.input.consumer.name']] } }
+                    }
+                ],
+                stopConsuming: [
+                    {
+                        name: '_ctx',
+                        set: { stopped: { $concat: ['#._ctx.stopped', ['#.input.channel.name']] } }
+                    }
+                ]
+            }
         }
     });
 
     registerElement({
-        type: 'data',
         id: BROKER_ID,
         data: { service: 'svc-test-mock-broker' }
     });
 
     registerElement({
-        type: 'data',
         id: CHANNEL_A_ID,
         kind: 'message-channel',
         data: { broker: BROKER_ID, topology: 'queue', name: 'channel-a' }
     });
 
     registerElement({
-        type: 'data',
         id: CHANNEL_B_ID,
         kind: 'message-channel',
         data: { broker: BROKER_ID, topology: 'queue', name: 'channel-b' }
     });
 
     registerElement({
-        type: 'data',
         id: 'svc-test-consumer-a',
         kind: 'message-consumer',
         data: { channel: CHANNEL_A_ID, name: 'consumer-a', handler: [{ return: null }] }
     });
 
     registerElement({
-        type: 'data',
         id: 'svc-test-consumer-b',
         kind: 'message-consumer',
         data: { channel: CHANNEL_B_ID, name: 'consumer-b', handler: [{ return: null }] }

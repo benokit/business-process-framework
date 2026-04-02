@@ -74,19 +74,19 @@ describe('transactional-outbox', function () {
         connected = true;
 
         registerElement({
-            type: 'service',
+            kind: 'service',
             id: TEST_BROKER_SERVICE,
-            interface: { publish: { input: {}, output: {} } },
-            implementation: { publish: { return: { messageId: '#.input.envelope.messageId' } } }
+            data: {
+                interface: { publish: { input: {}, output: {} } },
+                implementation: { publish: { return: { messageId: '#.input.envelope.messageId' } } }
+            }
         });
         registerElement({
-            type: 'data',
             id: TEST_BROKER_ID,
             kind: 'message-broker',
             data: { service: TEST_BROKER_SERVICE }
         });
         registerElement({
-            type: 'data',
             id: TEST_CHANNEL_ID,
             data: {
                 broker: TEST_BROKER_ID,
@@ -225,18 +225,20 @@ describe('transactional-outbox', function () {
             const FAIL_CHANNEL = 'test-fail-channel';
 
             registerElement({
-                type: 'service',
+                kind: 'service',
                 id: FAIL_SERVICE,
-                interface: { publish: { input: {}, output: {} } },
-                implementation: { publish: { throw: 'broker publish error' } }
+                data: {
+                    interface: { publish: { input: {}, output: {} } },
+                    implementation: { publish: { throw: 'broker publish error' } }
+                }
             });
             registerElement({
-                type: 'data', id: FAIL_BROKER,
+                id: FAIL_BROKER,
                 kind: 'message-broker',
                 data: { service: FAIL_SERVICE }
             });
             registerElement({
-                type: 'data', id: FAIL_CHANNEL,
+                id: FAIL_CHANNEL,
                 data: {
                     broker: FAIL_BROKER,
                     topology: 'queue',

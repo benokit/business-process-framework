@@ -1,29 +1,28 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "transaction-begin-input",
-        "schema": {
+        "data":{
             "options": "object"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "transaction-session",
-        "schema": {
+        "data":{
             "!sessionId": "number"
         }
     },
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "execute-in-transaction-input",
-        "schema": {
+        "data":{
             "config": "object",
             "!program": {},
             "programInput": {}
         }
     },
     {
-        "type": "data",
         "id": "transaction-low-interface",
         "data": {
             "beginTransaction": {
@@ -41,7 +40,6 @@
         }
     },
     {
-        "type": "data",
         "id": "transaction-interface",
         "data": {
             "executeInTransaction": {

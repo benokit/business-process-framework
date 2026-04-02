@@ -1,104 +1,106 @@
 [
     {
-        "type": "service",
+        "kind": "service",
         "id": "contract-workflow",
-        "interface": {
-            "createAndSubmit": {
-                "input": {
-                    "!businessKey": "string",
-                    "!title": "string",
-                    "!sellerPartyKey": "string",
-                    "!buyerPartyKey": "string",
-                    "!value": "number",
-                    "!currency": "string",
-                    "!startDate": "string",
-                    "!endDate": "string",
-                    "terms": "string"
+        "data": {
+            "interface": {
+                "createAndSubmit": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!title": "string",
+                        "!sellerPartyKey": "string",
+                        "!buyerPartyKey": "string",
+                        "!value": "number",
+                        "!currency": "string",
+                        "!startDate": "string",
+                        "!endDate": "string",
+                        "terms": "string"
+                    },
+                    "output": "@entity-record"
                 },
-                "output": "@entity-record"
+                "approve": {
+                    "input": {
+                        "!businessKey": "string"
+                    },
+                    "output": "@entity-record"
+                }
             },
-            "approve": {
-                "input": {
-                    "!businessKey": "string"
-                },
-                "output": "@entity-record"
+            "implementation": {
+                "createAndSubmit": [
+                    {
+                        "name": "created",
+                        "inputMap": {
+                            "entityType": "contract",
+                            "businessKey": "#.input.businessKey",
+                            "data": {
+                                "title": "#.input.title",
+                                "sellerPartyKey": "#.input.sellerPartyKey",
+                                "buyerPartyKey": "#.input.buyerPartyKey",
+                                "value": "#.input.value",
+                                "currency": "#.input.currency",
+                                "startDate": "#.input.startDate",
+                                "endDate": "#.input.endDate",
+                                "terms": "#.input.terms"
+                            }
+                        },
+                        "service": { "id": "entity", "method": "create" }
+                    },
+                    {
+                        "name": "submitted",
+                        "inputMap": {
+                            "entityType": "contract",
+                            "businessKey": "#.input.businessKey",
+                            "transition": "submit"
+                        },
+                        "service": { "id": "entity", "method": "transition" }
+                    },
+                    { "return": "#.submitted" }
+                ],
+                "approve": [
+                    {
+                        "name": "contract",
+                        "inputMap": {
+                            "entityType": "contract",
+                            "businessKey": "#.input.businessKey"
+                        },
+                        "service": { "id": "entity", "method": "read" }
+                    },
+                    {
+                        "name": "seller",
+                        "inputMap": {
+                            "entityType": "party",
+                            "businessKey": "#.contract.data.sellerPartyKey"
+                        },
+                        "service": { "id": "entity", "method": "read" }
+                    },
+                    {
+                        "name": "buyer",
+                        "inputMap": {
+                            "entityType": "party",
+                            "businessKey": "#.contract.data.buyerPartyKey"
+                        },
+                        "service": { "id": "entity", "method": "read" }
+                    },
+                    {
+                        "if": { "$neq": ["#.seller.state.dimensions.status", "verified"] },
+                        "then": [{ "throw": "seller party is not verified" }]
+                    },
+                    {
+                        "if": { "$neq": ["#.buyer.state.dimensions.status", "verified"] },
+                        "then": [{ "throw": "buyer party is not verified" }]
+                    },
+                    {
+                        "name": "approved",
+                        "inputMap": {
+                            "entityType": "contract",
+                            "businessKey": "#.input.businessKey",
+                            "transition": "approve"
+                        },
+                        "service": { "id": "entity", "method": "transition" }
+                    },
+                    { "return": "#.approved" }
+                ]
             }
-        },
-        "implementation": {
-            "createAndSubmit": [
-                {
-                    "name": "created",
-                    "inputMap": {
-                        "entityType": "contract",
-                        "businessKey": "#.input.businessKey",
-                        "data": {
-                            "title": "#.input.title",
-                            "sellerPartyKey": "#.input.sellerPartyKey",
-                            "buyerPartyKey": "#.input.buyerPartyKey",
-                            "value": "#.input.value",
-                            "currency": "#.input.currency",
-                            "startDate": "#.input.startDate",
-                            "endDate": "#.input.endDate",
-                            "terms": "#.input.terms"
-                        }
-                    },
-                    "service": { "id": "entity", "method": "create" }
-                },
-                {
-                    "name": "submitted",
-                    "inputMap": {
-                        "entityType": "contract",
-                        "businessKey": "#.input.businessKey",
-                        "transition": "submit"
-                    },
-                    "service": { "id": "entity", "method": "transition" }
-                },
-                { "return": "#.submitted" }
-            ],
-            "approve": [
-                {
-                    "name": "contract",
-                    "inputMap": {
-                        "entityType": "contract",
-                        "businessKey": "#.input.businessKey"
-                    },
-                    "service": { "id": "entity", "method": "read" }
-                },
-                {
-                    "name": "seller",
-                    "inputMap": {
-                        "entityType": "party",
-                        "businessKey": "#.contract.data.sellerPartyKey"
-                    },
-                    "service": { "id": "entity", "method": "read" }
-                },
-                {
-                    "name": "buyer",
-                    "inputMap": {
-                        "entityType": "party",
-                        "businessKey": "#.contract.data.buyerPartyKey"
-                    },
-                    "service": { "id": "entity", "method": "read" }
-                },
-                {
-                    "if": { "$neq": ["#.seller.state.dimensions.status", "verified"] },
-                    "then": [{ "throw": "seller party is not verified" }]
-                },
-                {
-                    "if": { "$neq": ["#.buyer.state.dimensions.status", "verified"] },
-                    "then": [{ "throw": "buyer party is not verified" }]
-                },
-                {
-                    "name": "approved",
-                    "inputMap": {
-                        "entityType": "contract",
-                        "businessKey": "#.input.businessKey",
-                        "transition": "approve"
-                    },
-                    "service": { "id": "entity", "method": "transition" }
-                },
-                { "return": "#.approved" }
-            ]
         }
     }
 ]

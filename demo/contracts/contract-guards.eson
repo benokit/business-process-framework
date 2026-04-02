@@ -1,42 +1,46 @@
 [
     {
-        "type": "service",
+        "kind": "service",
         "kind": "entity-guard/before-update/contract",
         "id": "contract-value-guard",
-        "interface": {
-            "validate": {
-                "input": {},
-                "output": {}
-            }
-        },
-        "implementation": {
-            "validate": [
-                {
-                    "if": { "$lte": ["#.input.data.value", 0] },
-                    "then": [{ "return": ["contract value must be greater than zero"] }],
-                    "else": [{ "return": [] }]
+        "data": {
+            "interface": {
+                "validate": {
+                    "input": {},
+                    "output": {}
                 }
-            ]
+            },
+            "implementation": {
+                "validate": [
+                    {
+                        "if": { "$lte": ["#.input.data.value", 0] },
+                        "then": [{ "return": ["contract value must be greater than zero"] }],
+                        "else": [{ "return": [] }]
+                    }
+                ]
+            }
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "kind": "entity-guard/before-update/contract",
         "id": "contract-parties-guard",
-        "interface": {
-            "validate": {
-                "input": {},
-                "output": {}
-            }
-        },
-        "implementation": {
-            "validate": [
-                {
-                    "if": { "$eq": ["#.input.data.sellerPartyKey", "#.input.data.buyerPartyKey"] },
-                    "then": [{ "return": ["seller and buyer must be different parties"] }],
-                    "else": [{ "return": [] }]
+        "data": {
+            "interface": {
+                "validate": {
+                    "input": {},
+                    "output": {}
                 }
-            ]
+            },
+            "implementation": {
+                "validate": [
+                    {
+                        "if": { "$eq": ["#.input.data.sellerPartyKey", "#.input.data.buyerPartyKey"] },
+                        "then": [{ "return": ["seller and buyer must be different parties"] }],
+                        "else": [{ "return": [] }]
+                    }
+                ]
+            }
         }
     }
 ]

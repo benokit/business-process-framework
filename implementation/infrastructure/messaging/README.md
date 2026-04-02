@@ -64,7 +64,7 @@ For dynamic values, use `execute` to resolve context references before the node 
 
 ## Routing
 
-For each method, `messaging-service` resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsumers` discovers all `message-consumer` elements for the channel via `getDataOfKind` and calls `broker.consume` for each one. When `channel` is omitted, both `startConsumers` and `stopConsumers` iterate over all `message-channel` elements and apply the operation to each.
+For each method, `messaging-service` resolves the `message-broker` data element from the channel and delegates dynamically to the service named in `broker.data.service`. `startConsumers` discovers all `message-consumer` elements for the channel via `getElementOfKind` and calls `broker.consume` for each one. When `channel` is omitted, both `startConsumers` and `stopConsumers` iterate over all `message-channel` elements and apply the operation to each.
 
 ## Messaging middleware
 
@@ -80,7 +80,6 @@ Each middleware receives `{ context, input, next }`:
 
 ```json
 {
-    "type": "data",
     "id": "my-messaging-middleware",
     "kind": "middleware/messaging",
     "data": {

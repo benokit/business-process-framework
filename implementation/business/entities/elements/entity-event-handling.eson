@@ -1,8 +1,8 @@
 [
     {
-        "type": "schema",
+        "kind": "schema",
         "id": "entity-event-handler-runner-input",
-        "schema": {
+        "data":{
             "!onEvent": "string",
             "!entityType": "string",
             "!eventType": "string",
@@ -10,7 +10,6 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-event-handler-runner-interface",
         "data": {
             "run": {
@@ -19,19 +18,18 @@
         }
     },
     {
-        "type": "data",
         "id": "entity-event-handler-runner-implementation",
         "data": {
             "run": [
                 {
                     "name": "handlers",
-                    "getServicesOfKind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
+                    "getElementsOfKInd": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
                 },
                 { "name": "_ctx", "set": { "handlerInput": "#.input.entity" } },
                 {
                     "inputMap": "#.handlers.items",
                     "forEach": {
-                        "execute": { "service": { "id": "#.input", "method": "run" } },
+                        "execute": { "service": { "id": "#.input.id", "method": "run" } },
                         "inputMap": "#._ctx.handlerInput"
                     }
                 },
@@ -49,9 +47,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "entity-event-handler-runner",
-        "interface": "entity-event-handler-runner-interface",
-        "implementation": "entity-event-handler-runner-implementation"
+        "data": {
+            "interface": "entity-event-handler-runner-interface",
+            "implementation": "entity-event-handler-runner-implementation"
+        }
     }
 ]

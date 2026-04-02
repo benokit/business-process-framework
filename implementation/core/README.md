@@ -3,31 +3,20 @@
 High level programming building blocks are called elements.
 Elements are represented as JSON objects, stored in `*.eson` files.
 
-Elements are of three possible types:
+Each element has an `id`, `data` object (with element specific properties) and optional `kind` and `meta` object for user-defined metadata. The framework recognises one top-level reserved property alongside `type` and `id`:
+
+- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
+
+Elements are three basic kinds:
 
 - `schema`
-- `data`
 - `service`
-
-Each element has an `id` and an optional `meta` object for user-defined metadata. The framework recognises one top-level reserved property alongside `type` and `id`:
-
-- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getDataOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
 
 ## Schema
 
 A `schema` element specifies a shape of data. The supported schema language is the compact schema language: <https://github.com/benokit/compact-json-schema-language>. All schemas are loaded into a global runtime register from which they can be retrieved at any point for data validation. Schemas can be reused using reference by `id`.
 
 Required fields are prefixed with `!`. Example: `{ "!name": "string", "age": "number" }`.
-
-## Data
-
-A `data` element holds arbitrary data. A data element can be composed from other data elements using reserved keywords:
-
-- `/ref`: embeds the referenced data element's value by id
-- `/merge`: deep-merges an array of data objects into one
-- `/literal`: takes data as-is, bypassing keyword evaluation
-
-Data is lazily evaluated and cached on first access.
 
 ## Service
 
@@ -45,9 +34,9 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `set` | Evaluates a lambdaJSON expression; result is the node output |
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
-| `getData` | Retrieves a data element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getData": "#.input.someId" }` |
-| `getDataOfKind` | Retrieves all data elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getDataOfKind": "my-kind" }`. Returns `{ items: [...] }` |
-| `getServicesOfKind` | Retrieves all service ids of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getServicesOfKind": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
+| `getElement` | Retrieves a data element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
+| `getElementOfKind` | Retrieves all data elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementOfKind": "my-kind" }`. Returns `{ items: [...] }` |
+| `getElementsOfKInd` | Retrieves all service ids of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKInd": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
 | `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
 | `executeRef` | Evaluates a lambdaJSON expression to resolve a data element id, loads that element, and executes its `data` value as a pipeline — equivalent to `execute` with the pipeline stored in a `data` element. |
@@ -139,7 +128,6 @@ A `data` element with `kind = "pure-function"` declares a named, reusable lambda
 
 ```json
 {
-    "type": "data",
     "kind": "pure-function",
     "id": "double",
     "data": { "$multiply": ["#", 2] }
@@ -162,7 +150,6 @@ The set of pipeline keywords is open for extension. A `data` element with `kind 
 
 ```json
 {
-    "type": "data",
     "id": "my-node-template",
     "kind": "execution-node-template",
     "data": {
@@ -211,7 +198,7 @@ const childrenOnly     = getElements('data', 'entity-component/on-update'); // s
 
 ```json
 {
-    "type": "service",
+    "kind": "service",
     "id": "math",
     "interface": {
         "add": {

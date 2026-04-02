@@ -1,12 +1,11 @@
 [
     {
-        "type": "data",
         "id": "http-server-express-implementation",
         "data": {
             "start": [
                 {
                     "name": "endpointData",
-                    "getDataOfKind": "http-endpoint"
+                    "getElementOfKind": "http-endpoint"
                 },
                 {
                     "inputMap": "#.endpointData.items",
@@ -44,9 +43,11 @@
         }
     },
     {
-        "type": "service",
+        "kind": "service",
         "id": "http-server",
-        "interface": "http-server-interface",
-        "implementation": "http-server-express-implementation"
+        "data": {
+            "interface": "http-server-interface",
+            "implementation": "http-server-express-implementation"
+        }
     }
 ]
