@@ -30,8 +30,8 @@ This package registers an [execution node template](../../core/README.md#executi
 | `level`   | no       | Log level (default `info`)               |
 | `context` | no       | Object merged into the log entry as-is   |
 
-The node's output is `null`; it is purely a side effect. Named captures work as expected:
+The node's output is `null`; it is purely a side effect. Use `outputKey` to capture the `null` if needed:
 
 ```json
-{ "name": "logged", "log": "step completed", "level": "debug" }
+{ "outputKey": "logged", "log": "step completed", "level": "debug" }
 ```

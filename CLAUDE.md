@@ -2,11 +2,11 @@
 
 ## Architecture
 
-The framework is built around **elements** — typed, declarative JSON objects loaded from `.eson` files. Three element types: `schema` (compact JSON Schema via CJSL), `data` (named blobs for interfaces/implementations), `service` (binds interface to implementation).
+The framework is built around **elements** — declarative JSON objects loaded from `.eson` files. Every element has an `id`, a `kind` string tag, and a `data` object. `kind` drives both behaviour and querying: `schema` elements register a CJSL schema, `service` elements expose a callable API, and all other kinds are plain data.
 
 Elements are loaded via `loadElements(paths)` from `core/elements-loader`. Services are invoked via `execute(serviceId, methodName, input, _ctx?)` from `core/service`. `_ctx` is an optional shared context object (default `{}`) that propagates through the entire execution graph.
 
-See [core/README.md](implementation/core/README.md) for full details on element types, pipelines, pipeline context/input shape, `set` merge behaviour, execution node templates, and JS module conventions.
+See [core/README.md](implementation/core/README.md) for full details on element structure, pipelines, pipeline context/input shape, `set` merge behaviour, execution node templates, and JS module conventions.
 
 ## Schema syntax (CJSL)
 

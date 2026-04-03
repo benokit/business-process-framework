@@ -51,7 +51,7 @@ The `ETag` value is the entity revision formatted as a quoted integer (e.g. `"5"
 
 ## Entity type definition
 
-Each entity type is a `data` element:
+Each entity type is an element with `kind = "entity-type"`:
 
 ```json
 {
@@ -135,11 +135,12 @@ Handlers are invoked within the same transaction as their triggering method. Eac
 
 ```json
 {
-    "kind": "service",
     "id": "order-notify",
     "kind": "entity-event-handler/on-create/order",
-    "interface": { "run": { "input": "@entity-record", "output": {} } },
-    "implementation": { "run": [ ... ] }
+    "data": {
+        "interface": { "run": { "input": "@entity-record", "output": {} } },
+        "implementation": { "run": [ ... ] }
+    }
 }
 ```
 
@@ -157,15 +158,16 @@ Guards run outside the transaction — before the database write is attempted.
 
 ```json
 {
-    "kind": "service",
     "id": "order-amount-guard",
     "kind": "entity-guard/before-update/order",
-    "interface": { "validate": { "input": {}, "output": {} } },
-    "implementation": { "validate": {
-        "if": { "$lte": ["#.input.data.amount", 0] },
-        "then": [{ "return": ["amount must be positive"] }],
-        "else": [{ "return": [] }]
-    }}
+    "data": {
+        "interface": { "validate": { "input": {}, "output": {} } },
+        "implementation": { "validate": {
+            "if": { "$lte": ["#.input.data.amount", 0] },
+            "then": [{ "return": ["amount must be positive"] }],
+            "else": [{ "return": [] }]
+        }}
+    }
 }
 ```
 

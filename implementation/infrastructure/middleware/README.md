@@ -37,13 +37,13 @@ A pipeline node (ready to `execute`) that, when called with any `input`, runs th
 
 ```json
 {
-    "name": "wrappedAction",
+    "outputKey": "wrappedAction",
     "inputMap": {
         "middlewareKind": "my-middleware",
-        "action": { "\\$literal": { "service": { "id": "my-service", "method": "handle" } } },
+        "action": { "\\$literal": { "service": "my-service", "method": "handle" } },
         "context": "#.input.context"
     },
-    "executeRef": "middleware-wrap"
+    "method": "middleware-wrap"
 },
 {
     "inputMap": "#.input.request",

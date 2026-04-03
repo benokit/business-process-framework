@@ -29,7 +29,7 @@ High-level service. Begins a transaction, executes a program, commits on success
 To write to `_ctx` from a pipeline step:
 
 ```json
-{ "name": "_ctx", "set": { "transaction": "#.txn" } }
+{ "outputKey": "_ctx", "set": { "transaction": "#.txn" } }
 ```
 
 ## `inTransaction` pipeline keyword

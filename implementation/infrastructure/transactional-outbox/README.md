@@ -60,7 +60,7 @@ Table and indices are created automatically on first use.
 ```json
 {
     "inTransaction": [
-        { "service": { "id": "entity-database", "method": "create" }, "inputMap": "..." },
+        { "service": "entity-database", "method": "create", "inputMap": "..." },
         { "publish": { "channel": "order-events", "envelope": "#.envelope" } }
     ]
 }

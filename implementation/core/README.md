@@ -3,14 +3,29 @@
 High level programming building blocks are called elements.
 Elements are represented as JSON objects, stored in `*.eson` files.
 
-Each element has an `id`, `data` object (with element specific properties) and optional `kind` and `meta` object for user-defined metadata. The framework recognises one top-level reserved property alongside `type` and `id`:
+Every element has an `id`, a `data` object (with element-specific properties), and an optional `kind` string and `meta` object.
 
-- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
+- `kind` — a hierarchical string tag used to classify and query elements. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional.
 
-Elements are three basic kinds:
+Three kind values trigger built-in registration effects:
 
-- `schema`
-- `service`
+- `schema` — registers the element's `data` as a named CJSL schema
+- `pure-function` — registers the element as a callable lambdaJSON function
+- `execution-node-template` — registers a new pipeline keyword
+
+All other `kind` values (including the conventional `service`) are plain data elements with no automatic side effects.
+
+## Data composition
+
+An element's data can be provided either inline as a `data` object, or lazily via a `/data` key. When `/data` is present and `data` is absent, the value is evaluated on first access and cached.
+
+Inside a `data` or `/data` value, three composition keywords are available:
+
+| Keyword | Description |
+| --- | --- |
+| `/ref` | Embeds another element's `data` by id: `{ "/ref": "elementId" }` |
+| `/merge` | Deep-merges an array of data objects: `{ "/merge": [{...}, {...}] }` |
+| `/literal` | Takes the value as-is, bypassing keyword evaluation: `{ "/literal": {...} }` |
 
 ## Schema
 
@@ -20,10 +35,10 @@ Required fields are prefixed with `!`. Example: `{ "!name": "string", "age": "nu
 
 ## Service
 
-A `service` element represents a callable unit with an API and I/O side effects. It consists of:
+A `service` element represents a callable unit with an API and I/O side effects. Its `data` contains:
 
-- `interface`: method definitions, each with `input` and `output` schemas (compact schema language)
-- `implementation`: method implementations keyed by method name
+- `interface`: method definitions, each with `input` and `output` schemas (compact schema language). May be an inline object or an element id string.
+- `implementation`: method implementations keyed by method name. May be an inline object or an element id string.
 
 ### Method implementation
 
@@ -33,12 +48,12 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | --- | --- |
 | `set` | Evaluates a lambdaJSON expression; result is the node output |
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
-| `service` | Calls another service: `{ "id": "...", "method": "..." }` |
-| `getElement` | Retrieves a data element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
-| `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
+| `service` | Calls another service. Sibling `method` is required: `{ "service": "serviceId", "method": "methodName" }` |
+| `method` | When combined with `service`, equivalent to the `service` keyword. When used alone, loads the element with the given id and executes its `data` as a method implementation: `{ "method": "elementId" }` |
+| `getElement` | Retrieves an element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
+| `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: [element, ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
 | `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
-| `executeRef` | Evaluates a lambdaJSON expression to resolve a data element id, loads that element, and executes its `data` value as a pipeline — equivalent to `execute` with the pipeline stored in a `data` element. |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |
@@ -52,7 +67,7 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 
 Any node (regardless of keyword) accepts these optional fields:
 
-- `name` — captures the node's output into the execution context under this key for use by later steps
+- `outputKey` — captures the node's output into the execution context under this key for use by later steps
 - `inputMap` — lambdaJSON expression evaluated against the current context; its result is passed as the node's input instead of the full context
 - `outputMap` — lambdaJSON expression applied to the node's raw output before it is stored or returned
 
@@ -61,12 +76,12 @@ Any node (regardless of keyword) accepts these optional fields:
 The execution context is an object available throughout a method's pipeline:
 
 - `input` — the method's validated input value
-- `<name>` — the output of any preceding pipeline node that carries a `name`
+- `<outputKey>` — the output of any preceding pipeline node that carries an `outputKey`
 
 All branch keywords (`if`, `switch`) pass the full context into their bodies (or the `inputMap` result if one is present). For `execute`, the expression is evaluated against the full context and the resulting pipeline runs with the `inputMap` result (or full context if no `inputMap`). Two special cases:
 
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
-- **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer named steps are accessible as `#.context.<name>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
+- **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
 If no `return` is present, the method returns the output of the last executed node.
 
@@ -74,7 +89,7 @@ If no `return` is present, the method returns the output of the last executed no
 
 Pure functions are written in lambdaJSON: <https://github.com/benokit/json-programming-language>.
 
-The context object is bound to `#`. Examples: `#.input.x` (field from method input), `#.step1.value` (output of the named step `step1`).
+The context object is bound to `#`. Examples: `#.input.x` (field from method input), `#.step1.value` (output of the step with `outputKey: "step1"`).
 
 To call a host JS function as a custom lambdaJSON primitive, use the `$low` key inside any lambdaJSON expression:
 
@@ -173,9 +188,9 @@ For a real-world example see [`inTransaction`](../infrastructure/transaction/REA
 ## Runtime API
 
 ```js
-import { loadElements }          from 'core/elements-loader';
-import { execute }               from 'core/service';
-import { getElement, getElements } from 'core/elements-registry';
+import { loadElements }             from 'core/elements-loader';
+import { execute }                  from 'core/service';
+import { getElement, getElementsOfKind } from 'core/elements-registry';
 
 // Load all *.eson files from one or more directory trees.
 await loadElements(['./elements', './app/elements']);
@@ -183,14 +198,14 @@ await loadElements(['./elements', './app/elements']);
 // Call a service method.
 const result = await execute(serviceId, methodName, input);
 
-// Retrieve a single element by type and id.
-const element = getElement(type, id);
+// Retrieve a single element by id.
+const element = getElement(id);
 
-// Retrieve all elements of a given type, optionally filtered by kind.
+// Retrieve all elements of a given kind (or kind prefix).
 // Passing a kind prefix returns all elements whose kind starts with that prefix.
-const allServices      = getElements('service');
-const kindFiltered     = getElements('data', 'entity-component');        // exact + all children
-const childrenOnly     = getElements('data', 'entity-component/on-update'); // subtree only
+const allServices  = getElementsOfKind('service');                   // { items: [...] }
+const kindFiltered = getElementsOfKind('entity-component');          // exact + all children
+const childrenOnly = getElementsOfKind('entity-component/on-update'); // subtree only
 ```
 
 ## Example
@@ -199,32 +214,34 @@ const childrenOnly     = getElements('data', 'entity-component/on-update'); // s
 {
     "kind": "service",
     "id": "math",
-    "interface": {
-        "add": {
-            "input":  { "!a": "number", "!b": "number" },
-            "output": "number"
-        },
-        "clamp": {
-            "input":  { "!value": "number", "!min": "number", "!max": "number" },
-            "output": "number"
-        }
-    },
-    "implementation": {
-        "add": {
-            "return": { "$sum": ["#.input.a", "#.input.b"] }
-        },
-        "clamp": [
-            { "name": "lo", "set": { "$return": "#.input.min" } },
-            {
-                "if":   { "$gt": ["#.input.value", "#.input.max"] },
-                "then": { "return": { "$return": "#.input.max" } },
-                "else": {
-                    "if":   { "$lt": ["#.input.value", "#.lo"] },
-                    "then": { "return": { "$return": "#.lo" } },
-                    "else": { "return": { "$return": "#.input.value" } }
-                }
+    "data": {
+        "interface": {
+            "add": {
+                "input":  { "!a": "number", "!b": "number" },
+                "output": "number"
+            },
+            "clamp": {
+                "input":  { "!value": "number", "!min": "number", "!max": "number" },
+                "output": "number"
             }
-        ]
+        },
+        "implementation": {
+            "add": {
+                "return": { "$sum": ["#.input.a", "#.input.b"] }
+            },
+            "clamp": [
+                { "outputKey": "lo", "set": { "$return": "#.input.min" } },
+                {
+                    "if":   { "$gt": ["#.input.value", "#.input.max"] },
+                    "then": { "return": { "$return": "#.input.max" } },
+                    "else": {
+                        "if":   { "$lt": ["#.input.value", "#.lo"] },
+                        "then": { "return": { "$return": "#.lo" } },
+                        "else": { "return": { "$return": "#.input.value" } }
+                    }
+                }
+            ]
+        }
     }
 }
 ```
