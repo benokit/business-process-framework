@@ -45,7 +45,7 @@
                         "level": "#.node.level",
                         "context": "#.node.context"
                     },
-                    "service": { "id": "logging", "method": "log" }
+                    "service": "logging", "method": "log"
                 }
             ]
         }

@@ -29,7 +29,7 @@
                                 "middlewares": { "\\$literal": { "$tail": "#.input.middlewares" } },
                                 "action": { "\\$literal": "#.input.action" }
                             },
-                            "executeRef": "middleware-runner"
+                            "method": "middleware-runner"
                         }
                     },
                     {

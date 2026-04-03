@@ -114,7 +114,7 @@ describe('transaction (service elements)', function () {
         it('reuses the outer transaction when called nested', async () => {
             const innerProgram = { "return": "#._ctx.transaction" };
             const outerProgram = [
-                { "outputKey": "inner", "inputMap": { "program": "#.input.innerProgram" }, "service": { "id": "transaction", "method": "executeInTransaction" } },
+                { "outputKey": "inner", "inputMap": { "program": "#.input.innerProgram" }, "service": "transaction", "method": "executeInTransaction" },
                 { "return": { "outer": "#._ctx.transaction", "inner": "#.inner" } }
             ];
             const result = await execute(SERVICE, 'executeInTransaction', { program: outerProgram, programInput: { innerProgram } });

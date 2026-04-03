@@ -29,7 +29,7 @@
                     "outputKey": "errorArrays",
                     "inputMap": "#.guards.items",
                     "forEach": {
-                        "execute": { "service": { "id": "#.input.id", "method": "validate" } },
+                        "execute": { "service": "#.input.id", "method": "validate" },
                         "inputMap": "#._ctx.guardInput"
                     }
                 },

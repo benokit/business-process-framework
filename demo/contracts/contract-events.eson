@@ -28,7 +28,7 @@
                                         "timestamp": "#.input.timestampUtc"
                                     }
                                 },
-                                "service": { "id": "messaging", "method": "publish" }
+                                "service": "messaging", "method": "publish"
                             }
                         ]
                     },

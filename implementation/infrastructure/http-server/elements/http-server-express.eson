@@ -15,14 +15,12 @@
                             "inputMap": {
                                 "middlewareKind": "middleware/http",
                                 "action": {
-                                    "service": {
-                                        "id": "#.input.data.controller.service",
-                                        "method": "#.input.data.controller.method"
-                                    }
+                                    "service": "#.input.data.controller.service",
+                                    "method": "#.input.data.controller.method"
                                 },
                                 "context": { "endpointId": "#.input.id" }
                             },
-                            "executeRef": "middleware-wrap"
+                            "method": "middleware-wrap"
                         },
                         {
                             "inputMap": {

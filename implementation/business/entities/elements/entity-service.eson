@@ -136,7 +136,7 @@
                                 "data": "#.input.data",
                                 "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
                             },
-                            "service": { "id": "entity-database", "method": "create" }
+                            "service": "entity-database", "method": "create"
                         },
                         {
                             "inputMap": {
@@ -145,7 +145,7 @@
                                 "eventType": "created",
                                 "entity": "#.created"
                             },
-                            "service": { "id": "entity-event-handler-runner", "method": "run" }
+                            "service": "entity-event-handler-runner", "method": "run"
                         },
                         { "return": "#.created" }
                     ]
@@ -157,7 +157,7 @@
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
-                    "service": { "id": "entity-database", "method": "read" }
+                    "service": "entity-database", "method": "read"
                 }
             ],
             "update": [
@@ -175,7 +175,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": { "id": "entity-guard-runner", "method": "run" }
+                    "service": "entity-guard-runner", "method": "run"
                 },
                 {
                     "inputMap": {
@@ -193,7 +193,7 @@
                                 "revision": "#.input.revision",
                                 "data": "#.input.data"
                             },
-                            "service": { "id": "entity-database", "method": "update" }
+                            "service": "entity-database", "method": "update"
                         },
                         {
                             "inputMap": {
@@ -202,7 +202,7 @@
                                 "eventType": "updated",
                                 "entity": "#.updated"
                             },
-                            "service": { "id": "entity-event-handler-runner", "method": "run" }
+                            "service": "entity-event-handler-runner", "method": "run"
                         },
                         { "return": "#.updated" }
                     ]
@@ -223,7 +223,7 @@
                                 "businessKey": "#.input.businessKey",
                                 "revision": "#.input.revision"
                             },
-                            "service": { "id": "entity-database", "method": "delete" }
+                            "service": "entity-database", "method": "delete"
                         },
                         {
                             "inputMap": {
@@ -232,7 +232,7 @@
                                 "eventType": "deleted",
                                 "correlation": "#._ctx.correlation"
                             },
-                            "service": { "id": "entity-event-publisher", "method": "publish" }
+                            "service": "entity-event-publisher", "method": "publish"
                         },
                         { "return": "#.deleted" }
                     ]
@@ -249,7 +249,7 @@
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
-                    "service": { "id": "entity-database", "method": "read" }
+                    "service": "entity-database", "method": "read"
                 },
                 {
                     "outputKey": "transitionDef",
@@ -290,7 +290,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": { "id": "entity-guard-runner", "method": "run" }
+                    "service": "entity-guard-runner", "method": "run"
                 },
                 {
                     "inputMap": {
@@ -311,7 +311,7 @@
                                 "revision": "#.input.revision",
                                 "state": "#.input.state"
                             },
-                            "service": { "id": "entity-database", "method": "update" }
+                            "service": "entity-database", "method": "update"
                         },
                         {
                             "inputMap": {
@@ -320,7 +320,7 @@
                                 "eventType": "transitioned",
                                 "entity": "#.transitioned"
                             },
-                            "service": { "id": "entity-event-handler-runner", "method": "run" }
+                            "service": "entity-event-handler-runner", "method": "run"
                         },
                         { "return": "#.transitioned" }
                     ]
@@ -341,7 +341,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": { "id": "entity-guard-runner", "method": "run" }
+                    "service": "entity-guard-runner", "method": "run"
                 },
                 {
                     "inputMap": {
@@ -361,7 +361,7 @@
                                 "data": "#.input.data",
                                 "validFrom": "#.input.validFrom"
                             },
-                            "service": { "id": "entity-database", "method": "amend" }
+                            "service": "entity-database", "method": "amend"
                         },
                         {
                             "inputMap": {
@@ -370,7 +370,7 @@
                                 "eventType": "amended",
                                 "entity": "#.amended"
                             },
-                            "service": { "id": "entity-event-handler-runner", "method": "run" }
+                            "service": "entity-event-handler-runner", "method": "run"
                         },
                         { "return": "#.amended" }
                     ]
@@ -383,7 +383,7 @@
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
                     },
-                    "service": { "id": "entity-database", "method": "read" }
+                    "service": "entity-database", "method": "read"
                 },
                 {
                     "outputKey": "component",
@@ -408,12 +408,7 @@
                 },
                 {
                     "inputMap": "#.input.input",
-                    "execute": {
-                        "service": {
-                            "id": "#.componentService.data.service",
-                            "method": "#.input.methodId"
-                        }
-                    }
+                    "execute": { "service": "#.componentService.data.service", "method": "#.input.methodId" }
                 }
             ]
         }

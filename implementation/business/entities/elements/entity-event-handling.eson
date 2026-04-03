@@ -29,7 +29,7 @@
                 {
                     "inputMap": "#.handlers.items",
                     "forEach": {
-                        "execute": { "service": { "id": "#.input.id", "method": "run" } },
+                        "execute": { "service": "#.input.id", "method": "run" },
                         "inputMap": "#._ctx.handlerInput"
                     }
                 },
@@ -40,7 +40,7 @@
                         "eventType": "#.input.eventType",
                         "correlation": "#._ctx.correlation"
                     },
-                    "service": { "id": "entity-event-publisher", "method": "publish" }
+                    "service": "entity-event-publisher", "method": "publish"
                 },
                 { "return": "#.input.entity" }
             ]

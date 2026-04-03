@@ -9,10 +9,10 @@
                     "if": "#.channel.data.publisher.transactionalOutbox",
                     "then": {
                         "inputMap": { "channel": "#.input.channel", "envelope": "#.input.envelope" },
-                        "service": { "id": "transactional-outbox", "method": "put" }
+                        "service": "transactional-outbox", "method": "put"
                     },
                     "else": {
-                        "execute": { "service": { "id": "#.broker.data.service", "method": "publish" } },
+                        "execute": { "service": "#.broker.data.service", "method": "publish" },
                         "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data", "envelope": "#.input.envelope" }
                     }
                 }
@@ -57,10 +57,10 @@
                                         "action": "#.input.consumer.handler",
                                         "context": { "consumerId": "#.input.consumerId" }
                                     },
-                                    "executeRef": "middleware-wrap"
+                                    "method": "middleware-wrap"
                                 },
                                 {
-                                    "execute": { "service": { "id": "#.input.brokerId", "method": "consume" } },
+                                    "execute": { "service": "#.input.brokerId", "method": "consume" },
                                     "inputMap": {
                                         "channel": "#.input.channel",
                                         "broker": "#.input.broker",
@@ -77,7 +77,7 @@
                         {
                             "forEach": [
                                 {
-                                    "service": { "id": "messaging-service", "method": "startConsumers" },
+                                    "service": "messaging-service", "method": "startConsumers",
                                     "inputMap": { "channel": "#.input.id" }
                                 }
                             ],
@@ -93,7 +93,7 @@
                         { "outputKey": "channel", "getElement": "#.input.channel" },
                         { "outputKey": "broker", "getElement": "#.channel.data.broker" },
                         {
-                            "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } },
+                            "execute": { "service": "#.broker.data.service", "method": "stopConsuming" },
                             "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } 
                         }
                     ],
@@ -102,7 +102,7 @@
                         {
                             "forEach": [
                                 {
-                                    "service": { "id": "messaging-service", "method": "stopConsumers" },
+                                    "service": "messaging-service", "method": "stopConsumers",
                                     "inputMap": { "channel": "#.input.id" }
                                 }
                             ],
@@ -127,7 +127,7 @@
         "data": {
             "keyword": "publish",
             "implementation": [
-                { "outputKey": "id", "service": { "id": "random", "method": "guid" } },
+                { "outputKey": "id", "service": "random", "method": "guid" },
                 {
                     "outputKey": "envelope",
                     "set": {
@@ -140,7 +140,7 @@
                 },
                 {
                     "inputMap": { "channel": "#.node.publish.channel", "envelope": "#.envelope" },
-                    "service": { "id": "messaging-service", "method": "publish" }
+                    "service": "messaging-service", "method": "publish"
                 }
             ]
         }

@@ -94,10 +94,8 @@
                     "set": "object"
                 },
                 {
-                    "service": {
-                        "!id": "string",
-                        "!method": "string"
-                    }
+                    "!service": "string",
+                    "!method": "string"
                 },
                 {
                     "low": {

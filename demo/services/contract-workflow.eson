@@ -43,7 +43,7 @@
                                 "terms": "#.input.terms"
                             }
                         },
-                        "service": { "id": "entity", "method": "create" }
+                        "service": "entity", "method": "create"
                     },
                     {
                         "outputKey": "submitted",
@@ -52,7 +52,7 @@
                             "businessKey": "#.input.businessKey",
                             "transition": "submit"
                         },
-                        "service": { "id": "entity", "method": "transition" }
+                        "service": "entity", "method": "transition"
                     },
                     { "return": "#.submitted" }
                 ],
@@ -63,7 +63,7 @@
                             "entityType": "contract",
                             "businessKey": "#.input.businessKey"
                         },
-                        "service": { "id": "entity", "method": "read" }
+                        "service": "entity", "method": "read"
                     },
                     {
                         "outputKey": "seller",
@@ -71,7 +71,7 @@
                             "entityType": "party",
                             "businessKey": "#.contract.data.sellerPartyKey"
                         },
-                        "service": { "id": "entity", "method": "read" }
+                        "service": "entity", "method": "read"
                     },
                     {
                         "outputKey": "buyer",
@@ -79,7 +79,7 @@
                             "entityType": "party",
                             "businessKey": "#.contract.data.buyerPartyKey"
                         },
-                        "service": { "id": "entity", "method": "read" }
+                        "service":  "entity", "method": "read"
                     },
                     {
                         "if": { "$neq": ["#.seller.state.dimensions.status", "verified"] },
@@ -96,7 +96,7 @@
                             "businessKey": "#.input.businessKey",
                             "transition": "approve"
                         },
-                        "service": { "id": "entity", "method": "transition" }
+                        "service": "entity", "method": "transition"
                     },
                     { "return": "#.approved" }
                 ]

@@ -9,7 +9,23 @@ import { getElement, getElementsOfKind } from './elements-registry.js';
 export const executors = {
 
     service: node => async ({ _ctx, input }) =>
-        await execute(node.service.id, node.service.method, input, _ctx),
+        await execute(node.service, node.method, input, _ctx),
+
+    method: node => {
+        if (has(node, 'service')) {
+            return executors.service;
+        }
+
+        return async ({ _ctx, input }) => {
+            const impl = getElement(node.method).data;
+            return await executeMethod(impl, input, _ctx);
+        }
+    },
+
+    execute: node => async (nodeInput, context) => {
+        const impl = await executeMapping(node.execute, context ?? nodeInput);
+        return await executeMethodWithContext(impl, nodeInput);
+    },
 
     low: node => async input => {
         const g = (await import(node.low.module))[node.low.functionName];

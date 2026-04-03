@@ -134,7 +134,7 @@ describe('transactional-outbox', function () {
             const program = [
                 {
                     inputMap: { channel: TEST_CHANNEL_ID, envelope: envelope },
-                    service: { id: 'transactional-outbox', method: 'put' }
+                    service: 'transactional-outbox', method: 'put'
                 },
                 { throw: 'deliberate rollback' }
             ];
@@ -154,7 +154,7 @@ describe('transactional-outbox', function () {
             const program = [
                 {
                     inputMap: { channel: TEST_CHANNEL_ID, envelope: envelope },
-                    service: { id: 'transactional-outbox', method: 'put' }
+                    service: 'transactional-outbox', method: 'put'
                 }
             ];
             await execute('transaction', 'executeInTransaction', { program });

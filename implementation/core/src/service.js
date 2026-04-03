@@ -119,20 +119,12 @@ async function executeNode(node, context) {
     }
 
     if (execution) execution.current = { node, phase: 'execute' };
+
     let result;
-    if (has(node, keyword.execute)) {
-        const pipeline = await executeMapping(node.execute, context);
-        result = await executeMethodWithContext(pipeline, nodeInput);
-    } else if (has(node, keyword.executeRef)) {
-        const id = await executeMapping(node.executeRef, context);
-        const pipeline = getElement(id).data;
-        result = await executeMethodWithContext(pipeline, nodeInput);
-    } else {
-        for (const key of Object.keys(node)) {
-            if (executors[key]) {
-                result = await executors[key](node)(nodeInput);
-                break;
-            }
+    for (const key of Object.keys(node)) {
+        if (executors[key]) {
+            result = await executors[key](node)(nodeInput, context);
+            break;
         }
     }
 

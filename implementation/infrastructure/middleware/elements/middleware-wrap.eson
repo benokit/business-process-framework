@@ -31,7 +31,7 @@
                         "context": "#.input.context",
                         "input": "\\#.input"
                     },
-                    "executeRef": "middleware-runner"
+                    "method": "middleware-runner"
                 }
             }
         ]

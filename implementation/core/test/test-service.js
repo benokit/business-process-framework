@@ -432,7 +432,7 @@ describe('service tests', () => {
                 compute: {
                     impl: {
                         inputMap: '#.input',
-                        service: { id: 'svc-delegate-inner', method: 'double' }
+                        service: 'svc-delegate-inner', method: 'double'
                     }
                 }
             });
@@ -479,7 +479,7 @@ describe('service tests', () => {
                 dispatch: {
                     impl: {
                         inputMap: { a: '#.input.a', b: '#.input.b' },
-                        execute: { service: { id: '#.input.svcId', method: '#.input.method' } }
+                        execute: { service: '#.input.svcId', method: '#.input.method' }
                     }
                 }
             });
