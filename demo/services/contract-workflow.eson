@@ -28,7 +28,7 @@
             "implementation": {
                 "createAndSubmit": [
                     {
-                        "name": "created",
+                        "outputKey": "created",
                         "inputMap": {
                             "entityType": "contract",
                             "businessKey": "#.input.businessKey",
@@ -46,7 +46,7 @@
                         "service": { "id": "entity", "method": "create" }
                     },
                     {
-                        "name": "submitted",
+                        "outputKey": "submitted",
                         "inputMap": {
                             "entityType": "contract",
                             "businessKey": "#.input.businessKey",
@@ -58,7 +58,7 @@
                 ],
                 "approve": [
                     {
-                        "name": "contract",
+                        "outputKey": "contract",
                         "inputMap": {
                             "entityType": "contract",
                             "businessKey": "#.input.businessKey"
@@ -66,7 +66,7 @@
                         "service": { "id": "entity", "method": "read" }
                     },
                     {
-                        "name": "seller",
+                        "outputKey": "seller",
                         "inputMap": {
                             "entityType": "party",
                             "businessKey": "#.contract.data.sellerPartyKey"
@@ -74,7 +74,7 @@
                         "service": { "id": "entity", "method": "read" }
                     },
                     {
-                        "name": "buyer",
+                        "outputKey": "buyer",
                         "inputMap": {
                             "entityType": "party",
                             "businessKey": "#.contract.data.buyerPartyKey"
@@ -90,7 +90,7 @@
                         "then": [{ "throw": "buyer party is not verified" }]
                     },
                     {
-                        "name": "approved",
+                        "outputKey": "approved",
                         "inputMap": {
                             "entityType": "contract",
                             "businessKey": "#.input.businessKey",

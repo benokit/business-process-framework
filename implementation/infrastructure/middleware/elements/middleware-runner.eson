@@ -12,7 +12,7 @@
         },
         "data": [
             {
-                "name": "currentMiddleware",
+                "outputKey": "currentMiddleware",
                 "set": {
                     "$head": "#.input.middlewares"
                 }
@@ -21,7 +21,7 @@
                 "if": "#.currentMiddleware",
                 "then": [
                     {
-                        "name": "nextNode",
+                        "outputKey": "nextNode",
                         "set": {
                             "inputMap": {
                                 "context": "#.input.context",

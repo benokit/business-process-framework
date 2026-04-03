@@ -28,13 +28,13 @@ before(async function () {
                 publish: { return: { messageId: 'test' } },
                 consume: [
                     {
-                        name: '_ctx',
+                        outputKey: '_ctx',
                         set: { consumed: { $concat: ['#._ctx.consumed', ['#.input.consumer.name']] } }
                     }
                 ],
                 stopConsuming: [
                     {
-                        name: '_ctx',
+                        outputKey: '_ctx',
                         set: { stopped: { $concat: ['#._ctx.stopped', ['#.input.channel.name']] } }
                     }
                 ]

@@ -93,7 +93,7 @@ describe('entity service', function () {
             data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
-                { name: '_ctx', set: { handlerCalledWith: '#.input' } },
+                { outputKey: '_ctx', set: { handlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
             }
@@ -110,7 +110,7 @@ describe('entity service', function () {
             data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
-                { name: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
+                { outputKey: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
             }
@@ -132,7 +132,7 @@ describe('entity service', function () {
             data: {
             interface: {run: { input: {}, output: {} } },
             implementation: {run: [
-                { name: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
+                { outputKey: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
             ] }
             }

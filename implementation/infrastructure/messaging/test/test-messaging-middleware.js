@@ -38,12 +38,12 @@ describe('messaging-middleware', function () {
                     publish: { return: {} },
                     consume: [
                         {
-                            name: 'result',
+                            outputKey: 'result',
                             inputMap: { value: 'original' },
                             execute: '#.input.handler'
                         },
                         {
-                            name: '_ctx',
+                            outputKey: '_ctx',
                             set: { results: { $concat: ['#._ctx.results', ['#.result']] } }
                         }
                     ],

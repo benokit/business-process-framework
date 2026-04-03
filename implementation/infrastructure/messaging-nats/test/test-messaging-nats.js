@@ -72,7 +72,7 @@ describe('messaging service (nats)', function () {
         this.timeout(5000);
 
         const channel = makeChannel();
-        const captureHandler = [{ name: '_ctx', set: { received: '#.input' } }, { return: null }];
+        const captureHandler = [{ outputKey: '_ctx', set: { received: '#.input' } }, { return: null }];
         makeConsumer(channel, captureHandler);
 
         const _ctx = {};
@@ -92,7 +92,7 @@ describe('messaging service (nats)', function () {
         this.timeout(5000);
 
         const channel = makeChannel();
-        const captureHandler = [{ name: '_ctx', set: { received: '#.input' } }, { return: null }];
+        const captureHandler = [{ outputKey: '_ctx', set: { received: '#.input' } }, { return: null }];
         makeConsumer(channel, captureHandler);
 
         const _ctx = {};
@@ -111,8 +111,8 @@ describe('messaging service (nats)', function () {
         const channelId = `channel-topic-${Date.now()}`;
         registerElement({ id: channelId, data: { broker: BROKER_ID, topology: 'topic', name: channelId } });
 
-        const captureA = [{ name: '_ctx', set: { receivedA: '#.input' } }, { return: null }];
-        const captureB = [{ name: '_ctx', set: { receivedB: '#.input' } }, { return: null }];
+        const captureA = [{ outputKey: '_ctx', set: { receivedA: '#.input' } }, { return: null }];
+        const captureB = [{ outputKey: '_ctx', set: { receivedB: '#.input' } }, { return: null }];
         makeConsumer(channelId, captureA);
         makeConsumer(channelId, captureB);
 

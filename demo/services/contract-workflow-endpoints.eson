@@ -10,7 +10,7 @@
             "implementation": {
                 "createAndSubmit": [
                     {
-                        "name": "result",
+                        "outputKey": "result",
                         "inputMap": "#.input.body",
                         "service": { "id": "contract-workflow", "method": "createAndSubmit" }
                     },
@@ -18,7 +18,7 @@
                 ],
                 "approve": [
                     {
-                        "name": "result",
+                        "outputKey": "result",
                         "inputMap": "#.input.body",
                         "service": { "id": "contract-workflow", "method": "approve" }
                     },

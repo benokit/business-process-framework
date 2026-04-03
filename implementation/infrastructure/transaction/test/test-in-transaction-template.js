@@ -53,14 +53,14 @@ describe('inTransaction node template', function () {
                     },
                     nestedInTransaction: {
                         inTransaction: [
-                            { name: 'outer', return: '#._ctx.transaction' },
-                            { name: 'inner', inTransaction: { return: '#._ctx.transaction' } },
+                            { outputKey: 'outer', return: '#._ctx.transaction' },
+                            { outputKey: 'inner', inTransaction: { return: '#._ctx.transaction' } },
                             { return: { outer: '#.outer', inner: '#.inner' } }
                         ]
                     },
                     sequential: [
-                        { name: 'first',  inTransaction: { return: '#._ctx.transaction' } },
-                        { name: 'second', inTransaction: { return: '#._ctx.transaction' } },
+                        { outputKey: 'first',  inTransaction: { return: '#._ctx.transaction' } },
+                        { outputKey: 'second', inTransaction: { return: '#._ctx.transaction' } },
                         { return: { first: '#.first', second: '#.second' } }
                     ]
                 }

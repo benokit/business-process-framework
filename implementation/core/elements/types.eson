@@ -80,7 +80,7 @@
         "kind": "schema",
         "id": "impl-item-common-schema",
         "data":{
-            "name": "string",
+            "outputKey": "string",
             "inputMap": "@function-schema",
             "outputMap": "@function-schema"
         }

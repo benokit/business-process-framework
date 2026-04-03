@@ -38,7 +38,7 @@ before(async function () {
             interface: 'messaging-broker-interface',
             implementation: {
                 publish: [
-                    { name: '_ctx', set: { captured: '#.input.envelope' } },
+                    { outputKey: '_ctx', set: { captured: '#.input.envelope' } },
                     { return: { messageId: '#.input.envelope.messageId' } }
                 ],
                 consume:       { set: null },

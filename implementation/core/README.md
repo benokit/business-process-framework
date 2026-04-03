@@ -5,7 +5,7 @@ Elements are represented as JSON objects, stored in `*.eson` files.
 
 Each element has an `id`, `data` object (with element specific properties) and optional `kind` and `meta` object for user-defined metadata. The framework recognises one top-level reserved property alongside `type` and `id`:
 
-- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
+- `kind` — a hierarchical string tag used to group and query elements within a type. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional; `kind` is purely for querying.
 
 Elements are three basic kinds:
 
@@ -35,8 +35,7 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `return` | Evaluates a lambdaJSON expression and returns it as the method output |
 | `service` | Calls another service: `{ "id": "...", "method": "..." }` |
 | `getElement` | Retrieves a data element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
-| `getElementOfKind` | Retrieves all data elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementOfKind": "my-kind" }`. Returns `{ items: [...] }` |
-| `getElementsOfKInd` | Retrieves all service ids of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKInd": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
+| `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: ["id1", ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
 | `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
 | `executeRef` | Evaluates a lambdaJSON expression to resolve a data element id, loads that element, and executes its `data` value as a pipeline — equivalent to `execute` with the pipeline stored in a `data` element. |

@@ -38,13 +38,13 @@ describe('entity-controller', function () {
                 execute:    { input: {}, output: {} }
             },
             implementation: {
-                create:     [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
-                read:       [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: { amount: 100, currency: 'USD' }, state: { dimensions: {} } } }],
-                update:     [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
-                delete:     [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: {} } }],
-                transition: [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: { dimensions: { status: 'confirmed' } } } }],
-                amend:      [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
-                execute:    [{ name: '_ctx', set: { capturedInput: '#.input' } }, { return: { ok: true } }]
+                create:     [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
+                read:       [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: { amount: 100, currency: 'USD' }, state: { dimensions: {} } } }],
+                update:     [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
+                delete:     [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: {} } }],
+                transition: [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: { dimensions: { status: 'confirmed' } } } }],
+                amend:      [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
+                execute:    [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { ok: true } }]
             }}
         });
     });

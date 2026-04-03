@@ -60,7 +60,7 @@
         "key-execution-node": {
             "comment": "Pipeline node keywords used as object keys: set, if, forEach, etc.",
             "name": "keyword.control.execution-node.eson",
-            "match": "\"(set|return|service|getElement|getElementOfKind|getElementsOfKInd|low|execute|executeRef|if|then|else|switch|forEach|try|catch|finally|throw|validateSchema|publish|inTransaction)\"(?=\\s*:)"
+            "match": "\"(set|return|service|getElement|getElementsOfKind|low|execute|executeRef|if|then|else|switch|forEach|try|catch|finally|throw|validateSchema|publish|inTransaction)\"(?=\\s*:)"
         },
 
         "key-lambda-primitive": {

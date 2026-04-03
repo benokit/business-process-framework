@@ -72,13 +72,8 @@ export const executors = {
         return getElement(id);
     },
 
-    getElementOfKind: node => async input => {
-        const kind = await executeMapping(node.getElementOfKind, input);
-        return getElementsOfKind(kind);
-    },
-
-    getElementsOfKInd: node => async input => {
-        const kind = await executeMapping(node.getElementsOfKInd, input);
+    getElementsOfKind: node => async input => {
+        const kind = await executeMapping(node.getElementsOfKind, input);
         return getElementsOfKind(kind);
     },
 

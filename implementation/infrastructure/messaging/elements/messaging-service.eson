@@ -3,8 +3,8 @@
         "id": "messaging-service-implementation",
         "data": {
             "publish": [
-                { "name": "channel", "getElement": "#.input.channel" },
-                { "name": "broker", "getElement": "#.channel.data.broker" },
+                { "outputKey": "channel", "getElement": "#.input.channel" },
+                { "outputKey": "broker", "getElement": "#.channel.data.broker" },
                 {
                     "if": "#.channel.data.publisher.transactionalOutbox",
                     "then": {
@@ -21,11 +21,11 @@
                 {
                     "if": "#.input.channel",
                     "then": [
-                        { "name": "channel", "getElement": "#.input.channel" },
-                        { "name": "broker", "getElement": "#.channel.data.broker" },
-                        { "name": "allConsumers", "getElementOfKind": "message-consumer" },
+                        { "outputKey": "channel", "getElement": "#.input.channel" },
+                        { "outputKey": "broker", "getElement": "#.channel.data.broker" },
+                        { "outputKey": "allConsumers", "getElementsOfKind": "message-consumer" },
                         {
-                            "name": "channelConsumers",
+                            "outputKey": "channelConsumers",
                             "set": {
                                 "$let": { "channelId": "#.channel.id" },
                                 "$filter": {
@@ -35,7 +35,7 @@
                             }
                         },
                         {
-                            "name": "consumers",
+                            "outputKey": "consumers",
                             "set": {
                                 "$let": {
                                     "channelData": "#.channel.data",
@@ -51,7 +51,7 @@
                         {
                             "forEach": [
                                 {
-                                    "name": "wrappedHandler",
+                                    "outputKey": "wrappedHandler",
                                     "inputMap": {
                                         "middlewareKind": "middleware/messaging",
                                         "action": "#.input.consumer.handler",
@@ -73,7 +73,7 @@
                         }
                     ],
                     "else": [
-                        { "name": "allChannels", "getElementOfKind": "message-channel" },
+                        { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
                         {
                             "forEach": [
                                 {
@@ -90,15 +90,15 @@
                 {
                     "if": "#.input.channel",
                     "then": [
-                        { "name": "channel", "getElement": "#.input.channel" },
-                        { "name": "broker", "getElement": "#.channel.data.broker" },
+                        { "outputKey": "channel", "getElement": "#.input.channel" },
+                        { "outputKey": "broker", "getElement": "#.channel.data.broker" },
                         {
                             "execute": { "service": { "id": "#.broker.data.service", "method": "stopConsuming" } },
                             "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } 
                         }
                     ],
                     "else": [
-                        { "name": "allChannels", "getElementOfKind": "message-channel" },
+                        { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
                         {
                             "forEach": [
                                 {
@@ -127,9 +127,9 @@
         "data": {
             "keyword": "publish",
             "implementation": [
-                { "name": "id", "service": { "id": "random", "method": "guid" } },
+                { "outputKey": "id", "service": { "id": "random", "method": "guid" } },
                 {
-                    "name": "envelope",
+                    "outputKey": "envelope",
                     "set": {
                         "messageId":    { "$coalesce": ["#.node.publish.envelope.messageId",    "#.id.value"] },
                         "timestampUTC": { "$coalesce": ["#.node.publish.envelope.timestampUTC", "#._ctx.timestampUTC"] },

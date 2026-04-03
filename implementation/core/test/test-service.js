@@ -78,27 +78,27 @@ describe('service tests', () => {
             registerService('svc-set', {
                 build: {
                     impl: [
-                        { name: 'step1', set: { value: 42 } },
+                        { outputKey: 'step1', set: { value: 42 } },
                         { return: '#.step1.value' }
                     ]
                 },
                 mergeIntoExisting: {
                     impl: [
-                        { name: 'acc', set: { a: 1 } },
-                        { name: 'acc', set: { b: 2 } },
+                        { outputKey: 'acc', set: { a: 1 } },
+                        { outputKey: 'acc', set: { b: 2 } },
                         { return: '#.acc' }
                     ]
                 },
                 mergeIntoCtx: {
                     impl: [
-                        { name: '_ctx', set: { sessionId: '#.input.id' } },
+                        { outputKey: '_ctx', set: { sessionId: '#.input.id' } },
                         { return: '#._ctx.sessionId' }
                     ]
                 },
                 readCtxAcrossSteps: {
                     impl: [
-                        { name: '_ctx', set: { tag: '#.input.tag' } },
-                        { name: 'result', set: { value: '#._ctx.tag' } },
+                        { outputKey: '_ctx', set: { tag: '#.input.tag' } },
+                        { outputKey: 'result', set: { value: '#._ctx.tag' } },
                         { return: '#.result.value' }
                     ]
                 }
@@ -129,7 +129,7 @@ describe('service tests', () => {
             registerService('svc-pipeline', {
                 compute: {
                     impl: [
-                        { name: 'step1', set: { multiplied: { $multiply: ['#.input.x', 3] } } },
+                        { outputKey: 'step1', set: { multiplied: { $multiply: ['#.input.x', 3] } } },
                         { return: { $sum: ['#.step1.multiplied', '#.input.y'] } }
                     ]
                 }
@@ -170,7 +170,7 @@ describe('service tests', () => {
                 registerService('svc-if-ctx', {
                     checkWithContext: {
                         impl: [
-                            { name: 'doubled', set: { $multiply: ['#.input.n', 2] } },
+                            { outputKey: 'doubled', set: { $multiply: ['#.input.n', 2] } },
                             {
                                 if: { $gt: ['#.doubled', 10] },
                                 then: { return: '#.doubled' },
@@ -245,7 +245,7 @@ describe('service tests', () => {
                 registerService('svc-try-ctx', {
                     tryWithStep: {
                         impl: [
-                            { name: 'greeting', set: 'hello' },
+                            { outputKey: 'greeting', set: 'hello' },
                             {
                                 try:   { return: '#.greeting' },
                                 catch: { return: 'error' }
@@ -254,7 +254,7 @@ describe('service tests', () => {
                     },
                     catchWithStep: {
                         impl: [
-                            { name: 'label', set: '#.input.tag' },
+                            { outputKey: 'label', set: '#.input.tag' },
                             {
                                 try:   { throw: '#.input.message' },
                                 catch: { return: '#.context.label' }
@@ -284,7 +284,7 @@ describe('service tests', () => {
                     impl: {
                         try:     { return: '#.input.value' },
                         finally: [
-                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { outputKey: '_ctx', set: { log: 'finally ran' } },
                         { return: '#._ctx.log' }
                     ]
                     }
@@ -294,7 +294,7 @@ describe('service tests', () => {
                         try:     { throw: '#.input.message' },
                         catch:   { return: '#.error' },
                         finally: [
-                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { outputKey: '_ctx', set: { log: 'finally ran' } },
                         { return: '#._ctx.log' }
                     ]
                     }
@@ -304,7 +304,7 @@ describe('service tests', () => {
                         try:     { throw: '#.input.message' },
                         catch:   { throw: '#.error' },
                         finally: [
-                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { outputKey: '_ctx', set: { log: 'finally ran' } },
                         { return: '#._ctx.log' }
                     ]
                     }
@@ -313,7 +313,7 @@ describe('service tests', () => {
                     impl: {
                         try:     { throw: '#.input.message' },
                         finally: [
-                        { name: '_ctx', set: { log: 'finally ran' } },
+                        { outputKey: '_ctx', set: { log: 'finally ran' } },
                         { return: '#._ctx.log' }
                     ]
                     }
@@ -389,7 +389,7 @@ describe('service tests', () => {
                 },
                 withContext: {
                     impl: [
-                        { name: 'base', set: { $multiply: ['#.input.x', 2] } },
+                        { outputKey: 'base', set: { $multiply: ['#.input.x', 2] } },
                         {
                             switch: {
                                 value: '#.input.op',
@@ -454,7 +454,7 @@ describe('service tests', () => {
                 pipeline: {
                     impl: {
                         execute: { '$literal': [
-                            { name: 'doubled', set: { $multiply: ['#.input.x', 2] } },
+                            { outputKey: 'doubled', set: { $multiply: ['#.input.x', 2] } },
                             { return: { $sum: ['#.doubled', '#.input.x'] } }
                         ] }
                     }
@@ -499,7 +499,7 @@ describe('service tests', () => {
                 },
                 inPipeline: {
                     impl: [
-                        { name: 'computed', execute: { return: '#.input.x' } },
+                        { outputKey: 'computed', execute: { return: '#.input.x' } },
                         { return: { $multiply: ['#.computed', 3] } }
                     ]
                 }
@@ -645,7 +645,7 @@ describe('service tests', () => {
                 chainFunctions: { impl: { return: { '$func/double':  { '$func/add-ten': '#.input.n' } } } },
                 inPipeline: {
                     impl: [
-                        { name: 'doubled', set: { '$func/double': '#.input.n' } },
+                        { outputKey: 'doubled', set: { '$func/double': '#.input.n' } },
                         { return: { $sum: ['#.doubled', '#.input.n'] } }
                     ]
                 }

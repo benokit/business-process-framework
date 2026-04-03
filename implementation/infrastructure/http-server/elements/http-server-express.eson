@@ -4,14 +4,14 @@
         "data": {
             "start": [
                 {
-                    "name": "endpointData",
-                    "getElementOfKind": "http-endpoint"
+                    "outputKey": "endpointData",
+                    "getElementsOfKind": "http-endpoint"
                 },
                 {
                     "inputMap": "#.endpointData.items",
                     "forEach": [
                         {
-                            "name": "wrappedAction",
+                            "outputKey": "wrappedAction",
                             "inputMap": {
                                 "middlewareKind": "middleware/http",
                                 "action": {

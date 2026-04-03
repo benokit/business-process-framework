@@ -104,7 +104,7 @@
         "data": {
             "create": [
                 {
-                    "name": "entityTypeDef",
+                    "outputKey": "entityTypeDef",
                     "getElement": "#.input.entityType"
                 },
                 {
@@ -112,7 +112,7 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
-                    "name": "initialState",
+                    "outputKey": "initialState",
                     "set": {
                         "$get": {
                             "_object": "#.entityTypeDef.data.statesModel.initialStates",
@@ -129,7 +129,7 @@
                     },
                     "inTransaction": [
                         {
-                            "name": "created",
+                            "outputKey": "created",
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
@@ -162,7 +162,7 @@
             ],
             "update": [
                 {
-                    "name": "entityTypeDef",
+                    "outputKey": "entityTypeDef",
                     "getElement": "#.input.entityType"
                 },
                 {
@@ -186,7 +186,7 @@
                     },
                     "inTransaction": [
                         {
-                            "name": "updated",
+                            "outputKey": "updated",
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
@@ -217,7 +217,7 @@
                     },
                     "inTransaction": [
                         {
-                            "name": "deleted",
+                            "outputKey": "deleted",
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
@@ -240,11 +240,11 @@
             ],
             "transition": [
                 {
-                    "name": "entityTypeDef",
+                    "outputKey": "entityTypeDef",
                     "getElement": "#.input.entityType"
                 },
                 {
-                    "name": "current",
+                    "outputKey": "current",
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
@@ -252,7 +252,7 @@
                     "service": { "id": "entity-database", "method": "read" }
                 },
                 {
-                    "name": "transitionDef",
+                    "outputKey": "transitionDef",
                     "set": {
                         "$get": {
                             "_object": "#.entityTypeDef.data.statesModel.transitions",
@@ -283,7 +283,7 @@
                     "then": [{ "throw": "transition failed" }],
                     "else": [{ "return": "#" }]
                 },
-                { "name": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
+                { "outputKey": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
                     "inputMap": {
                         "beforeEvent": "before-transition",
@@ -304,7 +304,7 @@
                     },
                     "inTransaction": [
                         {
-                            "name": "transitioned",
+                            "outputKey": "transitioned",
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
@@ -328,7 +328,7 @@
             ],
             "amend": [
                 {
-                    "name": "entityTypeDef",
+                    "outputKey": "entityTypeDef",
                     "getElement": "#.input.entityType"
                 },
                 {
@@ -353,7 +353,7 @@
                     },
                     "inTransaction": [
                         {
-                            "name": "amended",
+                            "outputKey": "amended",
                             "inputMap": {
                                 "entityType": "#.input.entityType",
                                 "businessKey": "#.input.businessKey",
@@ -378,7 +378,7 @@
             ],
             "execute": [
                 {
-                    "name": "current",
+                    "outputKey": "current",
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
@@ -386,19 +386,19 @@
                     "service": { "id": "entity-database", "method": "read" }
                 },
                 {
-                    "name": "component",
+                    "outputKey": "component",
                     "getElement": "#.input.componentId"
                 },
                 {
-                    "name": "componentService",
+                    "outputKey": "componentService",
                     "getElement": "#.component.data.componentService"
                 },
                 {
-                    "name": "mappedContext",
+                    "outputKey": "mappedContext",
                     "execute": { "set": "#.component.data.contextMapping" }
                 },
                 {
-                    "name": "_ctx",
+                    "outputKey": "_ctx",
                     "set": {
                         "entityContext": {
                             "entityType": "#.input.entityType",

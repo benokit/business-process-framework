@@ -23,18 +23,18 @@
                 "then": { "inputMap": "#.input.programInput", "execute": "#.input.program" },
                 "else": [
                     {
-                        "name": "txn",
+                        "outputKey": "txn",
                         "inputMap": { "options": "#.input.config" },
                         "service": { "id": "transaction-low", "method": "beginTransaction" }
                     },
                     {
-                        "name": "_ctx",
+                        "outputKey": "_ctx",
                         "set": { "transaction": "#.txn" }
                     },
                     {
                         "try": [
                             {
-                                "name": "result",
+                                "outputKey": "result",
                                 "inputMap": "#.input.programInput",
                                 "execute": "#.input.program"
                             },
@@ -56,7 +56,7 @@
                             }
                         ],
                         "finally": [
-                            { "name": "_ctx", "set": { "transaction": false } },
+                            { "outputKey": "_ctx", "set": { "transaction": false } },
                             { "return": "#._ctx.transaction" }
                         ]
                     }

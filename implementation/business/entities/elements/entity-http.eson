@@ -14,9 +14,9 @@
             },
             "implementation": {
                 "create": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":    "#.input.params.entityType",
                             "businessKey":   "#.input.body.businessKey",
@@ -34,9 +34,9 @@
                     }
                 ],
                 "read": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey"
@@ -52,13 +52,13 @@
                     }
                 ],
                 "update": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "revision",
+                        "outputKey": "revision",
                         "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                     },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey",
@@ -76,13 +76,13 @@
                     }
                 ],
                 "delete": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "revision",
+                        "outputKey": "revision",
                         "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                     },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey",
@@ -93,9 +93,9 @@
                     { "return": { "status": 200, "body": "#.record" } }
                 ],
                 "transition": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey",
@@ -112,13 +112,13 @@
                     }
                 ],
                 "amend": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "revision",
+                        "outputKey": "revision",
                         "set": { "$func/parse-if-match": "#.input.headers.if-match" }
                     },
                     {
-                        "name": "record",
+                        "outputKey": "record",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey",
@@ -137,9 +137,9 @@
                     }
                 ],
                 "execute": [
-                    { "name": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
+                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
-                        "name": "result",
+                        "outputKey": "result",
                         "inputMap": {
                             "entityType":  "#.input.params.entityType",
                             "businessKey": "#.input.params.businessKey",

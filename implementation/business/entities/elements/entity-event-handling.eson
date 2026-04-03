@@ -22,10 +22,10 @@
         "data": {
             "run": [
                 {
-                    "name": "handlers",
-                    "getElementsOfKInd": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
+                    "outputKey": "handlers",
+                    "getElementsOfKind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
                 },
-                { "name": "_ctx", "set": { "handlerInput": "#.input.entity" } },
+                { "outputKey": "_ctx", "set": { "handlerInput": "#.input.entity" } },
                 {
                     "inputMap": "#.handlers.items",
                     "forEach": {

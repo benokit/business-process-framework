@@ -11,11 +11,11 @@
         },
         "data": [
             {
-                "name": "middlewareData",
-                "getElementOfKind": "#.input.middlewareKind"
+                "outputKey": "middlewareData",
+                "getElementsOfKind": "#.input.middlewareKind"
             },
             {
-                "name": "sortedMiddlewares",
+                "outputKey": "sortedMiddlewares",
                 "set": {
                     "$ascending": {
                         "_collection": "#.middlewareData.items",

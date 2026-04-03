@@ -1,7 +1,7 @@
 import { validateSchema } from './schema.js';
 import { getElement } from './elements-registry.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
-import { has, isArray, isPlainObject, isString, merge } from 'lodash-es';
+import { filter, has, isArray, isPlainObject, isString, keys, merge, map, join } from 'lodash-es';
 import { compile } from 'lambdajson-js';
 import { executors } from './executors.js';
 
@@ -94,11 +94,11 @@ async function executeMethodWithContext(implementation, context) {
     let result;
     for (const node of implementation) {
         const output = await executeNode(node, context);
-        if (node.name) {
-            if (has(node, keyword.set) && isPlainObject(context[node.name]) && isPlainObject(output)) {
-                merge(context[node.name], output);
+        if (node.outputKey) {
+            if (has(node, keyword.set) && isPlainObject(context[node.outputKey]) && isPlainObject(output)) {
+                merge(context[node.outputKey], output);
             } else {
-                context[node.name] = output;
+                context[node.outputKey] = output;
             }
         }
         result = output;
@@ -144,12 +144,10 @@ async function executeNode(node, context) {
 }
 
 function nodeLabel(node) {
-    if (has(node, keyword.service)) return `${node.service.id}/${node.service.method}`;
-    if (node.name) return node.name;
-    for (const kw of [...Object.keys(executors), keyword.execute, keyword.executeRef]) {
-        if (has(node, kw)) return kw;
-    }
-    return 'unknown';
+    return join(map(filter(keys(node),
+        k => ![keyword.inputMap, keyword.outputMap].includes(k)),
+        k => `${k}:${isString(node[k]) ? node[k] : '{}'}`),
+        '|');
 }
 
 async function executeMapping(func, input) {

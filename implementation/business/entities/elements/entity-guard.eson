@@ -21,12 +21,12 @@
         "data": {
             "run": [
                 {
-                    "name": "guards",
-                    "getElementsOfKInd": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
+                    "outputKey": "guards",
+                    "getElementsOfKind": { "$join": { "_strings": ["entity-guard/", "#.input.beforeEvent", "/", "#.input.entityType"] } }
                 },
-                { "name": "_ctx", "set": { "guardInput": "#.input.eventInput" } },
+                { "outputKey": "_ctx", "set": { "guardInput": "#.input.eventInput" } },
                 {
-                    "name": "errorArrays",
+                    "outputKey": "errorArrays",
                     "inputMap": "#.guards.items",
                     "forEach": {
                         "execute": { "service": { "id": "#.input.id", "method": "validate" } },
@@ -34,7 +34,7 @@
                     }
                 },
                 {
-                    "name": "errorMessage",
+                    "outputKey": "errorMessage",
                     "set": { "$join": { "_strings": { "$concat": "#.errorArrays" }, "_separator": ", " } }
                 },
                 {

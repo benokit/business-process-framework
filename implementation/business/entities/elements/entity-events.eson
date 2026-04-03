@@ -12,7 +12,7 @@
         "data": {
             "broker": "entity-events-broker",
             "topology": "topic",
-            "name": "entity-events",
+            "outputKey": "entity-events",
             "publisher": {
                 "transactionalOutbox": true,
                 "retry": { "attempts": 5, "backoff": 500 }
@@ -53,7 +53,7 @@
         "data": {
             "publish": [
                 {
-                    "name": "envelope",
+                    "outputKey": "envelope",
                     "set": {
                         "messageId": { "$join": { "_strings": ["#.input.record.id", "-", "#.input.record.revision", "-", "#.input.eventType"] } },
                         "timestampUTC": "#.input.record.timestampUtc",
