@@ -10,8 +10,18 @@ export {
     executeMethod,
     executeMethodWithContext,
     executeMapping,
-    registerExecutionNodeTemplate
+    registerExecutionNodeTemplate,
+    PipelineReturn,
+    ExitExecution
 };
+
+class PipelineReturn {
+    constructor(value) { this.value = value; }
+}
+
+class ExitExecution {
+    constructor(value) { this.value = value; }
+}
 
 function makeDiagnostic(cause, execution, extra = {}) {
     return {
@@ -76,6 +86,11 @@ async function executeMethod(implementation, input, _ctx = {}) {
         _ctx._execution.trace.splice(traceStart);
         return result;
     } catch (e) {
+        if (e instanceof PipelineReturn) return e.value;
+        if (e instanceof ExitExecution) {
+            if (isRoot) return e.value;
+            throw e;
+        }
         if (!isRoot || (e && e._isExecutionDiagnostic)) throw e;
         throw makeDiagnostic(e, _ctx._execution);
     }
@@ -87,16 +102,21 @@ async function executeMethodWithContext(implementation, context) {
     }
 
     let result;
-    for (const node of implementation) {
-        const output = await executeNode(node, context);
-        if (node.outputKey) {
-            if (has(node, keyword.set) && isPlainObject(context[node.outputKey]) && isPlainObject(output)) {
-                merge(context[node.outputKey], output);
-            } else {
-                context[node.outputKey] = output;
+    try {
+        for (const node of implementation) {
+            const output = await executeNode(node, context);
+            if (node.outputKey) {
+                if (has(node, keyword.set) && isPlainObject(context[node.outputKey]) && isPlainObject(output)) {
+                    merge(context[node.outputKey], output);
+                } else {
+                    context[node.outputKey] = output;
+                }
             }
+            result = output;
         }
-        result = output;
+    } catch (e) {
+        if (e instanceof PipelineReturn) return e.value;
+        throw e;
     }
     return result;
 }

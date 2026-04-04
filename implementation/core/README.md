@@ -47,7 +47,8 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | Keyword | Description |
 | --- | --- |
 | `set` | Evaluates a lambdaJSON expression; result is the node output |
-| `return` | Evaluates a lambdaJSON expression and returns it as the method output |
+| `return` | Evaluates a lambdaJSON expression and terminates the immediate containing pipeline, returning the result. Propagates through branch nodes (`if`, `switch`, `try`) but is bounded by sub-method invocations (`service`, `method`, `execute`). |
+| `exit` | Evaluates a lambdaJSON expression and terminates the entire execution stack, returning the result from the root service invocation. Propagates through all nodes including `try/catch`. |
 | `service` | Calls another service. Sibling `method` is required: `{ "service": "serviceId", "method": "methodName" }` |
 | `method` | When combined with `service`, equivalent to the `service` keyword. When used alone, loads the element with the given id and executes its `data` as a method implementation: `{ "method": "elementId" }` |
 | `getElement` | Retrieves an element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
@@ -83,7 +84,7 @@ All branch keywords (`if`, `switch`) pass the full context into their bodies (or
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
 - **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
-If no `return` is present, the method returns the output of the last executed node.
+If neither `return` nor `exit` is present, the method returns the output of the last executed node.
 
 ### Mapping functions
 

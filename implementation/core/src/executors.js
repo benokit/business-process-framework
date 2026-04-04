@@ -1,4 +1,4 @@
-import { executeService, executeMethod, executeMethodWithContext, executeMapping } from './service.js';
+import { executeService, executeMethod, executeMethodWithContext, executeMapping, PipelineReturn, ExitExecution } from './service.js';
 import { validateSchema } from './schema.js';
 import { has } from 'lodash-es';
 import { getElement, getElementsOfKind } from './elements-registry.js';
@@ -25,7 +25,12 @@ export const executors = {
 
     execute: node => async (nodeInput, context) => {
         const impl = await executeMapping(node.execute, context ?? nodeInput);
-        return await executeMethodWithContext(impl, nodeInput);
+        try {
+            return await executeMethodWithContext(impl, nodeInput);
+        } catch (e) {
+            if (e instanceof PipelineReturn) return e.value;
+            throw e;
+        }
     },
 
     low: node => async input => {
@@ -33,8 +38,15 @@ export const executors = {
         return await g(input);
     },
 
-    return: node => async input =>
-        await executeMapping(node.return, input),
+    return: node => async input => {
+        const value = await executeMapping(node.return, input);
+        throw new PipelineReturn(value);
+    },
+
+    exit: node => async input => {
+        const value = await executeMapping(node.exit, input);
+        throw new ExitExecution(value);
+    },
 
     set: node => async input =>
         await executeMapping(node.set, input),
@@ -61,6 +73,8 @@ export const executors = {
             try {
                 return await executeMethodWithContext(node.try, input);
             } catch (error) {
+                if (error instanceof PipelineReturn) throw error;
+                if (error instanceof ExitExecution) throw error;
                 if (!has(node, 'catch')) throw error;
                 return await executeMethodWithContext(node.catch, { _ctx: input._ctx, context: input, error });
             }

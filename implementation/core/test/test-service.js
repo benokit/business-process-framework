@@ -355,6 +355,117 @@ describe('service tests', () => {
 
     });
 
+    describe('exit', () => {
+
+        before(() => {
+            registerService('svc-exit', {
+                fromPipeline: {
+                    impl: [
+                        { exit: 'done' },
+                        { exit: 'unreachable' }
+                    ]
+                },
+                fromNestedService: {
+                    impl: {
+                        inputMap: '#.input',
+                        service: 'svc-exit-inner', method: 'compute'
+                    }
+                },
+                throughTryCatch: {
+                    impl: {
+                        try:   { exit: '#.input' },
+                        catch: { return: 'caught' }
+                    }
+                }
+            });
+            registerService('svc-exit-inner', {
+                compute: {
+                    impl: [
+                        { exit: '#.input.value' },
+                        { return: 'unreachable' }
+                    ]
+                }
+            });
+        });
+
+        it('should terminate the pipeline and return the exit value', async () => {
+            expect(await executeService('svc-exit', 'fromPipeline', {})).to.equal('done');
+        });
+
+        it('should propagate through a nested service call and exit the root', async () => {
+            expect(await executeService('svc-exit', 'fromNestedService', { value: 42 })).to.equal(42);
+        });
+
+        it('should not be caught by try/catch', async () => {
+            expect(await executeService('svc-exit', 'throughTryCatch', 'escaped')).to.equal('escaped');
+        });
+
+    });
+
+    describe('pipeline early return', () => {
+
+        before(() => {
+            registerService('svc-early-return', {
+                midPipeline: {
+                    impl: [
+                        { return: 'early' },
+                        { return: 'late' }
+                    ]
+                },
+                conditionalReturn: {
+                    impl: [
+                        {
+                            if: { $gt: ['#.input.n', 0] },
+                            then: { return: 'positive' }
+                        },
+                        { return: 'non-positive' }
+                    ]
+                },
+                conditionalReturnWithStep: {
+                    impl: [
+                        { outputKey: 'doubled', set: { $multiply: ['#.input.n', 2] } },
+                        {
+                            if: { $gt: ['#.doubled', 10] },
+                            then: { return: '#.doubled' }
+                        },
+                        { return: '#.input.n' }
+                    ]
+                },
+                returnInsideTry: {
+                    impl: {
+                        try:   [{ return: '#.input' }, { return: 'unreachable' }],
+                        catch: { return: 'caught' }
+                    }
+                }
+            });
+        });
+
+        it('should stop executing subsequent pipeline nodes once return is reached', async () => {
+            expect(await executeService('svc-early-return', 'midPipeline', {})).to.equal('early');
+        });
+
+        it('should stop the outer pipeline when return is inside an if-then branch', async () => {
+            expect(await executeService('svc-early-return', 'conditionalReturn', { n: 5 })).to.equal('positive');
+        });
+
+        it('should continue to the next node when the if-then branch is not taken', async () => {
+            expect(await executeService('svc-early-return', 'conditionalReturn', { n: -1 })).to.equal('non-positive');
+        });
+
+        it('should use a prior named step in the condition and halt when taken', async () => {
+            expect(await executeService('svc-early-return', 'conditionalReturnWithStep', { n: 6 })).to.equal(12);
+        });
+
+        it('should fall through to the remaining pipeline when the condition is not taken', async () => {
+            expect(await executeService('svc-early-return', 'conditionalReturnWithStep', { n: 3 })).to.equal(3);
+        });
+
+        it('should propagate through try/catch and not be treated as an error', async () => {
+            expect(await executeService('svc-early-return', 'returnInsideTry', 'ok')).to.equal('ok');
+        });
+
+    });
+
     describe('throw', () => {
 
         before(() => {

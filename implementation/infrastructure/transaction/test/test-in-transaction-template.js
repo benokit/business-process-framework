@@ -53,7 +53,7 @@ describe('inTransaction node template', function () {
                     },
                     nestedInTransaction: {
                         inTransaction: [
-                            { outputKey: 'outer', return: '#._ctx.transaction' },
+                            { outputKey: 'outer', set: '#._ctx.transaction' },
                             { outputKey: 'inner', inTransaction: { return: '#._ctx.transaction' } },
                             { return: { outer: '#.outer', inner: '#.inner' } }
                         ]
