@@ -41,24 +41,6 @@
                     "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
                 },
                 {
-                    "comment": "CJSL ! required-field operator",
-                    "scope": "keyword.operator.cjsl.required.eson",
-                    "settings": { "foreground": "#F44747", "fontStyle": "bold" }
-                },
-                {
-                    "comment": "CJSL required field name after !",
-                    "scope": "entity.name.tag.cjsl.eson",
-                    "settings": { "foreground": "#9CDCFE" }
-                },
-                {
-                    "comment": "CJSL modifiers: =, [], {}  and #, #& operators",
-                    "scope": [
-                        "keyword.operator.cjsl.modifier.eson",
-                        "keyword.operator.cjsl.eson"
-                    ],
-                    "settings": { "foreground": "#F44747" }
-                },
-                {
                     "comment": "Plain string values",
                     "scope": "string.quoted.double.eson",
                     "settings": { "foreground": "#CE9178" }

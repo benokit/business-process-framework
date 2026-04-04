@@ -1,0 +1,75 @@
+[
+    {
+        "kind": "schema",
+        "id": "element",
+        "data":{
+            "!id": "string",
+            "kind": "string",
+            "meta": "object",
+            "$data#1": [
+                { "data": "object" },
+                { "/data": "object" }
+            ]
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "schema",
+        "data": "object"
+    },
+    {
+        "kind": "schema",
+        "id": "service",
+        "data": {
+            "interface{}": {
+                "input": "@schema",
+                "output": "@schema"
+            },
+            "implementation{}": "@method"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "method",
+        "data": {
+            "$data#1": [
+                "@execution-node",
+                "[@executionNode]"
+            ]
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "execution-node",
+        "data": {
+            "$data#&": [
+                {
+                    "outputKey": "string",
+                    "inputMap": "@function"
+                    "outputMap": "@function"
+                },
+                "object"
+            ]
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "function",
+        "data": {
+            "$data#": ["string", "object"]
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "execution-node-template",
+        "data": {
+            "!keyword": "string",
+            "!implementation": "@method"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "pure-function",
+        "data": "@function"
+    }
+]

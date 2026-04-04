@@ -50,9 +50,6 @@
             "patterns": [
                 { "include": "#key-execution-node" },
                 { "include": "#key-lambda-primitive" },
-                { "include": "#key-cjsl-oneof" },
-                { "include": "#key-cjsl-allof" },
-                { "include": "#key-cjsl-required" },
                 { "include": "#key-plain" }
             ]
         },
@@ -67,35 +64,6 @@
             "comment": "LambdaJSON $primitive as object key (expression object like {\"$map\": ...})",
             "name": "support.function.lambda.eson",
             "match": "\"\\$[a-zA-Z][a-zA-Z0-9_]*\"(?=\\s*:)"
-        },
-
-        "key-cjsl-oneof": {
-            "comment": "CJSL one-of schema key: $word#N  e.g. \"$data#1\"",
-            "match": "\"(\\$[a-zA-Z][a-zA-Z0-9_]*)(#)([0-9]+)\"(?=\\s*:)",
-            "captures": {
-                "1": { "name": "support.function.lambda.eson" },
-                "2": { "name": "keyword.operator.cjsl.eson" },
-                "3": { "name": "constant.numeric.cjsl.eson" }
-            }
-        },
-
-        "key-cjsl-allof": {
-            "comment": "CJSL allOf schema key: word#&  e.g. \"data#&\"",
-            "match": "\"([a-zA-Z][a-zA-Z0-9_-]*)(#&)\"(?=\\s*:)",
-            "captures": {
-                "1": { "name": "support.type.property-name.eson" },
-                "2": { "name": "keyword.operator.cjsl.eson" }
-            }
-        },
-
-        "key-cjsl-required": {
-            "comment": "CJSL required field key: !field, !field=, !field[], !field{}",
-            "match": "\"(!)(\\w[a-zA-Z0-9_.-]*)((?:=|\\[\\]|\\{\\})?)\"(?=\\s*:)",
-            "captures": {
-                "1": { "name": "keyword.operator.cjsl.required.eson" },
-                "2": { "name": "entity.name.tag.cjsl.eson" },
-                "3": { "name": "keyword.operator.cjsl.modifier.eson" }
-            }
         },
 
         "key-plain": {
@@ -130,7 +98,7 @@
         "value-lambda-ref": {
             "comment": "LambdaJSON @varName reference, or CJSL @schemaId reference",
             "name": "variable.other.constant.eson",
-            "match": "\"@[a-zA-Z][a-zA-Z0-9_.-]*\""
+            "match": "\"[{,\\[]*@[a-zA-Z][a-zA-Z0-9_.-]*[\\]},]*\""
         },
 
         "value-lambda-primitive": {
