@@ -127,11 +127,11 @@
         "data": {
             "keyword": "publish",
             "implementation": [
-                { "outputKey": "id", "service": "random", "method": "guid" },
+                { "outputKey": "id", "getRandom": "uuid" },
                 {
                     "outputKey": "envelope",
                     "set": {
-                        "messageId":    { "$coalesce": ["#.node.publish.envelope.messageId",    "#.id.value"] },
+                        "messageId":    { "$coalesce": ["#.node.publish.envelope.messageId",    "#.id"] },
                         "timestampUTC": { "$coalesce": ["#.node.publish.envelope.timestampUTC", "#._ctx.timestampUTC"] },
                         "group":        { "$coalesce": ["#.node.publish.envelope.group",        "#._ctx.group"] },
                         "correlation":  { "$coalesce": ["#.node.publish.envelope.correlation",  "#._ctx.correlation", ""] },

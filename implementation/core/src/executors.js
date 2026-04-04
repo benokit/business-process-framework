@@ -2,6 +2,7 @@ import { execute, executeMethod, executeMethodWithContext, executeMapping } from
 import { validateSchema } from './schema.js';
 import { has } from 'lodash-es';
 import { getElement, getElementsOfKind } from './elements-registry.js';
+import { randomUUID } from 'crypto';
 
 // Dictionary mapping execution keyword -> (node) => async executorFn.
 // Iterated over node properties to find the first matching executor.
@@ -97,6 +98,8 @@ export const executors = {
         const value = await executeMapping(node.switch.value, input);
         const g = node.switch.cases[value] || node.switch.cases['default'];
         return await executeMethodWithContext(g, input);
-    }
+    },
+
+    getRandom: _ => _ => randomUUID()
 
 };
