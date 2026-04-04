@@ -87,16 +87,12 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-handler-on-create',
             kind: 'entity-event-handler/on-create/order-with-handler',
-            data: {
-            interface: {run: { input: {}, output: {} } },
-            implementation: {run: [
+            id: 'order-with-handler-on-create',
+            data: [
                 { outputKey: '_ctx', set: { handlerCalledWith: '#.input' } },
                 { return: '#.input' }
-            ] }
-            }
+            ]
         });
 
         // Entity type and on-update handler used by update handler invocation tests.
@@ -104,16 +100,12 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-update-handler-on-update',
             kind: 'entity-event-handler/on-update/order-with-update-handler',
-            data: {
-            interface: {run: { input: {}, output: {} } },
-            implementation: {run: [
+            id: 'order-with-update-handler-on-update',
+            data: [
                 { outputKey: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
-            ] }
-            }
+            ]
         });
 
         // Entity type and on-transition handler used by transition handler invocation tests.
@@ -126,16 +118,12 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-transition-handler-on-transition',
             kind: 'entity-event-handler/on-transition/order-with-transition-handler',
-            data: {
-            interface: {run: { input: {}, output: {} } },
-            implementation: {run: [
+            id: 'order-with-transition-handler-on-transition',
+            data: [
                 { outputKey: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
                 { return: '#.input' }
-            ] }
-            }
+            ]
         });
 
         // Entity type and before-update guard used by guard tests.
@@ -143,16 +131,12 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-update-guard-before-update',
             kind: 'entity-guard/before-update/order-with-update-guard',
+            id: 'order-with-update-guard-before-update',
             data: {
-            interface: { validate: { input: {}, output: {} } },
-            implementation: { validate: {
                 if: { '$lte': ['#.input.data.amount', 0] },
                 then: [{ return: ['amount must be positive'] }],
                 else: [{ return: [] }]
-            }}
             }
         });
 
@@ -161,16 +145,12 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-amend-guard-before-amend',
             kind: 'entity-guard/before-amend/order-with-amend-guard',
+            id: 'order-with-amend-guard-before-amend',
             data: {
-            interface: { validate: { input: {}, output: {} } },
-            implementation: { validate: {
                 if: { '$lte': ['#.input.data.amount', 0] },
                 then: [{ return: ['amount must be positive'] }],
                 else: [{ return: [] }]
-            }}
             }
         });
 
@@ -185,16 +165,12 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-transition-guard-before-transition',
             kind: 'entity-guard/before-transition/order-with-transition-guard',
+            id: 'order-with-transition-guard-before-transition',
             data: {
-            interface: { validate: { input: {}, output: {} } },
-            implementation: { validate: {
                 if: { '$eq': ['#.input.transition', 'forbidden'] },
                 then: [{ return: ['transition forbidden by guard'] }],
                 else: [{ return: [] }]
-            }}
             }
         });
 
@@ -203,22 +179,14 @@ describe('entity service', function () {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'service',
-            id: 'order-with-multi-guards-guard-a',
             kind: 'entity-guard/before-update/order-with-multi-guards',
-            data: {
-            interface: { validate: { input: {}, output: {} } },
-            implementation: { validate: { return: ['error from guard A'] } }
-            }
+            id: 'order-with-multi-guards-guard-a',
+            data: { return: ['error from guard A'] }
         });
         registerElement({
-            kind: 'service',
-            id: 'order-with-multi-guards-guard-b',
             kind: 'entity-guard/before-update/order-with-multi-guards',
-            data: {
-            interface: { validate: { input: {}, output: {} } },
-            implementation: { validate: { return: ['error from guard B'] } }
-            }
+            id: 'order-with-multi-guards-guard-b',
+            data: { return: ['error from guard B'] }
         });
 
         // Services used by the execute tests — each has a unique ID so no

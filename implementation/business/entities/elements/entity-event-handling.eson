@@ -29,7 +29,7 @@
                 {
                     "inputMap": "#.handlers.items",
                     "forEach": {
-                        "execute": { "service": "#.input.id", "method": "run" },
+                        "execute": "#.input.data",
                         "inputMap": "#._ctx.handlerInput"
                     }
                 },

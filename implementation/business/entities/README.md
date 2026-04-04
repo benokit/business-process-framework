@@ -124,7 +124,7 @@ When `transition` is called:
 
 ## Event handlers
 
-Handlers are invoked within the same transaction as their triggering method. Each handler is a `service` element with a single `action` method that receives the result `entity-record` as input. All matching handlers are invoked; registration order is not guaranteed.
+Handlers are invoked within the same transaction as their triggering method. Each handler's `data` is a method implementation (pipeline) that receives the result `entity-record` as input. All matching handlers are invoked; registration order is not guaranteed.
 
 | Event | `kind` | Triggering method |
 | --- | --- | --- |
@@ -137,16 +137,13 @@ Handlers are invoked within the same transaction as their triggering method. Eac
 {
     "id": "order-notify",
     "kind": "entity-event-handler/on-create/order",
-    "data": {
-        "interface": { "run": { "input": "@entity-record", "output": {} } },
-        "implementation": { "run": [ ... ] }
-    }
+    "data": [ ... ]
 }
 ```
 
 ## Guards
 
-Guards run **before** a mutating operation and can block it by throwing an error. Each guard is a `service` element with a single `validate` method that receives the full method input and returns an array of error strings (empty array = pass). All matching guards are invoked; every non-empty array is collected and joined with `", "` into a single thrown string.
+Guards run **before** a mutating operation and can block it by throwing an error. Each guard's `data` is a method implementation (pipeline) that receives the full method input and returns an array of error strings (empty array = pass). All matching guards are invoked; every non-empty array is collected and joined with `", "` into a single thrown string.
 
 | Event | `kind` | Checked by |
 | --- | --- | --- |
@@ -161,17 +158,14 @@ Guards run outside the transaction — before the database write is attempted.
     "id": "order-amount-guard",
     "kind": "entity-guard/before-update/order",
     "data": {
-        "interface": { "validate": { "input": {}, "output": {} } },
-        "implementation": { "validate": {
-            "if": { "$lte": ["#.input.data.amount", 0] },
-            "then": [{ "return": ["amount must be positive"] }],
-            "else": [{ "return": [] }]
-        }}
+        "if": { "$lte": ["#.input.data.amount", 0] },
+        "then": [{ "return": ["amount must be positive"] }],
+        "else": [{ "return": [] }]
     }
 }
 ```
 
-The `validate` input is the full entity service method input (e.g. for `update`: `{ entityType, businessKey, revision, data }`).
+The guard input is the full entity service method input (e.g. for `update`: `{ entityType, businessKey, revision, data }`).
 
 ## Components
 

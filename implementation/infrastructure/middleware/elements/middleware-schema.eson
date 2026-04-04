@@ -4,7 +4,7 @@
         "id": "middleware",
         "data":{
             "!ordering": "number",
-            "!implementation": "@impl-schema"
+            "!implementation": "@method"
         }
     }
 ]

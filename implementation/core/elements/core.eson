@@ -34,7 +34,7 @@
         "data": {
             "$data#1": [
                 "@execution-node",
-                "[@executionNode]"
+                "[@execution-node]"
             ]
         }
     },
@@ -45,7 +45,7 @@
             "$data#&": [
                 {
                     "outputKey": "string",
-                    "inputMap": "@function"
+                    "inputMap": "@function",
                     "outputMap": "@function"
                 },
                 "object"

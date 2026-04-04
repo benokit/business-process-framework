@@ -39,7 +39,7 @@
         "data":{
             "!channel": "string",
             "name": "string",
-            "!handler": "@impl-schema"
+            "!handler": "@method"
         }
     },
     {
