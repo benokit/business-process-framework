@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { connect, disconnect } from '@business-framework/postgres-client';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,27 +38,27 @@ describe('transaction (service elements)', function () {
     describe('transaction-low', () => {
 
         it('beginTransaction returns a sessionId', async () => {
-            const result = await execute(LOW, 'beginTransaction', {});
+            const result = await executeService(LOW, 'beginTransaction', {});
             expect(result).to.have.property('sessionId').that.is.a('number');
-            await execute(LOW, 'rollbackTransaction', { sessionId: result.sessionId });
+            await executeService(LOW, 'rollbackTransaction', { sessionId: result.sessionId });
         });
 
         it('commitTransaction ends the session', async () => {
-            const { sessionId } = await execute(LOW, 'beginTransaction', {});
-            const result = await execute(LOW, 'commitTransaction', { sessionId });
+            const { sessionId } = await executeService(LOW, 'beginTransaction', {});
+            const result = await executeService(LOW, 'commitTransaction', { sessionId });
             expect(result).to.deep.equal({ sessionId });
         });
 
         it('rollbackTransaction ends the session', async () => {
-            const { sessionId } = await execute(LOW, 'beginTransaction', {});
-            const result = await execute(LOW, 'rollbackTransaction', { sessionId });
+            const { sessionId } = await executeService(LOW, 'beginTransaction', {});
+            const result = await executeService(LOW, 'rollbackTransaction', { sessionId });
             expect(result).to.deep.equal({ sessionId });
         });
 
         it('commitTransaction throws for an unknown sessionId', async () => {
             let error;
             try {
-                await execute(LOW, 'commitTransaction', { sessionId: 999999 });
+                await executeService(LOW, 'commitTransaction', { sessionId: 999999 });
             } catch (e) {
                 error = e;
             }
@@ -68,7 +68,7 @@ describe('transaction (service elements)', function () {
         it('rollbackTransaction throws for an unknown sessionId', async () => {
             let error;
             try {
-                await execute(LOW, 'rollbackTransaction', { sessionId: 999999 });
+                await executeService(LOW, 'rollbackTransaction', { sessionId: 999999 });
             } catch (e) {
                 error = e;
             }
@@ -81,7 +81,7 @@ describe('transaction (service elements)', function () {
 
         it('runs the program and returns its result', async () => {
             const program = { "return": { "ok": true } };
-            const result = await execute(SERVICE, 'executeInTransaction', { program });
+            const result = await executeService(SERVICE, 'executeInTransaction', { program });
             expect(result).to.deep.equal({ ok: true });
         });
 
@@ -90,7 +90,7 @@ describe('transaction (service elements)', function () {
                 { "outputKey": "a", "return": { "value": 1 } },
                 { "return": "#.a" }
             ];
-            const result = await execute(SERVICE, 'executeInTransaction', { program });
+            const result = await executeService(SERVICE, 'executeInTransaction', { program });
             expect(result).to.deep.equal({ value: 1 });
         });
 
@@ -98,7 +98,7 @@ describe('transaction (service elements)', function () {
             let error;
             try {
                 const program = { "throw": "program error" };
-                await execute(SERVICE, 'executeInTransaction', { program });
+                await executeService(SERVICE, 'executeInTransaction', { program });
             } catch (e) {
                 error = e;
             }
@@ -107,7 +107,7 @@ describe('transaction (service elements)', function () {
 
         it('exposes _ctx.transaction to the program', async () => {
             const program = { "return": "#._ctx.transaction" };
-            const result = await execute(SERVICE, 'executeInTransaction', { program });
+            const result = await executeService(SERVICE, 'executeInTransaction', { program });
             expect(result).to.have.property('sessionId').that.is.a('number');
         });
 
@@ -117,7 +117,7 @@ describe('transaction (service elements)', function () {
                 { "outputKey": "inner", "inputMap": { "program": "#.input.innerProgram" }, "service": "transaction", "method": "executeInTransaction" },
                 { "return": { "outer": "#._ctx.transaction", "inner": "#.inner" } }
             ];
-            const result = await execute(SERVICE, 'executeInTransaction', { program: outerProgram, programInput: { innerProgram } });
+            const result = await executeService(SERVICE, 'executeInTransaction', { program: outerProgram, programInput: { innerProgram } });
             expect(result.outer.sessionId).to.be.a('number');
             expect(result.inner.sessionId).to.equal(result.outer.sessionId);
         });
@@ -125,8 +125,8 @@ describe('transaction (service elements)', function () {
         it('clears _ctx.transaction after commit so a sequential transaction can start', async () => {
             const captureTransaction = { "return": "#._ctx.transaction" };
             const _ctx = {};
-            const first  = await execute(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
-            const second = await execute(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
+            const first  = await executeService(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
+            const second = await executeService(SERVICE, 'executeInTransaction', { program: captureTransaction }, _ctx);
             expect(first.sessionId).to.be.a('number');
             expect(second.sessionId).to.be.a('number');
             expect(first.sessionId).to.not.equal(second.sessionId);

@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { connect, disconnect } from '@business-framework/postgres-client';
 import { registerElement } from '@business-framework/core/elements-registry';
 
@@ -74,19 +74,19 @@ describe('inTransaction node template', function () {
     });
 
     it('executes the program inside a transaction', async () => {
-        const result = await execute(SERVICE, 'captureTransaction', {});
+        const result = await executeService(SERVICE, 'captureTransaction', {});
         expect(result).to.have.property('sessionId').that.is.a('number');
     });
 
     it('forwards node input (inputMap result) to the program', async () => {
-        const result = await execute(SERVICE, 'forwardInput', { payload: { x: 99 } });
+        const result = await executeService(SERVICE, 'forwardInput', { payload: { x: 99 } });
         expect(result).to.deep.equal({ x: 99 });
     });
 
     it('propagates errors thrown inside the program', async () => {
         let error;
         try {
-            await execute(SERVICE, 'throwInside', {});
+            await executeService(SERVICE, 'throwInside', {});
         } catch (e) {
             error = e;
         }
@@ -94,13 +94,13 @@ describe('inTransaction node template', function () {
     });
 
     it('reuses the outer transaction when nested', async () => {
-        const result = await execute(SERVICE, 'nestedInTransaction', {});
+        const result = await executeService(SERVICE, 'nestedInTransaction', {});
         expect(result.outer.sessionId).to.be.a('number');
         expect(result.inner.sessionId).to.equal(result.outer.sessionId);
     });
 
     it('starts a fresh transaction for sequential inTransaction nodes', async () => {
-        const result = await execute(SERVICE, 'sequential', {});
+        const result = await executeService(SERVICE, 'sequential', {});
         expect(result.first.sessionId).to.be.a('number');
         expect(result.second.sessionId).to.be.a('number');
         expect(result.first.sessionId).to.not.equal(result.second.sessionId);

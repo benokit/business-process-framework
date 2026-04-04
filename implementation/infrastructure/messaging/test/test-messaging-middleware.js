@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -101,15 +101,15 @@ describe('messaging-middleware', function () {
 
     it('all middlewares are applied', async function () {
         const _ctx = { results: [] };
-        await execute('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
         expect(_ctx.results).to.have.length(1);
         expect(_ctx.results[0].step1).to.be.true;
         expect(_ctx.results[0].step2).to.be.true;
     });
 
-    it('middlewares execute in ascending ordering', async function () {
+    it('middlewares executeService in ascending ordering', async function () {
         const _ctx = { results: [] };
-        await execute('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
         // mw-msg-1 sets lastStep:1, then mw-msg-2 overwrites with lastStep:2.
         // If ordering were reversed the value would be 1.
         expect(_ctx.results[0].lastStep).to.equal(2);
@@ -117,7 +117,7 @@ describe('messaging-middleware', function () {
 
     it('consumerId is passed to each middleware via context', async function () {
         const _ctx = { results: [] };
-        await execute('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
         expect(_ctx.results[0].consumerId).to.equal(CONSUMER_ID);
     });
 });
@@ -136,7 +136,7 @@ describe('messaging-middleware short-circuit', function () {
 
     it('returns the middleware response without reaching the handler', async function () {
         const _ctx = { results: [] };
-        await execute('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel: CHANNEL_ID }, _ctx);
         expect(_ctx.results[0]).to.deep.equal({ error: 'blocked' });
         expect(_ctx.results[0].value).to.be.undefined;
     });

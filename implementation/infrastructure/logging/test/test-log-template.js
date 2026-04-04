@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -65,35 +65,35 @@ describe('log node template', function () {
     }
 
     it('writes a log entry to stdout', async function () {
-        await execute('log-template-test', 'logDefault', {});
+        await executeService('log-template-test', 'logDefault', {});
         expect(captured.stdout).to.have.length(1);
         expect(lastStdout().message).to.equal('default message');
     });
 
     it('defaults level to info', async function () {
-        await execute('log-template-test', 'logDefault', {});
+        await executeService('log-template-test', 'logDefault', {});
         expect(lastStdout().level).to.equal('info');
     });
 
     it('respects the level field', async function () {
-        await execute('log-template-test', 'logWithLevel', {});
+        await executeService('log-template-test', 'logWithLevel', {});
         expect(lastStdout().level).to.equal('warn');
     });
 
     it('merges context fields into the entry', async function () {
-        await execute('log-template-test', 'logWithContext', {});
+        await executeService('log-template-test', 'logWithContext', {});
         expect(lastStdout().orderId).to.equal(7);
     });
 
     it('routes error level to stderr', async function () {
-        await execute('log-template-test', 'logError', {});
+        await executeService('log-template-test', 'logError', {});
         expect(captured.stderr).to.have.length(1);
         expect(captured.stdout).to.have.length(0);
         expect(lastStderr().message).to.equal('error message');
     });
 
     it('does not disrupt pipeline flow — subsequent steps still run', async function () {
-        const result = await execute('log-template-test', 'logAndReturn', {});
+        const result = await executeService('log-template-test', 'logAndReturn', {});
         expect(result).to.deep.equal({ done: true });
         expect(captured.stdout).to.have.length(1);
     });

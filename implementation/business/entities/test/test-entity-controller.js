@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,7 @@ describe('entity-controller', function () {
         await loadElements([ENTITY_DB_ELEMENTS_DIR, ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
 
         // Mock entity service: echoes input, captures _ctx, always returns RECORD.
-        // capturedInput stored on _ctx so tests can inspect it after execute().
+        // capturedInput stored on _ctx so tests can inspect it after executeService().
         registerElement({
             kind: 'service',
             id: 'entity',
@@ -53,7 +53,7 @@ describe('entity-controller', function () {
     describe('create', () => {
 
         it('returns status 201', async () => {
-            const { status } = await execute(CTRL, 'create', {
+            const { status } = await executeService(CTRL, 'create', {
                 body: { businessKey: 'order-001', data: { amount: 100, currency: 'USD' } },
                 params: { entityType: 'order' }, headers: HEADERS
             });
@@ -61,7 +61,7 @@ describe('entity-controller', function () {
         });
 
         it('returns ETag header with quoted revision', async () => {
-            const { headers } = await execute(CTRL, 'create', {
+            const { headers } = await executeService(CTRL, 'create', {
                 body: { businessKey: 'order-001', data: { amount: 100, currency: 'USD' } },
                 params: { entityType: 'order' }, headers: HEADERS
             });
@@ -69,7 +69,7 @@ describe('entity-controller', function () {
         });
 
         it('returns entity record as body', async () => {
-            const { body } = await execute(CTRL, 'create', {
+            const { body } = await executeService(CTRL, 'create', {
                 body: { businessKey: 'order-001', data: { amount: 100, currency: 'USD' } },
                 params: { entityType: 'order' }, headers: HEADERS
             });
@@ -79,7 +79,7 @@ describe('entity-controller', function () {
 
         it('maps entityType from params and businessKey+data from body', async () => {
             const _ctx = {};
-            await execute(CTRL, 'create', {
+            await executeService(CTRL, 'create', {
                 body: { businessKey: 'ord-bk', data: { amount: 50, currency: 'USD' } },
                 params: { entityType: 'order' }, headers: {}
             }, _ctx);
@@ -90,7 +90,7 @@ describe('entity-controller', function () {
 
         it('maps optional initialState from body', async () => {
             const _ctx = {};
-            await execute(CTRL, 'create', {
+            await executeService(CTRL, 'create', {
                 body: { businessKey: 'ord-bk', data: { amount: 50, currency: 'USD' }, initialState: 'vip' },
                 params: { entityType: 'order' }, headers: {}
             }, _ctx);
@@ -99,7 +99,7 @@ describe('entity-controller', function () {
 
         it('sets _ctx.correlation from x-correlation-id header', async () => {
             const _ctx = {};
-            await execute(CTRL, 'create', {
+            await executeService(CTRL, 'create', {
                 body: { businessKey: 'ord-bk', data: { amount: 50, currency: 'USD' } },
                 params: { entityType: 'order' }, headers: { 'x-correlation-id': 'corr-42' }
             }, _ctx);
@@ -112,18 +112,18 @@ describe('entity-controller', function () {
     describe('read', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'read', { body: {}, params: PARAMS, headers: HEADERS });
+            const { status } = await executeService(CTRL, 'read', { body: {}, params: PARAMS, headers: HEADERS });
             expect(status).to.equal(200);
         });
 
         it('returns ETag header with quoted revision', async () => {
-            const { headers } = await execute(CTRL, 'read', { body: {}, params: PARAMS, headers: HEADERS });
+            const { headers } = await executeService(CTRL, 'read', { body: {}, params: PARAMS, headers: HEADERS });
             expect(headers.ETag).to.equal('"5"');
         });
 
         it('maps entityType and businessKey from params', async () => {
             const _ctx = {};
-            await execute(CTRL, 'read', { body: {}, params: { entityType: 'product', businessKey: 'prod-7' }, headers: {} }, _ctx);
+            await executeService(CTRL, 'read', { body: {}, params: { entityType: 'product', businessKey: 'prod-7' }, headers: {} }, _ctx);
             expect(_ctx.capturedInput.entityType).to.equal('product');
             expect(_ctx.capturedInput.businessKey).to.equal('prod-7');
         });
@@ -134,7 +134,7 @@ describe('entity-controller', function () {
     describe('update', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'update', {
+            const { status } = await executeService(CTRL, 'update', {
                 body: { data: { amount: 200, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"5"' }
             });
@@ -142,7 +142,7 @@ describe('entity-controller', function () {
         });
 
         it('returns ETag header with quoted revision', async () => {
-            const { headers } = await execute(CTRL, 'update', {
+            const { headers } = await executeService(CTRL, 'update', {
                 body: { data: { amount: 200, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"5"' }
             });
@@ -151,7 +151,7 @@ describe('entity-controller', function () {
 
         it('parses revision from quoted If-Match header', async () => {
             const _ctx = {};
-            await execute(CTRL, 'update', {
+            await executeService(CTRL, 'update', {
                 body: { data: { amount: 200, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"3"' }
             }, _ctx);
@@ -160,7 +160,7 @@ describe('entity-controller', function () {
 
         it('maps data from body', async () => {
             const _ctx = {};
-            await execute(CTRL, 'update', {
+            await executeService(CTRL, 'update', {
                 body: { data: { amount: 999, currency: 'EUR' } },
                 params: PARAMS, headers: { 'if-match': '"1"' }
             }, _ctx);
@@ -173,14 +173,14 @@ describe('entity-controller', function () {
     describe('delete', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'delete', {
+            const { status } = await executeService(CTRL, 'delete', {
                 body: {}, params: PARAMS, headers: { 'if-match': '"5"' }
             });
             expect(status).to.equal(200);
         });
 
         it('does not return an ETag header', async () => {
-            const { headers = {} } = await execute(CTRL, 'delete', {
+            const { headers = {} } = await executeService(CTRL, 'delete', {
                 body: {}, params: PARAMS, headers: { 'if-match': '"5"' }
             });
             expect(headers).to.not.have.property('ETag');
@@ -188,7 +188,7 @@ describe('entity-controller', function () {
 
         it('parses revision from quoted If-Match header', async () => {
             const _ctx = {};
-            await execute(CTRL, 'delete', {
+            await executeService(CTRL, 'delete', {
                 body: {}, params: PARAMS, headers: { 'if-match': '"7"' }
             }, _ctx);
             expect(_ctx.capturedInput.revision).to.equal(7);
@@ -196,7 +196,7 @@ describe('entity-controller', function () {
 
         it('passes undefined revision when If-Match is absent', async () => {
             const _ctx = {};
-            await execute(CTRL, 'delete', { body: {}, params: PARAMS, headers: {} }, _ctx);
+            await executeService(CTRL, 'delete', { body: {}, params: PARAMS, headers: {} }, _ctx);
             expect(_ctx.capturedInput.revision).to.equal(undefined);
         });
 
@@ -206,14 +206,14 @@ describe('entity-controller', function () {
     describe('transition', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'transition', {
+            const { status } = await executeService(CTRL, 'transition', {
                 body: {}, params: { ...PARAMS, transition: 'confirm' }, headers: HEADERS
             });
             expect(status).to.equal(200);
         });
 
         it('returns ETag header with quoted revision', async () => {
-            const { headers } = await execute(CTRL, 'transition', {
+            const { headers } = await executeService(CTRL, 'transition', {
                 body: {}, params: { ...PARAMS, transition: 'confirm' }, headers: HEADERS
             });
             expect(headers.ETag).to.equal('"5"');
@@ -221,7 +221,7 @@ describe('entity-controller', function () {
 
         it('maps transition from params', async () => {
             const _ctx = {};
-            await execute(CTRL, 'transition', {
+            await executeService(CTRL, 'transition', {
                 body: {}, params: { entityType: 'order', businessKey: 'order-001', transition: 'cancel' }, headers: {}
             }, _ctx);
             expect(_ctx.capturedInput.transition).to.equal('cancel');
@@ -233,7 +233,7 @@ describe('entity-controller', function () {
     describe('amend', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'amend', {
+            const { status } = await executeService(CTRL, 'amend', {
                 body: { data: { amount: 50, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"2"' }
             });
@@ -241,7 +241,7 @@ describe('entity-controller', function () {
         });
 
         it('returns ETag header with quoted revision', async () => {
-            const { headers } = await execute(CTRL, 'amend', {
+            const { headers } = await executeService(CTRL, 'amend', {
                 body: { data: { amount: 50, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"2"' }
             });
@@ -250,7 +250,7 @@ describe('entity-controller', function () {
 
         it('parses revision from quoted If-Match header', async () => {
             const _ctx = {};
-            await execute(CTRL, 'amend', {
+            await executeService(CTRL, 'amend', {
                 body: { data: { amount: 50, currency: 'USD' } },
                 params: PARAMS, headers: { 'if-match': '"4"' }
             }, _ctx);
@@ -259,7 +259,7 @@ describe('entity-controller', function () {
 
         it('maps optional validFrom from body', async () => {
             const _ctx = {};
-            await execute(CTRL, 'amend', {
+            await executeService(CTRL, 'amend', {
                 body: { data: { amount: 50, currency: 'USD' }, validFrom: '2026-01-01' },
                 params: PARAMS, headers: { 'if-match': '"1"' }
             }, _ctx);
@@ -269,10 +269,10 @@ describe('entity-controller', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('execute', () => {
+    describe('executeService', () => {
 
         it('returns status 200', async () => {
-            const { status } = await execute(CTRL, 'execute', {
+            const { status } = await executeService(CTRL, 'execute', {
                 body: { amount: 100 },
                 params: { ...PARAMS, componentId: 'some-component', methodId: 'run' },
                 headers: HEADERS
@@ -282,7 +282,7 @@ describe('entity-controller', function () {
 
         it('maps componentId and methodId from params', async () => {
             const _ctx = {};
-            await execute(CTRL, 'execute', {
+            await executeService(CTRL, 'execute', {
                 body: { threshold: 500 },
                 params: { ...PARAMS, componentId: 'comp-x', methodId: 'process' },
                 headers: {}
@@ -291,9 +291,9 @@ describe('entity-controller', function () {
             expect(_ctx.capturedInput.methodId).to.equal('process');
         });
 
-        it('maps body as input to entity execute', async () => {
+        it('maps body as input to entity executeService', async () => {
             const _ctx = {};
-            await execute(CTRL, 'execute', {
+            await executeService(CTRL, 'execute', {
                 body: { threshold: 500 },
                 params: { ...PARAMS, componentId: 'comp-x', methodId: 'process' },
                 headers: {}

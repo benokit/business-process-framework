@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -19,7 +19,7 @@ describe('entity service', function () {
         // Unified entity-database mock registered once to avoid dataCache conflicts.
         // create/update/delete echo their input so CRUD tests can assert on the mapping.
         // read echoes collection/businessKey and always includes a fixed data payload
-        // so execute tests can rely on current.data fields.
+        // so executeService tests can rely on current.data fields.
         registerElement({
             kind: 'service',
             id: 'entity-database',
@@ -189,7 +189,7 @@ describe('entity service', function () {
             data: { return: ['error from guard B'] }
         });
 
-        // Services used by the execute tests — each has a unique ID so no
+        // Services used by the executeService tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
         registerElement({ type: 'data', id: 'ctx-capture-component', data: {
             entityType: 'order',
@@ -247,7 +247,7 @@ describe('entity service', function () {
     describe('create', () => {
 
         it('passes entityType to entity-database', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -257,20 +257,20 @@ describe('entity service', function () {
 
         it('throws when entityType is missing', async () => {
             let error;
-            try { await execute(SERVICE, 'create', { businessKey: 'order-001', data: {} }); }
+            try { await executeService(SERVICE, 'create', { businessKey: 'order-001', data: {} }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('throws when data does not match the entity type dataSchema', async () => {
             let error;
-            try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001', data: { amount: 'not-a-number' } }); }
+            try { await executeService(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001', data: { amount: 'not-a-number' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('succeeds when data matches the entity type dataSchema', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -278,14 +278,14 @@ describe('entity service', function () {
 
         it('throws when businessKey is missing', async () => {
             let error;
-            try { await execute(SERVICE, 'create', { entityType: 'order', data: {} }); }
+            try { await executeService(SERVICE, 'create', { entityType: 'order', data: {} }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('throws when data is missing', async () => {
             let error;
-            try { await execute(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001' }); }
+            try { await executeService(SERVICE, 'create', { entityType: 'order', businessKey: 'order-001' }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
@@ -296,21 +296,21 @@ describe('entity service', function () {
     describe('create — initial state', () => {
 
         it('uses the default initial state when no initialState is provided', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order-with-states', businessKey: 'bk-init-default', data: { amount: 100, currency: 'USD' }
             });
             expect(result.state).to.deep.equal({ dimensions: { status: 'draft' } });
         });
 
         it('uses the named initial state when initialState is provided', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order-with-states', businessKey: 'bk-init-vip', data: { amount: 100, currency: 'USD' }, initialState: 'vip'
             });
             expect(result.state).to.deep.equal({ dimensions: { status: 'draft', tier: 'premium' } });
         });
 
         it('passes empty dimensions state when entity type has no initialStates', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'bk-no-state', data: { amount: 100, currency: 'USD' }
             });
             expect(result.state).to.deep.equal({ dimensions: {} });
@@ -323,7 +323,7 @@ describe('entity service', function () {
 
         it('invokes registered handlers with the created entity record', async () => {
             const _ctx = {};
-            await execute(SERVICE, 'create', {
+            await executeService(SERVICE, 'create', {
                 entityType: 'order-with-handler', businessKey: 'bk-handler-test', data: { amount: 100, currency: 'USD' }
             }, _ctx);
             expect(_ctx.handlerCalledWith).to.exist;
@@ -331,14 +331,14 @@ describe('entity service', function () {
         });
 
         it('create still returns the entity record when handlers are present', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order-with-handler', businessKey: 'bk-handler-return', data: { amount: 50, currency: 'USD' }
             });
             expect(result.businessKey).to.equal('bk-handler-return');
         });
 
         it('create works normally when no handlers are registered for the entity type', async () => {
-            const result = await execute(SERVICE, 'create', {
+            const result = await executeService(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'bk-no-handler', data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -350,7 +350,7 @@ describe('entity service', function () {
     describe('read', () => {
 
         it('passes entityType and businessKey to entity-database', async () => {
-            const result = await execute(SERVICE, 'read', {
+            const result = await executeService(SERVICE, 'read', {
                 entityType: 'order', businessKey: 'order-001'
             });
             expect(result.entityType).to.equal('order');
@@ -363,7 +363,7 @@ describe('entity service', function () {
     describe('update', () => {
 
         it('passes entityType, revision and data to entity-database', async () => {
-            const result = await execute(SERVICE, 'update', {
+            const result = await executeService(SERVICE, 'update', {
                 entityType: 'order', businessKey: 'order-001', revision: 2, data: { amount: 200, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -374,7 +374,7 @@ describe('entity service', function () {
 
         it('throws when data does not match the entity type dataSchema', async () => {
             let error;
-            try { await execute(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
+            try { await executeService(SERVICE, 'update', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
@@ -386,7 +386,7 @@ describe('entity service', function () {
 
         it('invokes registered handlers with the updated entity record', async () => {
             const _ctx = {};
-            await execute(SERVICE, 'update', {
+            await executeService(SERVICE, 'update', {
                 entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-test', revision: 1, data: { amount: 200, currency: 'USD' }
             }, _ctx);
             expect(_ctx.updateHandlerCalledWith).to.exist;
@@ -394,14 +394,14 @@ describe('entity service', function () {
         });
 
         it('update still returns the entity record when handlers are present', async () => {
-            const result = await execute(SERVICE, 'update', {
+            const result = await executeService(SERVICE, 'update', {
                 entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-return', revision: 1, data: { amount: 50, currency: 'USD' }
             });
             expect(result.businessKey).to.equal('bk-update-handler-return');
         });
 
         it('update works normally when no handlers are registered for the entity type', async () => {
-            const result = await execute(SERVICE, 'update', {
+            const result = await executeService(SERVICE, 'update', {
                 entityType: 'order', businessKey: 'bk-no-update-handler', revision: 1, data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -413,7 +413,7 @@ describe('entity service', function () {
     describe('delete', () => {
 
         it('passes entityType and revision to entity-database', async () => {
-            const result = await execute(SERVICE, 'delete', {
+            const result = await executeService(SERVICE, 'delete', {
                 entityType: 'order', businessKey: 'order-001', revision: 1
             });
             expect(result.entityType).to.equal('order');
@@ -427,7 +427,7 @@ describe('entity service', function () {
     describe('amend', () => {
 
         it('passes entityType, businessKey, revision and data to entity-database', async () => {
-            const result = await execute(SERVICE, 'amend', {
+            const result = await executeService(SERVICE, 'amend', {
                 entityType: 'order', businessKey: 'order-001', revision: 3, data: { amount: 500, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -438,14 +438,14 @@ describe('entity service', function () {
 
         it('throws when data does not match the entity type dataSchema', async () => {
             let error;
-            try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
+            try { await executeService(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when revision is missing', async () => {
             let error;
-            try { await execute(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
+            try { await executeService(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
@@ -456,7 +456,7 @@ describe('entity service', function () {
     describe('transition', () => {
 
         it('applies the transition and returns updated state', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
@@ -464,7 +464,7 @@ describe('entity service', function () {
         });
 
         it('carries forward dimensions not listed in to', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
             // 'status' is set by to; other dims from current state are preserved
@@ -472,7 +472,7 @@ describe('entity service', function () {
         });
 
         it('accepts transition when from matches an array of allowed values', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'cancel'
             });
             expect(result.state.dimensions.status).to.equal('cancelled');
@@ -480,7 +480,7 @@ describe('entity service', function () {
 
         it('throws when transition name is not defined', async () => {
             let error;
-            try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'nonexistent' }); }
+            try { await executeService(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'nonexistent' }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('transition is not defined');
         });
@@ -488,13 +488,13 @@ describe('entity service', function () {
         it('throws when current state does not match from conditions', async () => {
             let error;
             // mock read returns status='draft'; 'escalate' requires tier='standard' which is absent
-            try { await execute(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'escalate' }); }
+            try { await executeService(SERVICE, 'transition', { entityType: 'order-with-states', businessKey: 'order-001', transition: 'escalate' }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('transition failed');
         });
 
         it('does not pass data to entity-database update', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result).to.not.have.property('data');
@@ -507,21 +507,21 @@ describe('entity service', function () {
 
         it('invokes registered handlers with the transitioned entity record', async () => {
             const _ctx = {};
-            await execute(SERVICE, 'transition', {
+            await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
             }, _ctx);
             expect(_ctx.transitionHandlerCalledWith).to.exist;
         });
 
         it('transition still returns the entity record when handlers are present', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
         });
 
         it('transition works normally when no handlers are registered for the entity type', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
@@ -535,7 +535,7 @@ describe('entity service', function () {
         it('throws when a guard returns errors', async () => {
             let error;
             try {
-                await execute(SERVICE, 'update', {
+                await executeService(SERVICE, 'update', {
                     entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: -1, currency: 'USD' }
                 });
             } catch (e) { error = e; }
@@ -543,7 +543,7 @@ describe('entity service', function () {
         });
 
         it('proceeds when a guard returns no errors', async () => {
-            const result = await execute(SERVICE, 'update', {
+            const result = await executeService(SERVICE, 'update', {
                 entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
             });
             expect(result.data.amount).to.equal(100);
@@ -552,7 +552,7 @@ describe('entity service', function () {
         it('collects and joins errors from multiple guards', async () => {
             let error;
             try {
-                await execute(SERVICE, 'update', {
+                await executeService(SERVICE, 'update', {
                     entityType: 'order-with-multi-guards', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
                 });
             } catch (e) { error = e; }
@@ -561,7 +561,7 @@ describe('entity service', function () {
         });
 
         it('proceeds normally when no guards are registered', async () => {
-            const result = await execute(SERVICE, 'update', {
+            const result = await executeService(SERVICE, 'update', {
                 entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -575,7 +575,7 @@ describe('entity service', function () {
         it('throws when a guard returns errors', async () => {
             let error;
             try {
-                await execute(SERVICE, 'amend', {
+                await executeService(SERVICE, 'amend', {
                     entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
                 });
             } catch (e) { error = e; }
@@ -583,14 +583,14 @@ describe('entity service', function () {
         });
 
         it('proceeds when a guard returns no errors', async () => {
-            const result = await execute(SERVICE, 'amend', {
+            const result = await executeService(SERVICE, 'amend', {
                 entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 50, currency: 'USD' }
             });
             expect(result.data.amount).to.equal(50);
         });
 
         it('proceeds normally when no guards are registered', async () => {
-            const result = await execute(SERVICE, 'amend', {
+            const result = await executeService(SERVICE, 'amend', {
                 entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
@@ -604,7 +604,7 @@ describe('entity service', function () {
         it('throws when a guard returns errors', async () => {
             let error;
             try {
-                await execute(SERVICE, 'transition', {
+                await executeService(SERVICE, 'transition', {
                     entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'forbidden'
                 });
             } catch (e) { error = e; }
@@ -612,14 +612,14 @@ describe('entity service', function () {
         });
 
         it('proceeds when a guard returns no errors', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
         });
 
         it('proceeds normally when no guards are registered', async () => {
-            const result = await execute(SERVICE, 'transition', {
+            const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
@@ -628,10 +628,10 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('execute', () => {
+    describe('executeService', () => {
 
         it('sets entityContext.entityType in _ctx from input', async () => {
-            const result = await execute(SERVICE, 'execute', {
+            const result = await executeService(SERVICE, 'execute', {
                 entityType: 'order', businessKey: 'order-001',
                 componentId: 'ctx-capture-component', methodId: 'assess', input: {}
             });
@@ -639,7 +639,7 @@ describe('entity service', function () {
         });
 
         it('populates entityContext.data via the component contextMapping', async () => {
-            const result = await execute(SERVICE, 'execute', {
+            const result = await executeService(SERVICE, 'execute', {
                 entityType: 'order', businessKey: 'order-001',
                 componentId: 'ctx-capture-component', methodId: 'assess', input: {}
             });
@@ -647,7 +647,7 @@ describe('entity service', function () {
         });
 
         it('dispatches to the service declared in the component service element', async () => {
-            const result = await execute(SERVICE, 'execute', {
+            const result = await executeService(SERVICE, 'execute', {
                 entityType: 'order', businessKey: 'order-001',
                 componentId: 'dispatch-component', methodId: 'run', input: {}
             });
@@ -655,7 +655,7 @@ describe('entity service', function () {
         });
 
         it('passes method input to the component service', async () => {
-            const result = await execute(SERVICE, 'execute', {
+            const result = await executeService(SERVICE, 'execute', {
                 entityType: 'order', businessKey: 'order-001',
                 componentId: 'input-echo-component', methodId: 'process', input: { threshold: 500 }
             });

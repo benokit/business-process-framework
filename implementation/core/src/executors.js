@@ -1,4 +1,4 @@
-import { execute, executeMethod, executeMethodWithContext, executeMapping } from './service.js';
+import { executeService, executeMethod, executeMethodWithContext, executeMapping } from './service.js';
 import { validateSchema } from './schema.js';
 import { has } from 'lodash-es';
 import { getElement, getElementsOfKind } from './elements-registry.js';
@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 export const executors = {
 
     service: node => async ({ _ctx, input }) =>
-        await execute(node.service, node.method, input, _ctx),
+        await executeService(node.service, node.method, input, _ctx),
 
     method: node => {
         if (has(node, 'service')) {

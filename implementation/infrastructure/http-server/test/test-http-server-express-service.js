@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,7 +76,7 @@ describe('http-server (service element)', function () {
         it('rejects start when port is not a number', async () => {
             let error;
             try {
-                await execute(SERVICE, 'start', { port: 'abc' });
+                await executeService(SERVICE, 'start', { port: 'abc' });
             } catch (e) {
                 error = e;
             }
@@ -89,11 +89,11 @@ describe('http-server (service element)', function () {
         let port;
 
         before(async () => {
-            ({ port } = await execute(SERVICE, 'start', { port: 0 }));
+            ({ port } = await executeService(SERVICE, 'start', { port: 0 }));
         });
 
         after(async () => {
-            await execute(SERVICE, 'stop', {});
+            await executeService(SERVICE, 'stop', {});
         });
 
         it('returns the bound port', () => {
@@ -119,8 +119,8 @@ describe('http-server (service element)', function () {
     describe('stop', () => {
 
         it('makes the server unreachable', async () => {
-            const { port } = await execute(SERVICE, 'start', { port: 0 });
-            await execute(SERVICE, 'stop', {});
+            const { port } = await executeService(SERVICE, 'start', { port: 0 });
+            await executeService(SERVICE, 'stop', {});
             let error;
             try {
                 await httpGet(`http://localhost:${port}/`);

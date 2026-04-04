@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const mathModuleUrl = new URL('./helpers/math.js', import.meta.url).href;
@@ -29,14 +29,14 @@ describe('service tests', () => {
 
         it('should throw when a required input field is missing', async () => {
             let error;
-            try { await execute('svc-validate', 'greet', {}); }
+            try { await executeService('svc-validate', 'greet', {}); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
 
         it('should throw when an input field has the wrong type', async () => {
             let error;
-            try { await execute('svc-validate', 'greet', { name: 42 }); }
+            try { await executeService('svc-validate', 'greet', { name: 42 }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
         });
@@ -55,19 +55,19 @@ describe('service tests', () => {
         });
 
         it('should return a constant string literal', async () => {
-            expect(await execute('svc-return', 'constant', {})).to.equal('hello');
+            expect(await executeService('svc-return', 'constant', {})).to.equal('hello');
         });
 
         it('should return the entire method input using #.input', async () => {
-            expect(await execute('svc-return', 'passthrough', { x: 1 })).to.deep.equal({ x: 1 });
+            expect(await executeService('svc-return', 'passthrough', { x: 1 })).to.deep.equal({ x: 1 });
         });
 
         it('should extract a single field from method input using #.input.field', async () => {
-            expect(await execute('svc-return', 'field', { name: 'Alice' })).to.equal('Alice');
+            expect(await executeService('svc-return', 'field', { name: 'Alice' })).to.equal('Alice');
         });
 
         it('should compute a result from input fields using lambdajson primitives', async () => {
-            expect(await execute('svc-return', 'computed', { a: 3, b: 4 })).to.equal(7);
+            expect(await executeService('svc-return', 'computed', { a: 3, b: 4 })).to.equal(7);
         });
 
     });
@@ -106,19 +106,19 @@ describe('service tests', () => {
         });
 
         it('should make the set result accessible as a named step in the pipeline context', async () => {
-            expect(await execute('svc-set', 'build', {})).to.equal(42);
+            expect(await executeService('svc-set', 'build', {})).to.equal(42);
         });
 
         it('should merge into an existing plain object when the same name is set twice', async () => {
-            expect(await execute('svc-set', 'mergeIntoExisting', {})).to.deep.equal({ a: 1, b: 2 });
+            expect(await executeService('svc-set', 'mergeIntoExisting', {})).to.deep.equal({ a: 1, b: 2 });
         });
 
         it('should merge into _ctx and make the new property readable', async () => {
-            expect(await execute('svc-set', 'mergeIntoCtx', { id: 'abc' })).to.equal('abc');
+            expect(await executeService('svc-set', 'mergeIntoCtx', { id: 'abc' })).to.equal('abc');
         });
 
         it('should carry _ctx properties set in earlier steps to later steps', async () => {
-            expect(await execute('svc-set', 'readCtxAcrossSteps', { tag: 'hello' })).to.equal('hello');
+            expect(await executeService('svc-set', 'readCtxAcrossSteps', { tag: 'hello' })).to.equal('hello');
         });
 
     });
@@ -136,8 +136,8 @@ describe('service tests', () => {
             });
         });
 
-        it('should execute steps in order and expose named step results in subsequent steps', async () => {
-            expect(await execute('svc-pipeline', 'compute', { x: 4, y: 5 })).to.equal(17);
+        it('should executeService steps in order and expose named step results in subsequent steps', async () => {
+            expect(await executeService('svc-pipeline', 'compute', { x: 4, y: 5 })).to.equal(17);
         });
 
     });
@@ -156,12 +156,12 @@ describe('service tests', () => {
             });
         });
 
-        it('should execute the then branch when the condition evaluates to true', async () => {
-            expect(await execute('svc-if', 'classify', { n: 5 })).to.equal('positive');
+        it('should executeService the then branch when the condition evaluates to true', async () => {
+            expect(await executeService('svc-if', 'classify', { n: 5 })).to.equal('positive');
         });
 
-        it('should execute the else branch when the condition evaluates to false', async () => {
-            expect(await execute('svc-if', 'classify', { n: -1 })).to.equal('non-positive');
+        it('should executeService the else branch when the condition evaluates to false', async () => {
+            expect(await executeService('svc-if', 'classify', { n: -1 })).to.equal('non-positive');
         });
 
         describe('context propagation', () => {
@@ -182,11 +182,11 @@ describe('service tests', () => {
             });
 
             it('should use a prior named step in the condition and return its value from the then branch', async () => {
-                expect(await execute('svc-if-ctx', 'checkWithContext', { n: 6 })).to.equal(12);
+                expect(await executeService('svc-if-ctx', 'checkWithContext', { n: 6 })).to.equal(12);
             });
 
             it('should use a prior named step in the condition and return input from the else branch', async () => {
-                expect(await execute('svc-if-ctx', 'checkWithContext', { n: 3 })).to.equal(3);
+                expect(await executeService('svc-if-ctx', 'checkWithContext', { n: 3 })).to.equal(3);
             });
 
         });
@@ -207,7 +207,7 @@ describe('service tests', () => {
         });
 
         it('should apply the body implementation to each element of the input array', async () => {
-            expect(await execute('svc-foreach', 'doubleAll', [1, 2, 3])).to.deep.equal([2, 4, 6]);
+            expect(await executeService('svc-foreach', 'doubleAll', [1, 2, 3])).to.deep.equal([2, 4, 6]);
         });
 
     });
@@ -232,11 +232,11 @@ describe('service tests', () => {
         });
 
         it('should run the catch body with the error in context when the try body throws', async () => {
-            expect(await execute('svc-try', 'safeExecute', { message: 'boom' })).to.equal('boom');
+            expect(await executeService('svc-try', 'safeExecute', { message: 'boom' })).to.equal('boom');
         });
 
         it('should return the try body result when no error is thrown', async () => {
-            expect(await execute('svc-try', 'noError', 'ok')).to.equal('ok');
+            expect(await executeService('svc-try', 'noError', 'ok')).to.equal('ok');
         });
 
         describe('context propagation', () => {
@@ -265,11 +265,11 @@ describe('service tests', () => {
             });
 
             it('should propagate named pipeline steps into the try body', async () => {
-                expect(await execute('svc-try-ctx', 'tryWithStep', {})).to.equal('hello');
+                expect(await executeService('svc-try-ctx', 'tryWithStep', {})).to.equal('hello');
             });
 
             it('should expose the pre-throw context at #.context in the catch body', async () => {
-                expect(await execute('svc-try-ctx', 'catchWithStep', { tag: 'myLabel', message: 'boom' })).to.equal('myLabel');
+                expect(await executeService('svc-try-ctx', 'catchWithStep', { tag: 'myLabel', message: 'boom' })).to.equal('myLabel');
             });
 
         });
@@ -323,14 +323,14 @@ describe('service tests', () => {
 
         it('runs finally after a successful try and returns the try result', async () => {
             const _ctx = {};
-            const result = await execute('svc-finally', 'successWithFinally', { value: 42 }, _ctx);
+            const result = await executeService('svc-finally', 'successWithFinally', { value: 42 }, _ctx);
             expect(result).to.equal(42);
             expect(_ctx.log).to.equal('finally ran');
         });
 
         it('runs finally after catch and returns the catch result', async () => {
             const _ctx = {};
-            const result = await execute('svc-finally', 'failWithFinally', { message: 'boom' }, _ctx);
+            const result = await executeService('svc-finally', 'failWithFinally', { message: 'boom' }, _ctx);
             expect(result).to.equal('boom');
             expect(_ctx.log).to.equal('finally ran');
         });
@@ -338,7 +338,7 @@ describe('service tests', () => {
         it('runs finally when catch rethrows and propagates the error', async () => {
             const _ctx = {};
             let error;
-            try { await execute('svc-finally', 'rethrowWithFinally', { message: 'boom' }, _ctx); }
+            try { await executeService('svc-finally', 'rethrowWithFinally', { message: 'boom' }, _ctx); }
             catch (e) { error = e; }
             expect(error.cause).to.equal('boom');
             expect(_ctx.log).to.equal('finally ran');
@@ -347,7 +347,7 @@ describe('service tests', () => {
         it('runs finally when there is no catch and propagates the error', async () => {
             const _ctx = {};
             let error;
-            try { await execute('svc-finally', 'noCatchWithFinally', { message: 'boom' }, _ctx); }
+            try { await executeService('svc-finally', 'noCatchWithFinally', { message: 'boom' }, _ctx); }
             catch (e) { error = e; }
             expect(error.cause).to.equal('boom');
             expect(_ctx.log).to.equal('finally ran');
@@ -365,7 +365,7 @@ describe('service tests', () => {
 
         it('should throw the value produced by the lambdajson expression', async () => {
             let error;
-            try { await execute('svc-throw', 'fail', { message: 'custom error' }); }
+            try { await executeService('svc-throw', 'fail', { message: 'custom error' }); }
             catch (e) { error = e; }
             expect(error.cause).to.equal('custom error');
         });
@@ -404,20 +404,20 @@ describe('service tests', () => {
             });
         });
 
-        it('should execute the matching case branch', async () => {
-            expect(await execute('svc-switch', 'route', { op: 'add', a: 3, b: 4 })).to.equal(7);
+        it('should executeService the matching case branch', async () => {
+            expect(await executeService('svc-switch', 'route', { op: 'add', a: 3, b: 4 })).to.equal(7);
         });
 
         it('should fall through to the default case when no case matches', async () => {
-            expect(await execute('svc-switch', 'route', { op: 'unknown', a: 3, b: 4 })).to.equal(0);
+            expect(await executeService('svc-switch', 'route', { op: 'unknown', a: 3, b: 4 })).to.equal(0);
         });
 
         it('should propagate named pipeline steps into the matching case body', async () => {
-            expect(await execute('svc-switch', 'withContext', { op: 'inc', x: 5 })).to.equal(15);
+            expect(await executeService('svc-switch', 'withContext', { op: 'inc', x: 5 })).to.equal(15);
         });
 
         it('should propagate named pipeline steps into the default case body', async () => {
-            expect(await execute('svc-switch', 'withContext', { op: 'other', x: 5 })).to.equal(10);
+            expect(await executeService('svc-switch', 'withContext', { op: 'other', x: 5 })).to.equal(10);
         });
 
     });
@@ -439,15 +439,15 @@ describe('service tests', () => {
         });
 
         it('should delegate to another service and return its result', async () => {
-            expect(await execute('svc-delegate-outer', 'compute', 5)).to.equal(10);
+            expect(await executeService('svc-delegate-outer', 'compute', 5)).to.equal(10);
         });
 
     });
 
-    describe('execute', () => {
+    describe('executeService', () => {
 
         before(() => {
-            registerService('svc-execute', {
+            registerService('svc-executeService', {
                 single: {
                     impl: { execute: { return: '#.input.x' } }
                 },
@@ -475,7 +475,7 @@ describe('service tests', () => {
                 multiply: { impl: { return: { $multiply: ['#.input.a', '#.input.b'] } } }
             });
 
-            registerService('svc-execute-dispatch', {
+            registerService('svc-executeService-dispatch', {
                 dispatch: {
                     impl: {
                         inputMap: { a: '#.input.a', b: '#.input.b' },
@@ -484,7 +484,7 @@ describe('service tests', () => {
                 }
             });
 
-            registerService('svc-execute-ctx', {
+            registerService('svc-executeService-ctx', {
                 fullContextAccess: {
                     impl: {
                         inputMap: '#.input',
@@ -506,39 +506,39 @@ describe('service tests', () => {
             });
         });
 
-        it('should execute a single-item pipeline with the current context', async () => {
-            expect(await execute('svc-execute', 'single', { x: 5 })).to.equal(5);
+        it('should executeService a single-item pipeline with the current context', async () => {
+            expect(await executeService('svc-executeService', 'single', { x: 5 })).to.equal(5);
         });
 
-        it('should execute a pipeline array with shared named step context', async () => {
-            expect(await execute('svc-execute', 'pipeline', { x: 3 })).to.equal(9);
+        it('should executeService a pipeline array with shared named step context', async () => {
+            expect(await executeService('svc-executeService', 'pipeline', { x: 3 })).to.equal(9);
         });
 
-        it('should wrap the inputMap result in input and allow access via #.input in the execute pipeline', async () => {
-            expect(await execute('svc-execute', 'withInputMap', { x: 7 })).to.equal(7);
+        it('should wrap the inputMap result in input and allow access via #.input in the executeService pipeline', async () => {
+            expect(await executeService('svc-executeService', 'withInputMap', { x: 7 })).to.equal(7);
         });
 
-        it('should evaluate the execute expression and use the result as a pipeline', async () => {
+        it('should evaluate the executeService expression and use the result as a pipeline', async () => {
             const pipeline = { return: { $sum: ['#.input.a', '#.input.b'] } };
-            expect(await execute('svc-execute', 'fromContext', { pipeline, a: 3, b: 4 })).to.equal(7);
+            expect(await executeService('svc-executeService', 'fromContext', { pipeline, a: 3, b: 4 })).to.equal(7);
         });
 
-        it('should evaluate the execute expression against the full context even when inputMap is present', async () => {
-            expect(await execute('svc-execute-ctx', 'fullContextAccess', { tag: 'hello' })).to.equal('hello');
+        it('should evaluate the executeService expression against the full context even when inputMap is present', async () => {
+            expect(await executeService('svc-executeService-ctx', 'fullContextAccess', { tag: 'hello' })).to.equal('hello');
         });
 
         it('should apply outputMap to the result of the executed pipeline', async () => {
-            expect(await execute('svc-execute-ctx', 'outputMapped', { v: 'extracted' })).to.equal('extracted');
+            expect(await executeService('svc-executeService-ctx', 'outputMapped', { v: 'extracted' })).to.equal('extracted');
         });
 
-        it('should store the result of an execute step as a named step in the pipeline context', async () => {
-            expect(await execute('svc-execute-ctx', 'inPipeline', { x: 4 })).to.equal(12);
+        it('should store the result of an executeService step as a named step in the pipeline context', async () => {
+            expect(await executeService('svc-executeService-ctx', 'inPipeline', { x: 4 })).to.equal(12);
         });
 
         it('should dispatch to a service whose id and method are resolved dynamically from context', async () => {
-            expect(await execute('svc-execute-dispatch', 'dispatch',
+            expect(await executeService('svc-executeService-dispatch', 'dispatch',
                 { svcId: 'svc-dyn-math', method: 'add',      a: 3, b: 4 })).to.equal(7);
-            expect(await execute('svc-execute-dispatch', 'dispatch',
+            expect(await executeService('svc-executeService-dispatch', 'dispatch',
                 { svcId: 'svc-dyn-math', method: 'multiply', a: 3, b: 4 })).to.equal(12);
         });
 
@@ -555,7 +555,7 @@ describe('service tests', () => {
         });
 
         it('should call the host js function with the current context and return its result', async () => {
-            expect(await execute('svc-low', 'echo', 'hello')).to.equal('hello');
+            expect(await executeService('svc-low', 'echo', 'hello')).to.equal('hello');
         });
 
     });
@@ -595,39 +595,39 @@ describe('service tests', () => {
 
         it('throws when a required field is missing (inline schema)', async () => {
             let error;
-            try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice' }); }
+            try { await executeService('svc-validate-schema', 'checkInline', { name: 'Alice' }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when a field has the wrong type (inline schema)', async () => {
             let error;
-            try { await execute('svc-validate-schema', 'checkInline', { name: 'Alice', age: 'not-a-number' }); }
+            try { await executeService('svc-validate-schema', 'checkInline', { name: 'Alice', age: 'not-a-number' }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('throws when validation fails against a registered schema reference', async () => {
             let error;
-            try { await execute('svc-validate-schema', 'checkRef', {}); }
+            try { await executeService('svc-validate-schema', 'checkRef', {}); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('passes and returns input unchanged when input is valid', async () => {
-            const result = await execute('svc-validate-schema', 'passthroughOnSuccess', { x: 42 });
+            const result = await executeService('svc-validate-schema', 'passthroughOnSuccess', { x: 42 });
             expect(result).to.deep.equal({ x: 42 });
         });
 
         it('validates the inputMap result, not the full context', async () => {
             let error;
-            try { await execute('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 'not-a-number' } }); }
+            try { await executeService('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 'not-a-number' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('validation failed');
         });
 
         it('passes when only the inputMap result satisfies the schema', async () => {
-            const result = await execute('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 99 }, extra: 'ignored' });
+            const result = await executeService('svc-validate-schema', 'checkWithInputMap', { payload: { amount: 99 }, extra: 'ignored' });
             expect(result).to.deep.equal({ amount: 99 });
         });
 
@@ -653,23 +653,23 @@ describe('service tests', () => {
         });
 
         it('should apply the pure function to the entire input', async () => {
-            expect(await execute('svc-func', 'doubleInput', 7)).to.equal(14);
+            expect(await executeService('svc-func', 'doubleInput', 7)).to.equal(14);
         });
 
         it('should apply the pure function to a field extracted from input', async () => {
-            expect(await execute('svc-func', 'doubleField', { n: 5 })).to.equal(10);
+            expect(await executeService('svc-func', 'doubleField', { n: 5 })).to.equal(10);
         });
 
         it('should apply a different pure function to a field', async () => {
-            expect(await execute('svc-func', 'addTenToField', { n: 3 })).to.equal(13);
+            expect(await executeService('svc-func', 'addTenToField', { n: 3 })).to.equal(13);
         });
 
         it('should support nesting pure function calls', async () => {
-            expect(await execute('svc-func', 'chainFunctions', { n: 4 })).to.equal(28);
+            expect(await executeService('svc-func', 'chainFunctions', { n: 4 })).to.equal(28);
         });
 
         it('should work as a set expression within a pipeline', async () => {
-            expect(await execute('svc-func', 'inPipeline', { n: 6 })).to.equal(18);
+            expect(await executeService('svc-func', 'inPipeline', { n: 6 })).to.equal(18);
         });
 
     });
@@ -690,7 +690,7 @@ describe('service tests', () => {
         });
 
         it('should use a $low-imported js function as a custom primitive within a lambdajson expression', async () => {
-            expect(await execute('svc-low-primitive', 'transform', 5)).to.equal(10);
+            expect(await executeService('svc-low-primitive', 'transform', 5)).to.equal(10);
         });
 
     });

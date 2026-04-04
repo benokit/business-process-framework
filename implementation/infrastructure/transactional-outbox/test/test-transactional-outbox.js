@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { connect, disconnect, getPool } from '@business-framework/postgres-client';
 import { initSchema } from '../src/transactional-outbox.js';
@@ -114,7 +114,7 @@ describe('transactional-outbox', function () {
     describe('put', () => {
         it('inserts an outbox item with status=0', async function () {
             const envelope = makeEnvelope('put-1');
-            const result = await execute('transactional-outbox', 'put', {
+            const result = await executeService('transactional-outbox', 'put', {
                 channel: TEST_CHANNEL_ID,
                 envelope
             });
@@ -141,7 +141,7 @@ describe('transactional-outbox', function () {
 
             let error;
             try {
-                await execute('transaction', 'executeInTransaction', { program });
+                await executeService('transaction', 'executeInTransaction', { program });
             } catch (e) {
                 error = e;
             }
@@ -157,7 +157,7 @@ describe('transactional-outbox', function () {
                     service: 'transactional-outbox', method: 'put'
                 }
             ];
-            await execute('transaction', 'executeInTransaction', { program });
+            await executeService('transaction', 'executeInTransaction', { program });
 
             expect(await countAll()).to.equal(1);
             const item = await findOne(`message_id = $1`, ['put-commit']);
@@ -171,7 +171,7 @@ describe('transactional-outbox', function () {
         it('picks up a waiting item and marks it as processed (status=1)', async function () {
             this.timeout(6000);
             const envelope = makeEnvelope('proc-ok');
-            await execute('transactional-outbox', 'put', { channel: TEST_CHANNEL_ID, envelope });
+            await executeService('transactional-outbox', 'put', { channel: TEST_CHANNEL_ID, envelope });
 
             await run({ input: { lockIntervalInMilliseconds: 5000, idleIntervalInMilliseconds: 50 } });
             await waitFor(() => findOne(`message_id = $1 AND status = 1`, ['proc-ok']), 4000);

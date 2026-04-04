@@ -1,5 +1,5 @@
 import { getPool } from '@business-framework/postgres-client';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { getElement } from '@business-framework/core/elements-registry';
 import { initSchema } from './transactional-outbox.js';
 
@@ -88,7 +88,7 @@ async function processItem(item) {
         const brokerElement = getElement(destData.broker);
         const brokerData = brokerElement.data;
 
-        await execute(brokerData.service, 'publish', {
+        await executeService(brokerData.service, 'publish', {
             channel: destData,
             broker: brokerData,
             envelope: item.envelope

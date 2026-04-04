@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { connect, disconnect, getPool } from '@business-framework/postgres-client';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -41,7 +41,7 @@ describe('entity-database (service element)', function () {
         it('throws when entityType is missing', async () => {
             let error;
             try {
-                await execute(SERVICE, 'create', { businessKey: 'bk-val-1', data: { name: 'Alice' } });
+                await executeService(SERVICE, 'create', { businessKey: 'bk-val-1', data: { name: 'Alice' } });
             } catch (e) {
                 error = e;
             }
@@ -51,7 +51,7 @@ describe('entity-database (service element)', function () {
         it('throws when businessKey is missing from create', async () => {
             let error;
             try {
-                await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, data: { name: 'Alice' } });
+                await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, data: { name: 'Alice' } });
             } catch (e) {
                 error = e;
             }
@@ -63,7 +63,7 @@ describe('entity-database (service element)', function () {
     describe('create', () => {
 
         it('returns an entity record with the correct shape including businessKey', async () => {
-            const result = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-alice', data: { name: 'Alice' } });
+            const result = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-alice', data: { name: 'Alice' } });
             expect(result).to.include.keys('id', 'businessKey', 'revision', 'data');
             expect(result.businessKey).to.equal('bk-svc-alice');
             expect(result.revision).to.equal(1);
@@ -71,10 +71,10 @@ describe('entity-database (service element)', function () {
         });
 
         it('throws on duplicate businessKey', async () => {
-            await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dup', data: { name: 'Original' } });
+            await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dup', data: { name: 'Original' } });
             let error;
             try {
-                await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dup', data: { name: 'Duplicate' } });
+                await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dup', data: { name: 'Duplicate' } });
             } catch (e) {
                 error = e;
             }
@@ -87,11 +87,11 @@ describe('entity-database (service element)', function () {
         let id;
 
         before(async () => {
-            ({ id } = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-bob', data: { name: 'Bob' } }));
+            ({ id } = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-bob', data: { name: 'Bob' } }));
         });
 
         it('returns the entity record for an existing id', async () => {
-            const result = await execute(SERVICE, 'read', { entityType: ENTITY_TYPE, id });
+            const result = await executeService(SERVICE, 'read', { entityType: ENTITY_TYPE, id });
             expect(result.id).to.equal(id);
             expect(result.businessKey).to.equal('bk-svc-bob');
             expect(result.revision).to.equal(1);
@@ -99,7 +99,7 @@ describe('entity-database (service element)', function () {
         });
 
         it('returns null for a non-existent id', async () => {
-            const result = await execute(SERVICE, 'read', { entityType: ENTITY_TYPE, id: '00000000-0000-0000-0000-000000000000' });
+            const result = await executeService(SERVICE, 'read', { entityType: ENTITY_TYPE, id: '00000000-0000-0000-0000-000000000000' });
             expect(result).to.be.null;
         });
 
@@ -108,17 +108,17 @@ describe('entity-database (service element)', function () {
     describe('read by businessKey', () => {
 
         before(async () => {
-            await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-charlie', data: { name: 'Charlie' } });
+            await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-charlie', data: { name: 'Charlie' } });
         });
 
         it('returns the entity record for an existing businessKey', async () => {
-            const result = await execute(SERVICE, 'read', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-charlie' });
+            const result = await executeService(SERVICE, 'read', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-charlie' });
             expect(result.businessKey).to.equal('bk-svc-charlie');
             expect(result.data).to.deep.equal({ name: 'Charlie' });
         });
 
         it('returns null for a non-existent businessKey', async () => {
-            const result = await execute(SERVICE, 'read', { entityType: ENTITY_TYPE, businessKey: 'no-such-key' });
+            const result = await executeService(SERVICE, 'read', { entityType: ENTITY_TYPE, businessKey: 'no-such-key' });
             expect(result).to.be.null;
         });
 
@@ -128,11 +128,11 @@ describe('entity-database (service element)', function () {
         let id, revision;
 
         before(async () => {
-            ({ id, revision } = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-carol', data: { name: 'Carol' } }));
+            ({ id, revision } = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-carol', data: { name: 'Carol' } }));
         });
 
         it('updates data and increments revision', async () => {
-            const result = await execute(SERVICE, 'update', { entityType: ENTITY_TYPE, id, revision, data: { name: 'Caroline' } });
+            const result = await executeService(SERVICE, 'update', { entityType: ENTITY_TYPE, id, revision, data: { name: 'Caroline' } });
             expect(result.id).to.equal(id);
             expect(result.revision).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Caroline' });
@@ -141,7 +141,7 @@ describe('entity-database (service element)', function () {
         it('throws on revision mismatch', async () => {
             let error;
             try {
-                await execute(SERVICE, 'update', { entityType: ENTITY_TYPE, id, revision: 99, data: { name: 'X' } });
+                await executeService(SERVICE, 'update', { entityType: ENTITY_TYPE, id, revision: 99, data: { name: 'X' } });
             } catch (e) {
                 error = e;
             }
@@ -154,11 +154,11 @@ describe('entity-database (service element)', function () {
         let revision;
 
         before(async () => {
-            ({ revision } = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', data: { name: 'Diana' } }));
+            ({ revision } = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', data: { name: 'Diana' } }));
         });
 
         it('updates data and increments revision', async () => {
-            const result = await execute(SERVICE, 'update', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', revision, data: { name: 'Di' } });
+            const result = await executeService(SERVICE, 'update', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', revision, data: { name: 'Di' } });
             expect(result.businessKey).to.equal('bk-svc-diana');
             expect(result.revision).to.equal(2);
             expect(result.data).to.deep.equal({ name: 'Di' });
@@ -167,7 +167,7 @@ describe('entity-database (service element)', function () {
         it('throws on revision mismatch', async () => {
             let error;
             try {
-                await execute(SERVICE, 'update', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', revision: 99, data: { name: 'X' } });
+                await executeService(SERVICE, 'update', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-diana', revision: 99, data: { name: 'X' } });
             } catch (e) {
                 error = e;
             }
@@ -180,11 +180,11 @@ describe('entity-database (service element)', function () {
         let id, revision;
 
         before(async () => {
-            ({ id, revision } = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dave', data: { name: 'Dave' } }));
+            ({ id, revision } = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-dave', data: { name: 'Dave' } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await execute(SERVICE, 'delete', { entityType: ENTITY_TYPE, id, revision });
+            const result = await executeService(SERVICE, 'delete', { entityType: ENTITY_TYPE, id, revision });
             expect(result.id).to.equal(id);
             expect(result.data).to.deep.equal({ name: 'Dave' });
         });
@@ -192,7 +192,7 @@ describe('entity-database (service element)', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await execute(SERVICE, 'delete', { entityType: ENTITY_TYPE, id, revision: 1 });
+                await executeService(SERVICE, 'delete', { entityType: ENTITY_TYPE, id, revision: 1 });
             } catch (e) {
                 error = e;
             }
@@ -205,11 +205,11 @@ describe('entity-database (service element)', function () {
         let revision;
 
         before(async () => {
-            ({ revision } = await execute(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', data: { name: 'Eve' } }));
+            ({ revision } = await executeService(SERVICE, 'create', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', data: { name: 'Eve' } }));
         });
 
         it('removes the document and returns its record', async () => {
-            const result = await execute(SERVICE, 'delete', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', revision });
+            const result = await executeService(SERVICE, 'delete', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', revision });
             expect(result.businessKey).to.equal('bk-svc-eve');
             expect(result.data).to.deep.equal({ name: 'Eve' });
         });
@@ -217,7 +217,7 @@ describe('entity-database (service element)', function () {
         it('throws when the document no longer exists', async () => {
             let error;
             try {
-                await execute(SERVICE, 'delete', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', revision: 1 });
+                await executeService(SERVICE, 'delete', { entityType: ENTITY_TYPE, businessKey: 'bk-svc-eve', revision: 1 });
             } catch (e) {
                 error = e;
             }

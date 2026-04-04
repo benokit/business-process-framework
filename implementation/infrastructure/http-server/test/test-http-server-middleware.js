@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -95,11 +95,11 @@ describe('http-middleware', function () {
             }
         });
 
-        ({ port } = await execute(SERVICE, 'start', { port: 0 }));
+        ({ port } = await executeService(SERVICE, 'start', { port: 0 }));
     });
 
     after(async function () {
-        await execute(SERVICE, 'stop', {});
+        await executeService(SERVICE, 'stop', {});
     });
 
     it('all middlewares are applied', async function () {
@@ -110,7 +110,7 @@ describe('http-middleware', function () {
         expect(body.step2).to.be.true;
     });
 
-    it('middlewares execute in ascending ordering', async function () {
+    it('middlewares executeService in ascending ordering', async function () {
         // mw-1 sets lastStep:1, then mw-2 overwrites with lastStep:2.
         // If ordering were reversed the value would be 1.
         const { body } = await httpPost(`http://localhost:${port}/mw-test`, {});
@@ -136,11 +136,11 @@ describe('http-middleware short-circuit', function () {
             }
         });
 
-        ({ port } = await execute(SERVICE, 'start', { port: 0 }));
+        ({ port } = await executeService(SERVICE, 'start', { port: 0 }));
     });
 
     after(async function () {
-        await execute(SERVICE, 'stop', {});
+        await executeService(SERVICE, 'stop', {});
     });
 
     it('returns the middleware response without reaching the controller', async function () {

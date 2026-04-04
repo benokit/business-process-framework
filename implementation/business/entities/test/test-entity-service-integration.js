@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { connect, disconnect, getPool } from '@business-framework/postgres-client';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -82,7 +82,7 @@ describe('entity service — integration', function () {
     let record;
 
     it('creates an order and sets the default initial state', async () => {
-        record = await execute(SERVICE, 'create', {
+        record = await executeService(SERVICE, 'create', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
             data: { amount: 250, currency: 'EUR' }
@@ -95,7 +95,7 @@ describe('entity service — integration', function () {
     });
 
     it('reads the created order back', async () => {
-        const fetched = await execute(SERVICE, 'read', {
+        const fetched = await executeService(SERVICE, 'read', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001'
         });
@@ -106,7 +106,7 @@ describe('entity service — integration', function () {
     });
 
     it('updates the order data', async () => {
-        const updated = await execute(SERVICE, 'update', {
+        const updated = await executeService(SERVICE, 'update', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
             revision: record.revision,
@@ -120,7 +120,7 @@ describe('entity service — integration', function () {
     });
 
     it('transitions the order to confirmed', async () => {
-        const transitioned = await execute(SERVICE, 'transition', {
+        const transitioned = await executeService(SERVICE, 'transition', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
             transition: 'confirm'
@@ -136,7 +136,7 @@ describe('entity service — integration', function () {
         let error;
         try {
             // order is now confirmed; confirm requires draft
-            await execute(SERVICE, 'transition', {
+            await executeService(SERVICE, 'transition', {
                 entityType: ENTITY_TYPE,
                 businessKey: 'order-001',
                 transition: 'confirm'
@@ -148,7 +148,7 @@ describe('entity service — integration', function () {
     });
 
     it('cancels the confirmed order', async () => {
-        const cancelled = await execute(SERVICE, 'transition', {
+        const cancelled = await executeService(SERVICE, 'transition', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
             transition: 'cancel'
@@ -160,7 +160,7 @@ describe('entity service — integration', function () {
     });
 
     it('amends the order data and records a version snapshot', async () => {
-        const amended = await execute(SERVICE, 'amend', {
+        const amended = await executeService(SERVICE, 'amend', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001',
             revision: record.revision,
@@ -186,14 +186,14 @@ describe('entity service — integration', function () {
     });
 
     it('deletes the order', async () => {
-        const deleted = await execute(SERVICE, 'delete', {
+        const deleted = await executeService(SERVICE, 'delete', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001'
         });
 
         expect(deleted.businessKey).to.equal('order-001');
 
-        const fetched = await execute(SERVICE, 'read', {
+        const fetched = await executeService(SERVICE, 'read', {
             entityType: ENTITY_TYPE,
             businessKey: 'order-001'
         });

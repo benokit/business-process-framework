@@ -2,14 +2,14 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const CHANNEL_ID = 'publish-template-test-channel';
 
-// A service that uses the `publish` keyword with an envelope supplied via execute,
+// A service that uses the `publish` keyword with an envelope supplied via executeService,
 // so tests can control the envelope through the service input.
 const TEST_PUBLISHER = {
     kind: 'service',
@@ -62,7 +62,7 @@ before(async function () {
 
 describe('publish node template', function () {
     async function send(envelope, _ctx = {}) {
-        await execute('publish-template-test-publisher', 'send', { envelope }, _ctx);
+        await executeService('publish-template-test-publisher', 'send', { envelope }, _ctx);
         return _ctx.captured;
     }
 

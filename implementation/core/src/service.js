@@ -6,14 +6,25 @@ import { compile } from 'lambdajson-js';
 import { executors } from './executors.js';
 
 export {
-    execute,
+    executeService,
     executeMethod,
     executeMethodWithContext,
     executeMapping,
     registerExecutionNodeTemplate
 };
 
-async function execute(serviceId, methodName, input, _ctx = {}) {
+function makeDiagnostic(cause, execution, extra = {}) {
+    return {
+        _isExecutionDiagnostic: true,
+        ...extra,
+        trace: execution ? [...execution.trace] : [],
+        node: execution?.current?.node ?? null,
+        phase: execution?.current?.phase ?? null,
+        cause
+    };
+}
+
+async function executeService(serviceId, methodName, input, _ctx = {}) {
     const isRoot = !_ctx._execution;
     try {
         const service = getElement(serviceId).data;
@@ -28,16 +39,7 @@ async function execute(serviceId, methodName, input, _ctx = {}) {
             e.method = methodName;
             throw e;
         }
-        const execution = _ctx._execution;
-        throw {
-            _isExecutionDiagnostic: true,
-            service: serviceId,
-            method: methodName,
-            trace: execution ? [...execution.trace] : [],
-            node: execution?.current?.node ?? null,
-            phase: execution?.current?.phase ?? null,
-            cause: e
-        };
+        throw makeDiagnostic(e, _ctx._execution, { service: serviceId, method: methodName });
     }
 }
 
@@ -75,14 +77,7 @@ async function executeMethod(implementation, input, _ctx = {}) {
         return result;
     } catch (e) {
         if (!isRoot || (e && e._isExecutionDiagnostic)) throw e;
-        const execution = _ctx._execution;
-        throw {
-            _isExecutionDiagnostic: true,
-            trace: [...execution.trace],
-            node: execution.current?.node ?? null,
-            phase: execution.current?.phase ?? null,
-            cause: e
-        };
+        throw makeDiagnostic(e, _ctx._execution);
     }
 }
 

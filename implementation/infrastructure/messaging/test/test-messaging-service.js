@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,13 +76,13 @@ describe('messaging-service', function () {
     describe('startConsumers', function () {
         it('starts consumers for the given channel', async function () {
             const _ctx = { consumed: [], stopped: [] };
-            await execute('messaging-service', 'startConsumers', { channel: CHANNEL_A_ID }, _ctx);
+            await executeService('messaging-service', 'startConsumers', { channel: CHANNEL_A_ID }, _ctx);
             expect(_ctx.consumed).to.deep.equal(['consumer-a']);
         });
 
         it('starts consumers for all channels when channel is omitted', async function () {
             const _ctx = { consumed: [], stopped: [] };
-            await execute('messaging-service', 'startConsumers', {}, _ctx);
+            await executeService('messaging-service', 'startConsumers', {}, _ctx);
             expect(_ctx.consumed).to.have.members(['consumer-a', 'consumer-b']);
         });
     });
@@ -90,13 +90,13 @@ describe('messaging-service', function () {
     describe('stopConsumers', function () {
         it('stops the given channel', async function () {
             const _ctx = { consumed: [], stopped: [] };
-            await execute('messaging-service', 'stopConsumers', { channel: CHANNEL_A_ID }, _ctx);
+            await executeService('messaging-service', 'stopConsumers', { channel: CHANNEL_A_ID }, _ctx);
             expect(_ctx.stopped).to.deep.equal(['channel-a']);
         });
 
         it('stops all channels when channel is omitted', async function () {
             const _ctx = { consumed: [], stopped: [] };
-            await execute('messaging-service', 'stopConsumers', {}, _ctx);
+            await executeService('messaging-service', 'stopConsumers', {}, _ctx);
             expect(_ctx.stopped).to.have.members(['channel-a', 'channel-b']);
         });
     });

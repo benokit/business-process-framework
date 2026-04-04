@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { connect, disconnect } from '@business-framework/postgres-client';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -40,7 +40,7 @@ describe('sequence-generator (service element)', function () {
         it('throws when sequence field is missing', async () => {
             let error;
             try {
-                await execute(SERVICE, 'next', {});
+                await executeService(SERVICE, 'next', {});
             } catch (e) {
                 error = e;
             }
@@ -52,20 +52,20 @@ describe('sequence-generator (service element)', function () {
     describe('next', () => {
 
         it('returns { value: 1 } on the first call', async () => {
-            const result = await execute(SERVICE, 'next', { sequence: SEQUENCE });
+            const result = await executeService(SERVICE, 'next', { sequence: SEQUENCE });
             expect(result).to.deep.equal({ value: 1 });
         });
 
         it('returns monotonically increasing values on repeated calls', async () => {
-            const r2 = await execute(SERVICE, 'next', { sequence: SEQUENCE });
-            const r3 = await execute(SERVICE, 'next', { sequence: SEQUENCE });
+            const r2 = await executeService(SERVICE, 'next', { sequence: SEQUENCE });
+            const r3 = await executeService(SERVICE, 'next', { sequence: SEQUENCE });
             expect(r2.value).to.equal(2);
             expect(r3.value).to.equal(3);
         });
 
         it('maintains independent counters for different sequence names', async () => {
             const other = `${SEQUENCE}-other`;
-            const result = await execute(SERVICE, 'next', { sequence: other });
+            const result = await executeService(SERVICE, 'next', { sequence: other });
             expect(result).to.deep.equal({ value: 1 });
         });
 

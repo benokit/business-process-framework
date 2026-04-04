@@ -1,7 +1,7 @@
 import path from 'path';
 import pkg from 'glob';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 const { sync: globSync } = pkg;
 
 async function bootstrap(customPaths = []) {
@@ -12,7 +12,7 @@ async function bootstrap(customPaths = []) {
 
     await loadElements([...frameworkPaths, ...customPaths]);
 
-    const { port } = await execute('http-server', 'start', {
+    const { port } = await executeService('http-server', 'start', {
         port: parseInt(process.env.PORT ?? '3000', 10)
     });
 
@@ -24,7 +24,7 @@ async function bootstrap(customPaths = []) {
 
 async function shutdown() {
     console.log('Shutting down...');
-    await execute('http-server', 'stop', {});
+    await executeService('http-server', 'stop', {});
     process.exit(0);
 }
 

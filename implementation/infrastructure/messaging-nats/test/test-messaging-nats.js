@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { connect as natsProbe } from 'nats';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { execute } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/service';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { disconnect } from '@business-framework/messaging-nats/nats';
 
@@ -63,7 +63,7 @@ describe('messaging service (nats)', function () {
     it('publish returns the messageId', async function () {
         if (!available) return this.skip();
         const channel = makeChannel();
-        const result = await execute('messaging-service', 'publish', { channel, envelope: makeEnvelope('pub-1') });
+        const result = await executeService('messaging-service', 'publish', { channel, envelope: makeEnvelope('pub-1') });
         expect(result).to.have.property('messageId', 'pub-1');
     });
 
@@ -76,15 +76,15 @@ describe('messaging service (nats)', function () {
         makeConsumer(channel, captureHandler);
 
         const _ctx = {};
-        await execute('messaging-service', 'startConsumers', { channel }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel }, _ctx);
 
         const env = makeEnvelope('msg-recv', { value: 42 });
-        await execute('messaging-service', 'publish', { channel, envelope: env });
+        await executeService('messaging-service', 'publish', { channel, envelope: env });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         expect(_ctx.received).to.deep.include({ messageId: 'msg-recv', message: { value: 42 } });
 
-        await execute('messaging-service', 'stopConsumers', { channel });
+        await executeService('messaging-service', 'stopConsumers', { channel });
     });
 
     it('handler is not invoked after stopConsuming', async function () {
@@ -96,10 +96,10 @@ describe('messaging service (nats)', function () {
         makeConsumer(channel, captureHandler);
 
         const _ctx = {};
-        await execute('messaging-service', 'startConsumers', { channel }, _ctx);
-        await execute('messaging-service', 'stopConsumers', { channel });
+        await executeService('messaging-service', 'startConsumers', { channel }, _ctx);
+        await executeService('messaging-service', 'stopConsumers', { channel });
 
-        await execute('messaging-service', 'publish', { channel, envelope: makeEnvelope('msg-after-stop') });
+        await executeService('messaging-service', 'publish', { channel, envelope: makeEnvelope('msg-after-stop') });
         await new Promise(resolve => setTimeout(resolve, 300));
         expect(_ctx.received).to.be.undefined;
     });
@@ -117,15 +117,15 @@ describe('messaging service (nats)', function () {
         makeConsumer(channelId, captureB);
 
         const _ctx = {};
-        await execute('messaging-service', 'startConsumers', { channel: channelId }, _ctx);
+        await executeService('messaging-service', 'startConsumers', { channel: channelId }, _ctx);
 
         const env = makeEnvelope('msg-topic', { fan: 'out' });
-        await execute('messaging-service', 'publish', { channel: channelId, envelope: env });
+        await executeService('messaging-service', 'publish', { channel: channelId, envelope: env });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         expect(_ctx.receivedA).to.deep.include({ messageId: 'msg-topic' });
         expect(_ctx.receivedB).to.deep.include({ messageId: 'msg-topic' });
 
-        await execute('messaging-service', 'stopConsumers', { channel: channelId });
+        await executeService('messaging-service', 'stopConsumers', { channel: channelId });
     });
 });
