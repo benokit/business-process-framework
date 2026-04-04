@@ -7,11 +7,12 @@ Every element has an `id`, a `data` object (with element-specific properties), a
 
 - `kind` — a hierarchical string tag used to classify and query elements. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional.
 
-Three kind values trigger built-in registration effects:
+Four kind values trigger built-in registration effects:
 
 - `schema` — registers the element's `data` as a named CJSL schema
 - `pure-function` — registers the element as a callable lambdaJSON function
 - `execution-node-template` — registers a new pipeline keyword
+- `injection` — registers IoC substitutions (see [Injection](#injection) below)
 
 All other `kind` values (including the conventional `service`) are plain data elements with no automatic side effects.
 
@@ -185,6 +186,28 @@ When a pipeline node carries the registered keyword, the executor runs the templ
 `inputMap` and `outputMap` on the outer pipeline node are applied by the standard executor before and after the template runs; the template does not need to handle them.
 
 For a real-world example see [`inTransaction`](../infrastructure/transaction/README.md#intransaction-pipeline-keyword) in the `transaction` package.
+
+## Injection
+
+An `injection` element redirects element lookups at runtime — an IoC mechanism for substituting one element for another without changing the callsites.
+
+Its `data` is an array of `{ into, inject }` pairs:
+
+```json
+{
+    "kind": "injection",
+    "id": "my-injections",
+    "data": [
+        { "into": "entity-service", "inject": "my-entity-service" }
+    ]
+}
+```
+
+After loading this element:
+
+- `getElement("entity-service")` returns `my-entity-service` (the injected element).
+- `getElement("/entity-service")` returns `entity-service` directly, bypassing injection. The `/` prefix is the escape hatch for direct registry access.
+- `getElementsOfKind(kind)` excludes elements that are injection targets (`into` ids), so only the concrete replacements appear in listings.
 
 ## Runtime API
 

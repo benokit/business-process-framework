@@ -5,6 +5,7 @@ import { evaluateData } from './data.js';
 
 const registry = { };
 const kindIndex = { };
+const injections = { };
 
 function indexByKind(element) {
     const kind = element.kind ?? 'data';
@@ -35,7 +36,13 @@ const kindSpecificRegistrationEffect = {
 
     'execution-node-template': (element) => {
         registerExecutionNodeTemplate(element.data.keyword, element.data.implementation)
-    } 
+    },
+
+    'injection': (element) => {
+        for (const item of element.data) {
+            injections[item.into] = item.inject;
+        }
+    }
 }
 
 function registerElement(element) {
@@ -46,7 +53,8 @@ function registerElement(element) {
 }
 
 function getElement(id) {
-    const element = registry[id];
+    const resolvedId = id.startsWith('/') ? id.slice(1) : (injections[id] ?? id);
+    const element = registry[resolvedId];
     evaluateElement(element);
     return element;
 }
@@ -59,7 +67,7 @@ function evaluateElement(element) {
 }
 
 function getElementsOfKind(kind) {
-    const elements = [...(kindIndex[kind] ?? [])];
+    const elements = [...(kindIndex[kind] ?? [])].filter(e => !injections[e.id]);
     for (const element of elements) {
         evaluateElement(element);
     }

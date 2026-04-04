@@ -34,22 +34,22 @@ function makeDiagnostic(cause, execution, extra = {}) {
     };
 }
 
-async function executeService(serviceId, methodName, input, _ctx = {}) {
+async function executeService(serviceId, methodId, input, _ctx = {}) {
     const isRoot = !_ctx._execution;
     try {
         const service = getElement(serviceId).data;
         const iface = isString(service.interface) ? getElement(service.interface).data : service.interface;
-        validateInputAgainstInterface(iface[methodName], input);
+        validateInputAgainstInterface(iface[methodId], input);
         const impl = isString(service.implementation) ? getElement(service.implementation).data : service.implementation;
-        return await executeMethod(impl[methodName], input, _ctx);
+        return await executeMethod(impl[methodId], input, _ctx);
     } catch (e) {
         if (!isRoot) throw e;
         if (e && e._isExecutionDiagnostic) {
             e.service = serviceId;
-            e.method = methodName;
+            e.method = methodId;
             throw e;
         }
-        throw makeDiagnostic(e, _ctx._execution, { service: serviceId, method: methodName });
+        throw makeDiagnostic(e, _ctx._execution, { service: serviceId, method: methodId });
     }
 }
 
