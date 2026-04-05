@@ -75,6 +75,14 @@ Any node (regardless of keyword) accepts these optional fields:
 - `inputMap` — lambdaJSON expression evaluated against the current context; its result is passed as the node's input instead of the full context
 - `outputMap` — lambdaJSON expression applied to the node's raw output before it is stored or returned
 
+A node with no executor keyword is a **pure-transform node**: it produces no side effects and its value (fed into `outputMap`, or captured by `outputKey`) is the `inputMap` result when `inputMap` is present, or the full context otherwise. This is useful for reshaping context between steps, and enables a pattern for evaluating a stored lambdaJSON expression dynamically via `execute`:
+
+```json
+{ "outputKey": "key", "execute": { "outputMap": "#.node.myKeyword.keyExpr" } }
+```
+
+`execute` evaluates the expression `{ "outputMap": "#.node.myKeyword.keyExpr" }` to produce a dynamic pipeline node whose `outputMap` is the stored expression; since that node has no executor keyword, the stored expression is evaluated against the current context and returned as the result.
+
 ### Execution context
 
 The execution context is an object available throughout a method's pipeline:

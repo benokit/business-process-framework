@@ -12,3 +12,4 @@
 | [`transactional-outbox`](transactional-outbox/README.md) | At-least-once delivery via PostgreSQL-backed outbox |
 | [`logging`](logging/README.md) | Structured JSON logging; `log` pipeline keyword |
 | [`middleware`](middleware/README.md) | Generic middleware runner; chains middlewares before a final action |
+| [`cache`](cache/README.md) | In-memory L1 cache; `withCache` pipeline keyword |

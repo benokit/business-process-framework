@@ -1,0 +1,90 @@
+[
+    {
+        "kind": "schema",
+        "id": "cache-get-input",
+        "data": {
+            "!key": "string"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "cache-set-input",
+        "data": {
+            "!key": "string",
+            "value": {}
+        }
+    },
+    {
+        "id": "cache-interface",
+        "data": {
+            "get": { "input": "@cache-get-input" },
+            "set": { "input": "@cache-set-input" }
+        }
+    },
+    {
+        "id": "cache-local-l1-implementation",
+        "data": {
+            "get": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheGet" } },
+            "set": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheSet" } }
+        }
+    },
+    {
+        "kind": "service/cache",
+        "id": "local-l1",
+        "data": {
+            "interface": "cache-interface",
+            "implementation": "cache-local-l1-implementation"
+        }
+    },
+    {
+        "id": "with-cache-node-template",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "withCache",
+            "implementation": [
+                {
+                    "outputKey": "key",
+                    "execute": { "outputMap": "#.node.withCache.key" }
+                },
+                {
+                    "outputKey": "hit",
+                    "inputMap": { "key": "#.key" },
+                    "execute": {
+                        "service": "#.node.withCache.cache",
+                        "method": "get"
+                    }
+                },
+                {
+                    "if": "#.hit.found",
+                    "then": [
+                        { "outputKey": "cached", "set": "#.hit.value" },
+                        {
+                            "outputKey": "isValid",
+                            "if": "#.node.withCache.validate",
+                            "then": { "execute": { "outputMap": "#.node.withCache.validate" } },
+                            "else": { "set": true }
+                        },
+                        {
+                            "if": "#.isValid",
+                            "then": { "return": "#.cached" }
+                        }
+                    ]
+                },
+                {
+                    "outputKey": "value",
+                    "execute": "#.node.withCache.compute"
+                },
+                {
+                    "inputMap": { "key": "#.key", "value": "#.value" },
+                    "execute": {
+                        "service": "#.node.withCache.cache",
+                        "method": "set"
+                    }
+                },
+                {
+                    "return": "#.value"
+                }
+            ]
+        }
+    }
+]

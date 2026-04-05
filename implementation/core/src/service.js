@@ -136,11 +136,17 @@ async function executeNode(node, context) {
     if (execution) execution.current = { node, phase: 'execute' };
 
     let result;
+    let executorRan = false;
     for (const key of Object.keys(node)) {
         if (executors[key]) {
             result = await executors[key](node)(nodeInput, context);
+            executorRan = true;
             break;
         }
+    }
+
+    if (!executorRan) {
+        result = has(node, keyword.inputMap) ? nodeInput.input : context;
     }
 
     if (has(node, keyword.outputMap)) {

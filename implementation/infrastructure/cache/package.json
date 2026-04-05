@@ -1,0 +1,14 @@
+{
+  "name": "@business-framework/cache",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/cache.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*"
+  }
+}

@@ -806,4 +806,52 @@ describe('service tests', () => {
 
     });
 
+    describe('pure-transform node (no executor keyword)', () => {
+
+        before(() => {
+            registerService('svc-pure-transform', {
+                mapOnly: {
+                    impl: { inputMap: '#.input.value', outputMap: { doubled: { $multiply: ['#', 2] } } }
+                },
+                contextPassthrough: {
+                    impl: { outputMap: '#.input' }
+                },
+                inPipeline: {
+                    impl: [
+                        { outputKey: 'x', inputMap: '#.input.n', outputMap: { $multiply: ['#', 3] } },
+                        { return: '#.x' }
+                    ]
+                },
+                dynamicExpr: {
+                    impl: [
+                        { outputKey: 'step1', set: { expr: { '$literal': { '$sum': ['#.input.a', '#.input.b'] } } } },
+                        { outputKey: 'result', execute: { outputMap: '#.step1.expr' } },
+                        { return: '#.result' }
+                    ]
+                }
+            });
+        });
+
+        it('applies outputMap to inputMap result', async () => {
+            expect(await executeService('svc-pure-transform', 'mapOnly', { value: 5 }))
+                .to.deep.equal({ doubled: 10 });
+        });
+
+        it('applies outputMap to full context when no inputMap', async () => {
+            expect(await executeService('svc-pure-transform', 'contextPassthrough', { x: 7 }))
+                .to.deep.equal({ x: 7 });
+        });
+
+        it('works as a pipeline step with outputKey', async () => {
+            expect(await executeService('svc-pure-transform', 'inPipeline', { n: 4 }))
+                .to.equal(12);
+        });
+
+        it('evaluates a stored lambdaJSON expression via execute + outputMap', async () => {
+            expect(await executeService('svc-pure-transform', 'dynamicExpr', { a: 3, b: 7 }))
+                .to.equal(10);
+        });
+
+    });
+
 });
