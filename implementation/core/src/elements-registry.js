@@ -46,7 +46,9 @@ const kindSpecificRegistrationEffect = {
 }
 
 function registerElement(element) {
-    registry[element.id] = element;
+    if (element.id !== undefined) {
+        registry[element.id] = element;
+    }
     indexByKind(element);
 
     kindSpecificRegistrationEffect[element.kind]?.(element);
@@ -67,7 +69,7 @@ function evaluateElement(element) {
 }
 
 function getElementsOfKind(kind) {
-    const elements = [...(kindIndex[kind] ?? [])].filter(e => !injections[e.id]);
+    const elements = [...(kindIndex[kind] ?? [])].filter(e => e.id === undefined || !injections[e.id]);
     for (const element of elements) {
         evaluateElement(element);
     }

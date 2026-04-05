@@ -9,6 +9,10 @@ permissions:
         name: string
         hierarchy
         description: string
+    - data level
+        deny: boolean
+        resource: string
+        scope: (user, data.ownership) -> maybe data
 
 - api level
     - resource is a string that represents an API url (e.g. entities/party/)
@@ -21,11 +25,26 @@ permissions:
         e.g if (user.actor = boss) limit = 1000 else if (user.actor = employee) limit = 100 else limit = 1
             if user.actors = [boss, employee] and boss.hierarchy > employee.hierarchy then user.actor = boss
 
+- row level 
+    - permission is associated with a scope, which filters output of a resource 
 
-roles:
+
+role:
     name: string,
     roles[]: string,
     permissions[]: string
+
+
+group:
+    name: string 
+    roles[]: string 
+
+user:
+    groups[]: string
+    roles[]: string
+
+
+
 
 
 

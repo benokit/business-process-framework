@@ -3,7 +3,9 @@
 High level programming building blocks are called elements.
 Elements are represented as JSON objects, stored in `*.eson` files.
 
-Every element has an `id`, a `data` object (with element-specific properties), and an optional `kind` string and `meta` object.
+Every element has a `data` object (with element-specific properties), and optional `id`, `kind`, and `meta` fields.
+
+An element without an `id` is **anonymous**. Anonymous elements cannot be retrieved by id via `getElement`, but they are fully indexed by kind and appear in `getElementsOfKind` results just like named elements. This is useful for kinds that are always consumed as a collection (e.g. configuration fragments, rule sets) where individual addressability is not needed.
 
 - `kind` — a hierarchical string tag used to classify and query elements. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional.
 
