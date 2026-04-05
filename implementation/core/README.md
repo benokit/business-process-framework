@@ -64,8 +64,11 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `try` / `catch` / `finally` | Error handling; if `try` body throws, `catch` body executes (optional); `finally` body always executes after `try` and `catch` regardless of outcome, and its return value is discarded |
 | `throw` | Evaluates a lambdaJSON expression and throws the result as an error |
 | `validateSchema` | Validates the node's `input` against a CJSL schema (inline object or `"@schemaId"` reference). Throws a string error if invalid; returns `input` unchanged on success. Use `inputMap` to select which part of the context to validate |
-| `publish` | Publishes a message via the `messaging` service: `{ "channel": "<channel-id>", "envelope": { ... } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/messaging/README.md#publish-pipeline-keyword) |
-| *custom* | Any keyword registered via an `execution-node-template` data element (see [Execution node templates](#execution-node-templates)) |
+| `getRandom` | Generates a random UUID string |
+| `log` | Writes a structured log entry: `{ "log": "<message>", "level": "<level>", "context": {...} }` — registered by the `logging` package; see [`log` pipeline keyword](../infrastructure/logging/README.md#log-pipeline-keyword) |
+| `publish` | Publishes a message to a channel: `{ "publish": { "channel": "<id>", "envelope": {...} } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/messaging/README.md#publish-pipeline-keyword) |
+| `inTransaction` | Wraps a pipeline in a PostgreSQL transaction: `{ "inTransaction": [...] }` — registered by the `transaction` package; see [`inTransaction` pipeline keyword](../infrastructure/transaction/README.md#intransaction-pipeline-keyword) |
+| `withCache` | Wraps pipeline execution with caching: `{ "withCache": { "cache": "<id>", "key": ..., "compute": ... } }` — registered by the `cache` package; see [`withCache` pipeline keyword](../infrastructure/cache/README.md#withcache-pipeline-keyword) |
 
 ### Per-node modifiers
 
