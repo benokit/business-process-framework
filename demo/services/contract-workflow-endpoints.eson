@@ -29,7 +29,7 @@
     },
     {
         "id": "contract-workflow-create-submit-endpoint",
-        "kind": "endpoint",
+        "kind": "http-endpoint",
         "data": {
             "method": "POST",
             "path": "/services/contract-workflow/createAndSubmit",
@@ -38,7 +38,7 @@
     },
     {
         "id": "contract-workflow-approve-endpoint",
-        "kind": "endpoint",
+        "kind": "http-endpoint",
         "data": {
             "method": "POST",
             "path": "/services/contract-workflow/approve",

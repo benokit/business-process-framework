@@ -1,40 +1,34 @@
 [
     {
-        "kind": "service",
         "kind": "entity-event-handler/on-transition/contract",
         "id": "contract-approval-handler",
-        "data": {
-            "interface": {
-                "run": {
-                    "input": {},
-                    "output": {}
-                }
-            },
-            "implementation": {
-                "run": [
+        "data": [
+            {
+                "if": { "$eq": ["#.input.state.fromTransition", "approve"] },
+                "then": [
                     {
-                        "if": { "$eq": ["#.input.state.fromTransition", "approve"] },
-                        "then": [
-                            {
-                                "inputMap": {
-                                    "channel": "contract-events",
-                                    "envelope": {
-                                        "type": "contract-approved",
-                                        "contractKey": "#.input.businessKey",
-                                        "sellerPartyKey": "#.input.data.sellerPartyKey",
-                                        "buyerPartyKey": "#.input.data.buyerPartyKey",
-                                        "value": "#.input.data.value",
-                                        "currency": "#.input.data.currency",
-                                        "timestamp": "#.input.timestampUtc"
-                                    }
-                                },
-                                "service": "messaging", "method": "publish"
+                        "outputKey": "envelope",
+                        "set": {
+                            "message": {
+                                "type": "contract-approved",
+                                "contractKey": "#.input.businessKey",
+                                "sellerPartyKey": "#.input.data.sellerPartyKey",
+                                "buyerPartyKey": "#.input.data.buyerPartyKey",
+                                "value": "#.input.data.value",
+                                "currency": "#.input.data.currency"
                             }
-                        ]
+                        }
                     },
-                    { "return": {} }
+                    {
+                        "execute": {
+                            "publish": {
+                                "channel": "contract-events",
+                                "envelope": "#.envelope"
+                            }
+                        }
+                    }
                 ]
             }
-        }
+        ]
     }
 ]
