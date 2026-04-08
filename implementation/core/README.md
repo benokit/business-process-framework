@@ -35,7 +35,7 @@ A pipeline node is a plain object whose keys determine what the executor does. A
 | `return` | Evaluates a lambdaJSON expression and terminates the immediate containing pipeline, returning the result. Propagates through branch nodes (`if`, `switch`, `try`) but is bounded by sub-method invocations (`service`, `method`, `execute`). |
 | `exit` | Evaluates a lambdaJSON expression and terminates the entire execution stack, returning the result from the root service invocation. Propagates through all nodes including `try/catch`. |
 | `service` | Calls another service. Sibling `method` is required: `{ "service": "serviceId", "method": "methodName" }` |
-| `method` | When combined with `service`, equivalent to the `service` keyword. When used alone, loads the element with the given id and executes its `data` as a pipeline: `{ "method": "elementId" }` |
+| `call` | Loads the element with the given id and executes its `data` as a pipeline: `{ "call": "elementId" }` |
 | `getElement` | Retrieves an element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
 | `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: [element, ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |

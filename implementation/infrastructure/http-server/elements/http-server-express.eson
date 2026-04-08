@@ -20,7 +20,7 @@
                                 },
                                 "context": { "endpointId": "#.input.id" }
                             },
-                            "method": "middleware-wrap"
+                            "call": "middleware-wrap"
                         },
                         {
                             "inputMap": {

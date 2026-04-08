@@ -57,7 +57,7 @@
                                         "action": "#.input.consumer.handler",
                                         "context": { "consumerId": "#.input.consumerId" }
                                     },
-                                    "method": "middleware-wrap"
+                                    "call": "middleware-wrap"
                                 },
                                 {
                                     "execute": { "service": "#.input.brokerId", "method": "consume" },

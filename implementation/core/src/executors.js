@@ -12,15 +12,9 @@ export const executors = {
     service: node => async ({ _ctx, input }) =>
         await executeService(node.service, node.method, input, _ctx),
 
-    method: node => {
-        if (has(node, 'service')) {
-            return executors.service;
-        }
-
-        return async ({ _ctx, input }) => {
-            const impl = getElement(node.method).data;
-            return await executeMethod(impl, input, _ctx);
-        }
+    call: node => async ({ _ctx, input }) => {
+        const impl = getElement(node.call).data;
+        return await executeMethod(impl, input, _ctx);
     },
 
     execute: node => async (nodeInput, context) => {
