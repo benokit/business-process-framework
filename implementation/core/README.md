@@ -267,14 +267,14 @@ const childrenOnly = getElementsOfKind('entity-component/on-update'); // subtree
                 "return": { "$sum": ["#.input.a", "#.input.b"] }
             },
             "clamp": [
-                { "outputKey": "lo", "set": { "$return": "#.input.min" } },
+                { "outputKey": "lo", "set": "#.input.min" },
                 {
                     "if":   { "$gt": ["#.input.value", "#.input.max"] },
-                    "then": { "return": { "$return": "#.input.max" } },
+                    "then": { "return": "#.input.max" },
                     "else": {
                         "if":   { "$lt": ["#.input.value", "#.lo"] },
-                        "then": { "return": { "$return": "#.lo" } },
-                        "else": { "return": { "$return": "#.input.value" } }
+                        "then": { "return": "#.lo" },
+                        "else": { "return": "#.input.value" } }
                     }
                 }
             ]
