@@ -75,13 +75,37 @@ The execution context is an object available throughout a pipeline:
 
 - `input` — the validated input value passed to the pipeline
 - `<outputKey>` — the output of any preceding pipeline node that carries an `outputKey`
+- `_ctx` — a shared mutable object that propagates through the entire execution graph (see below)
 
 All branch keywords (`if`, `switch`) pass the full context into their bodies (or the `inputMap` result if one is present). For `execute`, the expression is evaluated against the full context and the resulting pipeline runs with the `inputMap` result (or full context if no `inputMap`). Two special cases:
 
-- **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
-- **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
+- **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body. `_ctx` is still the same shared object across all iterations.
+- **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. `_ctx` is preserved and accessible as `#._ctx` inside `catch`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup with side effects (e.g. rolling back a transaction, releasing a lock) that must happen regardless of outcome. Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
 If neither `return` nor `exit` is present, the pipeline returns the output of the last executed node.
+
+### Shared context (`_ctx`)
+
+`_ctx` is a single mutable object that is created once at the root call — either passed in explicitly as the fourth argument to `execute`, or defaulted to `{}` — and then threaded through every call boundary without ever being replaced or copied. Because it is the same object reference throughout, any property written to it by a sub-call is immediately visible to the caller after that sub-call returns.
+
+**Propagation**: `_ctx` passes through all call boundaries:
+
+| Keyword | How `_ctx` flows |
+| --- | --- |
+| `service` | forwarded to the called service as-is |
+| `call` | forwarded to the called element's pipeline |
+| `forEach` | forwarded into every iteration |
+| `execute` | forwarded via the node input |
+| `low` | passed as the `_ctx` field of the argument `{ _ctx, input }` |
+| `execution-node-template` | available as `#._ctx` in the template's context |
+| `if` / `switch` / `try` / `catch` / `finally` | carried implicitly as part of the full context |
+
+**Reserved keys**: Two keys on `_ctx` are reserved by the framework and must not be modified by user code:
+
+- `_execution` — internal tracing state (trace array, current node). Managed entirely by the executor.
+- `timestampUTC` — an ISO-8601 timestamp string set once at the root call entry and never overwritten. All nested calls share the same timestamp, giving a consistent "wall-clock time of this request" across the execution graph.
+
+**Usage pattern**: `_ctx` is the right place for request-scoped state that must be shared across service boundaries without being passed through method inputs — for example, a database connection, a transaction handle, or a request-level cache. Write to it in one node, read from it via `#._ctx.<key>` in any later node, even across `service` or `call` boundaries. Use `finally` to perform cleanup with side effects (e.g. rolling back a transaction) that must happen regardless of whether an error occurred.
 
 ### Mapping functions
 
