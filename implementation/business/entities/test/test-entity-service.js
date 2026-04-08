@@ -189,6 +189,16 @@ describe('entity service', function () {
             data: { return: ['error from guard B'] }
         });
 
+        // Entity type and business-key rule used by business-key rule tests.
+        registerElement({ type: 'data', id: 'order-with-bk-rule', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            kind: 'entity-rule/business-key/order-with-bk-rule',
+            id: 'order-with-bk-rule-business-key',
+            data: { return: { '$join': { _strings: ['generated-', '#.input.data.currency'] } } }
+        });
+
         // Services used by the executeService tests — each has a unique ID so no
         // element is re-registered and the dataCache stays coherent.
         registerElement({ type: 'data', id: 'ctx-capture-component', data: {
@@ -276,11 +286,11 @@ describe('entity service', function () {
             expect(result.entityType).to.equal('order');
         });
 
-        it('throws when businessKey is missing', async () => {
+        it('throws when businessKey is missing and no rule is registered', async () => {
             let error;
-            try { await executeService(SERVICE, 'create', { entityType: 'order', data: {} }); }
+            try { await executeService(SERVICE, 'create', { entityType: 'order', data: { amount: 100, currency: 'USD' } }); }
             catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('input is not valid');
+            expect(error.cause).to.be.a('string').that.includes('businessKey is required');
         });
 
         it('throws when data is missing', async () => {
@@ -342,6 +352,32 @@ describe('entity service', function () {
                 entityType: 'order', businessKey: 'bk-no-handler', data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('create — business key rules', () => {
+
+        it('generates businessKey from the rule when not provided in input', async () => {
+            const result = await executeService(SERVICE, 'create', {
+                entityType: 'order-with-bk-rule', data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.businessKey).to.equal('generated-USD');
+        });
+
+        it('uses input businessKey when provided, ignoring the rule', async () => {
+            const result = await executeService(SERVICE, 'create', {
+                entityType: 'order-with-bk-rule', businessKey: 'explicit-key', data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.businessKey).to.equal('explicit-key');
+        });
+
+        it('throws when businessKey is omitted and no rule is registered for the entity type', async () => {
+            let error;
+            try { await executeService(SERVICE, 'create', { entityType: 'order', data: { amount: 100, currency: 'USD' } }); }
+            catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('businessKey is required');
         });
 
     });

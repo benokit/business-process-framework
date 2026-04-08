@@ -15,10 +15,12 @@ const ENTITY_DB_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/entity
 const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
 const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/messaging/elements');
 const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../../infrastructure/transactional-outbox/elements');
+const SEQUENCE_ELEMENTS_DIR    = join(__dirname, '../../../infrastructure/sequence-generator/elements');
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'entity';
-const ENTITY_TYPE = `integration-order-${Date.now()}`;
+const ENTITY_TYPE    = `integration-order-${Date.now()}`;
+const BK_ENTITY_TYPE = `integration-order-bk-${Date.now()}`;
 
 describe('entity service — integration', function () {
     let connected = false;
@@ -43,8 +45,21 @@ describe('entity service — integration', function () {
             TRANSACTION_ELEMENTS_DIR,
             MESSAGING_ELEMENTS_DIR,
             OUTBOX_ELEMENTS_DIR,
+            SEQUENCE_ELEMENTS_DIR,
             ELEMENTS_DIR
         ]);
+
+        // Entity type with a business-key rule backed by a sequence generator.
+        registerElement({ type: 'data', id: BK_ENTITY_TYPE, data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            kind: `entity-rule/business-key/${BK_ENTITY_TYPE}`,
+            data: {
+                nextFromSequence: BK_ENTITY_TYPE,
+                outputMap: { $printf: { _template: 'order-%d', _args: ['#'] } }
+            }
+        });
 
         // Order entity type with a simple status lifecycle
         registerElement({
@@ -73,9 +88,11 @@ describe('entity service — integration', function () {
     after(async function () {
         if (!connected) return;
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [BK_ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM transactional_outbox WHERE channel = 'entity-events'`).catch(() => {});
+        await getPool().query(`DROP SEQUENCE IF EXISTS "${BK_ENTITY_TYPE}"`).catch(() => {});
         await disconnect();
     });
 
@@ -144,7 +161,7 @@ describe('entity service — integration', function () {
         } catch (e) {
             error = e;
         }
-        expect(error).to.equal('transition failed');
+        expect(error.cause).to.equal('transition failed');
     });
 
     it('cancels the confirmed order', async () => {
@@ -183,6 +200,27 @@ describe('entity service — integration', function () {
         expect(rows[0].version).to.equal(1);
         expect(rows[0].data.amount).to.equal(300);
         expect(new Date(rows[0].valid_to).toISOString()).to.equal('2025-01-01T00:00:00.000Z');
+    });
+
+    it('generates businessKey from a sequence rule when not provided', async () => {
+        const first = await executeService(SERVICE, 'create', {
+            entityType: BK_ENTITY_TYPE, data: { amount: 10, currency: 'USD' }
+        });
+        const second = await executeService(SERVICE, 'create', {
+            entityType: BK_ENTITY_TYPE, data: { amount: 20, currency: 'USD' }
+        });
+
+        expect(first.businessKey).to.match(/^order-\d+$/);
+        expect(second.businessKey).to.match(/^order-\d+$/);
+        expect(first.businessKey).to.not.equal(second.businessKey);
+    });
+
+    it('uses provided businessKey even when a rule is registered', async () => {
+        const result = await executeService(SERVICE, 'create', {
+            entityType: BK_ENTITY_TYPE, businessKey: 'explicit-bk', data: { amount: 30, currency: 'USD' }
+        });
+
+        expect(result.businessKey).to.equal('explicit-bk');
     });
 
     it('deletes the order', async () => {

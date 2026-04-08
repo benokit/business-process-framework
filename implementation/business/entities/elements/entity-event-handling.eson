@@ -1,57 +1,38 @@
 [
     {
-        "kind": "schema",
-        "id": "entity-event-handler-runner-input",
-        "data":{
-            "!onEvent": "string",
-            "!entityType": "string",
-            "!eventType": "string",
-            "!entity": "object"
-        }
-    },
-    {
-        "id": "entity-event-handler-runner-interface",
-        "data": {
-            "run": {
-                "input": "@entity-event-handler-runner-input"
-            }
-        }
-    },
-    {
-        "id": "entity-event-handler-runner-implementation",
-        "data": {
-            "run": [
-                {
-                    "outputKey": "handlers",
-                    "getElementsOfKind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
-                },
-                { "outputKey": "_ctx", "set": { "handlerInput": "#.input.entity" } },
-                {
-                    "inputMap": "#.handlers.items",
-                    "forEach": {
-                        "execute": "#.input.data",
-                        "inputMap": "#._ctx.handlerInput"
-                    }
-                },
-                {
-                    "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "record": "#.input.entity",
-                        "eventType": "#.input.eventType",
-                        "correlation": "#._ctx.correlation"
-                    },
-                    "service": "entity-event-publisher", "method": "publish"
-                },
-                { "return": "#.input.entity" }
-            ]
-        }
-    },
-    {
-        "kind": "service",
         "id": "entity-event-handler-runner",
-        "data": {
-            "interface": "entity-event-handler-runner-interface",
-            "implementation": "entity-event-handler-runner-implementation"
-        }
+        "kind": "executable",
+        "meta": {
+            "inputSchema": {
+                "!onEvent": "string",
+                "!entityType": "string",
+                "!eventType": "string",
+                "!entity": "object"
+            }
+        },
+        "data": [
+            {
+                "outputKey": "handlers",
+                "getElementsOfKind": { "$join": { "_strings": ["entity-event-handler/", "#.input.onEvent", "/", "#.input.entityType"] } }
+            },
+            { "outputKey": "_ctx", "set": { "handlerInput": "#.input.entity" } },
+            {
+                "inputMap": "#.handlers.items",
+                "forEach": {
+                    "execute": "#.input.data",
+                    "inputMap": "#._ctx.handlerInput"
+                }
+            },
+            {
+                "inputMap": {
+                    "entityType": "#.input.entityType",
+                    "record": "#.input.entity",
+                    "eventType": "#.input.eventType",
+                    "correlation": "#._ctx.correlation"
+                },
+                "service": "entity-event-publisher", "method": "publish"
+            },
+            { "return": "#.input.entity" }
+        ]
     }
 ]

@@ -4,7 +4,7 @@
         "id": "entity-create-input",
         "data":{
             "!entityType": "string",
-            "!businessKey": "string",
+            "businessKey": "string",
             "!data": "object",
             "initialState": "string"
         }
@@ -121,9 +121,26 @@
                     }
                 },
                 {
+                    "outputKey": "businessKeyRule",
+                    "getElementsOfKind": { "$join": { "_strings": ["entity-rule/business-key/", "#.input.entityType"] } },
+                    "outputMap": { "$head": "#.items" }
+                },
+                {
+                    "outputKey": "businessKey",
+                    "if": "#.input.businessKey",
+                    "then": [{ "set": "#.input.businessKey" }],
+                    "else": [
+                        {
+                            "if": "#.businessKeyRule",
+                            "then": [{ "inputMap": "#.input", "execute": "#.businessKeyRule.data" }],
+                            "else": [{ "throw": "businessKey is required" }]
+                        }
+                    ]
+                },
+                {
                     "inputMap": {
                         "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey",
+                        "businessKey": "#.businessKey",
                         "data": "#.input.data",
                         "initialState": "#.initialState"
                     },
@@ -145,7 +162,7 @@
                                 "eventType": "created",
                                 "entity": "#.created"
                             },
-                            "service": "entity-event-handler-runner", "method": "run"
+                            "call": "entity-event-handler-runner"
                         },
                         { "return": "#.created" }
                     ]
@@ -175,7 +192,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": "entity-guard-runner", "method": "run"
+                    "call": "entity-guard-runner"
                 },
                 {
                     "inputMap": {
@@ -202,7 +219,7 @@
                                 "eventType": "updated",
                                 "entity": "#.updated"
                             },
-                            "service": "entity-event-handler-runner", "method": "run"
+                            "call": "entity-event-handler-runner"
                         },
                         { "return": "#.updated" }
                     ]
@@ -290,7 +307,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": "entity-guard-runner", "method": "run"
+                    "call": "entity-guard-runner"
                 },
                 {
                     "inputMap": {
@@ -320,7 +337,7 @@
                                 "eventType": "transitioned",
                                 "entity": "#.transitioned"
                             },
-                            "service": "entity-event-handler-runner", "method": "run"
+                            "call": "entity-event-handler-runner"
                         },
                         { "return": "#.transitioned" }
                     ]
@@ -341,7 +358,7 @@
                         "entityType": "#.input.entityType",
                         "eventInput": "#.input"
                     },
-                    "service": "entity-guard-runner", "method": "run"
+                    "call": "entity-guard-runner"
                 },
                 {
                     "inputMap": {
@@ -370,7 +387,7 @@
                                 "eventType": "amended",
                                 "entity": "#.amended"
                             },
-                            "service": "entity-event-handler-runner", "method": "run"
+                            "call": "entity-event-handler-runner"
                         },
                         { "return": "#.amended" }
                     ]

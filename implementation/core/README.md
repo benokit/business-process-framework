@@ -51,6 +51,7 @@ A pipeline node is a plain object whose keys determine what the executor does. A
 | `publish` | Publishes a message to a channel: `{ "publish": { "channel": "<id>", "envelope": {...} } }` — registered by the `messaging` package; see [`publish` pipeline keyword](../infrastructure/messaging/README.md#publish-pipeline-keyword) |
 | `inTransaction` | Wraps a pipeline in a PostgreSQL transaction: `{ "inTransaction": [...] }` — registered by the `transaction` package; see [`inTransaction` pipeline keyword](../infrastructure/transaction/README.md#intransaction-pipeline-keyword) |
 | `withCache` | Wraps pipeline execution with caching: `{ "withCache": { "cache": "<id>", "key": ..., "compute": ... } }` — registered by the `cache` package; see [`withCache` pipeline keyword](../infrastructure/cache/README.md#withcache-pipeline-keyword) |
+| `nextFromSequence` | Fetches the next value from a named sequence: `{ "nextFromSequence": "<sequenceName>" }` — registered by the `sequence-generator` package; see [`nextFromSequence` pipeline keyword](../infrastructure/sequence-generator/README.md#nextfromsequence-pipeline-keyword) |
 
 ### Per-node modifiers
 

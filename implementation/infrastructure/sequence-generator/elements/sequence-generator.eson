@@ -35,5 +35,18 @@
             "interface": "sequence-generator-interface",
             "implementation": "sequence-generator-implementation"
         }
+    },
+    {
+        "id": "next-from-sequence-node-template",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "nextFromSequence",
+            "implementation": {
+                "inputMap": { "sequence": "#.node.nextFromSequence" },
+                "outputMap": "#.value",
+                "service": "sequence-generator",
+                "method": "next"
+            }
+        }
     }
 ]
