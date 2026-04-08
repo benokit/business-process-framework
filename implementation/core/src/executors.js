@@ -1,4 +1,4 @@
-import { executeService, executeMethod, executeMethodWithContext, executeMapping, PipelineReturn, ExitExecution } from './service.js';
+import { executeService, executeMethod, executeMethodWithContext, executeMapping, PipelineReturn, ExitExecution } from './execution.js';
 import { validateSchema } from './schema.js';
 import { has } from 'lodash-es';
 import { getElement, getElementsOfKind } from './elements-registry.js';

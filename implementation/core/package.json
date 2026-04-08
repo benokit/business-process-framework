@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "exports": {
-    "./service": "./src/service.js",
+    "./execution": "./src/execution.js",
     "./data": "./src/data.js",
     "./elements-registry": "./src/elements-registry.js",
     "./schema": "./src/schema.js",

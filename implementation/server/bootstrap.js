@@ -1,7 +1,7 @@
 import path from 'path';
 import pkg from 'glob';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/execution';
 const { sync: globSync } = pkg;
 
 async function bootstrap(customPaths = []) {

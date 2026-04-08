@@ -9,15 +9,6 @@ An element without an `id` is **anonymous**. Anonymous elements cannot be retrie
 
 - `kind` — a hierarchical string tag used to classify and query elements. Hierarchy levels are separated by `/` (e.g. `"entity-component/on-update"`). Querying by a kind prefix returns all elements whose kind starts with that prefix — so `getElementsOfKind("entity-component")` returns elements with kinds `"entity-component"`, `"entity-component/on-update"`, `"entity-component/on-transition"`, etc. Elements without a `kind` are still fully functional.
 
-Four kind values trigger built-in registration effects:
-
-- `schema` — registers the element's `data` as a named CJSL schema
-- `pure-function` — registers the element as a callable lambdaJSON function
-- `execution-node-template` — registers a new pipeline keyword
-- `injection` — registers IoC substitutions (see [Injection](#injection) below)
-
-All other `kind` values (including the conventional `service`) are plain data elements with no automatic side effects.
-
 ## Data composition
 
 An element's data can be provided either inline as a `data` object, or lazily via a `/data` key. When `/data` is present and `data` is absent, the value is evaluated on first access and cached.
@@ -30,22 +21,13 @@ Inside a `data` or `/data` value, three composition keywords are available:
 | `/merge` | Deep-merges an array of data objects: `{ "/merge": [{...}, {...}] }` |
 | `/literal` | Takes the value as-is, bypassing keyword evaluation: `{ "/literal": {...} }` |
 
-## Schema
+## Pipeline execution
 
-A `schema` element specifies a shape of data. The supported schema language is the compact schema language: <https://github.com/benokit/compact-json-schema-language>. All schemas are loaded into a global runtime register from which they can be retrieved at any point for data validation. Schemas can be reused using reference by `id`.
+The framework can execute any data that represents a valid pipeline — a single node object or an array of nodes. Pipelines are not tied to any specific element kind: the `service` kind uses them to implement methods, `execution-node-template` elements use them as keyword bodies, and the `method` node keyword executes a pipeline stored in any element's `data` directly.
 
-Required fields are prefixed with `!`. Example: `{ "!name": "string", "age": "number" }`.
+### Nodes
 
-## Service
-
-A `service` element represents a callable unit with an API and I/O side effects. Its `data` contains:
-
-- `interface`: method definitions, each with `input` and `output` schemas (compact schema language). May be an inline object or an element id string.
-- `implementation`: method implementations keyed by method name. May be an inline object or an element id string.
-
-### Method implementation
-
-A method implementation is either a single node or a pipeline (array of nodes). Available node keywords:
+A pipeline node is a plain object whose keys determine what the executor does. Available node keywords:
 
 | Keyword | Description |
 | --- | --- |
@@ -53,7 +35,7 @@ A method implementation is either a single node or a pipeline (array of nodes). 
 | `return` | Evaluates a lambdaJSON expression and terminates the immediate containing pipeline, returning the result. Propagates through branch nodes (`if`, `switch`, `try`) but is bounded by sub-method invocations (`service`, `method`, `execute`). |
 | `exit` | Evaluates a lambdaJSON expression and terminates the entire execution stack, returning the result from the root service invocation. Propagates through all nodes including `try/catch`. |
 | `service` | Calls another service. Sibling `method` is required: `{ "service": "serviceId", "method": "methodName" }` |
-| `method` | When combined with `service`, equivalent to the `service` keyword. When used alone, loads the element with the given id and executes its `data` as a method implementation: `{ "method": "elementId" }` |
+| `method` | When combined with `service`, equivalent to the `service` keyword. When used alone, loads the element with the given id and executes its `data` as a pipeline: `{ "method": "elementId" }` |
 | `getElement` | Retrieves an element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
 | `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: [element, ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
@@ -88,9 +70,9 @@ A node with no executor keyword is a **pure-transform node**: it produces no sid
 
 ### Execution context
 
-The execution context is an object available throughout a method's pipeline:
+The execution context is an object available throughout a pipeline:
 
-- `input` — the method's validated input value
+- `input` — the validated input value passed to the pipeline
 - `<outputKey>` — the output of any preceding pipeline node that carries an `outputKey`
 
 All branch keywords (`if`, `switch`) pass the full context into their bodies (or the `inputMap` result if one is present). For `execute`, the expression is evaluated against the full context and the resulting pipeline runs with the `inputMap` result (or full context if no `inputMap`). Two special cases:
@@ -98,13 +80,13 @@ All branch keywords (`if`, `switch`) pass the full context into their bodies (or
 - **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body.
 - **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup (e.g. clearing `_ctx` state). Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
-If neither `return` nor `exit` is present, the method returns the output of the last executed node.
+If neither `return` nor `exit` is present, the pipeline returns the output of the last executed node.
 
 ### Mapping functions
 
-Pure functions are written in lambdaJSON: <https://github.com/benokit/json-programming-language>.
+LambdaJSON expressions are used throughout pipelines for all value computation: <https://github.com/benokit/json-programming-language>.
 
-The context object is bound to `#`. Examples: `#.input.x` (field from method input), `#.step1.value` (output of the step with `outputKey: "step1"`).
+The context object is bound to `#`. Examples: `#.input.x` (field from pipeline input), `#.step1.value` (output of the step with `outputKey: "step1"`).
 
 To call a host JS function as a custom lambdaJSON primitive, use the `$low` key inside any lambdaJSON expression:
 
@@ -151,9 +133,28 @@ export function add({ input: { a, b } }) {
 
 The function's return value becomes the node's output (before any `outputMap` is applied).
 
-### Pure functions
+## Element kinds
 
-A `data` element with `kind = "pure-function"` declares a named, reusable lambdaJSON function. Its `data` is a lambdaJSON expression in which `#` refers to the function's argument:
+The framework recognizes four built-in `kind` values that trigger automatic registration effects when elements are loaded. All other `kind` values — including the conventional `service` kind — are treated as plain data elements with no automatic side effects.
+
+### schema
+
+A `schema` element specifies a shape of data. Its `data` is registered as a named CJSL schema in a global runtime register from which it can be retrieved at any point for data validation. Schemas can be reused using reference by `id`.
+
+The supported schema language is the compact schema language: <https://github.com/benokit/compact-json-schema-language>. Required fields are prefixed with `!`. Example: `{ "!name": "string", "age": "number" }`.
+
+### service
+
+A `service` element embodies a named, callable API — a set of methods each with a defined input/output contract and an implementation. Its `data` contains:
+
+- `interface`: method definitions, each with `input` and `output` schemas (compact schema language). May be an inline object or an element id string.
+- `implementation`: method implementations keyed by method name. May be an inline object or an element id string.
+
+Each method's implementation is a pipeline — a single node or an array of nodes — executed by the framework's pipeline engine (see [Pipeline execution](#pipeline-execution)).
+
+### pure-function
+
+A `pure-function` element declares a named, reusable lambdaJSON function. Its `data` is a lambdaJSON expression in which `#` refers to the function's argument:
 
 ```json
 {
@@ -169,13 +170,14 @@ Pure functions are invoked inside any lambdaJSON expression with the `$func/<id>
 { "return": { "$func/double": "#.input.n" } }
 ```
 
-All registered pure functions are globally available in every lambdaJSON expression — no import step is required at the call site.
+All registered pure functions are globally available in every lambdaJSON expression — no import step is required at the call site. Functions are compiled lazily on first invocation and the result is cached.
 
-Pure functions are compiled lazily on first invocation and the result is cached, so there is no compilation overhead for functions that are never called.
+### execution-node-template
 
-## Execution node templates
+An `execution-node-template` element extends the pipeline engine with a new keyword. Its `data` contains:
 
-The set of pipeline keywords is open for extension. A `data` element with `kind = "execution-node-template"` registers a new keyword that can be used in any pipeline:
+- `keyword`: the keyword string that activates this template in a pipeline node.
+- `implementation`: a pipeline executed when the keyword is encountered.
 
 ```json
 {
@@ -200,7 +202,7 @@ When a pipeline node carries the registered keyword, the executor runs the templ
 
 For a real-world example see [`inTransaction`](../infrastructure/transaction/README.md#intransaction-pipeline-keyword) in the `transaction` package.
 
-## Injection
+### injection
 
 An `injection` element redirects element lookups at runtime — an IoC mechanism for substituting one element for another without changing the callsites.
 
@@ -226,7 +228,7 @@ After loading this element:
 
 ```js
 import { loadElements }             from 'core/elements-loader';
-import { execute }                  from 'core/service';
+import { execute }                  from 'core/execution';
 import { getElement, getElementsOfKind } from 'core/elements-registry';
 
 // Load all *.eson files from one or more directory trees.

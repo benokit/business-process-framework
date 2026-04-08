@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { connect as natsProbe } from 'nats';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { disconnect } from '@business-framework/messaging-nats/nats';
 

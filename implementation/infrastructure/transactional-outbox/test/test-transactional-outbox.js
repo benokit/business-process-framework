@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { connect, disconnect, getPool } from '@business-framework/postgres-client';
 import { initSchema } from '../src/transactional-outbox.js';

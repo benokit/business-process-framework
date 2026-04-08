@@ -1,6 +1,6 @@
 import { registerSchema } from './schema.js';
 import { registerPureFunction } from './pure-functions.js';
-import { registerExecutionNodeTemplate } from './service.js';
+import { registerExecutionNodeTemplate } from './execution.js';
 import { evaluateData } from './data.js';
 
 const registry = { };

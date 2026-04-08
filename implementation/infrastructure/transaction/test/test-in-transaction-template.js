@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/execution';
 import { connect, disconnect } from '@business-framework/postgres-client';
 import { registerElement } from '@business-framework/core/elements-registry';
 

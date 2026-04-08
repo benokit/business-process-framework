@@ -1,5 +1,5 @@
 import { connect, JSONCodec, consumerOpts, createInbox } from 'nats';
-import { executeMethod } from '@business-framework/core/service';
+import { executeMethod } from '@business-framework/core/execution';
 
 const jc = JSONCodec();
 

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { executeService } from '@business-framework/core/service';
+import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const mathModuleUrl = new URL('./helpers/math.js', import.meta.url).href;
