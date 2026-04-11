@@ -1,0 +1,27 @@
+# not JSON content
+
+Some parts of the elements are not representable as JSONs, but rather as a string in a specific format, for example sql.
+The framework should provide capabilities of loading and referencing this kind of data.
+
+The elements loader should load also files with the file names of the form: {file-base-name}.eson.{file-extension}. 
+With the necessary .eson in the file name. The loader constructs the following element:
+
+{
+    id: file-base-name,
+    kind: file-extension,
+    data: file-content-as-string
+}
+
+For example, a file 'get-user-query.eson.sql' with content 'select * from USERS where USER_ID = @userId' 
+should be loaded as an element: 
+
+{
+    id: get-user-query,
+    kind: sql,
+    data: 'select * from USERS where USER_ID = @userId'
+}
+
+
+
+
+

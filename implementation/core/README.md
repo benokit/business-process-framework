@@ -249,6 +249,34 @@ After loading this element:
 - `getElement("/entity-service")` returns `entity-service` directly, bypassing injection. The `/` prefix is the escape hatch for direct registry access.
 - `getElementsOfKind(kind)` excludes elements that are injection targets (`into` ids), so only the concrete replacements appear in listings.
 
+## Loading elements
+
+Elements are loaded from directory trees by `loadElements`. Two file formats are recognised:
+
+### JSON element files (`*.eson`)
+
+A file named `foo.eson` contains one element object or an array of element objects as JSON. This is the standard format for all structured elements.
+
+### String element files (`{id}.eson.{kind}`)
+
+A file whose name contains `.eson.` in the middle — for example `get-user-query.eson.sql` — is loaded as a single element whose `data` is the raw file content as a string:
+
+```
+get-user-query.eson.sql  →  { id: "get-user-query", kind: "sql", data: "<file content>" }
+```
+
+The segment before `.eson.` becomes the element `id`; the segment after becomes the `kind`. The file content is read verbatim (UTF-8) and stored as the `data` string.
+
+**Use cases:**
+
+- **SQL queries** — store each query in its own `.eson.sql` file to get syntax highlighting, linter support, and proper diffs. A pipeline node retrieves the element by id and passes `data` to a database driver.
+- **Handlebars / Mustache templates** — `.eson.hbs` files keep template syntax out of JSON, where it would otherwise need escaping.
+- **GraphQL documents** — `.eson.graphql` files are valid GraphQL syntax that external tooling (schema validators, IDE plugins) can analyse.
+- **Shell or script snippets** — `.eson.sh` or `.eson.py` files for scripts invoked via `low` nodes, enabling ordinary editor tooling on the scripts.
+- **Prompt templates** — `.eson.txt` or `.eson.md` files for LLM prompt text that benefits from being authored in a plain-text editor.
+
+In all cases the element participates in the registry normally: it can be retrieved with `getElement(id)`, enumerated with `getElementsOfKind(kind)`, and referenced via `/ref` inside data composition expressions.
+
 ## Runtime API
 
 ```js
@@ -256,7 +284,7 @@ import { loadElements }             from 'core/elements-loader';
 import { execute }                  from 'core/execution';
 import { getElement, getElementsOfKind } from 'core/elements-registry';
 
-// Load all *.eson files from one or more directory trees.
+// Load all *.eson and *.eson.* files from one or more directory trees.
 await loadElements(['./elements', './app/elements']);
 
 // Call a service method.
