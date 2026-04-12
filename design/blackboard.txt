@@ -1,30 +1,29 @@
-# Users
+# entity service extension
 
-js package:
-    implementation/business/users
+The idea is to replace entity component elements with a more explicit and direct elements.
 
-implement entity-type = user 
-    properties:
-        username, 
-        email,
-        isActive,
-        password_hash
+Element kind: service/entity-service-extension/{entity-type}
 
-username should be unique and mapped to the business key
+The structure of the element is of the kind service.
+Entity service extensions methods may implicitly assume to have entity record in the context _ctx.entity
 
-implement user entity component methods:
-    set-password
-        the method should update the password_hash of the user using standard hashing algorithms
-    validate-password
+The service can be called as any other service, but it can be called through the entity-service method execute, 
+which expects the following input parameters:
 
-## Authorization
+- entityType
+- businessKey
+- revision
+- method 
+- methodInput
 
-js package:
-    implementation/business/authorization-basic
+The service executes the first method which matches :method from a set of 
+registered entity service extensions for the given entity type. 
+Before the method invocation the service reads the entity and sets the _ctx. 
+If a revision of the record and the If-Match do not match, the service throws an error.
 
-- implement /login endpoint which generates a jwt token for given username and password.
+The entity service extension methods are automatically exposed by the entity http API:
 
-- http-middleware which validates a jwt token (bearer) and loads user data in the _ctx execution context.
+endpoint url /entities/:entityType/:businessKey/:method
 
 
 

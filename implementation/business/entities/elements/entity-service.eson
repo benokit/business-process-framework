@@ -62,9 +62,9 @@
         "data":{
             "!entityType": "string",
             "!businessKey": "string",
-            "!componentId": "string",
-            "!methodId": "string",
-            "input": "object"
+            "revision": "number",
+            "!method": "string",
+            "methodInput": "object"
         }
     },
     {
@@ -395,7 +395,7 @@
             ],
             "execute": [
                 {
-                    "outputKey": "current",
+                    "outputKey": "entity",
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.input.businessKey"
@@ -403,29 +403,43 @@
                     "service": "entity-database", "method": "read"
                 },
                 {
-                    "outputKey": "component",
-                    "getElement": "#.input.componentId"
-                },
-                {
-                    "outputKey": "componentService",
-                    "getElement": "#.component.data.componentService"
-                },
-                {
-                    "outputKey": "mappedContext",
-                    "execute": { "set": "#.component.data.contextMapping" }
+                    "if": "#.input.revision",
+                    "then": [
+                        {
+                            "if": { "$neq": ["#.entity.revision", "#.input.revision"] },
+                            "then": [{ "throw": "revision mismatch" }]
+                        }
+                    ]
                 },
                 {
                     "outputKey": "_ctx",
+                    "set": { "entity": "#.entity" }
+                },
+                {
+                    "outputKey": "extensions",
+                    "getElementsOfKind": { "$join": { "_strings": ["service/entity-service-extension/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "extension",
                     "set": {
-                        "entityContext": {
-                            "entityType": "#.input.entityType",
-                            "data": "#.mappedContext"
+                        "$let": { "method": "#.input.method" },
+                        "$head": {
+                            "$filter": {
+                                "_collection": "#.extensions",
+                                "_predicate": { "$get": { "_object": "#.data.interface", "_path": "@method" } }
+                            }
                         }
                     }
                 },
                 {
-                    "inputMap": "#.input.input",
-                    "execute": { "service": "#.componentService.data.service", "method": "#.input.methodId" }
+                    "if": { "$negate": "#.extension" },
+                    "then": [{ "throw": "method not found" }],
+                    "else": [{ "return": "#" }]
+                },
+                {
+                    "inputMap": { "$coalesce": ["#.input.methodInput", {}] },
+                    "execute": { "service": "#.extension.id", "method": "#.input.method" }
                 }
             ]
         }

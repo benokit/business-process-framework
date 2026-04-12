@@ -4,6 +4,7 @@
         "id": "entity-record",
         "data":{
             "!id": "string",
+            "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
             "!version": "number",

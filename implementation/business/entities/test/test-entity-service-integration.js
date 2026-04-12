@@ -21,6 +21,7 @@ const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@lo
 const SERVICE = 'entity';
 const ENTITY_TYPE    = `integration-order-${Date.now()}`;
 const BK_ENTITY_TYPE = `integration-order-bk-${Date.now()}`;
+const EXT_ENTITY_TYPE = `integration-ext-${Date.now()}`;
 
 describe('entity service — integration', function () {
     let connected = false;
@@ -61,6 +62,33 @@ describe('entity service — integration', function () {
             }
         });
 
+        // Entity type and extension used by execute integration tests.
+        registerElement({ type: 'data', id: EXT_ENTITY_TYPE, data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string', 'note': 'string' }
+        }});
+        registerElement({
+            kind: `service/entity-service-extension/${EXT_ENTITY_TYPE}`,
+            id: `${EXT_ENTITY_TYPE}-extension`,
+            data: {
+                interface: {
+                    captureEntity: { input: {}, output: {} },
+                    addNote:       { input: { '!note': 'string' }, output: {} }
+                },
+                implementation: {
+                    captureEntity: { return: '#._ctx.entity' },
+                    addNote: [{
+                        inputMap: {
+                            entityType:  '#._ctx.entity.entityType',
+                            businessKey: '#._ctx.entity.businessKey',
+                            revision:    '#._ctx.entity.revision',
+                            data: { '$merge': ['#._ctx.entity.data', { note: '#.input.note' }] }
+                        },
+                        service: 'entity', method: 'update'
+                    }]
+                }
+            }
+        });
+
         // Order entity type with a simple status lifecycle
         registerElement({
             type: 'data',
@@ -89,6 +117,7 @@ describe('entity service — integration', function () {
         if (!connected) return;
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [BK_ENTITY_TYPE]).catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [EXT_ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM transactional_outbox WHERE channel = 'entity-events'`).catch(() => {});
@@ -236,5 +265,78 @@ describe('entity service — integration', function () {
             businessKey: 'order-001'
         });
         expect(fetched).to.be.null;
+    });
+
+    // -------------------------------------------------------------------------
+    describe('execute — entity service extensions', function () {
+        let extRecord;
+
+        it('creates the entity used by extension tests', async () => {
+            extRecord = await executeService(SERVICE, 'create', {
+                entityType: EXT_ENTITY_TYPE,
+                businessKey: 'ext-001',
+                data: { amount: 100, currency: 'USD' }
+            });
+            expect(extRecord.businessKey).to.equal('ext-001');
+            expect(extRecord.revision).to.equal(1);
+        });
+
+        it('exposes the entity record as _ctx.entity inside the extension method', async () => {
+            const entity = await executeService(SERVICE, 'execute', {
+                entityType: EXT_ENTITY_TYPE,
+                businessKey: 'ext-001',
+                method: 'captureEntity'
+            });
+            expect(entity.businessKey).to.equal('ext-001');
+            expect(entity.revision).to.equal(1);
+            expect(entity.data).to.deep.equal({ amount: 100, currency: 'USD' });
+        });
+
+        it('passes methodInput as the method input and persists changes via entity.update', async () => {
+            const updated = await executeService(SERVICE, 'execute', {
+                entityType: EXT_ENTITY_TYPE,
+                businessKey: 'ext-001',
+                method: 'addNote',
+                methodInput: { note: 'hello from extension' }
+            });
+            expect(updated.data.note).to.equal('hello from extension');
+            expect(updated.revision).to.equal(2);
+            extRecord = updated;
+        });
+
+        it('succeeds when the provided revision matches the entity', async () => {
+            const entity = await executeService(SERVICE, 'execute', {
+                entityType: EXT_ENTITY_TYPE,
+                businessKey: 'ext-001',
+                method: 'captureEntity',
+                revision: extRecord.revision
+            });
+            expect(entity.revision).to.equal(extRecord.revision);
+        });
+
+        it('throws revision mismatch when If-Match does not match the entity revision', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'execute', {
+                    entityType: EXT_ENTITY_TYPE,
+                    businessKey: 'ext-001',
+                    method: 'captureEntity',
+                    revision: 99
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.equal('revision mismatch');
+        });
+
+        it('throws method not found when no extension exposes the requested method', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'execute', {
+                    entityType: EXT_ENTITY_TYPE,
+                    businessKey: 'ext-001',
+                    method: 'nonexistent'
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.equal('method not found');
+        });
     });
 });

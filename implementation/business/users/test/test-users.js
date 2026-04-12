@@ -100,9 +100,8 @@ describe('user component methods', () => {
         const result = await executeService('entity', 'execute', {
             entityType: 'user',
             businessKey: 'alice',
-            componentId: 'user-password',
-            methodId: 'set-password',
-            input: { password: 'hunter2' }
+            method: 'set-password',
+            methodInput: { password: 'hunter2' }
         });
         expect(result.data.password_hash).to.be.a('string').that.includes(':');
     });

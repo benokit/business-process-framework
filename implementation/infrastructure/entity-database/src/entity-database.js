@@ -224,7 +224,7 @@ async function del({ input: { entityType, id, businessKey, revision } }) {
 
 
 function toRecord(row) {
-    return { id: row.id, businessKey: row.business_key, revision: row.revision, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
+    return { id: row.id, entityType: row.entity_type, businessKey: row.business_key, revision: row.revision, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
 }
 
 function toIso(value) {

@@ -269,36 +269,55 @@ describe('entity-controller', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('executeService', () => {
+    describe('execute', () => {
 
         it('returns status 200', async () => {
             const { status } = await executeService(CTRL, 'execute', {
                 body: { amount: 100 },
-                params: { ...PARAMS, componentId: 'some-component', methodId: 'run' },
+                params: { ...PARAMS, method: 'run' },
                 headers: HEADERS
             });
             expect(status).to.equal(200);
         });
 
-        it('maps componentId and methodId from params', async () => {
+        it('maps method from params', async () => {
             const _ctx = {};
             await executeService(CTRL, 'execute', {
                 body: { threshold: 500 },
-                params: { ...PARAMS, componentId: 'comp-x', methodId: 'process' },
+                params: { ...PARAMS, method: 'process' },
                 headers: {}
             }, _ctx);
-            expect(_ctx.capturedInput.componentId).to.equal('comp-x');
-            expect(_ctx.capturedInput.methodId).to.equal('process');
+            expect(_ctx.capturedInput.method).to.equal('process');
         });
 
-        it('maps body as input to entity executeService', async () => {
+        it('maps body as methodInput to entity execute', async () => {
             const _ctx = {};
             await executeService(CTRL, 'execute', {
                 body: { threshold: 500 },
-                params: { ...PARAMS, componentId: 'comp-x', methodId: 'process' },
+                params: { ...PARAMS, method: 'process' },
                 headers: {}
             }, _ctx);
-            expect(_ctx.capturedInput.input).to.deep.equal({ threshold: 500 });
+            expect(_ctx.capturedInput.methodInput).to.deep.equal({ threshold: 500 });
+        });
+
+        it('parses revision from If-Match header', async () => {
+            const _ctx = {};
+            await executeService(CTRL, 'execute', {
+                body: {},
+                params: { ...PARAMS, method: 'run' },
+                headers: { 'if-match': '"3"' }
+            }, _ctx);
+            expect(_ctx.capturedInput.revision).to.equal(3);
+        });
+
+        it('passes undefined revision when If-Match is absent', async () => {
+            const _ctx = {};
+            await executeService(CTRL, 'execute', {
+                body: {},
+                params: { ...PARAMS, method: 'run' },
+                headers: {}
+            }, _ctx);
+            expect(_ctx.capturedInput.revision).to.equal(undefined);
         });
 
     });

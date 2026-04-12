@@ -49,21 +49,5 @@
             "dataVersioning": "@entity-type-data-versioning",
             "history": "@entity-type-history"
         }
-    },
-    {
-        "kind": "schema",
-        "id": "entity-component-service",
-        "data":{
-            "!contextSchema": "string",
-            "!service": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "entity-component",
-        "data":{
-            "!contextMapping": "object",
-            "!componentService": "string"
-        }
     }
 ]

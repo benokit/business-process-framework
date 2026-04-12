@@ -24,37 +24,14 @@
     },
 
     {
-        "id": "user-password",
-        "kind": "entity-component",
-        "data": {
-            "entityType": "user",
-            "contextMapping": {
-                "businessKey": "#.current.businessKey",
-                "revision": "#.current.revision",
-                "data": "#.current.data"
-            },
-            "componentService": "user-password-component-service"
-        }
-    },
-
-    {
-        "id": "user-password-component-service",
-        "kind": "entity-component-service",
-        "data": {
-            "contextSchema": "user-data",
-            "service": "user-password-service"
-        }
-    },
-
-    {
-        "kind": "service",
+        "kind": "service/entity-service-extension/user",
         "id": "user-password-service",
         "data": {
             "interface": {
                 "set-password": {
                     "input": { "!password": "string" },
                     "output": "@entity-record"
-                },
+                }
             },
             "implementation": {
                 "set-password": [
@@ -65,10 +42,10 @@
                     },
                     {
                         "inputMap": {
-                            "entityType": "#._ctx.entityContext.entityType",
-                            "businessKey": "#._ctx.entityContext.data.businessKey",
-                            "revision": "#._ctx.entityContext.data.revision",
-                            "data": { "$merge": ["#._ctx.entityContext.data.data", { "password_hash": "#.hash" }] }
+                            "entityType": "#._ctx.entity.entityType",
+                            "businessKey": "#._ctx.entity.businessKey",
+                            "revision": "#._ctx.entity.revision",
+                            "data": { "$merge": ["#._ctx.entity.data", { "password_hash": "#.hash" }] }
                         },
                         "service": "entity", "method": "update"
                     }

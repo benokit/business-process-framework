@@ -14,14 +14,14 @@ Endpoints are registered as `http-endpoint` data elements and served by the `htt
 | `DELETE` | `/entities/:entityType/:businessKey` | delete |
 | `POST` | `/entities/:entityType/:businessKey/transitions/:transition` | transition |
 | `PUT` | `/entities/:entityType/:businessKey/amend` | amend |
-| `POST` | `/entities/:entityType/:businessKey/execute/:componentId/:methodId` | execute |
+| `POST` | `/entities/:entityType/:businessKey/:method` | execute |
 
 ### Request
 
 | Header | Description |
 | --- | --- |
 | `X-Correlation-Id` | Optional. Propagated as `_ctx.correlation` through the execution graph. |
-| `If-Match` | Required for `update`, `delete`, and `amend`. Quoted revision, e.g. `"5"`. Enforces optimistic concurrency. |
+| `If-Match` | Required for `update`, `delete`, and `amend`. Optional for `execute` — when present, throws if it does not match the entity's current revision. Quoted revision, e.g. `"5"`. |
 
 Request body fields per operation:
 
@@ -33,7 +33,7 @@ Request body fields per operation:
 | `delete` | — |
 | `transition` | — |
 | `amend` | `data` (required), `validFrom` (optional) |
-| `execute` | arbitrary — passed as `input` to the component method |
+| `execute` | arbitrary — passed as `methodInput` to the extension method |
 
 ### Response
 
@@ -115,7 +115,7 @@ When `transition` is called:
 | `delete` | `entityType`, `businessKey`, `revision?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
 | `amend` | `entityType`, `businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
-| `execute` | `entityType`, `businessKey`, `componentId`, `methodId`, `input?` | varies |
+| `execute` | `entityType`, `businessKey`, `method`, `methodInput?`, `revision?` | varies |
 
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
@@ -184,23 +184,25 @@ Guards run outside the transaction — before the database write is attempted.
 
 The guard input is the full entity service method input (e.g. for `update`: `{ entityType, businessKey, revision, data }`).
 
-## Components
+## Entity service extensions
 
-A component extends an entity type with additional methods accessible via `execute`.
+An entity service extension is a standard `service` element with kind `service/entity-service-extension/{entityType}`. It adds methods to an entity type that are callable via `entity.execute` and exposed automatically at `POST /entities/:entityType/:businessKey/:method`.
 
-**Component** (kind `entity-component`):
+```json
+{
+    "kind": "service/entity-service-extension/order",
+    "id": "order-fulfillment-extension",
+    "data": {
+        "interface": {
+            "fulfill": { "input": { "!warehouseId": "string" }, "output": "@entity-record" }
+        },
+        "implementation": {
+            "fulfill": [ ... ]
+        }
+    }
+}
+```
 
-| Field | Description |
-| --- | --- |
-| `entityType` | Entity type this component belongs to |
-| `contextMapping` | LambdaJSON expression evaluated against the pipeline context (which includes `current` — the entity record) to produce a value stored as `_ctx.entityContext.data` |
-| `componentService` | Id of the component service data element |
+When `execute` is called, the entity record is read and stored as `_ctx.entity`. If `revision` is provided and does not match the entity's current revision, the call throws `"revision mismatch"`. The service then finds the first registered extension for the entity type whose interface declares the requested method and calls it with `methodInput` as the method input.
 
-**Component service** (kind `entity-component-service`):
-
-| Field | Description |
-| --- | --- |
-| `contextSchema` | Schema id validated against the mapped context |
-| `service` | Id of the service implementing the component methods |
-
-When `execute` is called, the entity record is read into `current`, `contextMapping` is evaluated to produce `_ctx.entityContext = { entityType, data: <mappedContext> }`, and `methodId` is dispatched to the component's service with `input.input` as the method input.
+Extension methods may read `_ctx.entity` to access the entity record (id, entityType, businessKey, revision, data, state).

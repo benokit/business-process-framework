@@ -199,57 +199,20 @@ describe('entity service', function () {
             data: { return: { '$join': { _strings: ['generated-', '#.input.data.currency'] } } }
         });
 
-        // Services used by the executeService tests — each has a unique ID so no
-        // element is re-registered and the dataCache stays coherent.
-        registerElement({ type: 'data', id: 'ctx-capture-component', data: {
-            entityType: 'order',
-            contextMapping: { amount: '#.current.data.amount', currency: '#.current.data.currency' },
-            componentService: 'ctx-capture-svc'
-        }});
-        registerElement({ type: 'data', id: 'ctx-capture-svc', data: {
-            contextSchema: 'ctx-capture-schema',
-            service: 'ctx-capture-service'
-        }});
+        // Extension service used by execute tests.
+        // captureEntity returns _ctx.entity; echoInput echoes the method input.
         registerElement({
-            kind: 'service', id: 'ctx-capture-service',
+            kind: 'service/entity-service-extension/order',
+            id: 'order-extension',
             data: {
-            interface: { assess: { input: {}, output: {} } },
-            implementation: { assess: { return: '#._ctx.entityContext' } }
-            }
-        });
-
-        registerElement({ type: 'data', id: 'dispatch-component', data: {
-            entityType: 'order',
-            contextMapping: {},
-            componentService: 'dispatch-svc'
-        }});
-        registerElement({ type: 'data', id: 'dispatch-svc', data: {
-            contextSchema: 'dispatch-schema',
-            service: 'dispatch-service'
-        }});
-        registerElement({
-            kind: 'service', id: 'dispatch-service',
-            data: {
-            interface: { run: { input: {}, output: {} } },
-            implementation: { run: { return: { dispatched: true } } }
-            }
-        });
-
-        registerElement({ type: 'data', id: 'input-echo-component', data: {
-            entityType: 'order',
-            contextMapping: {},
-            componentService: 'input-echo-svc'
-        }});
-        registerElement({ type: 'data', id: 'input-echo-svc', data: {
-            contextSchema: 'input-echo-schema',
-            service: 'input-echo-service'
-        }});
-        registerElement({
-            kind: 'service', id: 'input-echo-service',
-            data: {
-            interface: { process: { input: {}, output: {} } },
-            implementation: { process: { return: '#.input' } }
-            }
+            interface: {
+                captureEntity: { input: {}, output: {} },
+                echoInput:     { input: {}, output: {} }
+            },
+            implementation: {
+                captureEntity: { return: '#._ctx.entity' },
+                echoInput:     { return: '#.input' }
+            }}
         });
     });
 
@@ -664,38 +627,59 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('executeService', () => {
+    describe('execute', () => {
 
-        it('sets entityContext.entityType in _ctx from input', async () => {
+        it('sets _ctx.entity to the entity record before calling the extension', async () => {
             const result = await executeService(SERVICE, 'execute', {
-                entityType: 'order', businessKey: 'order-001',
-                componentId: 'ctx-capture-component', methodId: 'assess', input: {}
+                entityType: 'order', businessKey: 'order-001', method: 'captureEntity'
             });
             expect(result.entityType).to.equal('order');
+            expect(result.businessKey).to.equal('order-001');
         });
 
-        it('populates entityContext.data via the component contextMapping', async () => {
+        it('passes methodInput as input to the extension method', async () => {
             const result = await executeService(SERVICE, 'execute', {
                 entityType: 'order', businessKey: 'order-001',
-                componentId: 'ctx-capture-component', methodId: 'assess', input: {}
-            });
-            expect(result.data).to.deep.equal({ amount: 100, currency: 'USD' });
-        });
-
-        it('dispatches to the service declared in the component service element', async () => {
-            const result = await executeService(SERVICE, 'execute', {
-                entityType: 'order', businessKey: 'order-001',
-                componentId: 'dispatch-component', methodId: 'run', input: {}
-            });
-            expect(result).to.deep.equal({ dispatched: true });
-        });
-
-        it('passes method input to the component service', async () => {
-            const result = await executeService(SERVICE, 'execute', {
-                entityType: 'order', businessKey: 'order-001',
-                componentId: 'input-echo-component', methodId: 'process', input: { threshold: 500 }
+                method: 'echoInput', methodInput: { threshold: 500 }
             });
             expect(result).to.deep.equal({ threshold: 500 });
+        });
+
+        it('passes empty object as input when methodInput is omitted', async () => {
+            const result = await executeService(SERVICE, 'execute', {
+                entityType: 'order', businessKey: 'order-001', method: 'echoInput'
+            });
+            expect(result).to.deep.equal({});
+        });
+
+        it('throws when revision is provided and does not match the entity record', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'execute', {
+                    entityType: 'order', businessKey: 'order-001',
+                    method: 'captureEntity', revision: 99
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('revision mismatch');
+        });
+
+        it('succeeds when revision matches the entity record', async () => {
+            // mock entity-database read returns revision: 1
+            const result = await executeService(SERVICE, 'execute', {
+                entityType: 'order', businessKey: 'order-001',
+                method: 'captureEntity', revision: 1
+            });
+            expect(result.revision).to.equal(1);
+        });
+
+        it('throws when no extension has the requested method', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'execute', {
+                    entityType: 'order', businessKey: 'order-001', method: 'nonexistent'
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('method not found');
         });
 
     });

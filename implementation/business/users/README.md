@@ -13,9 +13,9 @@ User entity management with password hashing.
 
 The `username` field is automatically used as the entity `businessKey` via a registered business key rule.
 
-## Component: `user-password`
+## Entity service extension: `user-password-service`
 
-Accessible via `entity.execute` with `componentId: "user-password"`.
+Accessible via `entity.execute` with `method: "set-password"` (kind `service/entity-service-extension/user`).
 
 | Method | Input | Returns | Description |
 | --- | --- | --- | --- |
