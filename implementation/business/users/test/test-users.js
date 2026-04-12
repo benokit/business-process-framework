@@ -81,7 +81,6 @@ describe('user component methods', () => {
                             data: {
                                 username: '#.input.businessKey',
                                 email: 'alice@example.com',
-                                isActive: true,
                                 password_hash: null
                             },
                             state: { dimensions: {} }

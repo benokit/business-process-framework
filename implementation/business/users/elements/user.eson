@@ -5,7 +5,6 @@
         "data": {
             "!username": "string",
             "!email": "string",
-            "!isActive": "boolean",
             "password_hash": "string"
         }
     },
@@ -14,7 +13,25 @@
         "kind": "entity-type",
         "id": "user",
         "data": {
-            "dataSchema": "@user-data"
+            "dataSchema": "@user-data",
+            "statesModel": {
+                "states": {
+                    "status": ["active", "suspended"]
+                },
+                "transitions": {
+                    "suspend": {
+                        "from": { "status": ["active"] },
+                        "to": { "status": "suspended" }
+                    },
+                    "reactivate": {
+                        "from": { "status": ["suspended"] },
+                        "to": { "status": "active" }
+                    }
+                },
+                "initialStates": {
+                    "default": { "status": "active" }
+                }
+            }
         }
     },
 

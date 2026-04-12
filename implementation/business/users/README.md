@@ -8,10 +8,20 @@ User entity management with password hashing.
 | --- | --- | --- |
 | `username` | string (required) | Unique identifier; mapped to the entity business key |
 | `email` | string (required) | User email address |
-| `isActive` | boolean (required) | Whether the user account is active |
 | `password_hash` | string (optional) | Scrypt-derived password hash |
 
 The `username` field is automatically used as the entity `businessKey` via a registered business key rule.
+
+### States
+
+| Dimension | Values | Initial |
+| --- | --- | --- |
+| `status` | `active`, `suspended` | `active` |
+
+| Transition | From | To |
+| --- | --- | --- |
+| `suspend` | `status: active` | `status: suspended` |
+| `reactivate` | `status: suspended` | `status: active` |
 
 ## Entity service extension: `user-password-service`
 
