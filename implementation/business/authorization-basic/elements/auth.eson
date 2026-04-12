@@ -1,0 +1,103 @@
+[
+    {
+        "kind": "service",
+        "id": "auth-login",
+        "data": {
+            "interface": {
+                "login": {
+                    "input": { "!username": "string", "!password": "string" },
+                    "output": { "!token": "string" }
+                }
+            },
+            "implementation": {
+                "login": [
+                    {
+                        "outputKey": "user",
+                        "inputMap": {
+                            "entityType": "user",
+                            "businessKey": "#.input.username"
+                        },
+                        "service": "entity", "method": "read"
+                    },
+                    {
+                        "outputKey": "valid",
+                        "inputMap": {
+                            "password": "#.input.password",
+                            "hash": "#.user.data.password_hash"
+                        },
+                        "low": { "module": "@business-framework/users", "functionName": "verifyPassword" }
+                    },
+                    {
+                        "if": { "$negate": "#.valid" },
+                        "then": [{ "throw": "invalid credentials" }]
+                    },
+                    {
+                        "inputMap": {
+                            "userId": "#.user.businessKey",
+                            "username": "#.user.data.username",
+                            "email": "#.user.data.email"
+                        },
+                        "low": { "module": "@business-framework/authorization-basic", "functionName": "generateToken" },
+                        "outputMap": { "token": "#" }
+                    }
+                ]
+            }
+        }
+    },
+
+    {
+        "kind": "service",
+        "id": "auth-login-controller",
+        "data": {
+            "interface": {
+                "login": { "input": "object", "output": "object" }
+            },
+            "implementation": {
+                "login": [
+                    {
+                        "outputKey": "result",
+                        "inputMap": {
+                            "username": "#.input.body.username",
+                            "password": "#.input.body.password"
+                        },
+                        "service": "auth-login", "method": "login"
+                    },
+                    { "return": { "status": 200, "body": "#.result" } }
+                ]
+            }
+        }
+    },
+
+    {
+        "id": "login-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/login",
+            "controller": { "service": "auth-login-controller", "method": "login" }
+        }
+    },
+
+    {
+        "id": "jwt-auth-middleware",
+        "kind": "http-middleware",
+        "data": {
+            "ordering": 5,
+            "implementation": [
+                {
+                    "outputKey": "tokenPayload",
+                    "inputMap": "#.input.httpRequest.headers.authorization",
+                    "low": { "module": "@business-framework/authorization-basic", "functionName": "verifyToken" }
+                },
+                {
+                    "if": "#.tokenPayload",
+                    "then": [{ "outputKey": "_ctx", "set": { "user": "#.tokenPayload" } }]
+                },
+                {
+                    "inputMap": "#.input.httpRequest",
+                    "execute": "#.input.next"
+                }
+            ]
+        }
+    }
+]

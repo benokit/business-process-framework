@@ -188,19 +188,19 @@ The guard input is the full entity service method input (e.g. for `update`: `{ e
 
 A component extends an entity type with additional methods accessible via `execute`.
 
-**Component** (`entity-component-data` schema):
+**Component** (kind `entity-component`):
 
 | Field | Description |
 | --- | --- |
 | `entityType` | Entity type this component belongs to |
-| `contextMapping` | LambdaJSON expression mapping the entity record to a context object stored in `_ctx.entityContext` |
+| `contextMapping` | LambdaJSON expression evaluated against the pipeline context (which includes `current` — the entity record) to produce a value stored as `_ctx.entityContext.data` |
 | `componentService` | Id of the component service data element |
 
-**Component service** (`entity-component-service-data` schema):
+**Component service** (kind `entity-component-service`):
 
 | Field | Description |
 | --- | --- |
 | `contextSchema` | Schema id validated against the mapped context |
 | `service` | Id of the service implementing the component methods |
 
-When `execute` is called, the entity record is read, `contextMapping` is applied to build a context stored in `_ctx.entityContext`, and `methodId` is dispatched to the component's service.
+When `execute` is called, the entity record is read into `current`, `contextMapping` is evaluated to produce `_ctx.entityContext = { entityType, data: <mappedContext> }`, and `methodId` is dispatched to the component's service with `input.input` as the method input.

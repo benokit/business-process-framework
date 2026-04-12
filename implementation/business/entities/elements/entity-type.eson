@@ -52,8 +52,7 @@
     },
     {
         "kind": "schema",
-        "id": "entity-component-service-data",
-        "kind": "entity-component-service",
+        "id": "entity-component-service",
         "data":{
             "!contextSchema": "string",
             "!service": "string"
@@ -61,10 +60,8 @@
     },
     {
         "kind": "schema",
-        "id": "entity-component-data",
-        "kind": "entity-component",
+        "id": "entity-component",
         "data":{
-            "!entityType": "string",
             "!contextMapping": "object",
             "!componentService": "string"
         }

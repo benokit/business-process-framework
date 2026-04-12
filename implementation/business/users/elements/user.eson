@@ -1,0 +1,79 @@
+[
+    {
+        "kind": "schema",
+        "id": "user-data",
+        "data": {
+            "!username": "string",
+            "!email": "string",
+            "!isActive": "boolean",
+            "password_hash": "string"
+        }
+    },
+
+    {
+        "kind": "entity-type",
+        "id": "user",
+        "data": {
+            "dataSchema": "@user-data"
+        }
+    },
+
+    {
+        "kind": "entity-rule/business-key/user",
+        "data": { "return": "#.input.data.username" }
+    },
+
+    {
+        "id": "user-password",
+        "kind": "entity-component",
+        "data": {
+            "entityType": "user",
+            "contextMapping": {
+                "businessKey": "#.current.businessKey",
+                "revision": "#.current.revision",
+                "data": "#.current.data"
+            },
+            "componentService": "user-password-component-service"
+        }
+    },
+
+    {
+        "id": "user-password-component-service",
+        "kind": "entity-component-service",
+        "data": {
+            "contextSchema": "user-data",
+            "service": "user-password-service"
+        }
+    },
+
+    {
+        "kind": "service",
+        "id": "user-password-service",
+        "data": {
+            "interface": {
+                "set-password": {
+                    "input": { "!password": "string" },
+                    "output": "@entity-record"
+                },
+            },
+            "implementation": {
+                "set-password": [
+                    {
+                        "outputKey": "hash",
+                        "inputMap": "#.input.password",
+                        "low": { "module": "@business-framework/users", "functionName": "hashPassword" }
+                    },
+                    {
+                        "inputMap": {
+                            "entityType": "#._ctx.entityContext.entityType",
+                            "businessKey": "#._ctx.entityContext.data.businessKey",
+                            "revision": "#._ctx.entityContext.data.revision",
+                            "data": { "$merge": ["#._ctx.entityContext.data.data", { "password_hash": "#.hash" }] }
+                        },
+                        "service": "entity", "method": "update"
+                    }
+                ]
+            }
+        }
+    }
+]

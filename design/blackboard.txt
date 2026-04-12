@@ -1,0 +1,30 @@
+# Users
+
+js package:
+    implementation/business/users
+
+implement entity-type = user 
+    properties:
+        username, 
+        email,
+        isActive,
+        password_hash
+
+username should be unique and mapped to the business key
+
+implement user entity component methods:
+    set-password
+        the method should update the password_hash of the user using standard hashing algorithms
+    validate-password
+
+## Authorization
+
+js package:
+    implementation/business/authorization-basic
+
+- implement /login endpoint which generates a jwt token for given username and password.
+
+- http-middleware which validates a jwt token (bearer) and loads user data in the _ctx execution context.
+
+
+

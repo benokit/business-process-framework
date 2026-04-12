@@ -1,0 +1,16 @@
+{
+  "name": "@business-framework/authorization-basic",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/jwt.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/users": "*",
+    "@business-framework/entities": "*"
+  }
+}
