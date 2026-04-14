@@ -2,10 +2,11 @@
 
 | Package | Description |
 | --- | --- |
+| [`postgresql`](postgresql/README.md) | PostgreSQL connection pool and `db-driver-postgresql` service |
+| [`database-modeling`](database-modeling/README.md) | Creates database objects from declarative `data-model` elements |
 | [`entity-database`](entity-database/README.md) | Generic document store: CRUD, revision history, business versioning |
 | [`sequence-generator`](sequence-generator/README.md) | Monotonically increasing integer counters per named sequence |
 | [`http-server`](http-server/README.md) | Express HTTP server; routes from `http-endpoint` data elements |
-| [`postgres-client`](postgres-client/README.md) | Shared PostgreSQL connection pool |
 | [`transaction`](transaction/README.md) | PostgreSQL transaction lifecycle; `inTransaction` pipeline keyword |
 | [`messaging`](messaging/README.md) | Broker-agnostic messaging facade; `publish` pipeline keyword |
 | [`messaging-nats`](messaging-nats/README.md) | NATS JetStream broker implementation |

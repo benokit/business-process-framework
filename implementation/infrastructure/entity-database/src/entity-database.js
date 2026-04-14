@@ -1,54 +1,11 @@
-import { connect, getPool } from '@business-framework/postgres-client';
+import { getPool } from '@business-framework/postgresql';
 import jsonPatchModule from 'fast-json-patch';
 const { compare: patchCompare, applyPatch } = jsonPatchModule;
-
-let schemaInitialized = false;
-
-async function initSchema() {
-    if (schemaInitialized) return;
-    await connect();
-    schemaInitialized = true;
-    await getPool().query(`
-        CREATE TABLE IF NOT EXISTS entities (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            entity_type TEXT NOT NULL,
-            business_key TEXT NOT NULL,
-            revision INTEGER NOT NULL DEFAULT 1,
-            version INTEGER NOT NULL DEFAULT 1,
-            data JSONB NOT NULL DEFAULT '{}',
-            state JSONB NOT NULL DEFAULT '{}',
-            timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (entity_type, business_key)
-        )
-    `);
-    await getPool().query(`
-        CREATE TABLE IF NOT EXISTS entity_history (
-            id UUID NOT NULL,
-            entity_type TEXT NOT NULL,
-            revision INTEGER NOT NULL,
-            data_patch JSONB NOT NULL,
-            state_patch JSONB NOT NULL,
-            timestamp_utc TIMESTAMPTZ NOT NULL,
-            PRIMARY KEY (id, revision)
-        )
-    `);
-    await getPool().query(`
-        CREATE TABLE IF NOT EXISTS entity_versions (
-            id UUID NOT NULL,
-            entity_type TEXT NOT NULL,
-            version INTEGER NOT NULL,
-            data JSONB NOT NULL,
-            valid_to TIMESTAMPTZ NOT NULL,
-            PRIMARY KEY (id, version)
-        )
-    `);
-}
 
 async function create({ input: { entityType, businessKey, data, state = {} } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
-    await initSchema();
     try {
         const result = await getPool().query(
             `INSERT INTO entities (entity_type, business_key, data, state, timestamp_utc) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
@@ -62,7 +19,6 @@ async function create({ input: { entityType, businessKey, data, state = {} } }) 
 }
 
 async function read({ input: { entityType, id, businessKey, revision } }) {
-    await initSchema();
     try {
         let result;
         if (businessKey) {
@@ -103,7 +59,6 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
 }
 
 async function update({ input: { entityType, id, businessKey, revision, data, state } }) {
-    await initSchema();
     const client = await getPool().connect();
     try {
         await client.query('BEGIN');
@@ -149,7 +104,6 @@ async function update({ input: { entityType, id, businessKey, revision, data, st
 }
 
 async function amend({ input: { entityType, id, businessKey, revision, data, validFrom } }) {
-    await initSchema();
     const client = await getPool().connect();
     try {
         await client.query('BEGIN');
@@ -191,7 +145,6 @@ async function amend({ input: { entityType, id, businessKey, revision, data, val
 }
 
 async function del({ input: { entityType, id, businessKey, revision } }) {
-    await initSchema();
     const client = await getPool().connect();
     try {
         await client.query('BEGIN');

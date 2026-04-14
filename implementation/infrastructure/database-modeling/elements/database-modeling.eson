@@ -1,0 +1,34 @@
+[
+    {
+        "kind": "schema",
+        "id": "database-modeling-create-models-input",
+        "data": {
+            "!dbType": "string"
+        }
+    },
+    {
+        "id": "database-modeling-interface",
+        "data": {
+            "createModels": {
+                "input": "@database-modeling-create-models-input"
+            }
+        }
+    },
+    {
+        "id": "database-modeling-implementation",
+        "data": {
+            "createModels": {
+                "inputMap": "#.input",
+                "low": { "module": "@business-framework/database-modeling", "functionName": "createModels" }
+            }
+        }
+    },
+    {
+        "kind": "service",
+        "id": "database-modeling",
+        "data": {
+            "interface": "database-modeling-interface",
+            "implementation": "database-modeling-implementation"
+        }
+    }
+]

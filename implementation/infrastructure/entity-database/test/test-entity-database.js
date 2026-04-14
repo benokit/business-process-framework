@@ -1,7 +1,13 @@
 import { expect } from 'chai';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import pg from 'pg';
-import { connect, disconnect, getPool } from '@business-framework/postgres-client';
+import { connect, disconnect, getPool } from '@business-framework/postgresql';
+import { loadElements } from '@business-framework/core/elements-loader';
+import { executeService } from '@business-framework/core/execution';
 import * as db from '../src/entity-database.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const ENTITY_TYPE = `test-entity-database-${Date.now()}`;
@@ -19,7 +25,13 @@ describe('entity-database', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — entity-database tests skipped\n');
             this.skip();
         }
+        await loadElements([
+            join(__dirname, '../../postgresql/elements'),
+            join(__dirname, '../../database-modeling/elements'),
+            join(__dirname, '../elements')
+        ]);
         await connect();
+        await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });
         connected = true;
     });
 
@@ -256,7 +268,7 @@ describe('entity-database', function () {
             const { id: hId, revision } = await db.create({ input: { entityType: ENTITY_TYPE, businessKey: 'bk-hist-jack', data: { x: 1 } } });
             await db.update({ input: { entityType: ENTITY_TYPE, id: hId, revision, data: { x: 2 } } });
             await db['delete']({ input: { entityType: ENTITY_TYPE, id: hId } });
-            const pool = (await import('@business-framework/postgres-client')).getPool();
+            const pool = (await import('@business-framework/postgresql')).getPool();
             const { rows } = await pool.query('SELECT * FROM entity_history WHERE id = $1', [hId]);
             expect(rows).to.have.length(0);
         });

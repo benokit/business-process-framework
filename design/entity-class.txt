@@ -1,0 +1,35 @@
+# entity class 
+
+Entity type may belong to a class.
+
+A class of an entity type is specified in the kind: entity-type/{entity-class}
+
+Entity type element specifies two mapping functions:
+
+- toClass: entity data -> class data 
+- applyClass: class data, entity data -> entity data
+
+{
+    id: my-contract,
+    kind: entity-type/{entity-class},
+    data: {
+        toClass: function
+        applyClass: function
+        ...
+    }
+}
+
+Entity class is an element of kind: entity-class/{entity-class}
+it can itself belong to an entity class (forming a class hierarchy).
+
+Entity class element schema is the same as for the entity type.
+
+All entity types implicitly belong to the entity class: root-entity-class.
+
+
+
+
+
+
+
+

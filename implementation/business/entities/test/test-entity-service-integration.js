@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import pg from 'pg';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { connect, disconnect, getPool } from '@business-framework/postgres-client';
+import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';

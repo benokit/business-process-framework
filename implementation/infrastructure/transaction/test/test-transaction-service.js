@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
-import { connect, disconnect } from '@business-framework/postgres-client';
+import { connect, disconnect } from '@business-framework/postgresql';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');

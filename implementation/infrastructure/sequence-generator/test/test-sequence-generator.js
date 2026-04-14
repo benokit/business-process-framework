@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import pg from 'pg';
-import { connect, disconnect } from '@business-framework/postgres-client';
+import { connect, disconnect } from '@business-framework/postgresql';
 import { next } from '../src/sequence-generator.js';
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';

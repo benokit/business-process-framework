@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@business-framework/core": "*",
-    "@business-framework/postgres-client": "*"
+    "@business-framework/postgresql": "*"
   },
   "devDependencies": {
     "chai": "*",

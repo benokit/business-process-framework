@@ -1,0 +1,26 @@
+[
+    {
+        "kind": "data-model/postgresql",
+        "id": "entities-table",
+        "data": {
+            "command": "create-entities-table",
+            "order": 10
+        }
+    },
+    {
+        "kind": "data-model/postgresql",
+        "id": "entity-history-table",
+        "data": {
+            "command": "create-entity-history-table",
+            "order": 20
+        }
+    },
+    {
+        "kind": "data-model/postgresql",
+        "id": "entity-versions-table",
+        "data": {
+            "command": "create-entity-versions-table",
+            "order": 30
+        }
+    }
+]

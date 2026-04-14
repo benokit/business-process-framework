@@ -11,6 +11,6 @@
   "dependencies": {
     "@business-framework/core": "*",
     "fast-json-patch": "*",
-    "@business-framework/postgres-client": "*"
+    "@business-framework/postgresql": "*"
   }
 }

@@ -5,7 +5,7 @@ import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
-import { connect, disconnect, getPool } from '@business-framework/postgres-client';
+import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { initSchema } from '../src/transactional-outbox.js';
 import { run, stop } from '../src/transactional-outbox-processor.js';
 

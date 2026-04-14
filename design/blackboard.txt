@@ -1,29 +1,61 @@
-# entity service extension
+# data model
 
-The idea is to replace entity component elements with a more explicit and direct elements.
+Elements of kind: data-model/{db-type}
 
-Element kind: service/entity-service-extension/{entity-type}
+{
+    id: entities-table,
+    kind: data-model/postgresql
+    data: {
+        command: create-entities-table
+        order: 10
+    }
+}
 
-The structure of the element is of the kind service.
-Entity service extensions methods may implicitly assume to have entity record in the context _ctx.entity
+queries/create-entities-table.eson.sql
 
-The service can be called as any other service, but it can be called through the entity-service method execute, 
-which expects the following input parameters:
+```sql
+CREATE TABLE IF NOT EXISTS entities (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            entity_type TEXT NOT NULL,
+            business_key TEXT NOT NULL,
+            revision INTEGER NOT NULL DEFAULT 1,
+            version INTEGER NOT NULL DEFAULT 1,
+            data JSONB NOT NULL DEFAULT '{}',
+            state JSONB NOT NULL DEFAULT '{}',
+            timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE (entity_type, business_key)
+        )
+```
 
-- entityType
-- businessKey
-- revision
-- method 
-- methodInput
+/infrastructure/database-modeling
 
-The service executes the first method which matches :method from a set of 
-registered entity service extensions for the given entity type. 
-Before the method invocation the service reads the entity and sets the _ctx. 
-If a revision of the record and the If-Match do not match, the service throws an error.
+data model service (kind: service)
 
-The entity service extension methods are automatically exposed by the entity http API:
+method:
+    - createModels (db-type):
+        models = getElementsOfKind (data-model/{db-type})
+        driver = getElement(db-driver-{db-type})
+        for each model in models ordered by model.data.order ascending:
+            service driver execute model.data.command
 
-endpoint url /entities/:entityType/:businessKey/:method
+/infrastructure/postgresql 
+
+{
+    id: db-driver-postgresql
+    kind: service/db-driver/postgresql 
+    data: {
+        interface: {
+            execute: {
+                input: {
+                    parameters{}: string|number,
+                    command: string 
+                }
+            }
+        }
+    }
+}
+
+
 
 
 

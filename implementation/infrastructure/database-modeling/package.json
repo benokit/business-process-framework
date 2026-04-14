@@ -1,0 +1,14 @@
+{
+  "name": "@business-framework/database-modeling",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/database-modeling.js"
+  },
+  "scripts": {
+    "test": "echo \"No tests for database-modeling\""
+  },
+  "dependencies": {
+    "@business-framework/core": "*"
+  }
+}

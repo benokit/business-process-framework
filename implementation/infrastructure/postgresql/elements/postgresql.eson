@@ -1,0 +1,35 @@
+[
+    {
+        "kind": "schema",
+        "id": "db-execute-input",
+        "data": {
+            "!command": "string",
+            "parameters{}": "string"
+        }
+    },
+    {
+        "id": "db-driver-postgresql-interface",
+        "data": {
+            "execute": {
+                "input": "@db-execute-input"
+            }
+        }
+    },
+    {
+        "id": "db-driver-postgresql-implementation",
+        "data": {
+            "execute": {
+                "inputMap": "#.input",
+                "low": { "module": "@business-framework/postgresql/driver", "functionName": "execute" }
+            }
+        }
+    },
+    {
+        "kind": "service/db-driver/postgresql",
+        "id": "db-driver-postgresql",
+        "data": {
+            "interface": "db-driver-postgresql-interface",
+            "implementation": "db-driver-postgresql-implementation"
+        }
+    }
+]

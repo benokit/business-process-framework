@@ -1,0 +1,15 @@
+{
+  "name": "@business-framework/postgresql",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/postgres-client.js",
+    "./driver": "./src/postgresql-driver.js"
+  },
+  "scripts": {
+    "test": "echo \"No tests for postgresql\""
+  },
+  "dependencies": {
+    "pg": "^8.13.3"
+  }
+}

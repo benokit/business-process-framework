@@ -4,10 +4,12 @@ import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
-import { connect, disconnect, getPool } from '@business-framework/postgres-client';
+import { connect, disconnect, getPool } from '@business-framework/postgresql';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');
+const POSTGRESQL_ELEMENTS_DIR = join(__dirname, '../../postgresql/elements');
+const DATABASE_MODELING_ELEMENTS_DIR = join(__dirname, '../../database-modeling/elements');
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const ENTITY_TYPE = `test-service-element-${Date.now()}`;
 const SERVICE = 'entity-database';
@@ -25,8 +27,9 @@ describe('entity-database (service element)', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — service element tests skipped\n');
             this.skip();
         }
-        await loadElements([ELEMENTS_DIR]);
+        await loadElements([POSTGRESQL_ELEMENTS_DIR, DATABASE_MODELING_ELEMENTS_DIR, ELEMENTS_DIR]);
         await connect();
+        await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });
         connected = true;
     });
 
