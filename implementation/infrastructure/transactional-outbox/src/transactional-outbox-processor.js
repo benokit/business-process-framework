@@ -1,7 +1,6 @@
 import { getPool } from '@business-framework/postgresql';
 import { executeService } from '@business-framework/core/execution';
 import { getElement } from '@business-framework/core/elements-registry';
-import { initSchema } from './transactional-outbox.js';
 
 let running = false;
 let stopRequested = false;
@@ -42,7 +41,6 @@ async function loop({ lockIntervalInMilliseconds, idleIntervalInMilliseconds }) 
 }
 
 async function findAndLockItem(lockIntervalInMilliseconds) {
-    await initSchema();
     const pool = getPool();
     const client = await pool.connect();
     try {

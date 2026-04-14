@@ -17,10 +17,32 @@
     {
         "id": "database-modeling-implementation",
         "data": {
-            "createModels": {
-                "inputMap": "#.input",
-                "low": { "module": "@business-framework/database-modeling", "functionName": "createModels" }
-            }
+            "createModels": [
+                {
+                    "outputKey": "sortedModels",
+                    "getElementsOfKind": { "$join": { "_strings": ["data-model/", "#.input.dbType"] } },
+                    "outputMap": { "$ascending": { "_collection": "#.items", "_by": { "$coalesce": ["#.input.data.order", 0] } } }
+                },
+                {
+                    "outputKey": "driver",
+                    "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
+                },
+                { "outputKey": "_ctx", "set": { "driverId": "#.driver.id" } },
+                {
+                    "inputMap": "#.sortedModels",
+                    "forEach": [
+                        {
+                            "outputKey": "command",
+                            "getElement": "#.input.data.command",
+                            "outputMap": "#.data"
+                        },
+                        {
+                            "inputMap": { "command": "#.command" },
+                            "execute": { "service": "#._ctx.driverId", "method": "execute" }
+                        }
+                    ]
+                }
+            ]
         }
     },
     {

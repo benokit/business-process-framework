@@ -1,0 +1,10 @@
+[
+    {
+        "kind": "data-model/postgresql",
+        "id": "transactional-outbox-table",
+        "data": {
+            "command": "create-transactional-outbox-table",
+            "order": 10
+        }
+    }
+]

@@ -6,7 +6,6 @@ import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
-import { initSchema } from '../src/transactional-outbox.js';
 import { run, stop } from '../src/transactional-outbox-processor.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -64,13 +63,15 @@ describe('transactional-outbox', function () {
 
         await loadElements([
             join(__dirname, '../../../core/elements'),
+            join(__dirname, '../../postgresql/elements'),
+            join(__dirname, '../../database-modeling/elements'),
             join(__dirname, '../../transaction/elements'),
             join(__dirname, '../../messaging/elements'),
             join(__dirname, '../elements')
         ]);
 
         await connect();
-        await initSchema();
+        await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });
         connected = true;
 
         registerElement({
