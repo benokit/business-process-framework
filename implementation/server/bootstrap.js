@@ -12,6 +12,8 @@ async function bootstrap(customPaths = []) {
 
     await loadElements([...frameworkPaths, ...customPaths]);
 
+    await ensureAdminUser();
+
     const { port } = await executeService('http-server', 'start', {
         port: parseInt(process.env.PORT ?? '3000', 10)
     });
@@ -26,6 +28,30 @@ async function shutdown() {
     console.log('Shutting down...');
     await executeService('http-server', 'stop', {});
     process.exit(0);
+}
+
+async function ensureAdminUser() {
+    const username = process.env.ADMIN_USERNAME ?? 'admin';
+    const password = process.env.ADMIN_PASSWORD ?? 'admin';
+    const email    = process.env.ADMIN_EMAIL    ?? 'admin@localhost';
+
+    const existing = await executeService('entity', 'read', { entityType: 'user', businessKey: username });
+    if (existing) {
+        console.log(`Admin user "${username}" already exists, skipping.`);
+        return;
+    }
+
+    await executeService('entity', 'create', {
+        entityType: 'user',
+        data: { username, email }
+    });
+    await executeService('entity', 'execute', {
+        entityType: 'user',
+        businessKey: username,
+        method: 'set-password',
+        methodInput: { password }
+    });
+    console.log(`Admin user "${username}" created.`);
 }
 
 const customPaths = process.argv.slice(2).map(p => path.resolve(p));

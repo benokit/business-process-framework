@@ -85,6 +85,10 @@
             "delete": {
                 "input": "@entity-database-delete-input",
                 "output": "@entity-record"
+            },
+            "list": {
+                "input": "object",
+                "output": "object"
             }
         }
     },
@@ -95,7 +99,8 @@
             "read":   { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "read" } },
             "update": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "update" } },
             "amend":  { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "amend" } },
-            "delete": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "delete" } }
+            "delete": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "delete" } },
+            "list":   { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "list" } }
         }
     },
     {

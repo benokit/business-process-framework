@@ -1,0 +1,142 @@
+[
+    {
+        "kind": "schema",
+        "id": "entity-type-summary",
+        "data": {
+            "!id": "string",
+            "dataSchema": "object",
+            "statesModel": "object"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-list-types-output",
+        "data": {
+            "!items[]": "@entity-type-summary"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-list-entities-input",
+        "data": {
+            "!entityType": "string",
+            "limit": "number",
+            "offset": "number"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-list-entities-output",
+        "data": {
+            "!items[]": "@entity-record",
+            "!total": "number"
+        }
+    },
+
+    {
+        "kind": "service",
+        "id": "entity-catalog",
+        "data": {
+            "interface": {
+                "listTypes":    { "input": "object",                       "output": "@entity-list-types-output"    },
+                "listEntities": { "input": "@entity-list-entities-input",  "output": "@entity-list-entities-output" }
+            },
+            "implementation": {
+                "listTypes": [
+                    {
+                        "outputKey": "types",
+                        "getElementsOfKind": "entity-type"
+                    },
+                    {
+                        "outputKey": "items",
+                        "inputMap": "#.types.items",
+                        "forEach": [
+                            {
+                                "if": {
+                                    "$isMatch": {
+                                        "_pattern": "^@",
+                                        "_string": "#.input.data.dataSchema"
+                                    }
+                                },
+                                "then": [
+                                    {
+                                        "outputKey": "schemaElement",
+                                        "getElement": {
+                                            "$replace": {
+                                                "_regex": "^@",
+                                                "_substitute": "",
+                                                "_string": "#.input.data.dataSchema",
+                                                "_global": true
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "return": {
+                                            "id": "#.input.id",
+                                            "dataSchema": "#.schemaElement.data",
+                                            "statesModel": "#.input.data.statesModel"
+                                        }
+                                    }
+                                ],
+                                "else": {
+                                    "return": {
+                                        "id": "#.input.id",
+                                        "dataSchema": "#.input.data.dataSchema",
+                                        "statesModel": "#.input.data.statesModel"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    { "return": { "items": "#.items" } }
+                ],
+                "listEntities": [
+                    {
+                        "inputMap": {
+                            "entityType": "#.input.entityType",
+                            "limit":      "#.input.limit",
+                            "offset":     "#.input.offset"
+                        },
+                        "service": "entity-database", "method": "list"
+                    }
+                ]
+            }
+        }
+    },
+
+    {
+        "kind": "service",
+        "id": "entity-catalog-controller",
+        "data": {
+            "interface": {
+                "listTypes":    { "input": "object",                       "output": "object" },
+                "listEntities": { "input": "object",                       "output": "object" }
+            },
+            "implementation": {
+                "listTypes": [
+                    {
+                        "outputKey": "result",
+                        "inputMap": {},
+                        "service": "entity-catalog", "method": "listTypes"
+                    },
+                    { "return": { "status": 200, "body": "#.result" } }
+                ],
+                "listEntities": [
+                    {
+                        "outputKey": "result",
+                        "inputMap": {
+                            "entityType": "#.input.params.entityType",
+                            "limit":      { "$parseInt": "#.input.query.limit" },
+                            "offset":     { "$parseInt": "#.input.query.offset" }
+                        },
+                        "service": "entity-catalog", "method": "listEntities"
+                    },
+                    { "return": { "status": 200, "body": "#.result" } }
+                ]
+            }
+        }
+    },
+
+    { "id": "entity-types-endpoint",  "kind": "http-endpoint", "data": { "method": "GET", "path": "/entity-types",           "controller": { "service": "entity-catalog-controller", "method": "listTypes"    } } },
+    { "id": "entity-list-endpoint",   "kind": "http-endpoint", "data": { "method": "GET", "path": "/entities/:entityType",   "controller": { "service": "entity-catalog-controller", "method": "listEntities" } } }
+]

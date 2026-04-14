@@ -1,13 +1,18 @@
-import { getPool } from '@business-framework/postgresql';
+import { connect, getPool } from '@business-framework/postgresql';
 import jsonPatchModule from 'fast-json-patch';
 const { compare: patchCompare, applyPatch } = jsonPatchModule;
+
+async function pool() {
+    await connect();
+    return getPool();
+}
 
 async function create({ input: { entityType, businessKey, data, state = {} } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
     try {
-        const result = await getPool().query(
+        const result = await (await pool()).query(
             `INSERT INTO entities (entity_type, business_key, data, state, timestamp_utc) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
             [entityType, businessKey, JSON.stringify(data), JSON.stringify(state)]
         );
@@ -22,12 +27,12 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
     try {
         let result;
         if (businessKey) {
-            result = await getPool().query(
+            result = await (await pool()).query(
                 'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2',
                 [entityType, businessKey]
             );
         } else {
-            result = await getPool().query(
+            result = await (await pool()).query(
                 'SELECT * FROM entities WHERE entity_type = $1 AND id = $2',
                 [entityType, id]
             );
@@ -37,7 +42,7 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
         if (revision === undefined || revision === current.revision) return toRecord(current);
         if (revision < 1 || revision > current.revision) return null;
 
-        const history = await getPool().query(
+        const history = await (await pool()).query(
             `SELECT revision, data_patch, state_patch, timestamp_utc FROM entity_history
              WHERE id = $1 AND revision >= $2 AND revision < $3
              ORDER BY revision DESC`,
@@ -59,7 +64,7 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
 }
 
 async function update({ input: { entityType, id, businessKey, revision, data, state } }) {
-    const client = await getPool().connect();
+    const client = await (await pool()).connect();
     try {
         await client.query('BEGIN');
         let current;
@@ -104,7 +109,7 @@ async function update({ input: { entityType, id, businessKey, revision, data, st
 }
 
 async function amend({ input: { entityType, id, businessKey, revision, data, validFrom } }) {
-    const client = await getPool().connect();
+    const client = await (await pool()).connect();
     try {
         await client.query('BEGIN');
         let current;
@@ -145,7 +150,7 @@ async function amend({ input: { entityType, id, businessKey, revision, data, val
 }
 
 async function del({ input: { entityType, id, businessKey, revision } }) {
-    const client = await getPool().connect();
+    const client = await (await pool()).connect();
     try {
         await client.query('BEGIN');
         let result;
@@ -184,4 +189,20 @@ function toIso(value) {
     return value instanceof Date ? value.toISOString() : value;
 }
 
-export { create, read, update, amend, del as delete };
+async function list({ input: { entityType, limit = 50, offset = 0 } }) {
+    const safeLimit = Math.min(Number(limit) || 50, 200);
+    const safeOffset = Number(offset) || 0;
+    const [rows, count] = await Promise.all([
+        (await pool()).query(
+            'SELECT * FROM entities WHERE entity_type = $1 ORDER BY timestamp_utc DESC LIMIT $2 OFFSET $3',
+            [entityType, safeLimit, safeOffset]
+        ),
+        (await pool()).query(
+            'SELECT COUNT(*)::int AS total FROM entities WHERE entity_type = $1',
+            [entityType]
+        )
+    ]);
+    return { items: rows.rows.map(toRecord), total: count.rows[0].total };
+}
+
+export { create, read, update, amend, del as delete, list };

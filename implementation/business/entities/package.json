@@ -2,7 +2,7 @@
   "name": "@business-framework/entities",
   "version": "1.0.0",
   "type": "module",
-"scripts": {
+  "scripts": {
     "test": "mocha --exit 'test/test-entity-service.js' && mocha --exit 'test/test-entity-controller.js'",
     "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
   },
