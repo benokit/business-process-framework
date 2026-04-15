@@ -52,38 +52,14 @@
                         "inputMap": "#.types.items",
                         "forEach": [
                             {
-                                "if": {
-                                    "$isMatch": {
-                                        "_pattern": "^@",
-                                        "_string": "#.input.data.dataSchema"
-                                    }
-                                },
-                                "then": [
-                                    {
-                                        "outputKey": "schemaElement",
-                                        "getElement": {
-                                            "$replace": {
-                                                "_regex": "^@",
-                                                "_substitute": "",
-                                                "_string": "#.input.data.dataSchema",
-                                                "_global": true
-                                            }
-                                        }
-                                    },
-                                    {
-                                        "return": {
-                                            "id": "#.input.id",
-                                            "dataSchema": "#.schemaElement.data",
-                                            "statesModel": "#.input.data.statesModel"
-                                        }
-                                    }
-                                ],
-                                "else": {
-                                    "return": {
-                                        "id": "#.input.id",
-                                        "dataSchema": "#.input.data.dataSchema",
-                                        "statesModel": "#.input.data.statesModel"
-                                    }
+                                "outputKey": "schema",
+                                "execute": { "resolveSchema": "#.input.data.dataSchema" }
+                            },
+                            {
+                                "return": {
+                                    "id": "#.input.id",
+                                    "dataSchema": "#.schema",
+                                    "statesModel": "#.input.data.statesModel"
                                 }
                             }
                         ]

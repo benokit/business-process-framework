@@ -1,5 +1,5 @@
 import { executeService, executeMethod, executeMethodWithContext, executeMapping, PipelineReturn, ExitExecution } from './execution.js';
-import { validateSchema } from './schema.js';
+import { validateSchema, resolveSchema } from './schema.js';
 import { has } from 'lodash-es';
 import { getElement, getElementsOfKind } from './elements-registry.js';
 import { randomUUID } from 'crypto';
@@ -108,6 +108,9 @@ export const executors = {
         return await executeMethodWithContext(g, input);
     },
 
-    getRandom: _ => _ => randomUUID()
+    getRandom: _ => _ => randomUUID(),
+
+    resolveSchema: node => async ({ input }) =>
+        resolveSchema(node.resolveSchema ?? input)
 
 };

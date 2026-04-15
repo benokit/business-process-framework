@@ -322,6 +322,70 @@
 
 .schema-form { display: flex; flex-direction: column; }
 
+.select-input {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  width: 100%;
+  outline: none;
+}
+
+.select-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+
+.oneof-selector { display: flex; flex-direction: column; gap: 8px; }
+
+.oneof-options { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.oneof-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  background: var(--bg);
+  transition: background .12s, border-color .12s;
+}
+
+.oneof-option:hover { border-color: var(--border-focus); }
+.oneof-option.selected { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.oneof-option input { margin: 0; }
+
+.oneof-selected-form {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.nested-schema {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.tuple-editor { display: flex; flex-direction: column; gap: 8px; }
+
+.tuple-item { display: flex; flex-direction: column; gap: 4px; }
+
+.tuple-item-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
 /* ── Table ──────────────────────────────────────────────────────────────── */
 .table-wrap {
   overflow-x: auto;

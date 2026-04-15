@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { registerSchema, validateSchema } from '@business-framework/core/schema';
+import { registerSchema, validateSchema, resolveSchema } from '@business-framework/core/schema';
 
 describe('schema tests', () => {
 
@@ -248,6 +248,92 @@ describe('schema tests', () => {
             registerSchema({ $id: 'test-label', $data: 'string' });
             expect(validateSchema({ title: '@test-label' }, { title: 'hello' }).isValid).to.be.true;
             expect(validateSchema({ title: '@test-label' }, { title: 42 }).isValid).to.be.false;
+        });
+    });
+
+    describe('resolveSchema', () => {
+        before(() => {
+            registerSchema({ $id: 'rs-address', $data: { '!street': 'string', '!city': 'string' } });
+            registerSchema({ $id: 'rs-person', $data: { '!name': 'string', '!address': '@rs-address' } });
+            registerSchema({ $id: 'rs-country', $data: { '!name': 'string', 'capital': '@rs-city' } });
+            registerSchema({ $id: 'rs-city', $data: { '!name': 'string', '!country': '@rs-country' } });
+            registerSchema({ $id: 'rs-tag', $data: 'string' });
+            registerSchema({ $id: 'rs-tagged', $data: { '!tag': '@rs-tag', 'items[]': '@rs-tag' } });
+        });
+
+        describe('reference string input ("@id")', () => {
+            it('should return $id and $data for a known schema', () => {
+                const result = resolveSchema('@rs-address');
+                expect(result.$id).to.equal('rs-address');
+                expect(result.$data).to.deep.equal({ '!street': 'string', '!city': 'string' });
+            });
+
+            it('should not include $locals when the schema has no references', () => {
+                const result = resolveSchema('@rs-address');
+                expect(result).to.not.have.property('$locals');
+            });
+
+            it('should include referenced schemas in $locals', () => {
+                const result = resolveSchema('@rs-person');
+                expect(result.$locals).to.deep.equal({
+                    'rs-address': { '!street': 'string', '!city': 'string' }
+                });
+            });
+
+            it('should throw when the referenced schema id is not registered', () => {
+                expect(() => resolveSchema('@rs-nonexistent')).to.throw();
+            });
+        });
+
+        describe('object input', () => {
+            it('should return the schema object unchanged when no refs are present', () => {
+                const schema = { $id: 'inline', $data: { '!x': 'number' } };
+                const result = resolveSchema(schema);
+                expect(result.$id).to.equal('inline');
+                expect(result.$data).to.deep.equal({ '!x': 'number' });
+                expect(result).to.not.have.property('$locals');
+            });
+
+            it('should collect $locals from inline $data that contains @refs', () => {
+                const schema = { $data: { '!addr': '@rs-address' } };
+                const result = resolveSchema(schema);
+                expect(result.$locals).to.have.property('rs-address');
+            });
+        });
+
+        describe('transitive references', () => {
+            it('should include all transitive deps in $locals', () => {
+                const result = resolveSchema('@rs-person');
+                expect(result.$locals).to.have.property('rs-address');
+            });
+
+            it('should handle circular references without infinite recursion', () => {
+                expect(() => resolveSchema('@rs-country')).to.not.throw();
+                const result = resolveSchema('@rs-country');
+                expect(result.$locals).to.have.property('rs-city');
+                expect(result.$locals).to.have.property('rs-country');
+            });
+        });
+
+        describe('refs in arrays and nested structures', () => {
+            it('should collect refs from array item types', () => {
+                const result = resolveSchema('@rs-tagged');
+                expect(result.$locals).to.have.property('rs-tag');
+            });
+        });
+
+        describe('local refs (@#) are not collected', () => {
+            it('should not add @# ref strings into $locals', () => {
+                const schema = { $data: { '!a': '@#local-type' } };
+                const result = resolveSchema(schema);
+                expect(result).to.not.have.property('$locals');
+            });
+
+            it('should preserve existing $locals without adding @# refs as new entries', () => {
+                const schema = { $data: { '!a': '@#local-type' }, $locals: { 'local-type': 'string' } };
+                const result = resolveSchema(schema);
+                expect(result.$locals).to.deep.equal({ 'local-type': 'string' });
+            });
         });
     });
 });

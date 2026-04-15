@@ -39,7 +39,7 @@ A pipeline node is a plain object whose keys determine what the executor does. A
 | `getElement` | Retrieves an element by id. The keyword value is a lambdaJSON expression that evaluates to the id string: `{ "getElement": "#.input.someId" }` |
 | `getElementsOfKind` | Retrieves all elements of a given kind. The keyword value is a lambdaJSON expression that evaluates to the kind string: `{ "getElementsOfKind": "my-kind" }`. Returns `{ items: [element, ...] }` |
 | `low` | Calls a host JS function: `{ "module": "...", "functionName": "..." }`. The function receives `{ _ctx, input }` — see [Calling convention for `low` functions](#calling-convention-for-low-functions) |
-| `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. |
+| `execute` | Evaluates a lambdaJSON expression against the full context; the result is used as a pipeline (single node or array) to execute inline. Use `{ "$literal": <pipeline> }` to pass a static pipeline. To invoke a keyword with a runtime value, use a plain-object expression: `{ "execute": { "someKeyword": "#.input.value" } }` — lambdaJSON evaluates the object, producing `{ "someKeyword": <runtime-value> }` as the node to execute. |
 | `if` / `then` / `else` | Conditional branch; `then` is required, `else` is optional |
 | `switch` | Multi-branch: `{ "value": <expr>, "cases": { "<val>": <impl>, ..., "default": <impl> } }` |
 | `forEach` | Applies an implementation to each element of the input array |

@@ -1,15 +1,13 @@
 # Demo
 
 A concrete business solution modelled on top of the business process framework.
-Three entity types — **users**, **parties**, and **contracts** — plus a workflow service that
+Two entity types — **parties** and **contracts** — plus a workflow service that
 orchestrates the contract lifecycle.
 
 ## Structure
 
 ```
 demo/
-  users/
-    users.eson           # User entity type
   parties/
     parties.eson         # Party entity type
   contracts/
@@ -21,21 +19,6 @@ demo/
 ```
 
 ## Entity types
-
-### User
-
-Represents a system user.
-
-| Field       | Type   | Required |
-|-------------|--------|----------|
-| `email`     | string | yes      |
-| `firstName` | string | yes      |
-| `lastName`  | string | yes      |
-| `role`      | string | yes      |
-
-**States:** `active` → `suspended` → `active`
-
-**Transitions:** `suspend`, `reactivate`
 
 ### Party
 
