@@ -126,7 +126,7 @@ import { loadElements } from '@business-framework/core/elements-loader';
 
 const elements = await loadElements([
     'implementation/core/elements/**/*.eson',
-    'implementation/business/entities/elements/**/*.eson',
+    'implementation/security/entities/elements/**/*.eson',
     'implementation/infrastructure/**/elements/**/*.eson',
     'demo/**/*.eson'
 ]);

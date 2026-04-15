@@ -4,7 +4,7 @@
     "core",
     "entities",
     "infrastructure/*",
-    "business/*"
+    "security/*"
   ],
   "private": true,
   "version": "1.0.0",

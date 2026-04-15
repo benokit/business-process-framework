@@ -32,4 +32,4 @@ The pipeline keyword set is open for extension: packages can register **executio
 | --- | --- |
 | [Core](implementation/core/README.md) | Element specification, pipeline keywords, runtime API, examples |
 | [Infrastructure](implementation/infrastructure/README.md) | Database, transactions, messaging, HTTP server |
-| [Business](implementation/business/README.md) | Entity lifecycle, states, event handlers, components |
+| [Security](implementation/security/README.md) | Entity lifecycle, states, event handlers, components |
