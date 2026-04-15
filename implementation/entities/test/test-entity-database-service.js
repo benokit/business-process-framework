@@ -8,8 +8,8 @@ import { connect, disconnect, getPool } from '@business-framework/postgresql';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR = join(__dirname, '../elements');
-const POSTGRESQL_ELEMENTS_DIR = join(__dirname, '../../postgresql/elements');
-const DATABASE_MODELING_ELEMENTS_DIR = join(__dirname, '../../database-modeling/elements');
+const POSTGRESQL_ELEMENTS_DIR = join(__dirname, '../../infrastructure/postgresql/elements');
+const DATABASE_MODELING_ELEMENTS_DIR = join(__dirname, '../../infrastructure/database-modeling/elements');
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const ENTITY_TYPE = `test-service-element-${Date.now()}`;
 const SERVICE = 'entity-database';

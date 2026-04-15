@@ -6,9 +6,8 @@ import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR          = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR     = join(__dirname, '../../../core/elements');
-const ENTITY_DB_ELEMENTS_DIR = join(__dirname, '../../../infrastructure/entity-database/elements');
+const ELEMENTS_DIR      = join(__dirname, '../elements');
+const CORE_ELEMENTS_DIR = join(__dirname, '../../core/elements');
 
 const CTRL = 'entity-controller';
 
@@ -20,7 +19,7 @@ const HEADERS = { 'x-correlation-id': 'corr-42' };
 describe('entity-controller', function () {
 
     before(async () => {
-        await loadElements([ENTITY_DB_ELEMENTS_DIR, ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
 
         // Mock entity service: echoes input, captures _ctx, always returns RECORD.
         // capturedInput stored on _ctx so tests can inspect it after executeService().

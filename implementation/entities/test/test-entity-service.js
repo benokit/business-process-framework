@@ -7,7 +7,7 @@ import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR      = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
+const CORE_ELEMENTS_DIR = join(__dirname, '../../core/elements');
 
 const SERVICE = 'entity';
 

@@ -95,12 +95,12 @@
     {
         "id": "entity-database-implementation",
         "data": {
-            "create": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "create" } },
-            "read":   { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "read" } },
-            "update": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "update" } },
-            "amend":  { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "amend" } },
-            "delete": { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "delete" } },
-            "list":   { "inputMap": "#.input", "low": { "module": "@business-framework/entity-database", "functionName": "list" } }
+            "create": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "create" } },
+            "read":   { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "read" } },
+            "update": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "update" } },
+            "amend":  { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "amend" } },
+            "delete": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "delete" } },
+            "list":   { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "list" } }
         }
     },
     {

@@ -1,6 +1,6 @@
 # entities
 
-Generic entity lifecycle management. An entity is a keyed, versioned document belonging to a named entity type.
+Generic entity lifecycle management backed by a persistent document store. An entity is a keyed, versioned document belonging to a named entity type.
 
 ## HTTP API
 
@@ -119,7 +119,7 @@ When `transition` is called:
 
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
-- `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [entity-database](../../infrastructure/entity-database/README.md#amend--business-versioning) for storage details.
+- `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [amend — business versioning](#amend--business-versioning) for storage details.
 - `update`, `amend`, and `transition` run guards before writing (see [Guards](#guards)).
 
 ## Event handlers
@@ -206,3 +206,50 @@ An entity service extension is a standard `service` element with kind `service/e
 When `execute` is called, the entity record is read and stored as `_ctx.entity`. If `revision` is provided and does not match the entity's current revision, the call throws `"revision mismatch"`. The service then finds the first registered extension for the entity type whose interface declares the requested method and calls it with `methodInput` as the method input.
 
 Extension methods may read `_ctx.entity` to access the entity record (id, entityType, businessKey, revision, data, state).
+
+## `entity-database` service
+
+Generic document store with optimistic concurrency, full revision history, and business versioning. Each document carries an `id`, a unique `businessKey`, a `revision`, a `version`, a `data` object, and a `state` object.
+
+| Method | Key input fields | Returns |
+| --- | --- | --- |
+| `create` | `entityType`, `businessKey`, `data`, `state?` | `entity-record` |
+| `read` | `entityType`, `id`/`businessKey`, `revision?` | `entity-record` |
+| `update` | `entityType`, `id`/`businessKey`, `revision`, `data?`, `state?` | `entity-record` |
+| `amend` | `entityType`, `id`/`businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
+| `delete` | `entityType`, `id`/`businessKey`, `revision?` | `entity-record` |
+
+`businessKey` must be a non-empty string, unique per `entityType`. `update`, `amend`, and `delete` use optimistic locking via `revision`. `state` defaults to `{}` when omitted.
+
+## `entity-record` shape
+
+```json
+{ "id": "uuid", "businessKey": "string", "revision": 1, "version": 1, "data": {}, "state": {}, "timestampUtc": "ISO string" }
+```
+
+## `revision` vs `version`
+
+- **`revision`** — optimistic concurrency counter. Increments on every write (`update`, `amend`). Used for conflict detection.
+- **`version`** — business version counter. Starts at `1` and increments only on `amend`. Identifies distinct business-meaningful snapshots of `data`.
+
+## Point-in-time read
+
+Passing `revision` to `read` reconstructs the entity as it was at that revision. Omitting `revision` returns the current record. A past revision is reconstructed by applying stored reverse patches from newest to target.
+
+## Revision history
+
+Every `update` inserts a row into `entity_history` containing reverse JSON patches (RFC 6902) — separate `data_patch` and `state_patch` columns.
+
+## `amend` — business versioning
+
+`amend` replaces `data` and snapshots the **previous** data into `entity_versions`. `state` is never touched. Both `revision` and `version` are incremented. `amend` does **not** write to `entity_history`.
+
+## Storage
+
+| Table | Key columns | Purpose |
+| --- | --- | --- |
+| `entities` | `id`, `entity_type`, `business_key`, `revision`, `version`, `data`, `state`, `timestamp_utc` | Current entity state |
+| `entity_history` | `id`, `entity_type`, `revision`, `data_patch`, `state_patch`, `timestamp_utc` | Reverse patches per revision |
+| `entity_versions` | `id`, `entity_type`, `version`, `data`, `valid_to` | Whole data snapshots per business version |
+
+All tables are created automatically on first use.

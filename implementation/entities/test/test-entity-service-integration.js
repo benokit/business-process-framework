@@ -10,12 +10,11 @@ import { registerElement } from '@business-framework/core/elements-registry';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const ELEMENTS_DIR             = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
-const ENTITY_DB_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/entity-database/elements');
-const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
-const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../../infrastructure/messaging/elements');
-const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../../infrastructure/transactional-outbox/elements');
-const SEQUENCE_ELEMENTS_DIR    = join(__dirname, '../../../infrastructure/sequence-generator/elements');
+const CORE_ELEMENTS_DIR        = join(__dirname, '../../core/elements');
+const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../infrastructure/transaction/elements');
+const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../infrastructure/messaging/elements');
+const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../infrastructure/transactional-outbox/elements');
+const SEQUENCE_ELEMENTS_DIR    = join(__dirname, '../../infrastructure/sequence-generator/elements');
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'entity';
@@ -42,7 +41,6 @@ describe('entity service — integration', function () {
 
         await loadElements([
             CORE_ELEMENTS_DIR,
-            ENTITY_DB_ELEMENTS_DIR,
             TRANSACTION_ELEMENTS_DIR,
             MESSAGING_ELEMENTS_DIR,
             OUTBOX_ELEMENTS_DIR,

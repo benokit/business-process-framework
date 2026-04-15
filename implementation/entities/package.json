@@ -1,0 +1,17 @@
+{
+  "name": "@business-framework/entities",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/entity-database.js"
+  },
+  "scripts": {
+    "test": "mocha --exit 'test/test-entity-service.js' 'test/test-entity-controller.js' 'test/test-entity-list.js' 'test/test-entity-database.js' 'test/test-entity-database-service.js'",
+    "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/postgresql": "*",
+    "fast-json-patch": "*"
+  }
+}

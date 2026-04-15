@@ -9,7 +9,7 @@ import { hashPassword, verifyPassword } from '@business-framework/users';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR      = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
-const ENTITY_ELEMENTS_DIR = join(__dirname, '../../entities/elements');
+const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
 
 describe('password functions', () => {
 

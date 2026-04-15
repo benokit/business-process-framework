@@ -26,8 +26,8 @@ describe('entity-database', function () {
             this.skip();
         }
         await loadElements([
-            join(__dirname, '../../postgresql/elements'),
-            join(__dirname, '../../database-modeling/elements'),
+            join(__dirname, '../../infrastructure/postgresql/elements'),
+            join(__dirname, '../../infrastructure/database-modeling/elements'),
             join(__dirname, '../elements')
         ]);
         await connect();

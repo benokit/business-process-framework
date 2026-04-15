@@ -6,14 +6,13 @@ import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR          = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR     = join(__dirname, '../../../core/elements');
-const ENTITY_DB_ELEMENTS_DIR = join(__dirname, '../../../infrastructure/entity-database/elements');
+const ELEMENTS_DIR      = join(__dirname, '../elements');
+const CORE_ELEMENTS_DIR = join(__dirname, '../../core/elements');
 
 describe('entity-catalog service', function () {
 
     before(async () => {
-        await loadElements([ENTITY_DB_ELEMENTS_DIR, ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
 
         // Schema element referenced by @product-data in the product entity type below.
         registerElement({
