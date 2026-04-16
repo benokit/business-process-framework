@@ -10,6 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR      = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
 const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
+const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../infrastructure/middleware/elements');
 
 describe('password functions', () => {
 
@@ -40,7 +41,7 @@ describe('password functions', () => {
 describe('user component methods', () => {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, INFRASTRUCTURE_MIDDLEWARE_DIR]);
 
         registerElement({
             kind: 'execution-node-template',
@@ -72,24 +73,13 @@ describe('user component methods', () => {
                     amend:  { input: {}, output: {} }
                 },
                 implementation: {
-                    read: {
-                        return: {
-                            entityType: 'user',
-                            businessKey: '#.input.businessKey',
-                            id: 'user-1',
-                            revision: 1,
-                            data: {
-                                username: '#.input.businessKey',
-                                email: 'alice@example.com',
-                                password_hash: null
-                            },
-                            state: { dimensions: {} }
-                        }
-                    },
-                    update: { return: '#.input' },
-                    create: { return: '#.input' },
-                    delete: { return: '#.input' },
-                    amend:  { return: '#.input' }
+                    read: [
+                        { return: { entityType: 'user', businessKey: '#.input.businessKey', id: 'user-1', revision: 1, data: { username: '#.input.businessKey', email: 'alice@example.com', password_hash: null }, state: { dimensions: {} } } }
+                    ],
+                    update: [{ return: '#.input' }],
+                    create: [{ return: '#.input' }],
+                    delete: [{ return: '#.input' }],
+                    amend:  [{ return: '#.input' }]
                 }
             }
         });

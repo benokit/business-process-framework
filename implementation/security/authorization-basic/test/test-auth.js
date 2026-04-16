@@ -12,6 +12,7 @@ const ELEMENTS_DIR        = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR   = join(__dirname, '../../../core/elements');
 const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
 const USERS_ELEMENTS_DIR  = join(__dirname, '../../users/elements');
+const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../infrastructure/middleware/elements');
 
 describe('JWT functions', () => {
 
@@ -50,7 +51,7 @@ describe('JWT functions', () => {
 describe('auth-login service', () => {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, USERS_ELEMENTS_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, USERS_ELEMENTS_DIR, INFRASTRUCTURE_MIDDLEWARE_DIR]);
 
         registerElement({
             kind: 'execution-node-template',
@@ -86,20 +87,13 @@ describe('auth-login service', () => {
                     amend:  { input: {}, output: {} }
                 },
                 implementation: {
-                    read: {
-                        return: {
-                            entityType: 'user',
-                            businessKey: 'alice',
-                            id: 'user-1',
-                            revision: 1,
-                            data: { username: 'alice', email: 'alice@example.com', isActive: true, password_hash: hash },
-                            state: { dimensions: {} }
-                        }
-                    },
-                    update: { return: '#.input' },
-                    create: { return: '#.input' },
-                    delete: { return: '#.input' },
-                    amend:  { return: '#.input' }
+                    read: [
+                        { return: { entityType: 'user', businessKey: '#.input.businessKey', id: 'user-1', revision: 1, data: { username: 'alice', email: 'alice@example.com', isActive: true, password_hash: hash }, state: { dimensions: {} } } }
+                    ],
+                    update: [{ return: '#.input' }],
+                    create: [{ return: '#.input' }],
+                    delete: [{ return: '#.input' }],
+                    amend:  [{ return: '#.input' }]
                 }
             }
         });
