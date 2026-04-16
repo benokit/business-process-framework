@@ -32,6 +32,22 @@
             "!total": "number"
         }
     },
+    {
+        "kind": "schema",
+        "id": "entity-service-extension-summary",
+        "data": {
+            "!id": "string",
+            "!interface": "object"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-service-extensions-output",
+        "data": {
+            "!entityType": "string",
+            "!services[]": "@entity-service-extension-summary"
+        }
+    },
 
     {
         "kind": "service",
@@ -39,7 +55,8 @@
         "data": {
             "interface": {
                 "listTypes":    { "input": "object",                       "output": "@entity-list-types-output"    },
-                "listEntities": { "input": "@entity-list-entities-input",  "output": "@entity-list-entities-output" }
+                "listEntities": { "input": "@entity-list-entities-input",  "output": "@entity-list-entities-output" },
+                "listServiceExtensions": { "input": { "!entityType": "string" }, "output": "@entity-service-extensions-output" }
             },
             "implementation": {
                 "listTypes": [
@@ -75,6 +92,30 @@
                         },
                         "service": "entity-database", "method": "list"
                     }
+                ],
+                "listServiceExtensions": [
+                    {
+                        "outputKey": "extensions",
+                        "getElementsOfKind": { "$join": { "_strings": ["service/entity-service-extension/", "#.input.entityType"] } }
+                    },
+                    {
+                        "outputKey": "services",
+                        "inputMap": "#.extensions.items",
+                        "forEach": [
+                            {
+                                "return": {
+                                    "id": "#.input.id",
+                                    "interface": "#.input.data.interface"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "return": {
+                            "entityType": "#.input.entityType",
+                            "services": "#.services"
+                        }
+                    }
                 ]
             }
         }
@@ -86,7 +127,8 @@
         "data": {
             "interface": {
                 "listTypes":    { "input": "object",                       "output": "object" },
-                "listEntities": { "input": "object",                       "output": "object" }
+                "listEntities": { "input": "object",                       "output": "object" },
+                "listServiceExtensions": { "input": "object", "output": "object" }
             },
             "implementation": {
                 "listTypes": [
@@ -108,11 +150,22 @@
                         "service": "entity-catalog", "method": "listEntities"
                     },
                     { "return": { "status": 200, "body": "#.result" } }
+                ],
+                "listServiceExtensions": [
+                    {
+                        "outputKey": "result",
+                        "inputMap": {
+                            "entityType": "#.input.params.entityType"
+                        },
+                        "service": "entity-catalog", "method": "listServiceExtensions"
+                    },
+                    { "return": { "status": 200, "body": "#.result" } }
                 ]
             }
         }
     },
 
     { "id": "entity-types-endpoint",  "kind": "http-endpoint", "data": { "method": "GET", "path": "/entity-types",           "controller": { "service": "entity-catalog-controller", "method": "listTypes"    } } },
+    { "id": "entity-service-extensions-endpoint", "kind": "http-endpoint", "data": { "method": "GET", "path": "/entity-types/:entityType/services", "controller": { "service": "entity-catalog-controller", "method": "listServiceExtensions" } } },
     { "id": "entity-list-endpoint",   "kind": "http-endpoint", "data": { "method": "GET", "path": "/entities/:entityType",   "controller": { "service": "entity-catalog-controller", "method": "listEntities" } } }
 ]

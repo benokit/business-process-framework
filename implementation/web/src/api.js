@@ -65,5 +65,13 @@ export const api = {
     }),
 
   transition: (entityType, businessKey, transition) =>
-    request('POST', `/entities/${entityType}/${encodeURIComponent(businessKey)}/transitions/${transition}`)
+    request('POST', `/entities/${entityType}/${encodeURIComponent(businessKey)}/transitions/${transition}`),
+
+  getEntityServices: (entityType) =>
+    request('GET', `/entity-types/${entityType}/services`),
+
+  executeService: (entityType, businessKey, revision, method, methodInput) =>
+    request('POST', `/entities/${entityType}/${encodeURIComponent(businessKey)}/${method}`, methodInput, {
+      'If-Match': `"${revision}"`
+    })
 }

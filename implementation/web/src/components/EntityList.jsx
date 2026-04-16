@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'preact/hooks'
 import { api } from '../api'
+import { ServicePopup } from './ServicePopup'
 
 const PAGE_SIZE = 20
 
@@ -11,10 +12,37 @@ export function EntityList({ entityType, statesModel, onEdit, onCreateNew, refre
   const [error, setError] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [transitioning, setTransitioning] = useState(null)
+  const [services, setServices] = useState([])
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const [serviceEntity, setServiceEntity] = useState(null)
 
   useEffect(() => {
     setOffset(0)
   }, [entityType])
+
+  useEffect(() => {
+    loadServices()
+  }, [entityType])
+
+  async function loadServices() {
+    try {
+      setServicesLoading(true)
+      const res = await api.getEntityServices(entityType)
+      setServices(res.services || [])
+    } catch {
+      setServices([])
+    } finally {
+      setServicesLoading(false)
+    }
+  }
+
+  function handleService(item) {
+    setServiceEntity(item)
+  }
+
+  function handleServiceSuccess() {
+    load()
+  }
 
   useEffect(() => {
     load()
@@ -130,6 +158,15 @@ export function EntityList({ entityType, statesModel, onEdit, onCreateNew, refre
                       <button class="btn btn-xs btn-ghost" onClick={() => onEdit(item)}>
                         Edit
                       </button>
+                      {services.length > 0 && (
+                        <button
+                          class="btn btn-xs btn-outline"
+                          disabled={servicesLoading}
+                          onClick={() => handleService(item)}
+                        >
+                          Services
+                        </button>
+                      )}
                       <button
                         class="btn btn-xs btn-danger"
                         disabled={deleting === item.businessKey}
@@ -164,6 +201,16 @@ export function EntityList({ entityType, statesModel, onEdit, onCreateNew, refre
             </div>
           )}
         </>
+      )}
+
+      {serviceEntity && services.length > 0 && (
+        <ServicePopup
+          entityType={entityType}
+          entity={serviceEntity}
+          services={services}
+          onClose={() => setServiceEntity(null)}
+          onSuccess={handleServiceSuccess}
+        />
       )}
     </div>
   )

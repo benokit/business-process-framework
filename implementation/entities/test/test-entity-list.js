@@ -54,6 +54,20 @@ describe('entity-catalog service', function () {
             }
         });
 
+        // Service extension for testing listServiceExtensions.
+        registerElement({
+            kind: 'service/entity-service-extension/user',
+            id: 'user-password-service',
+            data: {
+                interface: {
+                    'set-password': {
+                        input: { '!password': 'string' },
+                        output: '@entity-record'
+                    }
+                }
+            }
+        });
+
         // Mock entity-database — list captures its input on _ctx so tests can assert on it.
         registerElement({
             kind: 'service',
@@ -171,6 +185,42 @@ describe('entity-catalog service', function () {
             catch (e) { error = e; }
             expect(error).to.exist;
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('listServiceExtensions', () => {
+
+        it('returns entityType in result', async () => {
+            const result = await executeService('entity-catalog', 'listServiceExtensions', { entityType: 'user' });
+            expect(result.entityType).to.equal('user');
+        });
+
+        it('returns services array', async () => {
+            const result = await executeService('entity-catalog', 'listServiceExtensions', { entityType: 'user' });
+            expect(result.services).to.be.an('array');
+        });
+
+        it('returns extensions for the given entity type', async () => {
+            const result = await executeService('entity-catalog', 'listServiceExtensions', { entityType: 'user' });
+            expect(result.services).to.have.length(1);
+            expect(result.services[0].id).to.equal('user-password-service');
+        });
+
+        it('returns interface from the extension', async () => {
+            const result = await executeService('entity-catalog', 'listServiceExtensions', { entityType: 'user' });
+            expect(result.services[0].interface).to.deep.equal({
+                'set-password': {
+                    input: { '!password': 'string' },
+                    output: '@entity-record'
+                }
+            });
+        });
+
+        it('returns empty services when no extensions exist', async () => {
+            const result = await executeService('entity-catalog', 'listServiceExtensions', { entityType: 'nonexistent' });
+            expect(result.services).to.deep.equal([]);
         });
 
     });
