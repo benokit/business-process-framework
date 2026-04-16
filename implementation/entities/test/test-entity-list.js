@@ -116,7 +116,7 @@ describe('entity-catalog service', function () {
             const result = await executeService('entity-catalog', 'listTypes', {});
             const product = result.items.find(item => item.id === 'product');
             expect(product).to.exist;
-            expect(product.dataSchema).to.deep.equal({ '!name': 'string', 'price': 'number' });
+            expect(product.dataSchema).to.deep.equal({ $id: 'product-data', $data: { '!name': 'string', 'price': 'number' } });
         });
 
         it('passes inline dataSchema through unchanged', async () => {
