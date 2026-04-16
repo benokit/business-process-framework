@@ -1,61 +1,6 @@
-# data model
+# entity service middleware
 
-Elements of kind: data-model/{db-type}
+kind: middleware/entity-service/{method}/{entity-type}
 
-{
-    id: entities-table,
-    kind: data-model/postgresql
-    data: {
-        command: create-entities-table
-        order: 10
-    }
-}
-
-queries/create-entities-table.eson.sql
-
-```sql
-CREATE TABLE IF NOT EXISTS entities (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            entity_type TEXT NOT NULL,
-            business_key TEXT NOT NULL,
-            revision INTEGER NOT NULL DEFAULT 1,
-            version INTEGER NOT NULL DEFAULT 1,
-            data JSONB NOT NULL DEFAULT '{}',
-            state JSONB NOT NULL DEFAULT '{}',
-            timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (entity_type, business_key)
-        )
-```
-
-/infrastructure/database-modeling
-
-data model service (kind: service)
-
-method:
-    - createModels (db-type):
-        models = getElementsOfKind (data-model/{db-type})
-        driver = getElement(db-driver-{db-type})
-        for each model in models ordered by model.data.order ascending:
-            service driver execute model.data.command
-
-/infrastructure/postgresql 
-
-{
-    id: db-driver-postgresql
-    kind: service/db-driver/postgresql 
-    data: {
-        interface: {
-            execute: {
-                input: {
-                    parameters{}: string|number,
-                    command: string 
-                }
-            }
-        }
-    }
-}
-
-
-
-
-
+no need of explicit guards, event handlers, etc
+ - in principle guards are middleware elements which execute next last and handlers are elements that call next first.

@@ -102,7 +102,7 @@ When `transition` is called:
 1. Looks up the named transition; throws `"transition is not defined"` if absent.
 2. Checks all `from` dimensions against current state; throws `"transition failed"` if any mismatch.
 3. Merges `to` onto current `dimensions`.
-4. Runs `before-transition` guards; throws if any return errors.
+4. Runs the middleware chain for `middleware/entity-service/transition/{entityType}`.
 5. Writes the new state inside a transaction.
 
 ## `entity` service
@@ -120,26 +120,55 @@ When `transition` is called:
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
 - `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [amend — business versioning](#amend--business-versioning) for storage details.
-- `update`, `amend`, and `transition` run guards before writing (see [Guards](#guards)).
+- All methods run through the middleware chain for their kind before executing the core operation.
 
-## Event handlers
+## Middleware
 
-Handlers are invoked within the same transaction as their triggering method. Each handler's `data` is a method implementation (pipeline) that receives the result `entity-record` as input. All matching handlers are invoked; registration order is not guaranteed.
+Every entity service method is wrapped in a middleware chain before its core operation runs. Middleware elements use the kind `middleware/entity-service/{method}/{entityType}` and follow the standard [`middleware`](../../infrastructure/middleware/README.md) shape.
 
-| Event | `kind` | Triggering method |
-| --- | --- | --- |
-| on-create | `entity-event-handler/on-create/{entityType}` | `create` |
-| on-update | `entity-event-handler/on-update/{entityType}` | `update` |
-| on-amend | `entity-event-handler/on-amend/{entityType}` | `amend` |
-| on-transition | `entity-event-handler/on-transition/{entityType}` | `transition` |
+Each middleware receives `{ context, input, next }` as its pipeline input:
+
+| Field | Description |
+| --- | --- |
+| `context` | `{ method, entityType }` — identifies the operation |
+| `input` | The resolved method input forwarded to the action |
+| `next` | Pipeline node that continues the chain (or executes the core action) |
+
+**Pre-action middleware** (guard-style) validates before calling `next`:
 
 ```json
 {
-    "id": "order-notify",
-    "kind": "entity-event-handler/on-create/order",
-    "data": [ ... ]
+    "kind": "middleware/entity-service/update/order",
+    "data": {
+        "ordering": 10,
+        "implementation": [
+            {
+                "if": { "$lte": ["#.input.input.data.amount", 0] },
+                "then": [{ "throw": "amount must be positive" }],
+                "else": [{ "inputMap": "#.input.input", "execute": "#.input.next" }]
+            }
+        ]
+    }
 }
 ```
+
+**Post-action middleware** (handler-style) calls `next` first, then acts on the result:
+
+```json
+{
+    "kind": "middleware/entity-service/create/order",
+    "data": {
+        "ordering": 10,
+        "implementation": [
+            { "outputKey": "result", "inputMap": "#.input.input", "execute": "#.input.next" },
+            { "log": "entity created", "level": "info", "context": { "record": "#.result" } },
+            { "return": "#.result" }
+        ]
+    }
+}
+```
+
+Middlewares are sorted by `ordering` (ascending) before the chain is built. Multiple middlewares for the same kind run in order; the first to throw stops the chain.
 
 ## Business key rules
 
@@ -157,32 +186,6 @@ The head element (first registered) is used; at most one rule is consulted. The 
     "data": { "return": { "$join": { "_strings": ["order-", "#.input.data.ref"] } } }
 }
 ```
-
-## Guards
-
-Guards run **before** a mutating operation and can block it by throwing an error. Each guard's `data` is a method implementation (pipeline) that receives the full method input and returns an array of error strings (empty array = pass). All matching guards are invoked; every non-empty array is collected and joined with `", "` into a single thrown string.
-
-| Event | `kind` | Checked by |
-| --- | --- | --- |
-| before-update | `entity-guard/before-update/{entityType}` | `update` |
-| before-amend | `entity-guard/before-amend/{entityType}` | `amend` |
-| before-transition | `entity-guard/before-transition/{entityType}` | `transition` |
-
-Guards run outside the transaction — before the database write is attempted.
-
-```json
-{
-    "id": "order-amount-guard",
-    "kind": "entity-guard/before-update/order",
-    "data": {
-        "if": { "$lte": ["#.input.data.amount", 0] },
-        "then": [{ "return": ["amount must be positive"] }],
-        "else": [{ "return": [] }]
-    }
-}
-```
-
-The guard input is the full entity service method input (e.g. for `update`: `{ entityType, businessKey, revision, data }`).
 
 ## Entity service extensions
 

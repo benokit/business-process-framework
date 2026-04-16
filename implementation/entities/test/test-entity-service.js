@@ -6,15 +6,16 @@ import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR      = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR = join(__dirname, '../../core/elements');
+const ELEMENTS_DIR           = join(__dirname, '../elements');
+const CORE_ELEMENTS_DIR      = join(__dirname, '../../core/elements');
+const MIDDLEWARE_ELEMENTS_DIR = join(__dirname, '../../infrastructure/middleware/elements');
 
 const SERVICE = 'entity';
 
 describe('entity service', function () {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, MIDDLEWARE_ELEMENTS_DIR]);
 
         // Unified entity-database mock registered once to avoid dataCache conflicts.
         // create/update/delete echo their input so CRUD tests can assert on the mapping.
@@ -82,33 +83,41 @@ describe('entity service', function () {
             }
         }});
 
-        // Entity type and on-create handler used by handler invocation tests.
+        // Entity type with post-action middleware used by create middleware tests.
         registerElement({ type: 'data', id: 'order-with-handler', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'entity-event-handler/on-create/order-with-handler',
+            kind: 'middleware/entity-service/create/order-with-handler',
             id: 'order-with-handler-on-create',
-            data: [
-                { outputKey: '_ctx', set: { handlerCalledWith: '#.input' } },
-                { return: '#.input' }
-            ]
+            data: {
+                ordering: 10,
+                implementation: [
+                    { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                    { outputKey: '_ctx', set: { handlerCalledWith: '#.result' } },
+                    { return: '#.result' }
+                ]
+            }
         });
 
-        // Entity type and on-update handler used by update handler invocation tests.
+        // Entity type with post-action middleware used by update middleware tests.
         registerElement({ type: 'data', id: 'order-with-update-handler', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'entity-event-handler/on-update/order-with-update-handler',
+            kind: 'middleware/entity-service/update/order-with-update-handler',
             id: 'order-with-update-handler-on-update',
-            data: [
-                { outputKey: '_ctx', set: { updateHandlerCalledWith: '#.input' } },
-                { return: '#.input' }
-            ]
+            data: {
+                ordering: 10,
+                implementation: [
+                    { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                    { outputKey: '_ctx', set: { updateHandlerCalledWith: '#.result' } },
+                    { return: '#.result' }
+                ]
+            }
         });
 
-        // Entity type and on-transition handler used by transition handler invocation tests.
+        // Entity type with post-action middleware used by transition middleware tests.
         registerElement({ type: 'data', id: 'order-with-transition-handler', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' },
             statesModel: {
@@ -118,43 +127,57 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            kind: 'entity-event-handler/on-transition/order-with-transition-handler',
+            kind: 'middleware/entity-service/transition/order-with-transition-handler',
             id: 'order-with-transition-handler-on-transition',
-            data: [
-                { outputKey: '_ctx', set: { transitionHandlerCalledWith: '#.input' } },
-                { return: '#.input' }
-            ]
+            data: {
+                ordering: 10,
+                implementation: [
+                    { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                    { outputKey: '_ctx', set: { transitionHandlerCalledWith: '#.result' } },
+                    { return: '#.result' }
+                ]
+            }
         });
 
-        // Entity type and before-update guard used by guard tests.
+        // Entity type with pre-action middleware used by update middleware tests.
         registerElement({ type: 'data', id: 'order-with-update-guard', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'entity-guard/before-update/order-with-update-guard',
-            id: 'order-with-update-guard-before-update',
+            kind: 'middleware/entity-service/update/order-with-update-guard',
+            id: 'order-with-update-guard-middleware',
             data: {
-                if: { '$lte': ['#.input.data.amount', 0] },
-                then: [{ return: ['amount must be positive'] }],
-                else: [{ return: [] }]
+                ordering: 10,
+                implementation: [
+                    {
+                        if: { '$lte': ['#.input.input.data.amount', 0] },
+                        then: [{ throw: 'amount must be positive' }],
+                        else: [{ inputMap: '#.input.input', execute: '#.input.next' }]
+                    }
+                ]
             }
         });
 
-        // Entity type and before-amend guard used by guard tests.
+        // Entity type with pre-action middleware used by amend middleware tests.
         registerElement({ type: 'data', id: 'order-with-amend-guard', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'entity-guard/before-amend/order-with-amend-guard',
-            id: 'order-with-amend-guard-before-amend',
+            kind: 'middleware/entity-service/amend/order-with-amend-guard',
+            id: 'order-with-amend-guard-middleware',
             data: {
-                if: { '$lte': ['#.input.data.amount', 0] },
-                then: [{ return: ['amount must be positive'] }],
-                else: [{ return: [] }]
+                ordering: 10,
+                implementation: [
+                    {
+                        if: { '$lte': ['#.input.input.data.amount', 0] },
+                        then: [{ throw: 'amount must be positive' }],
+                        else: [{ inputMap: '#.input.input', execute: '#.input.next' }]
+                    }
+                ]
             }
         });
 
-        // Entity type and before-transition guard used by guard tests.
+        // Entity type with pre-action middleware used by transition middleware tests.
         registerElement({ type: 'data', id: 'order-with-transition-guard', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' },
             statesModel: {
@@ -165,28 +188,39 @@ describe('entity service', function () {
             }
         }});
         registerElement({
-            kind: 'entity-guard/before-transition/order-with-transition-guard',
-            id: 'order-with-transition-guard-before-transition',
+            kind: 'middleware/entity-service/transition/order-with-transition-guard',
+            id: 'order-with-transition-guard-middleware',
             data: {
-                if: { '$eq': ['#.input.transition', 'forbidden'] },
-                then: [{ return: ['transition forbidden by guard'] }],
-                else: [{ return: [] }]
+                ordering: 10,
+                implementation: [
+                    {
+                        if: { '$eq': ['#.input.input.transition', 'forbidden'] },
+                        then: [{ throw: 'transition forbidden by guard' }],
+                        else: [{ inputMap: '#.input.input', execute: '#.input.next' }]
+                    }
+                ]
             }
         });
 
-        // Entity type with two before-update guards used by multi-guard test.
+        // Entity type with two update middlewares used by middleware ordering test.
         registerElement({ type: 'data', id: 'order-with-multi-guards', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
         }});
         registerElement({
-            kind: 'entity-guard/before-update/order-with-multi-guards',
-            id: 'order-with-multi-guards-guard-a',
-            data: { return: ['error from guard A'] }
+            kind: 'middleware/entity-service/update/order-with-multi-guards',
+            id: 'order-with-multi-guards-middleware-a',
+            data: {
+                ordering: 10,
+                implementation: [{ throw: 'error from middleware A' }]
+            }
         });
         registerElement({
-            kind: 'entity-guard/before-update/order-with-multi-guards',
-            id: 'order-with-multi-guards-guard-b',
-            data: { return: ['error from guard B'] }
+            kind: 'middleware/entity-service/update/order-with-multi-guards',
+            id: 'order-with-multi-guards-middleware-b',
+            data: {
+                ordering: 20,
+                implementation: [{ throw: 'error from middleware B' }]
+            }
         });
 
         // Entity type and business-key rule used by business-key rule tests.
@@ -292,9 +326,9 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('create — on-create event handlers', () => {
+    describe('create — middleware', () => {
 
-        it('invokes registered handlers with the created entity record', async () => {
+        it('invokes post-action middleware with the created entity record', async () => {
             const _ctx = {};
             await executeService(SERVICE, 'create', {
                 entityType: 'order-with-handler', businessKey: 'bk-handler-test', data: { amount: 100, currency: 'USD' }
@@ -303,14 +337,14 @@ describe('entity service', function () {
             expect(_ctx.handlerCalledWith.businessKey).to.equal('bk-handler-test');
         });
 
-        it('create still returns the entity record when handlers are present', async () => {
+        it('create still returns the entity record when middleware is present', async () => {
             const result = await executeService(SERVICE, 'create', {
                 entityType: 'order-with-handler', businessKey: 'bk-handler-return', data: { amount: 50, currency: 'USD' }
             });
             expect(result.businessKey).to.equal('bk-handler-return');
         });
 
-        it('create works normally when no handlers are registered for the entity type', async () => {
+        it('create works normally when no middleware is registered for the entity type', async () => {
             const result = await executeService(SERVICE, 'create', {
                 entityType: 'order', businessKey: 'bk-no-handler', data: { amount: 10, currency: 'USD' }
             });
@@ -381,9 +415,9 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('update — on-update event handlers', () => {
+    describe('update — post-action middleware', () => {
 
-        it('invokes registered handlers with the updated entity record', async () => {
+        it('invokes post-action middleware with the updated entity record', async () => {
             const _ctx = {};
             await executeService(SERVICE, 'update', {
                 entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-test', revision: 1, data: { amount: 200, currency: 'USD' }
@@ -392,16 +426,55 @@ describe('entity service', function () {
             expect(_ctx.updateHandlerCalledWith.businessKey).to.equal('bk-update-handler-test');
         });
 
-        it('update still returns the entity record when handlers are present', async () => {
+        it('update still returns the entity record when middleware is present', async () => {
             const result = await executeService(SERVICE, 'update', {
                 entityType: 'order-with-update-handler', businessKey: 'bk-update-handler-return', revision: 1, data: { amount: 50, currency: 'USD' }
             });
             expect(result.businessKey).to.equal('bk-update-handler-return');
         });
 
-        it('update works normally when no handlers are registered for the entity type', async () => {
+        it('update works normally when no middleware is registered for the entity type', async () => {
             const result = await executeService(SERVICE, 'update', {
                 entityType: 'order', businessKey: 'bk-no-update-handler', revision: 1, data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('update — pre-action middleware', () => {
+
+        it('throws when middleware blocks the operation', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'update', {
+                    entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: -1, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
+        });
+
+        it('proceeds when middleware allows the operation', async () => {
+            const result = await executeService(SERVICE, 'update', {
+                entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
+            });
+            expect(result.data.amount).to.equal(100);
+        });
+
+        it('stops at first failing middleware in chain', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'update', {
+                    entityType: 'order-with-multi-guards', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('error from middleware A');
+        });
+
+        it('proceeds normally when no middleware is registered', async () => {
+            const result = await executeService(SERVICE, 'update', {
+                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
         });
@@ -447,6 +520,35 @@ describe('entity service', function () {
             try { await executeService(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
             catch (e) { error = e; }
             expect(error.cause).to.be.a('string').that.includes('input is not valid');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('amend — pre-action middleware', () => {
+
+        it('throws when middleware blocks the operation', async () => {
+            let error;
+            try {
+                await executeService(SERVICE, 'amend', {
+                    entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
+                });
+            } catch (e) { error = e; }
+            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
+        });
+
+        it('proceeds when middleware allows the operation', async () => {
+            const result = await executeService(SERVICE, 'amend', {
+                entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 50, currency: 'USD' }
+            });
+            expect(result.data.amount).to.equal(50);
+        });
+
+        it('proceeds normally when no middleware is registered', async () => {
+            const result = await executeService(SERVICE, 'amend', {
+                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
+            });
+            expect(result.entityType).to.equal('order');
         });
 
     });
@@ -502,9 +604,9 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('transition — on-transition event handlers', () => {
+    describe('transition — post-action middleware', () => {
 
-        it('invokes registered handlers with the transitioned entity record', async () => {
+        it('invokes post-action middleware with the transitioned entity record', async () => {
             const _ctx = {};
             await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
@@ -512,14 +614,14 @@ describe('entity service', function () {
             expect(_ctx.transitionHandlerCalledWith).to.exist;
         });
 
-        it('transition still returns the entity record when handlers are present', async () => {
+        it('transition still returns the entity record when middleware is present', async () => {
             const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-handler', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
         });
 
-        it('transition works normally when no handlers are registered for the entity type', async () => {
+        it('transition works normally when no middleware is registered for the entity type', async () => {
             const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });
@@ -529,78 +631,9 @@ describe('entity service', function () {
     });
 
     // -------------------------------------------------------------------------
-    describe('update — before-update guards', () => {
+    describe('transition — pre-action middleware', () => {
 
-        it('throws when a guard returns errors', async () => {
-            let error;
-            try {
-                await executeService(SERVICE, 'update', {
-                    entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: -1, currency: 'USD' }
-                });
-            } catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
-        });
-
-        it('proceeds when a guard returns no errors', async () => {
-            const result = await executeService(SERVICE, 'update', {
-                entityType: 'order-with-update-guard', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
-            });
-            expect(result.data.amount).to.equal(100);
-        });
-
-        it('collects and joins errors from multiple guards', async () => {
-            let error;
-            try {
-                await executeService(SERVICE, 'update', {
-                    entityType: 'order-with-multi-guards', businessKey: 'order-001', revision: 1, data: { amount: 100, currency: 'USD' }
-                });
-            } catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('error from guard A');
-            expect(error.cause).to.be.a('string').that.includes('error from guard B');
-        });
-
-        it('proceeds normally when no guards are registered', async () => {
-            const result = await executeService(SERVICE, 'update', {
-                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
-            });
-            expect(result.entityType).to.equal('order');
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('amend — before-amend guards', () => {
-
-        it('throws when a guard returns errors', async () => {
-            let error;
-            try {
-                await executeService(SERVICE, 'amend', {
-                    entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
-                });
-            } catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
-        });
-
-        it('proceeds when a guard returns no errors', async () => {
-            const result = await executeService(SERVICE, 'amend', {
-                entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 50, currency: 'USD' }
-            });
-            expect(result.data.amount).to.equal(50);
-        });
-
-        it('proceeds normally when no guards are registered', async () => {
-            const result = await executeService(SERVICE, 'amend', {
-                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
-            });
-            expect(result.entityType).to.equal('order');
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('transition — before-transition guards', () => {
-
-        it('throws when a guard returns errors', async () => {
+        it('throws when middleware blocks the transition', async () => {
             let error;
             try {
                 await executeService(SERVICE, 'transition', {
@@ -610,14 +643,14 @@ describe('entity service', function () {
             expect(error.cause).to.be.a('string').that.includes('transition forbidden by guard');
         });
 
-        it('proceeds when a guard returns no errors', async () => {
+        it('proceeds when middleware allows the transition', async () => {
             const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-transition-guard', businessKey: 'order-001', transition: 'confirm'
             });
             expect(result.state.dimensions.status).to.equal('confirmed');
         });
 
-        it('proceeds normally when no guards are registered', async () => {
+        it('proceeds normally when no middleware is registered', async () => {
             const result = await executeService(SERVICE, 'transition', {
                 entityType: 'order-with-states', businessKey: 'order-001', transition: 'confirm'
             });

@@ -138,43 +138,66 @@
                     ]
                 },
                 {
+                    "outputKey": "wrappedAction",
+                    "inputMap": {
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/create/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inTransaction": [
+                                    {
+                                        "outputKey": "created",
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "businessKey": "#.input.businessKey",
+                                            "data": "#.input.data",
+                                            "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
+                                        },
+                                        "service": "entity-database", "method": "create"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "record": "#.created",
+                                            "eventType": "created",
+                                            "correlation": "#._ctx.correlation"
+                                        },
+                                        "service": "entity-event-publisher", "method": "publish"
+                                    },
+                                    { "return": "#.created" }
+                                ]
+                            }
+                        },
+                        "context": { "method": "create", "entityType": "#.input.entityType" }
+                    },
+                    "call": "middleware-wrap"
+                },
+                {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.businessKey",
                         "data": "#.input.data",
                         "initialState": "#.initialState"
                     },
-                    "inTransaction": [
-                        {
-                            "outputKey": "created",
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "data": "#.input.data",
-                                "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
-                            },
-                            "service": "entity-database", "method": "create"
-                        },
-                        {
-                            "inputMap": {
-                                "onEvent": "on-create",
-                                "entityType": "#.input.entityType",
-                                "eventType": "created",
-                                "entity": "#.created"
-                            },
-                            "call": "entity-event-handler-runner"
-                        },
-                        { "return": "#.created" }
-                    ]
+                    "execute": "#.wrappedAction"
                 }
             ],
             "read": [
                 {
+                    "outputKey": "wrappedAction",
                     "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey"
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/read/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "service": "entity-database", "method": "read"
+                            }
+                        },
+                        "context": { "method": "read", "entityType": "#.input.entityType" }
                     },
-                    "service": "entity-database", "method": "read"
+                    "call": "middleware-wrap"
+                },
+                {
+                    "inputMap": "#.input",
+                    "execute": "#.wrappedAction"
                 }
             ],
             "update": [
@@ -187,72 +210,81 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "wrappedAction",
                     "inputMap": {
-                        "beforeEvent": "before-update",
-                        "entityType": "#.input.entityType",
-                        "eventInput": "#.input"
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/update/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inTransaction": [
+                                    {
+                                        "outputKey": "updated",
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "businessKey": "#.input.businessKey",
+                                            "revision": "#.input.revision",
+                                            "data": "#.input.data"
+                                        },
+                                        "service": "entity-database", "method": "update"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "record": "#.updated",
+                                            "eventType": "updated",
+                                            "correlation": "#._ctx.correlation"
+                                        },
+                                        "service": "entity-event-publisher", "method": "publish"
+                                    },
+                                    { "return": "#.updated" }
+                                ]
+                            }
+                        },
+                        "context": { "method": "update", "entityType": "#.input.entityType" }
                     },
-                    "call": "entity-guard-runner"
+                    "call": "middleware-wrap"
                 },
                 {
-                    "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey",
-                        "revision": "#.input.revision",
-                        "data": "#.input.data"
-                    },
-                    "inTransaction": [
-                        {
-                            "outputKey": "updated",
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "revision": "#.input.revision",
-                                "data": "#.input.data"
-                            },
-                            "service": "entity-database", "method": "update"
-                        },
-                        {
-                            "inputMap": {
-                                "onEvent": "on-update",
-                                "entityType": "#.input.entityType",
-                                "eventType": "updated",
-                                "entity": "#.updated"
-                            },
-                            "call": "entity-event-handler-runner"
-                        },
-                        { "return": "#.updated" }
-                    ]
+                    "inputMap": "#.input",
+                    "execute": "#.wrappedAction"
                 }
             ],
             "delete": [
                 {
+                    "outputKey": "wrappedAction",
                     "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey",
-                        "revision": "#.input.revision"
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/delete/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inTransaction": [
+                                    {
+                                        "outputKey": "deleted",
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "businessKey": "#.input.businessKey",
+                                            "revision": "#.input.revision"
+                                        },
+                                        "service": "entity-database", "method": "delete"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "record": "#.deleted",
+                                            "eventType": "deleted",
+                                            "correlation": "#._ctx.correlation"
+                                        },
+                                        "service": "entity-event-publisher", "method": "publish"
+                                    },
+                                    { "return": "#.deleted" }
+                                ]
+                            }
+                        },
+                        "context": { "method": "delete", "entityType": "#.input.entityType" }
                     },
-                    "inTransaction": [
-                        {
-                            "outputKey": "deleted",
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "revision": "#.input.revision"
-                            },
-                            "service": "entity-database", "method": "delete"
-                        },
-                        {
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "record": "#.deleted",
-                                "eventType": "deleted",
-                                "correlation": "#._ctx.correlation"
-                            },
-                            "service": "entity-event-publisher", "method": "publish"
-                        },
-                        { "return": "#.deleted" }
-                    ]
+                    "call": "middleware-wrap"
+                },
+                {
+                    "inputMap": "#.input",
+                    "execute": "#.wrappedAction"
                 }
             ],
             "transition": [
@@ -302,45 +334,51 @@
                 },
                 { "outputKey": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
+                    "outputKey": "wrappedAction",
                     "inputMap": {
-                        "beforeEvent": "before-transition",
-                        "entityType": "#.input.entityType",
-                        "eventInput": "#.input"
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/transition/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inTransaction": [
+                                    {
+                                        "outputKey": "transitioned",
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "businessKey": "#.input.businessKey",
+                                            "revision": "#.input.revision",
+                                            "state": "#.input.state"
+                                        },
+                                        "service": "entity-database", "method": "update"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "record": "#.transitioned",
+                                            "eventType": "transitioned",
+                                            "correlation": "#._ctx.correlation"
+                                        },
+                                        "service": "entity-event-publisher", "method": "publish"
+                                    },
+                                    { "return": "#.transitioned" }
+                                ]
+                            }
+                        },
+                        "context": { "method": "transition", "entityType": "#.input.entityType" }
                     },
-                    "call": "entity-guard-runner"
+                    "call": "middleware-wrap"
                 },
                 {
                     "inputMap": {
                         "entityType": "#.input.entityType",
                         "businessKey": "#.current.businessKey",
                         "revision": "#.current.revision",
+                        "transition": "#.input.transition",
                         "state": {
                             "dimensions": "#.newStateDims",
                             "fromTransition": "#.input.transition"
                         }
                     },
-                    "inTransaction": [
-                        {
-                            "outputKey": "transitioned",
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "revision": "#.input.revision",
-                                "state": "#.input.state"
-                            },
-                            "service": "entity-database", "method": "update"
-                        },
-                        {
-                            "inputMap": {
-                                "onEvent": "on-transition",
-                                "entityType": "#.input.entityType",
-                                "eventType": "transitioned",
-                                "entity": "#.transitioned"
-                            },
-                            "call": "entity-event-handler-runner"
-                        },
-                        { "return": "#.transitioned" }
-                    ]
+                    "execute": "#.wrappedAction"
                 }
             ],
             "amend": [
@@ -353,44 +391,43 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "wrappedAction",
                     "inputMap": {
-                        "beforeEvent": "before-amend",
-                        "entityType": "#.input.entityType",
-                        "eventInput": "#.input"
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/amend/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inTransaction": [
+                                    {
+                                        "outputKey": "amended",
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "businessKey": "#.input.businessKey",
+                                            "revision": "#.input.revision",
+                                            "data": "#.input.data",
+                                            "validFrom": "#.input.validFrom"
+                                        },
+                                        "service": "entity-database", "method": "amend"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entityType": "#.input.entityType",
+                                            "record": "#.amended",
+                                            "eventType": "amended",
+                                            "correlation": "#._ctx.correlation"
+                                        },
+                                        "service": "entity-event-publisher", "method": "publish"
+                                    },
+                                    { "return": "#.amended" }
+                                ]
+                            }
+                        },
+                        "context": { "method": "amend", "entityType": "#.input.entityType" }
                     },
-                    "call": "entity-guard-runner"
+                    "call": "middleware-wrap"
                 },
                 {
-                    "inputMap": {
-                        "entityType": "#.input.entityType",
-                        "businessKey": "#.input.businessKey",
-                        "revision": "#.input.revision",
-                        "data": "#.input.data",
-                        "validFrom": "#.input.validFrom"
-                    },
-                    "inTransaction": [
-                        {
-                            "outputKey": "amended",
-                            "inputMap": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "revision": "#.input.revision",
-                                "data": "#.input.data",
-                                "validFrom": "#.input.validFrom"
-                            },
-                            "service": "entity-database", "method": "amend"
-                        },
-                        {
-                            "inputMap": {
-                                "onEvent": "on-amend",
-                                "entityType": "#.input.entityType",
-                                "eventType": "amended",
-                                "entity": "#.amended"
-                            },
-                            "call": "entity-event-handler-runner"
-                        },
-                        { "return": "#.amended" }
-                    ]
+                    "inputMap": "#.input",
+                    "execute": "#.wrappedAction"
                 }
             ],
             "execute": [
@@ -438,8 +475,28 @@
                     "else": [{ "return": "#" }]
                 },
                 {
-                    "inputMap": { "$coalesce": ["#.input.methodInput", {}] },
-                    "execute": { "service": "#.extension.id", "method": "#.input.method" }
+                    "outputKey": "wrappedAction",
+                    "inputMap": {
+                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/execute/", "#.input.entityType"] } },
+                        "action": {
+                            "$literal": {
+                                "inputMap": { "$coalesce": ["#.input.methodInput", {}] },
+                                "execute": { "service": "#.input.extensionId", "method": "#.input.method" }
+                            }
+                        },
+                        "context": { "method": "execute", "entityType": "#.input.entityType" }
+                    },
+                    "call": "middleware-wrap"
+                },
+                {
+                    "inputMap": {
+                        "entityType": "#.input.entityType",
+                        "businessKey": "#.input.businessKey",
+                        "method": "#.input.method",
+                        "methodInput": "#.input.methodInput",
+                        "extensionId": "#.extension.id"
+                    },
+                    "execute": "#.wrappedAction"
                 }
             ]
         }
