@@ -15,7 +15,7 @@
                 "set": {
                     "$ascending": {
                         "_collection": "#.input.middlewares",
-                        "_by": "#.input.data.ordering"
+                        "_by": "#.data.ordering"
                     }
                 }
             },
