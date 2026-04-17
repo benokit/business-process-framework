@@ -51,9 +51,14 @@
                         {
                             "forEach": [
                                 {
+                                    "outputKey": "middlewareItems",
+                                    "getElementsOfKind": "middleware/messaging",
+                                    "outputMap": "#.items"
+                                },
+                                {
                                     "outputKey": "wrappedHandler",
                                     "inputMap": {
-                                        "middlewareKind": "middleware/messaging",
+                                        "middlewares": "#.middlewareItems",
                                         "action": "#.input.consumer.handler",
                                         "context": { "consumerId": "#.input.consumerId" }
                                     },

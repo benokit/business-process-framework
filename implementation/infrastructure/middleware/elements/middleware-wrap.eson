@@ -4,21 +4,17 @@
         "kind": "executable",
         "meta": {
             "inputSchema": {
-                "!middlewareKind": "string",
+                "!middlewares": "object[]",
                 "!action": "object",
                 "context": "object"
             }
         },
         "data": [
             {
-                "outputKey": "middlewareData",
-                "getElementsOfKind": "#.input.middlewareKind"
-            },
-            {
                 "outputKey": "sortedMiddlewares",
                 "set": {
                     "$ascending": {
-                        "_collection": "#.middlewareData.items",
+                        "_collection": "#.input.middlewares",
                         "_by": "#.input.data.ordering"
                     }
                 }

@@ -1,6 +1,0 @@
-# entity service middleware
-
-kind: middleware/entity-service/{method}/{entity-type}
-
-no need of explicit guards, event handlers, etc
- - in principle guards are middleware elements which execute next last and handlers are elements that call next first.

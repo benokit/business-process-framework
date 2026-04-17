@@ -107,6 +107,32 @@ If neither `return` nor `exit` is present, the pipeline returns the output of th
 
 **Usage pattern**: `_ctx` is the right place for request-scoped state that must be shared across service boundaries without being passed through method inputs — for example, a database connection, a transaction handle, or a request-level cache. Write to it in one node, read from it via `#._ctx.<key>` in any later node, even across `service` or `call` boundaries. Use `finally` to perform cleanup with side effects (e.g. rolling back a transaction) that must happen regardless of whether an error occurred.
 
+### Building deferred pipeline nodes
+
+A common pattern is to construct a pipeline node descriptor at runtime (e.g. in a `return` or `set` body) for later execution by the caller via `execute`. When embedding a resolved value into that descriptor, use `{ "\\$literal": <expr> }` in the body: LambdaJSON evaluates it to `{ "$literal": <value> }` in the resulting object, which `$literal` returns unchanged when the node is eventually executed.
+
+**Do not use `{ "\\$literal": ... }` in an `inputMap` when you want to pass a value.** Inside `inputMap`, LambdaJSON evaluates `{ "\\$literal": "#.path" }` to `{ "$literal": <value> }` — a wrapped object — not the value itself. Use `"#.path"` instead.
+
+| Where | Correct form | What it produces |
+|---|---|---|
+| `return`/`set` body — embedding into a deferred node | `{ "\\$literal": "#.path" }` | `{ "$literal": <value> }` — resolved later by `$literal` when the node executes |
+| `inputMap` — passing a value to a call | `"#.path"` | the resolved value directly |
+
+Example — building a node that captures a runtime array for deferred execution:
+
+```json
+{
+    "return": {
+        "inputMap": {
+            "items": { "\\$literal": "#.sortedItems" }
+        },
+        "call": "some-runner"
+    }
+}
+```
+
+The `return` body is evaluated as a LambdaJSON expression, producing `{ "call": "some-runner", "inputMap": { "items": { "$literal": [/* actual items */] } } }`. When the caller later runs this node via `execute`, `$literal` returns the embedded array unchanged.
+
 ### Mapping functions
 
 LambdaJSON expressions are used throughout pipelines for all value computation: <https://github.com/benokit/json-programming-language>.

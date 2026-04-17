@@ -19,27 +19,32 @@ Each middleware receives `{ context, input, next }`, where `next` is a node that
 
 ## middleware-wrap
 
-Collects all middleware elements of a given kind, sorts them by `ordering`, and returns a resolved pipeline node that wraps the provided `action`. The caller is not responsible for gathering middlewares.
+Sorts the provided middleware array by `ordering` and returns a resolved pipeline node that wraps the provided `action`. The caller is responsible for collecting the middleware elements beforehand.
 
 ### Input
 
 | Field | Type | Description |
 |---|---|---|
-| `middlewareKind` | `string` | The `kind` used to query middleware elements |
+| `middlewares` | `object[]` | Array of middleware data elements to wrap with |
 | `action` | `object` | Pipeline node to invoke after all middlewares pass |
 | `context` | `object?` | Arbitrary context object forwarded to every middleware |
 
 ### Returns
 
-A pipeline node (ready to `execute`) that, when called with any `input`, runs through the collected middlewares and then calls `action`.
+A pipeline node (ready to `execute`) that, when called with any `input`, runs through the sorted middlewares and then calls `action`.
 
 ### Usage
 
 ```json
 {
+    "outputKey": "middlewareItems",
+    "getElementsOfKind": "my-middleware",
+    "outputMap": "#.items"
+},
+{
     "outputKey": "wrappedAction",
     "inputMap": {
-        "middlewareKind": "my-middleware",
+        "middlewares": "#.middlewareItems",
         "action": { "\\$literal": { "service": "my-service", "method": "handle" } },
         "context": "#.input.context"
     },

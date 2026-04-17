@@ -138,9 +138,14 @@
                     ]
                 },
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/create/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/create/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inTransaction": [
@@ -183,9 +188,14 @@
             ],
             "read": [
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/read/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/read/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "service": "entity-database", "method": "read"
@@ -210,9 +220,14 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/update/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/update/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inTransaction": [
@@ -250,9 +265,14 @@
             ],
             "delete": [
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/delete/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/delete/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inTransaction": [
@@ -334,9 +354,14 @@
                 },
                 { "outputKey": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/transition/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/transition/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inTransaction": [
@@ -391,9 +416,14 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/amend/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/amend/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inTransaction": [
@@ -475,9 +505,14 @@
                     "else": [{ "return": "#" }]
                 },
                 {
+                    "outputKey": "middlewareItems",
+                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/execute/", "#.input.entityType"] } },
+                    "outputMap": "#.items"
+                },
+                {
                     "outputKey": "wrappedAction",
                     "inputMap": {
-                        "middlewareKind": { "$join": { "_strings": ["middleware/entity-service/execute/", "#.input.entityType"] } },
+                        "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
                                 "inputMap": { "$coalesce": ["#.input.methodInput", {}] },

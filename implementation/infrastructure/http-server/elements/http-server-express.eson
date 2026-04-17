@@ -11,9 +11,14 @@
                     "inputMap": "#.endpointData.items",
                     "forEach": [
                         {
+                            "outputKey": "middlewareItems",
+                            "getElementsOfKind": "middleware/http",
+                            "outputMap": "#.items"
+                        },
+                        {
                             "outputKey": "wrappedAction",
                             "inputMap": {
-                                "middlewareKind": "middleware/http",
+                                "middlewares": "#.middlewareItems",
                                 "action": {
                                     "service": "#.input.data.controller.service",
                                     "method": "#.input.data.controller.method"
