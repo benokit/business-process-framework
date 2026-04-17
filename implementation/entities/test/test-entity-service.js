@@ -51,14 +51,13 @@ describe('entity service', function () {
             }
         });
 
-        // Mock inTransaction template — executes the program inline without a real DB transaction.
+        // Mock transaction service — executes the program inline without a real DB transaction.
         registerElement({
-            type: 'data',
-            id: 'mock-in-transaction-template',
-            kind: 'execution-node-template',
+            kind: 'service',
+            id: 'transaction',
             data: {
-                keyword: 'inTransaction',
-                implementation: [{ execute: '#.node.inTransaction', inputMap: '#.input' }]
+                interface: { executeInTransaction: { input: {}, output: {} } },
+                implementation: { executeInTransaction: { inputMap: '#.input.programInput', execute: '#.input.program' } }
             }
         });
 
@@ -223,6 +222,39 @@ describe('entity service', function () {
             }
         });
 
+        // Entity type for transaction boundary ordering tests.
+        // A pre-tx guard at ordering=10 blocks when amount < 0.
+        // A post-tx observer at ordering=60 records that it ran.
+        registerElement({ type: 'data', id: 'order-tx-boundary', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            kind: 'middleware/entity-service/create/order-tx-boundary',
+            id: 'order-tx-boundary-pre-guard',
+            data: {
+                ordering: 10,
+                implementation: [
+                    {
+                        if: { '$lt': ['#.input.input.data.amount', 0] },
+                        then: [{ throw: 'pre-tx guard rejected' }],
+                        else: [{ inputMap: '#.input.input', execute: '#.input.next' }]
+                    }
+                ]
+            }
+        });
+        registerElement({
+            kind: 'middleware/entity-service/create/order-tx-boundary',
+            id: 'order-tx-boundary-post-observer',
+            data: {
+                ordering: 60,
+                implementation: [
+                    { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                    { outputKey: '_ctx', set: { postTxObserved: true, postTxResult: '#.result' } },
+                    { return: '#.result' }
+                ]
+            }
+        });
+
         // Entity type and business-key rule used by business-key rule tests.
         registerElement({ type: 'data', id: 'order-with-bk-rule', data: {
             dataSchema: { '!amount': 'number', '!currency': 'string' }
@@ -349,6 +381,32 @@ describe('entity service', function () {
                 entityType: 'order', businessKey: 'bk-no-handler', data: { amount: 10, currency: 'USD' }
             });
             expect(result.entityType).to.equal('order');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('create — transaction boundary', () => {
+
+        it('post-transaction middleware (ordering > 50) runs when pre-transaction guard allows the operation', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-tx-boundary', businessKey: 'tx-allow', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.postTxObserved).to.be.true;
+            expect(_ctx.postTxResult).to.exist;
+        });
+
+        it('pre-transaction middleware (ordering < 50) aborting prevents post-transaction middleware from running', async () => {
+            let error;
+            const _ctx = {};
+            try {
+                await executeService(SERVICE, 'create', {
+                    entityType: 'order-tx-boundary', businessKey: 'tx-deny', data: { amount: -1, currency: 'USD' }
+                }, _ctx);
+            } catch (e) { error = e; }
+            expect(error.cause).to.include('pre-tx guard rejected');
+            expect(_ctx.postTxObserved).to.be.undefined;
         });
 
     });

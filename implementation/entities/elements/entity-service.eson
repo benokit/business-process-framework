@@ -138,9 +138,18 @@
                     ]
                 },
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/create/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/create/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -148,31 +157,16 @@
                         "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
-                                "inTransaction": [
-                                    {
-                                        "outputKey": "created",
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "businessKey": "#.input.businessKey",
-                                            "data": "#.input.data",
-                                            "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
-                                        },
-                                        "service": "entity-database", "method": "create"
-                                    },
-                                    {
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "record": "#.created",
-                                            "eventType": "created",
-                                            "correlation": "#._ctx.correlation"
-                                        },
-                                        "service": "entity-event-publisher", "method": "publish"
-                                    },
-                                    { "return": "#.created" }
-                                ]
+                                "inputMap": {
+                                    "entityType": "#.input.entityType",
+                                    "businessKey": "#.input.businessKey",
+                                    "data": "#.input.data",
+                                    "state": { "dimensions": { "$coalesce": ["#.input.initialState", {}] } }
+                                },
+                                "service": "entity-database", "method": "create"
                             }
                         },
-                        "context": { "method": "create", "entityType": "#.input.entityType" }
+                        "context": { "method": "create", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
                     },
                     "call": "middleware-wrap"
                 },
@@ -188,9 +182,18 @@
             ],
             "read": [
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/read/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/read/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -220,9 +223,18 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/update/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/update/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -230,31 +242,16 @@
                         "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
-                                "inTransaction": [
-                                    {
-                                        "outputKey": "updated",
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "businessKey": "#.input.businessKey",
-                                            "revision": "#.input.revision",
-                                            "data": "#.input.data"
-                                        },
-                                        "service": "entity-database", "method": "update"
-                                    },
-                                    {
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "record": "#.updated",
-                                            "eventType": "updated",
-                                            "correlation": "#._ctx.correlation"
-                                        },
-                                        "service": "entity-event-publisher", "method": "publish"
-                                    },
-                                    { "return": "#.updated" }
-                                ]
+                                "inputMap": {
+                                    "entityType": "#.input.entityType",
+                                    "businessKey": "#.input.businessKey",
+                                    "revision": "#.input.revision",
+                                    "data": "#.input.data"
+                                },
+                                "service": "entity-database", "method": "update"
                             }
                         },
-                        "context": { "method": "update", "entityType": "#.input.entityType" }
+                        "context": { "method": "update", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
                     },
                     "call": "middleware-wrap"
                 },
@@ -265,9 +262,18 @@
             ],
             "delete": [
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/delete/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/delete/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -275,30 +281,15 @@
                         "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
-                                "inTransaction": [
-                                    {
-                                        "outputKey": "deleted",
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "businessKey": "#.input.businessKey",
-                                            "revision": "#.input.revision"
-                                        },
-                                        "service": "entity-database", "method": "delete"
-                                    },
-                                    {
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "record": "#.deleted",
-                                            "eventType": "deleted",
-                                            "correlation": "#._ctx.correlation"
-                                        },
-                                        "service": "entity-event-publisher", "method": "publish"
-                                    },
-                                    { "return": "#.deleted" }
-                                ]
+                                "inputMap": {
+                                    "entityType": "#.input.entityType",
+                                    "businessKey": "#.input.businessKey",
+                                    "revision": "#.input.revision"
+                                },
+                                "service": "entity-database", "method": "delete"
                             }
                         },
-                        "context": { "method": "delete", "entityType": "#.input.entityType" }
+                        "context": { "method": "delete", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
                     },
                     "call": "middleware-wrap"
                 },
@@ -354,9 +345,18 @@
                 },
                 { "outputKey": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/transition/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/transition/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -364,31 +364,16 @@
                         "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
-                                "inTransaction": [
-                                    {
-                                        "outputKey": "transitioned",
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "businessKey": "#.input.businessKey",
-                                            "revision": "#.input.revision",
-                                            "state": "#.input.state"
-                                        },
-                                        "service": "entity-database", "method": "update"
-                                    },
-                                    {
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "record": "#.transitioned",
-                                            "eventType": "transitioned",
-                                            "correlation": "#._ctx.correlation"
-                                        },
-                                        "service": "entity-event-publisher", "method": "publish"
-                                    },
-                                    { "return": "#.transitioned" }
-                                ]
+                                "inputMap": {
+                                    "entityType": "#.input.entityType",
+                                    "businessKey": "#.input.businessKey",
+                                    "revision": "#.input.revision",
+                                    "state": "#.input.state"
+                                },
+                                "service": "entity-database", "method": "update"
                             }
                         },
-                        "context": { "method": "transition", "entityType": "#.input.entityType" }
+                        "context": { "method": "transition", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
                     },
                     "call": "middleware-wrap"
                 },
@@ -416,9 +401,18 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/amend/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/amend/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -426,32 +420,17 @@
                         "middlewares": "#.middlewareItems",
                         "action": {
                             "$literal": {
-                                "inTransaction": [
-                                    {
-                                        "outputKey": "amended",
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "businessKey": "#.input.businessKey",
-                                            "revision": "#.input.revision",
-                                            "data": "#.input.data",
-                                            "validFrom": "#.input.validFrom"
-                                        },
-                                        "service": "entity-database", "method": "amend"
-                                    },
-                                    {
-                                        "inputMap": {
-                                            "entityType": "#.input.entityType",
-                                            "record": "#.amended",
-                                            "eventType": "amended",
-                                            "correlation": "#._ctx.correlation"
-                                        },
-                                        "service": "entity-event-publisher", "method": "publish"
-                                    },
-                                    { "return": "#.amended" }
-                                ]
+                                "inputMap": {
+                                    "entityType": "#.input.entityType",
+                                    "businessKey": "#.input.businessKey",
+                                    "revision": "#.input.revision",
+                                    "data": "#.input.data",
+                                    "validFrom": "#.input.validFrom"
+                                },
+                                "service": "entity-database", "method": "amend"
                             }
                         },
-                        "context": { "method": "amend", "entityType": "#.input.entityType" }
+                        "context": { "method": "amend", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
                     },
                     "call": "middleware-wrap"
                 },
@@ -505,9 +484,18 @@
                     "else": [{ "return": "#" }]
                 },
                 {
-                    "outputKey": "middlewareItems",
+                    "outputKey": "baseMiddlewareItems",
+                    "getElementsOfKind": "middleware/entity-service/execute/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "specificMiddlewareItems",
                     "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/execute/", "#.input.entityType"] } },
                     "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "middlewareItems",
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",

@@ -1,0 +1,63 @@
+[
+    {
+        "id": "entity-event-publishing-middleware-base",
+        "kind": "executable",
+        "data": [
+            {
+                "outputKey": "result",
+                "inputMap": "#.input.input",
+                "execute": "#.input.next"
+            },
+            {
+                "inputMap": {
+                    "entityType": "#.input.context.entityType",
+                    "record": "#.result",
+                    "eventType": "#.input.context.method",
+                    "correlation": "#.input.context.correlation"
+                },
+                "service": "entity-event-publisher", "method": "publish"
+            },
+            { "return": "#.result" }
+        ]
+    },
+    {
+        "id": "entity-event-publishing-middleware-create",
+        "kind": "middleware/entity-service/create/root-entity-class",
+        "data": {
+            "ordering": 100,
+            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
+        }
+    },
+    {
+        "id": "entity-event-publishing-middleware-update",
+        "kind": "middleware/entity-service/update/root-entity-class",
+        "data": {
+            "ordering": 100,
+            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
+        }
+    },
+    {
+        "id": "entity-event-publishing-middleware-delete",
+        "kind": "middleware/entity-service/delete/root-entity-class",
+        "data": {
+            "ordering": 100,
+            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
+        }
+    },
+    {
+        "id": "entity-event-publishing-middleware-transition",
+        "kind": "middleware/entity-service/transition/root-entity-class",
+        "data": {
+            "ordering": 100,
+            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
+        }
+    },
+    {
+        "id": "entity-event-publishing-middleware-amend",
+        "kind": "middleware/entity-service/amend/root-entity-class",
+        "data": {
+            "ordering": 100,
+            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
+        }
+    }
+]

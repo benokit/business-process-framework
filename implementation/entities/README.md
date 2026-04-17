@@ -103,7 +103,7 @@ When `transition` is called:
 2. Checks all `from` dimensions against current state; throws `"transition failed"` if any mismatch.
 3. Merges `to` onto current `dimensions`.
 4. Runs the middleware chain for `middleware/entity-service/transition/{entityType}`.
-5. Writes the new state inside a transaction.
+5. Runs the middleware chain and writes the new state (the transaction is established by the ordering=50 middleware — see [Transaction boundary](#transaction-boundary)).
 
 ## `entity` service
 
@@ -169,6 +169,18 @@ Each middleware receives `{ context, input, next }` as its pipeline input:
 ```
 
 Middlewares are sorted by `ordering` (ascending) before the chain is built. Multiple middlewares for the same kind run in order; the first to throw stops the chain.
+
+### Transaction boundary
+
+For write methods (`create`, `update`, `delete`, `transition`, `amend`) a built-in middleware at `ordering: 50` establishes a database transaction. `ordering` determines where a middleware runs relative to that boundary:
+
+| `ordering` | Runs | Typical use |
+| --- | --- | --- |
+| < 50 | Before the transaction | Guards, validation, authorisation |
+| 50 | Transaction boundary (built-in, do not reuse) | — |
+| > 50 | Inside the transaction | Post-action side-effects (e.g. event publishing at `ordering: 100`) |
+
+The core database call (the action) always runs inside the transaction. Middlewares at `ordering > 50` share the same transaction and may write to additional tables (e.g. outbox) atomically with the entity write.
 
 ## Business key rules
 

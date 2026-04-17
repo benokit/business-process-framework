@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const ELEMENTS_DIR             = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR        = join(__dirname, '../../core/elements');
+const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../infrastructure/middleware/elements');
 const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../infrastructure/transaction/elements');
 const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../infrastructure/messaging/elements');
 const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../infrastructure/transactional-outbox/elements');
@@ -21,6 +22,7 @@ const SERVICE = 'entity';
 const ENTITY_TYPE    = `integration-order-${Date.now()}`;
 const BK_ENTITY_TYPE = `integration-order-bk-${Date.now()}`;
 const EXT_ENTITY_TYPE = `integration-ext-${Date.now()}`;
+const TX_ENTITY_TYPE  = `integration-tx-${Date.now()}`;
 
 describe('entity service — integration', function () {
     let connected = false;
@@ -41,6 +43,7 @@ describe('entity service — integration', function () {
 
         await loadElements([
             CORE_ELEMENTS_DIR,
+            MIDDLEWARE_ELEMENTS_DIR,
             TRANSACTION_ELEMENTS_DIR,
             MESSAGING_ELEMENTS_DIR,
             OUTBOX_ELEMENTS_DIR,
@@ -87,6 +90,36 @@ describe('entity service — integration', function () {
             }
         });
 
+        // Entity type for transaction boundary tests.
+        // pre-observer (ordering=10) captures _ctx.transaction before the boundary.
+        // post-observer (ordering=60) captures _ctx.transaction inside the transaction.
+        registerElement({ type: 'data', id: TX_ENTITY_TYPE, data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string' }
+        }});
+        registerElement({
+            kind: `middleware/entity-service/create/${TX_ENTITY_TYPE}`,
+            id: `${TX_ENTITY_TYPE}-pre-observer`,
+            data: {
+                ordering: 10,
+                implementation: [
+                    { outputKey: '_ctx', set: { preTxTransaction: '#._ctx.transaction' } },
+                    { inputMap: '#.input.input', execute: '#.input.next' }
+                ]
+            }
+        });
+        registerElement({
+            kind: `middleware/entity-service/create/${TX_ENTITY_TYPE}`,
+            id: `${TX_ENTITY_TYPE}-post-observer`,
+            data: {
+                ordering: 60,
+                implementation: [
+                    { outputKey: '_ctx', set: { postTxTransaction: '#._ctx.transaction' } },
+                    { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                    { return: '#.result' }
+                ]
+            }
+        });
+
         // Order entity type with a simple status lifecycle
         registerElement({
             type: 'data',
@@ -116,6 +149,7 @@ describe('entity service — integration', function () {
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [BK_ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [EXT_ENTITY_TYPE]).catch(() => {});
+        await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [TX_ENTITY_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM transactional_outbox WHERE channel = 'entity-events'`).catch(() => {});
@@ -336,5 +370,27 @@ describe('entity service — integration', function () {
             } catch (e) { error = e; }
             expect(error.cause).to.equal('method not found');
         });
+    });
+
+    // -------------------------------------------------------------------------
+    describe('transaction boundary', function () {
+
+        it('middleware with ordering > 50 runs inside the database transaction', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: TX_ENTITY_TYPE, businessKey: 'tx-inside', data: { amount: 10, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.postTxTransaction).to.exist;
+            expect(_ctx.postTxTransaction.sessionId).to.be.a('number');
+        });
+
+        it('middleware with ordering < 50 runs outside the database transaction', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: TX_ENTITY_TYPE, businessKey: 'tx-outside', data: { amount: 20, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.preTxTransaction).to.be.undefined;
+        });
+
     });
 });
