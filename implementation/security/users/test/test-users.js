@@ -10,7 +10,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELEMENTS_DIR      = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
 const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
+const USERS_ELEMENTS_DIR  = join(__dirname, '../../users/elements');
 const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../infrastructure/middleware/elements');
+const TRANSACTION_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
 
 describe('password functions', () => {
 
@@ -41,7 +43,7 @@ describe('password functions', () => {
 describe('user component methods', () => {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, INFRASTRUCTURE_MIDDLEWARE_DIR]);
+        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, USERS_ELEMENTS_DIR, INFRASTRUCTURE_MIDDLEWARE_DIR, TRANSACTION_DIR]);
 
         registerElement({
             kind: 'execution-node-template',
