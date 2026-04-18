@@ -18,8 +18,7 @@ See [core/README.md](implementation/core/README.md) for full details on element 
 implementation/
   core/            # Framework runtime (elements-loader, service, schema, data, date, random)
   infrastructure/  # See infrastructure/README.md for index
-  framework/       # See framework/README.md for index
-  security/        # Business logic (entities, ...)
+  framework/       # See framework/README.md for index (includes entities, security/*)
 ```
 
 See [infrastructure/README.md](implementation/infrastructure/README.md) for the infrastructure package index.

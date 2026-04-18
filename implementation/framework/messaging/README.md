@@ -13,7 +13,7 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 | `broker` | id of the `message-broker` data element |
 | `topology` | `"queue"` or `"topic"` |
 | `name` | channel name on the broker |
-| `publisher.transactionalOutbox` | when `true`, routes `publish` through [`transactional-outbox`](../transactional-outbox/README.md) |
+| `publisher.transactionalOutbox` | when `true`, routes `publish` through [`transactional-outbox`](../../infrastructure/transactional-outbox/README.md) |
 | `publisher.retry.attempts` | max outbox publish retry attempts |
 | `publisher.retry.backoff` | base backoff in ms (exponential: `backoff * 2^retryCount`) |
 | `consumer.concurrency` | parallel consumer count |

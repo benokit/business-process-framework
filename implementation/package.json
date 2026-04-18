@@ -2,9 +2,7 @@
   "name": "@business-framework/implementation",
   "workspaces": [
     "core",
-    "entities",
     "infrastructure/*",
-    "security/*",
     "framework/*"
   ],
   "private": true,
