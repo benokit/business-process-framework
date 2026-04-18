@@ -20,7 +20,7 @@
             "createModels": [
                 {
                     "outputKey": "sortedModels",
-                    "getElementsOfKind": { "$join": { "_strings": ["data-model/", "#.input.dbType"] } },
+                    "getElementsOfKind": { "$join": { "_strings": ["db-model/", "#.input.dbType"] } },
                     "outputMap": { "$ascending": { "_collection": "#.items", "_by": { "$coalesce": ["#.input.data.order", 0] } } }
                 },
                 {

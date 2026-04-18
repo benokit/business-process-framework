@@ -65,7 +65,7 @@ describe('transactional-outbox', function () {
         await loadElements([
             packageDir('@business-framework/core'),
             packageDir('@business-framework/postgresql'),
-            packageDir('@business-framework/database-modeling'),
+            packageDir('@business-framework/db-modelling'),
             packageDir('@business-framework/transaction'),
             packageDir('@business-framework/messaging'),
             packageDir('@business-framework/transactional-outbox')

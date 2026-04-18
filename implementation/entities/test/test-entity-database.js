@@ -28,7 +28,7 @@ describe('entity-database', function () {
         }
         await loadElements([
             packageDir('@business-framework/postgresql'),
-            packageDir('@business-framework/database-modeling'),
+            packageDir('@business-framework/db-modelling'),
             packageDir('@business-framework/entities')
         ]);
         await connect();

@@ -3,7 +3,6 @@
 | Package | Description |
 | --- | --- |
 | [`postgresql`](postgresql/README.md) | PostgreSQL connection pool and `db-driver-postgresql` service |
-| [`database-modeling`](database-modeling/README.md) | Creates database objects from declarative `data-model` elements |
 | [`sequence-generator`](sequence-generator/README.md) | Monotonically increasing integer counters per named sequence |
 | [`http-server`](http-server/README.md) | Express HTTP server; routes from `http-endpoint` data elements |
 | [`transaction`](transaction/README.md) | PostgreSQL transaction lifecycle; `inTransaction` pipeline keyword |

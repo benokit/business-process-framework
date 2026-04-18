@@ -1,6 +1,6 @@
 [
     {
-        "kind": "data-model/postgresql",
+        "kind": "db-model/postgresql",
         "id": "entities-table",
         "data": {
             "command": "create-entities-table",
@@ -8,7 +8,7 @@
         }
     },
     {
-        "kind": "data-model/postgresql",
+        "kind": "db-model/postgresql",
         "id": "entity-history-table",
         "data": {
             "command": "create-entity-history-table",
@@ -16,7 +16,7 @@
         }
     },
     {
-        "kind": "data-model/postgresql",
+        "kind": "db-model/postgresql",
         "id": "entity-versions-table",
         "data": {
             "command": "create-entity-versions-table",
