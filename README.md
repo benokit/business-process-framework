@@ -1,37 +1,29 @@
 # Business Process Framework
 
-A declarative, data-driven framework for defining business logic as structured JSON elements — without writing imperative code for the common case.
+A declarative, data-driven framework for building backend services as structured JSON elements — without writing imperative code for the common case.
 
 ## Core idea
 
 Business logic is expressed as a set of **elements**: schemas, data, and services. Each element is a plain JSON object stored in a `.eson` file. A runtime loads these files, validates them, and makes services callable through a simple API.
 
-This means business processes — validation rules, data transformations, service orchestration — live in text files that are easy to read, diff, version, and audit. Logic can be changed without touching application code.
+Validation rules, data transformations, and service orchestration live in text files that are easy to read, diff, version, and audit. Logic can be updated without touching application code.
 
 ## Building blocks
 
-- **Schema** — declares the shape of data. Used to validate inputs and outputs across service boundaries.
-- **Data** — holds configuration, lookup tables, or any static values. Data elements can reference and compose each other.
-- **Service** — a callable unit with a typed interface and a declarative implementation. Methods are expressed as pipelines of steps: call another service, apply a transformation, branch on a condition, handle errors.
+**Schema** declares the shape of data using a compact notation. Schemas validate inputs and outputs across service boundaries and can reference each other.
 
-Service pipelines are pure where possible. Side effects are isolated to explicit `low`-level calls that delegate to host JavaScript functions, keeping the rest of the logic portable and easy to inspect.
+**Data** holds configuration, lookup tables, or any static values. Data elements compose by reference and deep-merge — no duplication required.
 
-The pipeline keyword set is open for extension: packages can register **execution node templates** that add new first-class keywords. For example, the `transaction` package adds `inTransaction`, which wraps a sub-pipeline in a database transaction with a single declarative node — no boilerplate service calls required.
+**Service** is a callable unit with a typed interface and a declarative implementation. Methods are expressed as pipelines of steps: call another service, apply a transformation, branch on a condition, handle errors.
 
-## Potential use cases
+Side effects are isolated to explicit `low` nodes that delegate to host JavaScript functions, keeping the rest of the pipeline portable and easy to inspect.
 
-- **Workflow automation** — model multi-step business processes (approval flows, document routing, order processing) as composable service pipelines.
-- **Configuration-driven APIs** — define backend service behavior in files rather than code; redeploy logic by updating elements without changing the application.
-- **Business rules engines** — encode validation, pricing, eligibility, or routing rules as versioned data that non-engineers can review and modify.
-- **Service orchestration** — coordinate calls across internal or external services with explicit input/output mapping and error handling at each step.
-- **Auditable logic** — because all behavior is declared in plain JSON, the full rule set can be inspected, diffed, and traced without reading source code.
+The pipeline keyword set is open for extension: packages register **execution node templates** that add new first-class keywords. For example, the `transaction` package adds `inTransaction`, which wraps a sub-pipeline in a database transaction with a single declarative node.
 
-## Getting started
+## Packages
 
 | | |
 | --- | --- |
-| [Runtime](implementation/runtime/README.md) | Element specification, pipeline keywords, runtime API, examples |
-| [Infrastructure](implementation/infrastructure/README.md) | Database, transactions, messaging, HTTP server |
-| [Shared](implementation/shared/README.md) | Cross-cutting packages (middleware runner) |
-| [Entities](implementation/entities/README.md) | Generic entity lifecycle management; keyed, versioned documents |
-| [Security](implementation/security/README.md) | Entity lifecycle, states, event handlers, components |
+| [Runtime](implementation/runtime/README.md) | Element specification, pipeline keywords, runtime API |
+| [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, messaging, cache, logging |
+| [Framework](implementation/framework/README.md) | Entities, messaging facade, database modelling, security |
