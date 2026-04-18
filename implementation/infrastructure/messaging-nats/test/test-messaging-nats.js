@@ -1,13 +1,14 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { connect as natsProbe } from 'nats';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { disconnect } from '@business-framework/messaging-nats/nats';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const BROKER_ID = `test-broker-${Date.now()}`;
 
@@ -25,10 +26,10 @@ describe('messaging service (nats)', function () {
         }
 
         await loadElements([
-            join(__dirname, '../../../core/elements'),
-            join(__dirname, '../../../shared/middleware/elements'),
-            join(__dirname, '../../messaging/elements'),
-            join(__dirname, '../elements')
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/middleware'),
+            packageDir('@business-framework/messaging'),
+            packageDir('@business-framework/messaging-nats')
         ]);
 
         registerElement({ id: BROKER_ID, data: { service: 'messaging-nats', url: NATS_URL } });

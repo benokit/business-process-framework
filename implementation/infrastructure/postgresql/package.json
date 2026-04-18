@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "exports": {
+    "./package.json": "./package.json",
     ".": "./src/postgres-client.js",
     "./driver": "./src/postgresql-driver.js"
   },

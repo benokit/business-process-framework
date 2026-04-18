@@ -1,13 +1,14 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import pg from 'pg';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import * as db from '../src/entity-database.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const ENTITY_TYPE = `test-entity-database-${Date.now()}`;
@@ -26,9 +27,9 @@ describe('entity-database', function () {
             this.skip();
         }
         await loadElements([
-            join(__dirname, '../../infrastructure/postgresql/elements'),
-            join(__dirname, '../../infrastructure/database-modeling/elements'),
-            join(__dirname, '../elements')
+            packageDir('@business-framework/postgresql'),
+            packageDir('@business-framework/database-modeling'),
+            packageDir('@business-framework/entities')
         ]);
         await connect();
         await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });

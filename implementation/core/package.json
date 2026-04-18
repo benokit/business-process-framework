@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "exports": {
+    "./package.json": "./package.json",
     "./execution": "./src/execution.js",
     "./data": "./src/data.js",
     "./elements-registry": "./src/elements-registry.js",

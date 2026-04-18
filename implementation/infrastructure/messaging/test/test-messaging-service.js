@@ -1,11 +1,12 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 const BROKER_ID    = 'svc-test-broker';
 const CHANNEL_A_ID = 'svc-test-channel-a';
@@ -13,9 +14,9 @@ const CHANNEL_B_ID = 'svc-test-channel-b';
 
 before(async function () {
     await loadElements([
-        join(__dirname, '../../../core/elements'),
-        join(__dirname, '../../../shared/middleware/elements'),
-        join(__dirname, '../elements')
+        packageDir('@business-framework/core'),
+        packageDir('@business-framework/middleware'),
+        packageDir('@business-framework/messaging')
     ]);
 
     // Mock broker: appends consumer names / channel names to _ctx for assertions

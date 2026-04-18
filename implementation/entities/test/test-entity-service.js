@@ -1,21 +1,23 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR           = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR      = join(__dirname, '../../core/elements');
-const MIDDLEWARE_ELEMENTS_DIR = join(__dirname, '../../shared/middleware/elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 const SERVICE = 'entity';
 
 describe('entity service', function () {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, MIDDLEWARE_ELEMENTS_DIR]);
+        await loadElements([
+            packageDir('@business-framework/entities'),
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/middleware')
+        ]);
 
         // Unified entity-database mock registered once to avoid dataCache conflicts.
         // create/update/delete echo their input so CRUD tests can assert on the mapping.

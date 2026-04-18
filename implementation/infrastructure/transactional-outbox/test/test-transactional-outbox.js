@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
@@ -8,7 +8,8 @@ import { registerElement } from '@business-framework/core/elements-registry';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { run, stop } from '../src/transactional-outbox-processor.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 
 const TEST_BROKER_ID = 'test-outbox-broker';
@@ -62,12 +63,12 @@ describe('transactional-outbox', function () {
         }
 
         await loadElements([
-            join(__dirname, '../../../core/elements'),
-            join(__dirname, '../../postgresql/elements'),
-            join(__dirname, '../../database-modeling/elements'),
-            join(__dirname, '../../transaction/elements'),
-            join(__dirname, '../../messaging/elements'),
-            join(__dirname, '../elements')
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/postgresql'),
+            packageDir('@business-framework/database-modeling'),
+            packageDir('@business-framework/transaction'),
+            packageDir('@business-framework/messaging'),
+            packageDir('@business-framework/transactional-outbox')
         ]);
 
         await connect();

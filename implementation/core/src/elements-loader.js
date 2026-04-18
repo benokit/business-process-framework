@@ -21,7 +21,7 @@ async function readElementsRecursively(definitionsPath) {
     for (const file of files) {
         const filePath = path.join(definitionsPath, file.name);
 
-        if (file.isDirectory()) {
+        if (file.isDirectory() && file.name !== 'node_modules') {
             definitions = definitions.concat(await readElementsRecursively(filePath));
         } else if (file.name.endsWith(ESON_SUFFIX) && !file.name.includes(ESON_INFIX)) {
             const json = await fs.readFile(filePath, 'utf8');

@@ -1,16 +1,17 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 before(async function () {
     await loadElements([
-        join(__dirname, '../../../core/elements'),
-        join(__dirname, '../elements')
+        packageDir('@business-framework/core'),
+        packageDir('@business-framework/logging')
     ]);
 
     registerElement({

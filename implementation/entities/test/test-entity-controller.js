@@ -1,13 +1,12 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR      = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR = join(__dirname, '../../core/elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 const CTRL = 'entity-controller';
 
@@ -19,7 +18,7 @@ const HEADERS = { 'x-correlation-id': 'corr-42' };
 describe('entity-controller', function () {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR]);
+        await loadElements([packageDir('@business-framework/entities'), packageDir('@business-framework/core')]);
 
         // Mock entity service: echoes input, captures _ctx, always returns RECORD.
         // capturedInput stored on _ctx so tests can inspect it after executeService().

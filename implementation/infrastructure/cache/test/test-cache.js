@@ -1,19 +1,19 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { cacheClear } from '@business-framework/cache';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR = join(__dirname, '../elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const SERVICE = 'test-with-cache';
 
 describe('cache', function () {
 
     before(async function () {
-        await loadElements([ELEMENTS_DIR]);
+        await loadElements([packageDir('@business-framework/cache')]);
 
         registerElement({
             kind: 'service',

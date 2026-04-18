@@ -1,15 +1,13 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import http from 'http';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const HTTP_SERVER_ELEMENTS_DIR = join(__dirname, '../elements');
-const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../../shared/middleware/elements');
-const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const SERVICE = 'http-server';
 
 function httpPost(url, payload) {
@@ -48,7 +46,11 @@ describe('http-middleware', function () {
     let port;
 
     before(async function () {
-        await loadElements([CORE_ELEMENTS_DIR, MIDDLEWARE_ELEMENTS_DIR, HTTP_SERVER_ELEMENTS_DIR]);
+        await loadElements([
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/middleware'),
+            packageDir('@business-framework/http-server')
+        ]);
 
         // Controller: echoes request body back as the HTTP response body
         registerElement({

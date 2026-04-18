@@ -1,14 +1,14 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import pg from 'pg';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { connect, disconnect } from '@business-framework/postgresql';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR = join(__dirname, '../elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'test-in-transaction-template';
 
@@ -25,7 +25,7 @@ describe('inTransaction node template', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — tests skipped\n');
             this.skip();
         }
-        await loadElements([ELEMENTS_DIR]);
+        await loadElements([packageDir('@business-framework/transaction')]);
         await connect();
         connected = true;
 

@@ -1,21 +1,14 @@
 import { expect } from 'chai';
 import pg from 'pg';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const ELEMENTS_DIR             = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR        = join(__dirname, '../../core/elements');
-const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../shared/middleware/elements');
-const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../infrastructure/transaction/elements');
-const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../infrastructure/messaging/elements');
-const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../infrastructure/transactional-outbox/elements');
-const SEQUENCE_ELEMENTS_DIR    = join(__dirname, '../../infrastructure/sequence-generator/elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SERVICE = 'entity';
@@ -42,13 +35,13 @@ describe('entity service — integration', function () {
         connected = true;
 
         await loadElements([
-            CORE_ELEMENTS_DIR,
-            MIDDLEWARE_ELEMENTS_DIR,
-            TRANSACTION_ELEMENTS_DIR,
-            MESSAGING_ELEMENTS_DIR,
-            OUTBOX_ELEMENTS_DIR,
-            SEQUENCE_ELEMENTS_DIR,
-            ELEMENTS_DIR
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/middleware'),
+            packageDir('@business-framework/transaction'),
+            packageDir('@business-framework/messaging'),
+            packageDir('@business-framework/transactional-outbox'),
+            packageDir('@business-framework/sequence-generator'),
+            packageDir('@business-framework/entities')
         ]);
 
         // Entity type with a business-key rule backed by a sequence generator.

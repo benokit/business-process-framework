@@ -1,18 +1,13 @@
 import { expect } from 'chai';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import { loadElements } from '@business-framework/core/elements-loader';
 import { executeService } from '@business-framework/core/execution';
 import { registerElement } from '@business-framework/core/elements-registry';
 import { hashPassword, verifyPassword } from '@business-framework/users';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ELEMENTS_DIR      = join(__dirname, '../elements');
-const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
-const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
-const USERS_ELEMENTS_DIR  = join(__dirname, '../../users/elements');
-const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../shared/middleware/elements');
-const TRANSACTION_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 
 describe('password functions', () => {
 
@@ -43,7 +38,13 @@ describe('password functions', () => {
 describe('user component methods', () => {
 
     before(async () => {
-        await loadElements([ELEMENTS_DIR, CORE_ELEMENTS_DIR, ENTITY_ELEMENTS_DIR, USERS_ELEMENTS_DIR, INFRASTRUCTURE_MIDDLEWARE_DIR, TRANSACTION_DIR]);
+        await loadElements([
+            packageDir('@business-framework/users'),
+            packageDir('@business-framework/core'),
+            packageDir('@business-framework/entities'),
+            packageDir('@business-framework/middleware'),
+            packageDir('@business-framework/transaction')
+        ]);
 
         registerElement({
             kind: 'execution-node-template',
