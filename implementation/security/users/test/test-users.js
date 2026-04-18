@@ -11,7 +11,7 @@ const ELEMENTS_DIR      = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR = join(__dirname, '../../../core/elements');
 const ENTITY_ELEMENTS_DIR = join(__dirname, '../../../entities/elements');
 const USERS_ELEMENTS_DIR  = join(__dirname, '../../users/elements');
-const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../infrastructure/middleware/elements');
+const INFRASTRUCTURE_MIDDLEWARE_DIR = join(__dirname, '../../../shared/middleware/elements');
 const TRANSACTION_DIR = join(__dirname, '../../../infrastructure/transaction/elements');
 
 describe('password functions', () => {

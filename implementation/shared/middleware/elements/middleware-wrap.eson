@@ -4,7 +4,7 @@
         "kind": "executable",
         "meta": {
             "inputSchema": {
-                "!middlewares": "object[]",
+                "!middlewares[]": "object",
                 "!action": "object",
                 "context": "object"
             }

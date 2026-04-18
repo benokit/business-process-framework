@@ -8,7 +8,7 @@ import { registerElement } from '@business-framework/core/elements-registry';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HTTP_SERVER_ELEMENTS_DIR = join(__dirname, '../elements');
-const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../middleware/elements');
+const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../../shared/middleware/elements');
 const CORE_ELEMENTS_DIR        = join(__dirname, '../../../core/elements');
 const SERVICE = 'http-server';
 

@@ -23,7 +23,7 @@ describe('messaging-middleware', function () {
     before(async function () {
         await loadElements([
             join(__dirname, '../../../core/elements'),
-            join(__dirname, '../../middleware/elements'),
+            join(__dirname, '../../../shared/middleware/elements'),
             join(__dirname, '../elements')
         ]);
 

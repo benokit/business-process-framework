@@ -18,10 +18,12 @@ See [core/README.md](implementation/core/README.md) for full details on element 
 implementation/
   core/            # Framework runtime (elements-loader, service, schema, data, date, random)
   infrastructure/  # See infrastructure/README.md for index
+  shared/          # See shared/README.md for index
   security/        # Business logic (entities, ...)
 ```
 
 See [infrastructure/README.md](implementation/infrastructure/README.md) for the infrastructure package index.
+See [shared/README.md](implementation/shared/README.md) for the shared package index.
 
 ## LambdaJSON
 

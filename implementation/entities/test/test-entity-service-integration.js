@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const ELEMENTS_DIR             = join(__dirname, '../elements');
 const CORE_ELEMENTS_DIR        = join(__dirname, '../../core/elements');
-const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../infrastructure/middleware/elements');
+const MIDDLEWARE_ELEMENTS_DIR  = join(__dirname, '../../shared/middleware/elements');
 const TRANSACTION_ELEMENTS_DIR = join(__dirname, '../../infrastructure/transaction/elements');
 const MESSAGING_ELEMENTS_DIR   = join(__dirname, '../../infrastructure/messaging/elements');
 const OUTBOX_ELEMENTS_DIR      = join(__dirname, '../../infrastructure/transactional-outbox/elements');

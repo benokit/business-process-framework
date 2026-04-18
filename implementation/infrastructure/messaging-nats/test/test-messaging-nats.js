@@ -26,7 +26,7 @@ describe('messaging service (nats)', function () {
 
         await loadElements([
             join(__dirname, '../../../core/elements'),
-            join(__dirname, '../../middleware/elements'),
+            join(__dirname, '../../../shared/middleware/elements'),
             join(__dirname, '../../messaging/elements'),
             join(__dirname, '../elements')
         ]);
