@@ -11,7 +11,7 @@
     "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
   },
   "dependencies": {
-    "@business-framework/core": "*",
+    "@business-framework/runtime": "*",
     "@business-framework/postgresql": "*",
     "fast-json-patch": "*"
   }

@@ -4,9 +4,9 @@
 
 The framework is built around **elements** — declarative JSON objects loaded from `.eson` files. Every element has an `id`, a `kind` string tag, and a `data` object. `kind` drives both behaviour and querying: `schema` elements register a CJSL schema, `service` elements expose a callable API, and all other kinds are plain data.
 
-Elements are loaded via `loadElements(paths)` from `core/elements-loader`. Services are invoked via `execute(serviceId, methodName, input, _ctx?)` from `core/service`. `_ctx` is an optional shared context object (default `{}`) that propagates through the entire execution graph.
+Elements are loaded via `loadElements(paths)` from `runtime/elements-loader`. Services are invoked via `execute(serviceId, methodName, input, _ctx?)` from `runtime/service`. `_ctx` is an optional shared context object (default `{}`) that propagates through the entire execution graph.
 
-See [core/README.md](implementation/core/README.md) for full details on element structure, pipelines, pipeline context/input shape, `set` merge behaviour, execution node templates, and JS module conventions.
+See [runtime/README.md](implementation/runtime/README.md) for full details on element structure, pipelines, pipeline context/input shape, `set` merge behaviour, execution node templates, and JS module conventions.
 
 ## Schema syntax (CJSL)
 
@@ -16,7 +16,7 @@ See [core/README.md](implementation/core/README.md) for full details on element 
 
 ```
 implementation/
-  core/            # Framework runtime (elements-loader, service, schema, data, date, random)
+  runtime/         # Framework runtime (elements-loader, service, schema, data, date, random)
   infrastructure/  # See infrastructure/README.md for index
   framework/       # See framework/README.md for index (includes entities, security/*)
 ```

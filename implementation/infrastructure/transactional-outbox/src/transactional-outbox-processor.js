@@ -1,6 +1,6 @@
 import { getPool } from '@business-framework/postgresql';
-import { executeService } from '@business-framework/core/execution';
-import { getElement } from '@business-framework/core/elements-registry';
+import { executeService } from '@business-framework/runtime/execution';
+import { getElement } from '@business-framework/runtime/elements-registry';
 
 let running = false;
 let stopRequested = false;

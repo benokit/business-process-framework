@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { getElement, getElementsOfKind, registerElement } from '@business-framework/core/elements-registry';
+import { getElement, getElementsOfKind, registerElement } from '@business-framework/runtime/elements-registry';
 
 describe('injection tests', () => {
 

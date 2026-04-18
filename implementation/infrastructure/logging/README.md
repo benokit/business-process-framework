@@ -14,7 +14,7 @@ Each entry is written as a single JSON line with the fields: `timestamp`, `level
 
 ## `log` pipeline keyword
 
-This package registers an [execution node template](../../core/README.md#execution-node-templates) that adds `log` as a first-class pipeline keyword:
+This package registers an [execution node template](../../runtime/README.md#execution-node-templates) that adds `log` as a first-class pipeline keyword:
 
 ```json
 { "log": "something happened" }

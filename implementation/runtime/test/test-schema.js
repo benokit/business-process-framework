@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { registerSchema, validateSchema, resolveSchema } from '@business-framework/core/schema';
+import { registerSchema, validateSchema, resolveSchema } from '@business-framework/runtime/schema';
 
 describe('schema tests', () => {
 

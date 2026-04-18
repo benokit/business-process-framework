@@ -7,7 +7,7 @@
     "start-demo": "node bootstrap.js ../../demo"
   },
   "dependencies": {
-    "@business-framework/core": "*",
+    "@business-framework/runtime": "*",
     "glob": "*"
   }
 }

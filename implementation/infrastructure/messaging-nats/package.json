@@ -10,7 +10,7 @@
         "test": "mocha --exit"
     },
     "dependencies": {
-        "@business-framework/core": "*",
+        "@business-framework/runtime": "*",
         "nats": "^2.29.0"
     },
     "devDependencies": {

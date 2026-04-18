@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import { dirname } from 'path';
 import { createRequire } from 'module';
-import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/execution';
-import { registerElement } from '@business-framework/core/elements-registry';
+import { loadElements } from '@business-framework/runtime/elements-loader';
+import { executeService } from '@business-framework/runtime/execution';
+import { registerElement } from '@business-framework/runtime/elements-registry';
 import { hashPassword, verifyPassword } from '@business-framework/users';
 
 const require = createRequire(import.meta.url);
@@ -40,7 +40,7 @@ describe('user component methods', () => {
     before(async () => {
         await loadElements([
             packageDir('@business-framework/users'),
-            packageDir('@business-framework/core'),
+            packageDir('@business-framework/runtime'),
             packageDir('@business-framework/entities'),
             packageDir('@business-framework/middleware'),
             packageDir('@business-framework/transaction')

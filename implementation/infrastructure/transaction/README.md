@@ -34,7 +34,7 @@ To write to `_ctx` from a pipeline step:
 
 ## `inTransaction` pipeline keyword
 
-This package registers an [execution node template](../../core/README.md#execution-node-templates) that adds `inTransaction` as a first-class pipeline keyword:
+This package registers an [execution node template](../../runtime/README.md#execution-node-templates) that adds `inTransaction` as a first-class pipeline keyword:
 
 ```json
 { "inTransaction": [ ... pipeline ... ] }

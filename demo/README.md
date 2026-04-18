@@ -105,10 +105,10 @@ Output: entity-record (status: approved)
 Pass the demo element paths alongside the framework elements when calling `loadElements`:
 
 ```js
-import { loadElements } from '@business-framework/core/elements-loader';
+import { loadElements } from '@business-framework/runtime/elements-loader';
 
 const elements = await loadElements([
-    'implementation/core/elements/**/*.eson',
+    'implementation/runtime/elements/**/*.eson',
     'implementation/security/entities/elements/**/*.eson',
     'implementation/infrastructure/**/elements/**/*.eson',
     'demo/**/*.eson'

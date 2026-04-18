@@ -10,6 +10,6 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "@business-framework/core": "*"
+    "@business-framework/runtime": "*"
   }
 }

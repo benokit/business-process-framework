@@ -50,7 +50,7 @@ Broker-agnostic messaging facade. Concrete broker implementations are separate p
 
 ## `publish` pipeline keyword
 
-This package registers an [execution node template](../../core/README.md#execution-node-templates) that adds `publish` as a first-class pipeline keyword:
+This package registers an [execution node template](../../runtime/README.md#execution-node-templates) that adds `publish` as a first-class pipeline keyword:
 
 ```json
 { "publish": { "channel": "order-events", "envelope": { ... } } }

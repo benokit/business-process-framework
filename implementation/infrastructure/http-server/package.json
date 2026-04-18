@@ -10,7 +10,7 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "@business-framework/core": "*",
+    "@business-framework/runtime": "*",
     "express": "^4.21.2"
   }
 }

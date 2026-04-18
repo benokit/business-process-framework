@@ -3,8 +3,8 @@ import { dirname } from 'path';
 import { createRequire } from 'module';
 import pg from 'pg';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
-import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/execution';
+import { loadElements } from '@business-framework/runtime/elements-loader';
+import { executeService } from '@business-framework/runtime/execution';
 import * as db from '../src/entity-database.js';
 
 const require = createRequire(import.meta.url);

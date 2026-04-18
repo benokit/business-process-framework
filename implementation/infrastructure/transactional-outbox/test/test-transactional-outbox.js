@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { dirname } from 'path';
 import { createRequire } from 'module';
 import pg from 'pg';
-import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/execution';
-import { registerElement } from '@business-framework/core/elements-registry';
+import { loadElements } from '@business-framework/runtime/elements-loader';
+import { executeService } from '@business-framework/runtime/execution';
+import { registerElement } from '@business-framework/runtime/elements-registry';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { run, stop } from '../src/transactional-outbox-processor.js';
 
@@ -63,7 +63,7 @@ describe('transactional-outbox', function () {
         }
 
         await loadElements([
-            packageDir('@business-framework/core'),
+            packageDir('@business-framework/runtime'),
             packageDir('@business-framework/postgresql'),
             packageDir('@business-framework/db-modelling'),
             packageDir('@business-framework/transaction'),

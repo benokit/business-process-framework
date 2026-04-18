@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import { dirname } from 'path';
 import { createRequire } from 'module';
 import pg from 'pg';
-import { loadElements } from '@business-framework/core/elements-loader';
-import { executeService } from '@business-framework/core/execution';
+import { loadElements } from '@business-framework/runtime/elements-loader';
+import { executeService } from '@business-framework/runtime/execution';
 import { connect, disconnect } from '@business-framework/postgresql';
-import { registerElement } from '@business-framework/core/elements-registry';
+import { registerElement } from '@business-framework/runtime/elements-registry';
 
 const require = createRequire(import.meta.url);
 const packageDir = name => dirname(require.resolve(`${name}/package.json`));

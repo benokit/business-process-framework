@@ -306,9 +306,9 @@ In all cases the element participates in the registry normally: it can be retrie
 ## Runtime API
 
 ```js
-import { loadElements }             from 'core/elements-loader';
-import { execute }                  from 'core/execution';
-import { getElement, getElementsOfKind } from 'core/elements-registry';
+import { loadElements }             from 'runtime/elements-loader';
+import { execute }                  from 'runtime/execution';
+import { getElement, getElementsOfKind } from 'runtime/elements-registry';
 
 // Load all *.eson and *.eson.* files from one or more directory trees.
 await loadElements(['./elements', './app/elements']);

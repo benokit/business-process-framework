@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { evaluateData } from '@business-framework/core/data';
-import { getElement, registerElement } from '@business-framework/core/elements-registry';
+import { evaluateData } from '@business-framework/runtime/data';
+import { getElement, registerElement } from '@business-framework/runtime/elements-registry';
 
 describe('data tests', () => {
 

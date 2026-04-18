@@ -1,5 +1,5 @@
 import express from 'express';
-import { executeMethod } from '@business-framework/core/execution';
+import { executeMethod } from '@business-framework/runtime/execution';
 
 function createApp() {
     const a = express();

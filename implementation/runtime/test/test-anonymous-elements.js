@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { getElementsOfKind, registerElement } from '@business-framework/core/elements-registry';
+import { getElementsOfKind, registerElement } from '@business-framework/runtime/elements-registry';
 
 describe('anonymous elements (no id)', () => {
 

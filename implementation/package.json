@@ -1,7 +1,7 @@
 {
   "name": "@business-framework/implementation",
   "workspaces": [
-    "core",
+    "runtime",
     "infrastructure/*",
     "framework/*"
   ],
