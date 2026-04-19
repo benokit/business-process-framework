@@ -79,7 +79,7 @@ The execution context is an object available throughout a pipeline:
 
 All branch keywords (`if`, `switch`) pass the full context into their bodies (or the `inputMap` result if one is present). For `execute`, the expression is evaluated against the full context and the resulting pipeline runs with the `inputMap` result (or full context if no `inputMap`). Two special cases:
 
-- **`forEach`**: each iteration starts a fresh context `{ input: <element> }` — named steps from the outer pipeline are not visible inside the `forEach` body. `_ctx` is still the same shared object across all iterations.
+- **`forEach`**: each iteration runs with the outer execution context with `input` replaced by the current element — named steps captured via `outputKey` in the outer pipeline are visible inside the forEach body. `_ctx` is still the same shared object across all iterations.
 - **`try/catch/finally`**: the `catch` body receives `{ context, error }` where `context` is the full execution context at the time of the throw and `error` is the thrown value. Outer steps captured with `outputKey` are accessible as `#.context.<outputKey>`. `_ctx` is preserved and accessible as `#._ctx` inside `catch`. The `finally` body always runs after the `try`/`catch` phase with the original context; it is useful for cleanup with side effects (e.g. rolling back a transaction, releasing a lock) that must happen regardless of outcome. Its return value is discarded. `catch` and `finally` are both optional, but at least one must be present.
 
 If neither `return` nor `exit` is present, the pipeline returns the output of the last executed node.

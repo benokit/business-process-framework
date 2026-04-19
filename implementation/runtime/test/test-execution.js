@@ -202,12 +202,25 @@ describe('service tests', () => {
                         inputMap: '#.input',
                         forEach: { return: { $multiply: ['#.input', 2] } }
                     }
+                },
+                addMultiplier: {
+                    impl: [
+                        { outputKey: 'multiplier', set: '#.input.multiplier' },
+                        {
+                            inputMap: '#.input.items',
+                            forEach: { return: { $multiply: ['#.input', '#.multiplier'] } }
+                        }
+                    ]
                 }
             });
         });
 
         it('should apply the body implementation to each element of the input array', async () => {
             expect(await executeService('svc-foreach', 'doubleAll', [1, 2, 3])).to.deep.equal([2, 4, 6]);
+        });
+
+        it('should expose outer outputKey steps inside the forEach body', async () => {
+            expect(await executeService('svc-foreach', 'addMultiplier', { multiplier: 3, items: [1, 2, 3] })).to.deep.equal([3, 6, 9]);
         });
 
     });

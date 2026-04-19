@@ -27,7 +27,6 @@
                     "outputKey": "driver",
                     "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
                 },
-                { "outputKey": "_ctx", "set": { "driverId": "#.driver.id" } },
                 {
                     "inputMap": "#.sortedModels",
                     "forEach": [
@@ -38,7 +37,7 @@
                         },
                         {
                             "inputMap": { "command": "#.command" },
-                            "execute": { "service": "#._ctx.driverId", "method": "execute" }
+                            "execute": { "service": "#.driver.id", "method": "execute" }
                         }
                     ]
                 }

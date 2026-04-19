@@ -54,10 +54,18 @@ export const executors = {
         }
     },
 
-    forEach: node => async ({ _ctx, input }) => {
+    forEach: node => async (nodeInput, context) => {
+        const outerContext = context ?? nodeInput;
         const result = [];
-        for (const x of input) {
-            result.push(await executeMethod(node.forEach, x, _ctx));
+        for (const x of nodeInput.input) {
+            let value;
+            try {
+                value = await executeMethodWithContext(node.forEach, { ...outerContext, input: x });
+            } catch (e) {
+                if (e instanceof PipelineReturn) { value = e.value; }
+                else throw e;
+            }
+            result.push(value);
         }
         return result;
     },
