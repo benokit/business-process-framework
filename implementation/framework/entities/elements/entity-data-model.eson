@@ -22,5 +22,13 @@
             "command": "create-entity-versions-table",
             "order": 30
         }
+    },
+    {
+        "kind": "db-model/postgresql",
+        "id": "entity-relations-table",
+        "data": {
+            "command": "create-entity-relations-table",
+            "order": 40
+        }
     }
 ]

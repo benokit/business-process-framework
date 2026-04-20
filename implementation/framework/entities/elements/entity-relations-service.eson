@@ -1,0 +1,51 @@
+[
+    {
+        "kind": "schema",
+        "id": "entity-relation",
+        "data": {
+            "!targetEntityBusinessKey": "string",
+            "!relationType": "string"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-relations",
+        "data": {
+            "relations[]": "@entity-relation"
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-relations-set-input",
+        "data": {
+            "!sourceEntityId": "string",
+            "!sourceEntityVersion": "number",
+            "relations[]": "@entity-relation"
+        }
+    },
+    {
+        "id": "entity-relations-interface",
+        "data": {
+            "setRelations": {
+                "input": "@entity-relations-set-input"
+            }
+        }
+    },
+    {
+        "id": "entity-relations-implementation",
+        "data": {
+            "setRelations": {
+                "inputMap": "#.input",
+                "low": { "module": "@business-framework/entities/entity-relations", "functionName": "setRelations" }
+            }
+        }
+    },
+    {
+        "kind": "service",
+        "id": "entity-relations",
+        "data": {
+            "interface": "entity-relations-interface",
+            "implementation": "entity-relations-implementation"
+        }
+    }
+]

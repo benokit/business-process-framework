@@ -4,11 +4,14 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./src/entity-database.js"
+    ".": "./src/entity-database.js",
+    "./entity-relations": "./src/entity-relations.js"
   },
   "scripts": {
     "test": "mocha --exit 'test/test-entity-service.js' 'test/test-entity-controller.js' 'test/test-entity-list.js' 'test/test-entity-database.js' 'test/test-entity-database-service.js'",
-    "test-integration": "mocha --exit 'test/test-entity-service-integration.js'"
+    "test-integration": "mocha --exit 'test/test-entity-service-integration.js'",
+    "test-relations": "mocha --exit 'test/test-entity-relations.js'",
+    "test-relations-integration": "mocha --exit 'test/test-entity-relations-integration.js'"
   },
   "dependencies": {
     "@business-framework/runtime": "*",

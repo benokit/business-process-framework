@@ -1,0 +1,99 @@
+[
+    {
+        "id": "entity-relations-middleware-write-base",
+        "kind": "executable",
+        "data": [
+            {
+                "outputKey": "result",
+                "inputMap": "#.input.input",
+                "execute": "#.input.next"
+            },
+            {
+                "outputKey": "relationRule",
+                "getElementsOfKind": { "$join": { "_strings": ["entity-rule/relations/", "#.input.context.entityType"] } },
+                "outputMap": { "$head": "#.items" }
+            },
+            {
+                "if": "#.relationRule",
+                "then": [
+                    {
+                        "outputKey": "relationsResult",
+                        "inputMap": "#.result",
+                        "execute": "#.relationRule.data"
+                    },
+                    {
+                        "inputMap": {
+                            "sourceEntityId": "#.result.id",
+                            "sourceEntityVersion": "#.result.version",
+                            "relations": "#.relationsResult.relations"
+                        },
+                        "service": "entity-relations", "method": "setRelations"
+                    }
+                ]
+            },
+            { "return": "#.result" }
+        ]
+    },
+    {
+        "id": "entity-relations-middleware-delete-base",
+        "kind": "executable",
+        "data": [
+            {
+                "outputKey": "result",
+                "inputMap": "#.input.input",
+                "execute": "#.input.next"
+            },
+            {
+                "outputKey": "relationRule",
+                "getElementsOfKind": { "$join": { "_strings": ["entity-rule/relations/", "#.input.context.entityType"] } },
+                "outputMap": { "$head": "#.items" }
+            },
+            {
+                "if": "#.relationRule",
+                "then": [
+                    {
+                        "inputMap": {
+                            "sourceEntityId": "#.result.id",
+                            "sourceEntityVersion": "#.result.version",
+                            "relations": []
+                        },
+                        "service": "entity-relations", "method": "setRelations"
+                    }
+                ]
+            },
+            { "return": "#.result" }
+        ]
+    },
+    {
+        "id": "entity-relations-middleware-create",
+        "kind": "middleware/entity-service/create/root-entity-class",
+        "data": {
+            "ordering": 75,
+            "implementation": [{ "call": "entity-relations-middleware-write-base" }]
+        }
+    },
+    {
+        "id": "entity-relations-middleware-update",
+        "kind": "middleware/entity-service/update/root-entity-class",
+        "data": {
+            "ordering": 75,
+            "implementation": [{ "call": "entity-relations-middleware-write-base" }]
+        }
+    },
+    {
+        "id": "entity-relations-middleware-amend",
+        "kind": "middleware/entity-service/amend/root-entity-class",
+        "data": {
+            "ordering": 75,
+            "implementation": [{ "call": "entity-relations-middleware-write-base" }]
+        }
+    },
+    {
+        "id": "entity-relations-middleware-delete",
+        "kind": "middleware/entity-service/delete/root-entity-class",
+        "data": {
+            "ordering": 75,
+            "implementation": [{ "call": "entity-relations-middleware-delete-base" }]
+        }
+    }
+]

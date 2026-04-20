@@ -266,5 +266,45 @@ Every `update` inserts a row into `entity_history` containing reverse JSON patch
 | `entities` | `id`, `entity_type`, `business_key`, `revision`, `version`, `data`, `state`, `timestamp_utc` | Current entity state |
 | `entity_history` | `id`, `entity_type`, `revision`, `data_patch`, `state_patch`, `timestamp_utc` | Reverse patches per revision |
 | `entity_versions` | `id`, `entity_type`, `version`, `data`, `valid_to` | Whole data snapshots per business version |
+| `entity_relations` | `source_entity_id`, `source_entity_version`, `target_entity_id`, `relation_type` | Directed relations between entities |
 
 All tables are created automatically on first use.
+
+## Entity relations
+
+Entities can declare directed relations to other entities. Relations are maintained automatically on `create`, `update`, `amend`, and `delete` via a built-in middleware at `ordering: 75` (inside the transaction, after the core write).
+
+### Relation rule
+
+Register a rule element to enable relations for an entity type. The rule is a pipeline that receives the entity record and must return an `entity-relations` object:
+
+```json
+{
+    "kind": "entity-rule/relations/order",
+    "id": "order-relation-rule",
+    "data": [
+        {
+            "return": {
+                "relations": [
+                    { "targetEntityBusinessKey": "#.input.data.customerId", "relationType": "customer" }
+                ]
+            }
+        }
+    ]
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `kind` | `entity-rule/relations/{entityType}` |
+| `data` | Pipeline: `entity-record` → `{ relations[] }` |
+
+`relations[]` items: `{ targetEntityBusinessKey, relationType }`. The target entity must exist; its UUID is resolved automatically. On `delete`, relations are cleared (rule invoked with empty result, and the FK `ON DELETE CASCADE` also removes them).
+
+### `entity-relations` service
+
+| Method | Key input fields | Returns |
+| --- | --- | --- |
+| `setRelations` | `sourceEntityId`, `sourceEntityVersion`, `relations[]` | — |
+
+Compares existing relations for the source entity against the new set and executes the minimal inserts and deletes. Participates in the active database transaction when one is present.

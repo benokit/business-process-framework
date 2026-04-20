@@ -1,0 +1,39 @@
+# entity relations
+
+## db model
+
+table: entity-relations
+columns:
+    - source_entity_id
+    - source_entity_version
+    - target_entity_id
+    - relation_type
+
+## element relations rule
+
+id: entity-relation-rule/{entity-type}
+data: mapping entity -> entity-relations
+
+entity-relations schema
+    relations[]:
+        targetEntityBusinessKey: string
+        relationType: string
+
+## element relations service
+
+method setRelations (
+    sourceEntityBusinessKey: string
+    sourceEntityVersion: number
+    entity-relations) :
+    retrieves existing relations for the source entity
+    resolves which need to be deleted and which inserted.
+
+## entity relations middleware (root-entity-class)
+
+actions: create/update/amend/delete 
+in transaction (order > 50) after action
+
+pipeline: 
+    retrieves element with id: entity-relation-rule/{entity-type}
+    executes mapping: entity -> relations
+    calls element relations service - method: setRelations
