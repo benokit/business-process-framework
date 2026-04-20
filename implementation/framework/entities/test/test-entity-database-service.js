@@ -31,7 +31,7 @@ describe('entity-database (service element)', function () {
             packageDir('@business-framework/entities')
         ]);
         await connect();
-        await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });
+        await executeService('db-modeling', 'createModels', { dbType: 'postgresql' });
         connected = true;
     });
 

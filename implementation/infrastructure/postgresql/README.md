@@ -18,7 +18,7 @@ await disconnect();       // drains and closes the pool
 
 ## db-driver-postgresql service
 
-Element `db-driver-postgresql` (kind: `service/db-driver/postgresql`) exposes a single `execute` method for running SQL commands. Used by the `database-modeling` service to create database objects.
+Element `db-driver-postgresql` (kind: `service/db-driver/postgresql`) exposes a single `execute` method for running SQL commands. Used by the `db-modeling` service to create database objects.
 
 Load `elements/postgresql.eson` to register the service.
 

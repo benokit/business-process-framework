@@ -1,21 +1,21 @@
 [
     {
         "kind": "schema",
-        "id": "database-modeling-create-models-input",
+        "id": "db-modeling-create-models-input",
         "data": {
             "!dbType": "string"
         }
     },
     {
-        "id": "database-modeling-interface",
+        "id": "db-modeling-interface",
         "data": {
             "createModels": {
-                "input": "@database-modeling-create-models-input"
+                "input": "@db-modeling-create-models-input"
             }
         }
     },
     {
-        "id": "database-modeling-implementation",
+        "id": "db-modeling-implementation",
         "data": {
             "createModels": [
                 {
@@ -46,10 +46,10 @@
     },
     {
         "kind": "service",
-        "id": "database-modeling",
+        "id": "db-modeling",
         "data": {
-            "interface": "database-modeling-interface",
-            "implementation": "database-modeling-implementation"
+            "interface": "db-modeling-interface",
+            "implementation": "db-modeling-implementation"
         }
     }
 ]

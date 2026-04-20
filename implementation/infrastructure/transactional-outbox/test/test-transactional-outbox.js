@@ -72,7 +72,7 @@ describe('transactional-outbox', function () {
         ]);
 
         await connect();
-        await executeService('database-modeling', 'createModels', { dbType: 'postgresql' });
+        await executeService('db-modeling', 'createModels', { dbType: 'postgresql' });
         connected = true;
 
         registerElement({

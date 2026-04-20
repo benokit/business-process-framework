@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS my_table (
 Method `createModels` collects all `db-model/{dbType}` elements, sorts them by `order`, and executes each command through the matching `db-driver-{dbType}` service.
 
 ```js
-await execute('database-modeling', 'createModels', { dbType: 'postgresql' });
+await execute('db-modeling', 'createModels', { dbType: 'postgresql' });
 ```
 
-Load `elements/database-modeling.eson` from the `@business-framework/db-modelling` package and the relevant driver elements (e.g. `postgresql/elements/postgresql.eson`) before calling this service.
+Load `elements/db-modeling.eson` from the `@business-framework/db-modelling` package and the relevant driver elements (e.g. `postgresql/elements/postgresql.eson`) before calling this service.
