@@ -24,7 +24,7 @@
                         "outputKey": "nextNode",
                         "set": {
                             "inputMap": {
-                                "context": "#.input.context",
+                                "context": { "\\$literal": "#.input.context" },
                                 "input": "\\#.input",
                                 "middlewares": { "\\$literal": { "$tail": "#.input.middlewares" } },
                                 "action": { "\\$literal": "#.input.action" }
