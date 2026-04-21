@@ -276,7 +276,7 @@ Entities can declare directed relations to other entities. Relations are maintai
 
 ### Relation rule
 
-Register a rule element to enable relations for an entity type. The rule is a pipeline that receives the entity record and must return an `entity-relations` object:
+Register one or more rule elements to enable relations for an entity type. Each rule is a pipeline that receives the entity record and must return an `entity-relations` object:
 
 ```json
 {
@@ -299,7 +299,9 @@ Register a rule element to enable relations for an entity type. The rule is a pi
 | `kind` | `entity-rule/relations/{entityType}` |
 | `data` | Pipeline: `entity-record` → `{ relations[] }` |
 
-`relations[]` items: `{ targetEntityBusinessKey, relationType }`. The target entity must exist; its UUID is resolved automatically. On `delete`, relations are cleared (rule invoked with empty result, and the FK `ON DELETE CASCADE` also removes them).
+`relations[]` items: `{ targetEntityBusinessKey, relationType }`. The target entity must exist; its UUID is resolved automatically. On `delete`, relations are cleared regardless of rules.
+
+All registered rules for the entity type are evaluated and their `relations` arrays concatenated. Duplicate `(targetEntityBusinessKey, relationType)` pairs across rules are deduplicated by `setRelations` before writing to the database.
 
 ### `entity-relations` service
 

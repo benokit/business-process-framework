@@ -9,23 +9,29 @@
                 "execute": "#.input.next"
             },
             {
-                "outputKey": "relationRule",
-                "getElementsOfKind": { "$join": { "_strings": ["entity-rule/relations/", "#.input.context.entityType"] } },
-                "outputMap": { "$head": "#.items" }
+                "outputKey": "relationRules",
+                "getElementsOfKind": { "$join": { "_strings": ["entity-rule/relations/", "#.input.context.entityType"] } }
             },
             {
-                "if": "#.relationRule",
+                "if": { "$head": "#.relationRules.items" },
                 "then": [
                     {
-                        "outputKey": "relationsResult",
-                        "inputMap": "#.result",
-                        "execute": "#.relationRule.data"
+                        "outputKey": "allRelationsArrays",
+                        "inputMap": "#.relationRules.items",
+                        "forEach": [
+                            {
+                                "outputKey": "ruleResult",
+                                "inputMap": "#.result",
+                                "execute": "#.input.data"
+                            },
+                            { "return": { "$coalesce": ["#.ruleResult.relations", { "$literal": [] }] } }
+                        ]
                     },
                     {
                         "inputMap": {
                             "sourceEntityId": "#.result.id",
                             "sourceEntityVersion": "#.result.version",
-                            "relations": "#.relationsResult.relations"
+                            "relations": { "$concat": "#.allRelationsArrays" }
                         },
                         "service": "entity-relations", "method": "setRelations"
                     }

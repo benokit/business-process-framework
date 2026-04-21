@@ -93,6 +93,61 @@ describe('entity relations middleware', function () {
                 { targetEntityBusinessKey: '#.input.data.customerId', relationType: 'customer' }
             ]}}]
         });
+
+        // Entity type with two relation rules.
+        registerElement({ type: 'data', id: 'order-multi-rule', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string', 'customerId': 'string', 'supplierId': 'string' }
+        }});
+        registerElement({
+            kind: 'entity-rule/relations/order-multi-rule',
+            id: 'order-multi-rule-customer-rule',
+            data: [{ return: { relations: [
+                { targetEntityBusinessKey: '#.input.data.customerId', relationType: 'customer' }
+            ]}}]
+        });
+        registerElement({
+            kind: 'entity-rule/relations/order-multi-rule',
+            id: 'order-multi-rule-supplier-rule',
+            data: [{ return: { relations: [
+                { targetEntityBusinessKey: '#.input.data.supplierId', relationType: 'supplier' }
+            ]}}]
+        });
+
+        // Entity type with one rule that returns no relations (omits the relations key).
+        registerElement({ type: 'data', id: 'order-sparse-rule', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string', 'customerId': 'string' }
+        }});
+        registerElement({
+            kind: 'entity-rule/relations/order-sparse-rule',
+            id: 'order-sparse-rule-norel',
+            data: [{ return: {} }]
+        });
+        registerElement({
+            kind: 'entity-rule/relations/order-sparse-rule',
+            id: 'order-sparse-rule-customer',
+            data: [{ return: { relations: [
+                { targetEntityBusinessKey: '#.input.data.customerId', relationType: 'customer' }
+            ]}}]
+        });
+
+        // Entity type with two rules that both emit the same relation (duplicates).
+        registerElement({ type: 'data', id: 'order-dup-rule', data: {
+            dataSchema: { '!amount': 'number', '!currency': 'string', 'customerId': 'string' }
+        }});
+        registerElement({
+            kind: 'entity-rule/relations/order-dup-rule',
+            id: 'order-dup-rule-a',
+            data: [{ return: { relations: [
+                { targetEntityBusinessKey: '#.input.data.customerId', relationType: 'customer' }
+            ]}}]
+        });
+        registerElement({
+            kind: 'entity-rule/relations/order-dup-rule',
+            id: 'order-dup-rule-b',
+            data: [{ return: { relations: [
+                { targetEntityBusinessKey: '#.input.data.customerId', relationType: 'customer' }
+            ]}}]
+        });
     });
 
     // -------------------------------------------------------------------------
@@ -245,6 +300,80 @@ describe('entity relations middleware', function () {
                 entityType: 'order-with-rule', businessKey: 'rule-001', revision: 1
             });
             expect(result.id).to.equal('entity-uuid-1');
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('multiple relation rules registered', () => {
+
+        it('concatenates relations from all rules on create', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-multi-rule', businessKey: 'multi-001',
+                data: { amount: 100, currency: 'USD', customerId: 'cust-001', supplierId: 'supp-001' }
+            }, _ctx);
+            expect(_ctx.setRelationsCalled.relations).to.deep.equal([
+                { targetEntityBusinessKey: 'cust-001', relationType: 'customer' },
+                { targetEntityBusinessKey: 'supp-001', relationType: 'supplier' }
+            ]);
+        });
+
+        it('concatenates relations from all rules on update', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'update', {
+                entityType: 'order-multi-rule', businessKey: 'multi-001', revision: 1,
+                data: { amount: 200, currency: 'USD', customerId: 'cust-002', supplierId: 'supp-002' }
+            }, _ctx);
+            expect(_ctx.setRelationsCalled.relations).to.deep.equal([
+                { targetEntityBusinessKey: 'cust-002', relationType: 'customer' },
+                { targetEntityBusinessKey: 'supp-002', relationType: 'supplier' }
+            ]);
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('rule returning no relations (missing relations key)', () => {
+
+        it('treats missing relations as empty array and concatenates with other rules', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-sparse-rule', businessKey: 'sparse-001',
+                data: { amount: 100, currency: 'USD', customerId: 'cust-001' }
+            }, _ctx);
+            expect(_ctx.setRelationsCalled.relations).to.deep.equal([
+                { targetEntityBusinessKey: 'cust-001', relationType: 'customer' }
+            ]);
+        });
+
+        it('does not throw when all rules return no relations', async () => {
+            registerElement({ type: 'data', id: 'order-all-empty', data: { dataSchema: { '!amount': 'number' } } });
+            registerElement({ kind: 'entity-rule/relations/order-all-empty', id: 'order-all-empty-rule',
+                data: [{ return: {} }] });
+
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-all-empty', businessKey: 'empty-001', data: { amount: 50, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.setRelationsCalled.relations).to.deep.equal([]);
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('duplicate relations across rules', () => {
+
+        it('passes duplicate relations through to setRelations (dedup is setRelations responsibility)', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-dup-rule', businessKey: 'dup-001',
+                data: { amount: 100, currency: 'USD', customerId: 'cust-001' }
+            }, _ctx);
+            expect(_ctx.setRelationsCalled.relations).to.deep.equal([
+                { targetEntityBusinessKey: 'cust-001', relationType: 'customer' },
+                { targetEntityBusinessKey: 'cust-001', relationType: 'customer' }
+            ]);
         });
 
     });
