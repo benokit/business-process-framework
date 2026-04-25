@@ -4,7 +4,7 @@
         "id": "db-execute-input",
         "data": {
             "!command": "string",
-            "parameters{}": "string"
+            "parameters": "@any"
         }
     },
     {

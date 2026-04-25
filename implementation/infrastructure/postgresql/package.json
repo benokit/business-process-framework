@@ -8,7 +8,7 @@
     "./driver": "./src/postgresql-driver.js"
   },
   "scripts": {
-    "test": "echo \"No tests for postgresql\""
+    "test": "mocha --exit 'test/test-postgresql-driver.js'"
   },
   "dependencies": {
     "pg": "^8.13.3"

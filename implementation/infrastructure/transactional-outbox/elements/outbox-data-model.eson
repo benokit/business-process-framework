@@ -2,8 +2,8 @@
     {
         "kind": "db-model/postgresql",
         "id": "transactional-outbox-table",
-        "data": {
-            "command": "create-transactional-outbox-table",
+        "/data": {
+            "command": { "/ref": "create-transactional-outbox-table" },
             "order": 10
         }
     }

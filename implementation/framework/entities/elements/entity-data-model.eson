@@ -2,32 +2,32 @@
     {
         "kind": "db-model/postgresql",
         "id": "entities-table",
-        "data": {
-            "command": "create-entities-table",
+        "/data": {
+            "command": { "/ref": "create-entities-table" },
             "order": 10
         }
     },
     {
         "kind": "db-model/postgresql",
         "id": "entity-history-table",
-        "data": {
-            "command": "create-entity-history-table",
+        "/data": {
+            "command": { "/ref": "create-entity-history-table" },
             "order": 20
         }
     },
     {
         "kind": "db-model/postgresql",
         "id": "entity-versions-table",
-        "data": {
-            "command": "create-entity-versions-table",
+        "/data": {
+            "command": { "/ref": "create-entity-versions-table" },
             "order": 30
         }
     },
     {
         "kind": "db-model/postgresql",
         "id": "entity-relations-table",
-        "data": {
-            "command": "create-entity-relations-table",
+        "/data": {
+            "command": { "/ref": "create-entity-relations-table" },
             "order": 40
         }
     }

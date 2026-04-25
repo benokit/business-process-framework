@@ -1,0 +1,20 @@
+# db access
+
+package: framework/database
+    file: access.eson
+    
+element:
+    kind: service/db-access,
+    interface:
+        get:
+            input: 
+                dbType: string
+                query: any 
+                parameters{}: string
+            output: any
+
+    implementation:
+        resolves driver for db type and executes query as a command
+    
+
+

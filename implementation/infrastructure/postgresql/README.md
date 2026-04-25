@@ -27,4 +27,19 @@ Load `elements/postgresql.eson` to register the service.
 | Field | Type | Description |
 | --- | --- | --- |
 | `command` | string (required) | SQL command to execute |
-| `parameters` | map (optional) | Reserved for future parameterised queries |
+| `parameters` | map (optional) | Named or positional query parameters |
+
+Returns the raw `pg.Result` object (`{ rows, rowCount, command, ... }`).
+
+**Positional parameters** — pass an array; values map directly to `$1`, `$2`, … in order:
+
+```js
+{ command: 'SELECT * FROM orders WHERE status = $1', parameters: ['pending'] }
+```
+
+**Named parameters** — use `:name` placeholders; the driver replaces each with `$n` in order of appearance:
+
+```js
+{ command: 'SELECT * FROM orders WHERE status = :status AND type = :type',
+  parameters: { status: 'pending', type: 'online' } }
+```

@@ -1,6 +1,14 @@
 [
     {
         "kind": "schema",
+        "id": "db-model",
+        "data": {
+            "!command": "@any",
+            "order": "number"
+        }
+    },
+    {
+        "kind": "schema",
         "id": "db-modeling-create-models-input",
         "data": {
             "!dbType": "string"
@@ -31,12 +39,7 @@
                     "inputMap": "#.sortedModels",
                     "forEach": [
                         {
-                            "outputKey": "command",
-                            "getElement": "#.input.data.command",
-                            "outputMap": "#.data"
-                        },
-                        {
-                            "inputMap": { "command": "#.command" },
+                            "inputMap": { "command": "#.input.data.command" },
                             "execute": { "service": "#.driver.id", "method": "execute" }
                         }
                     ]

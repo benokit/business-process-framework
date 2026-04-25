@@ -6,6 +6,10 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "echo \"No tests for database\""
+    "test": "mocha --exit 'test/test-db-access.js'"
+  },
+  "dependencies": {
+    "@business-framework/runtime": "*",
+    "@business-framework/postgresql": "*"
   }
 }
