@@ -21,7 +21,7 @@
         "kind": "schema",
         "id": "schema",
         "data": {
-            "data#1": ["object", "string"]
+            "$data#": ["object", "string"]
         }
     },
     {
