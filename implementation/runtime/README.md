@@ -303,6 +303,19 @@ The segment before `.eson.` becomes the element `id`; the segment after becomes 
 
 In all cases the element participates in the registry normally: it can be retrieved with `getElement(id)`, enumerated with `getElementsOfKind(kind)`, and referenced via `/ref` inside data composition expressions.
 
+### Source metadata (`_source`)
+
+Every element loaded from disk gets a `_source` property attached by the loader:
+
+```js
+element._source  // { file: '/abs/path/to/file.eson', line: 7 }
+```
+
+- `file` — absolute path to the file the element was loaded from.
+- `line` — 1-based line number of the element's opening `{` within that file. For string element files (`{id}.eson.{kind}`) the line is always `1`.
+
+`_source` is present on elements retrieved from `getElement` and `getElementsOfKind`, making it available anywhere an element reference is held — useful for error messages, validation output, and debugging.
+
 ## Runtime API
 
 ```js
@@ -311,7 +324,8 @@ import { execute }                  from 'runtime/execution';
 import { getElement, getElementsOfKind } from 'runtime/elements-registry';
 
 // Load all *.eson and *.eson.* files from one or more directory trees.
-await loadElements(['./elements', './app/elements']);
+// Returns the array of loaded elements (each with _source metadata attached).
+const elements = await loadElements(['./elements', './app/elements']);
 
 // Call a service method.
 const result = await execute(serviceId, methodName, input);

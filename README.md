@@ -27,3 +27,4 @@ The pipeline keyword set is open for extension: packages register **execution no
 | [Runtime](implementation/runtime/README.md) | Element specification, pipeline keywords, runtime API |
 | [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, messaging, cache, logging |
 | [Framework](implementation/framework/README.md) | Entities, messaging facade, database modelling, security |
+| [Tools](implementation/tools/README.md) | Workspace validation CLI and API |

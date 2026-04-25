@@ -1,0 +1,19 @@
+{
+    "name": "@business-framework/tools",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        "./validate-workspace": "./src/validate-workspace.js"
+    },
+    "bin": {
+        "bpf": "./src/cli.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "@benokit/js-cjsl": "*",
+        "@business-framework/runtime": "*",
+        "ajv": "*"
+    }
+}

@@ -20,7 +20,9 @@
     {
         "kind": "schema",
         "id": "schema",
-        "data": "object"
+        "data": {
+            "data#1": ["object", "string"]
+        }
     },
     {
         "kind": "schema",

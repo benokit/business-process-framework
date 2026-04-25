@@ -2,6 +2,7 @@
   "name": "@business-framework/implementation",
   "workspaces": [
     "runtime",
+    "tools",
     "infrastructure/*",
     "framework/*"
   ],
