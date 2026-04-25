@@ -38,10 +38,8 @@ async function executeService(serviceId, methodId, input, _ctx = {}) {
     const isRoot = !_ctx._execution;
     try {
         const service = getElement(serviceId).data;
-        const iface = isString(service.interface) ? getElement(service.interface).data : service.interface;
-        validateInputAgainstInterface(iface[methodId], input);
-        const impl = isString(service.implementation) ? getElement(service.implementation).data : service.implementation;
-        return await executeMethod(impl[methodId], input, _ctx);
+        validateInputAgainstInterface(service.interface[methodId], input);
+        return await executeMethod(service.implementation[methodId], input, _ctx);
     } catch (e) {
         if (!isRoot) throw e;
         if (e && e._isExecutionDiagnostic) {

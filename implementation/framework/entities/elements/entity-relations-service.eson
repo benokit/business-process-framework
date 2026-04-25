@@ -24,28 +24,20 @@
         }
     },
     {
-        "id": "entity-relations-interface",
-        "data": {
-            "setRelations": {
-                "input": "@entity-relations-set-input"
-            }
-        }
-    },
-    {
-        "id": "entity-relations-implementation",
-        "data": {
-            "setRelations": {
-                "inputMap": "#.input",
-                "low": { "module": "@business-framework/entities/entity-relations", "functionName": "setRelations" }
-            }
-        }
-    },
-    {
         "kind": "service",
         "id": "entity-relations",
         "data": {
-            "interface": "entity-relations-interface",
-            "implementation": "entity-relations-implementation"
+            "interface": {
+                "setRelations": {
+                    "input": "@entity-relations-set-input"
+                }
+            },
+            "implementation": {
+                "setRelations": {
+                    "inputMap": "#.input",
+                    "low": { "module": "@business-framework/entities/entity-relations", "functionName": "setRelations" }
+                }
+            }
         }
     }
 ]

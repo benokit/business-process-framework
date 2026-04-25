@@ -527,9 +527,9 @@
     {
         "kind": "service",
         "id": "entity",
-        "data": {
-            "interface": "entity-service-interface",
-            "implementation": "entity-service-implementation"
+        "/data": {
+            "interface": { "/ref": "entity-service-interface" },
+            "implementation": { "/ref": "entity-service-implementation" }
         }
     }
 ]

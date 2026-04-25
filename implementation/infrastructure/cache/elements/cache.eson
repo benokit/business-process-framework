@@ -15,25 +15,17 @@
         }
     },
     {
-        "id": "cache-interface",
-        "data": {
-            "get": { "input": "@cache-get-input" },
-            "set": { "input": "@cache-set-input" }
-        }
-    },
-    {
-        "id": "cache-local-l1-implementation",
-        "data": {
-            "get": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheGet" } },
-            "set": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheSet" } }
-        }
-    },
-    {
         "kind": "service/cache",
         "id": "local-l1",
         "data": {
-            "interface": "cache-interface",
-            "implementation": "cache-local-l1-implementation"
+            "interface": {
+                "get": { "input": "@cache-get-input" },
+                "set": { "input": "@cache-set-input" }
+            },
+            "implementation": {
+                "get": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheGet" } },
+                "set": { "inputMap": "#.input", "low": { "module": "@business-framework/cache", "functionName": "cacheSet" } }
+            }
         }
     },
     {

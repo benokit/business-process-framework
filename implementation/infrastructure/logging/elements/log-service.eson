@@ -9,28 +9,20 @@
         }
     },
     {
-        "id": "logging-interface",
-        "data": {
-            "log": {
-                "input": "@log-input"
-            }
-        }
-    },
-    {
-        "id": "logging-implementation",
-        "data": {
-            "log": {
-                "inputMap": "#.input",
-                "low": { "module": "@business-framework/logging", "functionName": "log" }
-            }
-        }
-    },
-    {
         "kind": "service",
         "id": "logging",
         "data": {
-            "interface": "logging-interface",
-            "implementation": "logging-implementation"
+            "interface": {
+                "log": {
+                    "input": "@log-input"
+                }
+            },
+            "implementation": {
+                "log": {
+                    "inputMap": "#.input",
+                    "low": { "module": "@business-framework/logging", "functionName": "log" }
+                }
+            }
         }
     },
     {

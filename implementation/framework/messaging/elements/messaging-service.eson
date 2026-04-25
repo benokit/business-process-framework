@@ -1,129 +1,125 @@
 [
     {
-        "id": "messaging-service-implementation",
-        "data": {
-            "publish": [
-                { "outputKey": "channel", "getElement": "#.input.channel" },
-                { "outputKey": "broker", "getElement": "#.channel.data.broker" },
-                {
-                    "if": "#.channel.data.publisher.transactionalOutbox",
-                    "then": {
-                        "inputMap": { "channel": "#.input.channel", "envelope": "#.input.envelope" },
-                        "service": "transactional-outbox", "method": "put"
-                    },
-                    "else": {
-                        "execute": { "service": "#.broker.data.service", "method": "publish" },
-                        "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data", "envelope": "#.input.envelope" }
-                    }
-                }
-            ],
-            "startConsumers": [
-                {
-                    "if": "#.input.channel",
-                    "then": [
-                        { "outputKey": "channel", "getElement": "#.input.channel" },
-                        { "outputKey": "broker", "getElement": "#.channel.data.broker" },
-                        { "outputKey": "allConsumers", "getElementsOfKind": "message-consumer" },
-                        {
-                            "outputKey": "channelConsumers",
-                            "set": {
-                                "$let": { "channelId": "#.channel.id" },
-                                "$filter": {
-                                    "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
-                                    "_collection": "#.allConsumers.items"
-                                }
-                            }
-                        },
-                        {
-                            "outputKey": "consumers",
-                            "set": {
-                                "$let": {
-                                    "channelData": "#.channel.data",
-                                    "brokerData": "#.broker.data",
-                                    "brokerId": "#.broker.data.service"
-                                },
-                                "$map": {
-                                    "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data", "consumerId": "#.id" },
-                                    "_over": "#.channelConsumers"
-                                }
-                            }
-                        },
-                        {
-                            "forEach": [
-                                {
-                                    "outputKey": "middlewareItems",
-                                    "getElementsOfKind": "middleware/messaging",
-                                    "outputMap": "#.items"
-                                },
-                                {
-                                    "outputKey": "wrappedHandler",
-                                    "inputMap": {
-                                        "middlewares": "#.middlewareItems",
-                                        "action": "#.input.consumer.handler",
-                                        "context": { "consumerId": "#.input.consumerId" }
-                                    },
-                                    "call": "middleware-wrap"
-                                },
-                                {
-                                    "execute": { "service": "#.input.brokerId", "method": "consume" },
-                                    "inputMap": {
-                                        "channel": "#.input.channel",
-                                        "broker": "#.input.broker",
-                                        "consumer": "#.input.consumer",
-                                        "handler": "#.wrappedHandler"
-                                    }
-                                }
-                            ],
-                            "inputMap": "#.consumers"
-                        }
-                    ],
-                    "else": [
-                        { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
-                        {
-                            "forEach": [
-                                {
-                                    "service": "messaging-service", "method": "startConsumers",
-                                    "inputMap": { "channel": "#.input.id" }
-                                }
-                            ],
-                            "inputMap": "#.allChannels.items"
-                        }
-                    ]
-                }
-            ],
-            "stopConsumers": [
-                {
-                    "if": "#.input.channel",
-                    "then": [
-                        { "outputKey": "channel", "getElement": "#.input.channel" },
-                        { "outputKey": "broker", "getElement": "#.channel.data.broker" },
-                        {
-                            "execute": { "service": "#.broker.data.service", "method": "stopConsuming" },
-                            "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" } 
-                        }
-                    ],
-                    "else": [
-                        { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
-                        {
-                            "forEach": [
-                                {
-                                    "service": "messaging-service", "method": "stopConsumers",
-                                    "inputMap": { "channel": "#.input.id" }
-                                }
-                            ],
-                            "inputMap": "#.allChannels.items"
-                        }
-                    ]
-                }
-            ]
-        }
-    },
-    {
         "kind": "service",
         "id": "messaging-service",
-        "data": {
-            "interface": "messaging-service-interface",
-            "implementation": "messaging-service-implementation"
+        "/data": {
+            "interface": { "/ref": "messaging-service-interface" },
+            "implementation": {
+                "publish": [
+                    { "outputKey": "channel", "getElement": "#.input.channel" },
+                    { "outputKey": "broker", "getElement": "#.channel.data.broker" },
+                    {
+                        "if": "#.channel.data.publisher.transactionalOutbox",
+                        "then": {
+                            "inputMap": { "channel": "#.input.channel", "envelope": "#.input.envelope" },
+                            "service": "transactional-outbox", "method": "put"
+                        },
+                        "else": {
+                            "execute": { "service": "#.broker.data.service", "method": "publish" },
+                            "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data", "envelope": "#.input.envelope" }
+                        }
+                    }
+                ],
+                "startConsumers": [
+                    {
+                        "if": "#.input.channel",
+                        "then": [
+                            { "outputKey": "channel", "getElement": "#.input.channel" },
+                            { "outputKey": "broker", "getElement": "#.channel.data.broker" },
+                            { "outputKey": "allConsumers", "getElementsOfKind": "message-consumer" },
+                            {
+                                "outputKey": "channelConsumers",
+                                "set": {
+                                    "$let": { "channelId": "#.channel.id" },
+                                    "$filter": {
+                                        "_predicate": { "$eq": ["#.data.channel", "@channelId"] },
+                                        "_collection": "#.allConsumers.items"
+                                    }
+                                }
+                            },
+                            {
+                                "outputKey": "consumers",
+                                "set": {
+                                    "$let": {
+                                        "channelData": "#.channel.data",
+                                        "brokerData": "#.broker.data",
+                                        "brokerId": "#.broker.data.service"
+                                    },
+                                    "$map": {
+                                        "_fn": { "channel": "@channelData", "broker": "@brokerData", "brokerId": "@brokerId", "consumer": "#.data", "consumerId": "#.id" },
+                                        "_over": "#.channelConsumers"
+                                    }
+                                }
+                            },
+                            {
+                                "forEach": [
+                                    {
+                                        "outputKey": "middlewareItems",
+                                        "getElementsOfKind": "middleware/messaging",
+                                        "outputMap": "#.items"
+                                    },
+                                    {
+                                        "outputKey": "wrappedHandler",
+                                        "inputMap": {
+                                            "middlewares": "#.middlewareItems",
+                                            "action": "#.input.consumer.handler",
+                                            "context": { "consumerId": "#.input.consumerId" }
+                                        },
+                                        "call": "middleware-wrap"
+                                    },
+                                    {
+                                        "execute": { "service": "#.input.brokerId", "method": "consume" },
+                                        "inputMap": {
+                                            "channel": "#.input.channel",
+                                            "broker": "#.input.broker",
+                                            "consumer": "#.input.consumer",
+                                            "handler": "#.wrappedHandler"
+                                        }
+                                    }
+                                ],
+                                "inputMap": "#.consumers"
+                            }
+                        ],
+                        "else": [
+                            { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
+                            {
+                                "forEach": [
+                                    {
+                                        "service": "messaging-service", "method": "startConsumers",
+                                        "inputMap": { "channel": "#.input.id" }
+                                    }
+                                ],
+                                "inputMap": "#.allChannels.items"
+                            }
+                        ]
+                    }
+                ],
+                "stopConsumers": [
+                    {
+                        "if": "#.input.channel",
+                        "then": [
+                            { "outputKey": "channel", "getElement": "#.input.channel" },
+                            { "outputKey": "broker", "getElement": "#.channel.data.broker" },
+                            {
+                                "execute": { "service": "#.broker.data.service", "method": "stopConsuming" },
+                                "inputMap": { "channel": "#.channel.data", "broker": "#.broker.data" }
+                            }
+                        ],
+                        "else": [
+                            { "outputKey": "allChannels", "getElementsOfKind": "message-channel" },
+                            {
+                                "forEach": [
+                                    {
+                                        "service": "messaging-service", "method": "stopConsumers",
+                                        "inputMap": { "channel": "#.input.id" }
+                                    }
+                                ],
+                                "inputMap": "#.allChannels.items"
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     },
     {

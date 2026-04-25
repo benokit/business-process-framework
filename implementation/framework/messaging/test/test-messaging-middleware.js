@@ -34,7 +34,7 @@ describe('messaging-middleware', function () {
             kind: 'service',
             id: 'mw-msg-test-broker-svc',
             data: {
-                interface: 'messaging-broker-interface',
+                interface: { publish: {}, consume: {}, stopConsuming: {} },
                 implementation: {
                     publish: { return: {} },
                     consume: [

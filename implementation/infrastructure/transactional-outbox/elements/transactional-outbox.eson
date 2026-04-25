@@ -23,52 +23,32 @@
         }
     },
     {
-        "id": "transactional-outbox-interface",
-        "data": {
-            "put": {
-                "input": "@transactional-outbox-put-input",
-                "output": "@transactional-outbox-put-output"
-            }
-        }
-    },
-    {
-        "id": "transactional-outbox-processor-interface",
-        "data": {
-            "run": {
-                "input": "@transactional-outbox-run-input"
-            },
-            "stop": {
-                "input": {}
-            }
-        }
-    },
-    {
-        "id": "transactional-outbox-implementation",
-        "data": {
-            "put": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
-        }
-    },
-    {
-        "id": "transactional-outbox-processor-implementation",
-        "data": {
-            "run":  { "inputMap": "#.input", "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "run" } },
-            "stop": { "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "stop" } }
-        }
-    },
-    {
         "kind": "service",
         "id": "transactional-outbox",
         "data": {
-            "interface": "transactional-outbox-interface",
-            "implementation": "transactional-outbox-implementation"
+            "interface": {
+                "put": {
+                    "input": "@transactional-outbox-put-input",
+                    "output": "@transactional-outbox-put-output"
+                }
+            },
+            "implementation": {
+                "put": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
+            }
         }
     },
     {
         "kind": "service",
         "id": "transactional-outbox-processor",
         "data": {
-            "interface": "transactional-outbox-processor-interface",
-            "implementation": "transactional-outbox-processor-implementation"
+            "interface": {
+                "run":  { "input": "@transactional-outbox-run-input" },
+                "stop": { "input": {} }
+            },
+            "implementation": {
+                "run":  { "inputMap": "#.input", "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "run" } },
+                "stop": { "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "stop" } }
+            }
         }
     }
 ]

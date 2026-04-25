@@ -36,7 +36,7 @@ before(async function () {
         kind: 'service',
         id: 'publish-template-mock-broker',
         data: {
-            interface: 'messaging-broker-interface',
+            interface: { publish: {}, consume: {}, stopConsuming: {} },
             implementation: {
                 publish: [
                     { outputKey: '_ctx', set: { captured: '#.input.envelope' } },

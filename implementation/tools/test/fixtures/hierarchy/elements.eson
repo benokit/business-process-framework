@@ -1,0 +1,5 @@
+[
+    { "kind": "schema", "id": "vw-test-vehicle", "data": { "!speed": "number" } },
+    { "kind": "vw-test-vehicle/car", "id": "vw-test-car-valid", "data": { "speed": 100 } },
+    { "kind": "vw-test-vehicle/truck", "id": "vw-test-truck-bad", "data": { "speed": "fast" } }
+]

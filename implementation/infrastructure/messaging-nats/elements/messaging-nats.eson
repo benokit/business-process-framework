@@ -8,19 +8,15 @@
         }
     },
     {
-        "id": "messaging-nats-implementation",
-        "data": {
-            "publish":       { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "publish" } },
-            "consume":       { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "consume" } },
-            "stopConsuming": { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "stopConsuming" } }
-        }
-    },
-    {
         "kind": "service",
         "id": "messaging-nats",
-        "data": {
-            "interface": "messaging-broker-interface",
-            "implementation": "messaging-nats-implementation"
+        "/data": {
+            "interface": { "/ref": "messaging-broker-interface" },
+            "implementation": {
+                "publish":       { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "publish" } },
+                "consume":       { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "consume" } },
+                "stopConsuming": { "inputMap": "#.input", "low": { "module": "@business-framework/messaging-nats/nats", "functionName": "stopConsuming" } }
+            }
         }
     }
 ]

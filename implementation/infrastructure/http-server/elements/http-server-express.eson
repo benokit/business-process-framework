@@ -1,56 +1,52 @@
 [
     {
-        "id": "http-server-express-implementation",
-        "data": {
-            "start": [
-                {
-                    "outputKey": "endpointData",
-                    "getElementsOfKind": "http-endpoint"
-                },
-                {
-                    "inputMap": "#.endpointData.items",
-                    "forEach": [
-                        {
-                            "outputKey": "middlewareItems",
-                            "getElementsOfKind": "middleware/http",
-                            "outputMap": "#.items"
-                        },
-                        {
-                            "outputKey": "wrappedAction",
-                            "inputMap": {
-                                "middlewares": "#.middlewareItems",
-                                "action": {
-                                    "service": "#.input.data.controller.service",
-                                    "method": "#.input.data.controller.method"
-                                },
-                                "context": { "endpointId": "#.input.id" }
-                            },
-                            "call": "middleware-wrap"
-                        },
-                        {
-                            "inputMap": {
-                                "path": "#.input.data.path",
-                                "method": "#.input.data.method",
-                                "implementation": "#.wrappedAction"
-                            },
-                            "low": { "module": "@business-framework/http-server/express", "functionName": "register" }
-                        }
-                    ]
-                },
-                {
-                    "inputMap": "#.input",
-                    "low": { "module": "@business-framework/http-server/express", "functionName": "start" }
-                }
-            ],
-            "stop": { "inputMap": "#.input", "low": { "module": "@business-framework/http-server/express", "functionName": "stop" } }
-        }
-    },
-    {
         "kind": "service",
         "id": "http-server",
-        "data": {
-            "interface": "http-server-interface",
-            "implementation": "http-server-express-implementation"
+        "/data": {
+            "interface": { "/ref": "http-server-interface" },
+            "implementation": {
+                "start": [
+                    {
+                        "outputKey": "endpointData",
+                        "getElementsOfKind": "http-endpoint"
+                    },
+                    {
+                        "inputMap": "#.endpointData.items",
+                        "forEach": [
+                            {
+                                "outputKey": "middlewareItems",
+                                "getElementsOfKind": "middleware/http",
+                                "outputMap": "#.items"
+                            },
+                            {
+                                "outputKey": "wrappedAction",
+                                "inputMap": {
+                                    "middlewares": "#.middlewareItems",
+                                    "action": {
+                                        "service": "#.input.data.controller.service",
+                                        "method": "#.input.data.controller.method"
+                                    },
+                                    "context": { "endpointId": "#.input.id" }
+                                },
+                                "call": "middleware-wrap"
+                            },
+                            {
+                                "inputMap": {
+                                    "path": "#.input.data.path",
+                                    "method": "#.input.data.method",
+                                    "implementation": "#.wrappedAction"
+                                },
+                                "low": { "module": "@business-framework/http-server/express", "functionName": "register" }
+                            }
+                        ]
+                    },
+                    {
+                        "inputMap": "#.input",
+                        "low": { "module": "@business-framework/http-server/express", "functionName": "start" }
+                    }
+                ],
+                "stop": { "inputMap": "#.input", "low": { "module": "@business-framework/http-server/express", "functionName": "stop" } }
+            }
         }
     }
 ]

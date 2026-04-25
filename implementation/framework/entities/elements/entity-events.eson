@@ -40,50 +40,42 @@
         }
     },
     {
-        "id": "entity-event-publisher-interface",
-        "data": {
-            "publish": {
-                "input": "@entity-event-publisher-input",
-                "output": {}
-            }
-        }
-    },
-    {
-        "id": "entity-event-publisher-implementation",
-        "data": {
-            "publish": [
-                {
-                    "outputKey": "envelope",
-                    "set": {
-                        "messageId": { "$join": { "_strings": ["#.input.record.id", "-", "#.input.record.revision", "-", "#.input.eventType"] } },
-                        "timestampUTC": "#.input.record.timestampUtc",
-                        "group": "#.input.record.businessKey",
-                        "correlation": { "$coalesce": ["#.input.correlation", ""] },
-                        "message": {
-                            "eventType": "#.input.eventType",
-                            "entityType": "#.input.entityType",
-                            "businessKey": "#.input.record.businessKey",
-                            "revision": "#.input.record.revision"
-                        }
-                    }
-                },
-                {
-                    "execute": {
-                        "publish": {
-                            "channel": "entity-events",
-                            "envelope": "#.envelope"
-                        }
-                    }
-                }
-            ]
-        }
-    },
-    {
         "kind": "service",
         "id": "entity-event-publisher",
         "data": {
-            "interface": "entity-event-publisher-interface",
-            "implementation": "entity-event-publisher-implementation"
+            "interface": {
+                "publish": {
+                    "input": "@entity-event-publisher-input",
+                    "output": {}
+                }
+            },
+            "implementation": {
+                "publish": [
+                    {
+                        "outputKey": "envelope",
+                        "set": {
+                            "messageId": { "$join": { "_strings": ["#.input.record.id", "-", "#.input.record.revision", "-", "#.input.eventType"] } },
+                            "timestampUTC": "#.input.record.timestampUtc",
+                            "group": "#.input.record.businessKey",
+                            "correlation": { "$coalesce": ["#.input.correlation", ""] },
+                            "message": {
+                                "eventType": "#.input.eventType",
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.record.businessKey",
+                                "revision": "#.input.record.revision"
+                            }
+                        }
+                    },
+                    {
+                        "execute": {
+                            "publish": {
+                                "channel": "entity-events",
+                                "envelope": "#.envelope"
+                            }
+                        }
+                    }
+                ]
+            }
         }
     }
 ]

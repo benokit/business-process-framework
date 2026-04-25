@@ -1,75 +1,67 @@
 [
     {
-        "id": "transaction-low-implementation",
-        "data": {
-            "beginTransaction":    { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "beginTransaction" } },
-            "commitTransaction":   { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "commitTransaction" } },
-            "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "rollbackTransaction" } }
-        }
-    },
-    {
         "kind": "service",
         "id": "transaction-low",
-        "data": {
-            "interface": "transaction-low-interface",
-            "implementation": "transaction-low-implementation"
-        }
-    },
-    {
-        "id": "transaction-implementation",
-        "data": {
-            "executeInTransaction": {
-                "if": "#._ctx.transaction",
-                "then": { "inputMap": "#.input.programInput", "execute": "#.input.program" },
-                "else": [
-                    {
-                        "outputKey": "txn",
-                        "inputMap": { "options": "#.input.config" },
-                        "service": "transaction-low", "method": "beginTransaction"
-                    },
-                    {
-                        "outputKey": "_ctx",
-                        "set": { "transaction": "#.txn" }
-                    },
-                    {
-                        "try": [
-                            {
-                                "outputKey": "result",
-                                "inputMap": "#.input.programInput",
-                                "execute": "#.input.program"
-                            },
-                            {
-                                "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
-                                "service": "transaction-low", "method": "commitTransaction"
-                            },
-                            {
-                                "return": "#.result"
-                            }
-                        ],
-                        "catch": [
-                            {
-                                "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
-                                "service": "transaction-low", "method": "rollbackTransaction"
-                            },
-                            {
-                                "throw": "#.error"
-                            }
-                        ],
-                        "finally": [
-                            { "outputKey": "_ctx", "set": { "transaction": false } },
-                            { "return": "#._ctx.transaction" }
-                        ]
-                    }
-                ]
+        "/data": {
+            "interface": { "/ref": "transaction-low-interface" },
+            "implementation": {
+                "beginTransaction":    { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "beginTransaction" } },
+                "commitTransaction":   { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "commitTransaction" } },
+                "rollbackTransaction": { "inputMap": "#.input", "low": { "module": "@business-framework/transaction", "functionName": "rollbackTransaction" } }
             }
         }
     },
     {
         "kind": "service",
         "id": "transaction",
-        "data": {
-            "interface": "transaction-interface",
-            "implementation": "transaction-implementation"
+        "/data": {
+            "interface": { "/ref": "transaction-interface" },
+            "implementation": {
+                "executeInTransaction": {
+                    "if": "#._ctx.transaction",
+                    "then": { "inputMap": "#.input.programInput", "execute": "#.input.program" },
+                    "else": [
+                        {
+                            "outputKey": "txn",
+                            "inputMap": { "options": "#.input.config" },
+                            "service": "transaction-low", "method": "beginTransaction"
+                        },
+                        {
+                            "outputKey": "_ctx",
+                            "set": { "transaction": "#.txn" }
+                        },
+                        {
+                            "try": [
+                                {
+                                    "outputKey": "result",
+                                    "inputMap": "#.input.programInput",
+                                    "execute": "#.input.program"
+                                },
+                                {
+                                    "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
+                                    "service": "transaction-low", "method": "commitTransaction"
+                                },
+                                {
+                                    "return": "#.result"
+                                }
+                            ],
+                            "catch": [
+                                {
+                                    "inputMap": { "sessionId": "#._ctx.transaction.sessionId" },
+                                    "service": "transaction-low", "method": "rollbackTransaction"
+                                },
+                                {
+                                    "throw": "#.error"
+                                }
+                            ],
+                            "finally": [
+                                { "outputKey": "_ctx", "set": { "transaction": false } },
+                                { "return": "#._ctx.transaction" }
+                            ]
+                        }
+                    ]
+                }
+            }
         }
     },
     {

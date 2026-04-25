@@ -1,0 +1,4 @@
+[
+    { "kind": "schema", "id": "vw-test-lazy", "data": { "!x": "number" } },
+    { "kind": "vw-test-lazy", "id": "vw-test-lazy-1", "/data": { "x": "not-a-number" } }
+]

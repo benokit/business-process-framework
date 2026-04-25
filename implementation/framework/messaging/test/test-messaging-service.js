@@ -24,7 +24,7 @@ before(async function () {
         kind: 'service',
         id: 'svc-test-mock-broker',
         data: {
-            interface: 'messaging-broker-interface',
+            interface: { publish: {}, consume: {}, stopConsuming: {} },
             implementation: {
                 publish: { return: { messageId: 'test' } },
                 consume: [

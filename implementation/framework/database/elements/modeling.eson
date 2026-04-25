@@ -15,44 +15,36 @@
         }
     },
     {
-        "id": "db-modeling-interface",
-        "data": {
-            "createModels": {
-                "input": "@db-modeling-create-models-input"
-            }
-        }
-    },
-    {
-        "id": "db-modeling-implementation",
-        "data": {
-            "createModels": [
-                {
-                    "outputKey": "sortedModels",
-                    "getElementsOfKind": { "$join": { "_strings": ["db-model/", "#.input.dbType"] } },
-                    "outputMap": { "$ascending": { "_collection": "#.items", "_by": { "$coalesce": ["#.input.data.order", 0] } } }
-                },
-                {
-                    "outputKey": "driver",
-                    "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
-                },
-                {
-                    "inputMap": "#.sortedModels",
-                    "forEach": [
-                        {
-                            "inputMap": { "command": "#.input.data.command" },
-                            "execute": { "service": "#.driver.id", "method": "execute" }
-                        }
-                    ]
-                }
-            ]
-        }
-    },
-    {
         "kind": "service",
         "id": "db-modeling",
         "data": {
-            "interface": "db-modeling-interface",
-            "implementation": "db-modeling-implementation"
+            "interface": {
+                "createModels": {
+                    "input": "@db-modeling-create-models-input"
+                }
+            },
+            "implementation": {
+                "createModels": [
+                    {
+                        "outputKey": "sortedModels",
+                        "getElementsOfKind": { "$join": { "_strings": ["db-model/", "#.input.dbType"] } },
+                        "outputMap": { "$ascending": { "_collection": "#.items", "_by": { "$coalesce": ["#.input.data.order", 0] } } }
+                    },
+                    {
+                        "outputKey": "driver",
+                        "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
+                    },
+                    {
+                        "inputMap": "#.sortedModels",
+                        "forEach": [
+                            {
+                                "inputMap": { "command": "#.input.data.command" },
+                                "execute": { "service": "#.driver.id", "method": "execute" }
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     }
 ]

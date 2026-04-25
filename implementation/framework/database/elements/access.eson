@@ -9,35 +9,27 @@
         }
     },
     {
-        "id": "db-access-interface",
-        "data": {
-            "get": {
-                "input": "@db-access-get-input",
-                "output": "@any"
-            }
-        }
-    },
-    {
-        "id": "db-access-implementation",
-        "data": {
-            "get": [
-                {
-                    "outputKey": "driver",
-                    "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
-                },
-                {
-                    "inputMap": { "command": "#.input.query", "parameters": "#.input.parameters" },
-                    "execute": { "service": "#.driver.id", "method": "execute" }
-                }
-            ]
-        }
-    },
-    {
         "kind": "service/db-access",
         "id": "db-access",
         "data": {
-            "interface": "db-access-interface",
-            "implementation": "db-access-implementation"
+            "interface": {
+                "get": {
+                    "input": "@db-access-get-input",
+                    "output": "@any"
+                }
+            },
+            "implementation": {
+                "get": [
+                    {
+                        "outputKey": "driver",
+                        "getElement": { "$join": { "_strings": ["db-driver-", "#.input.dbType"] } }
+                    },
+                    {
+                        "inputMap": { "command": "#.input.query", "parameters": "#.input.parameters" },
+                        "execute": { "service": "#.driver.id", "method": "execute" }
+                    }
+                ]
+            }
         }
     }
 ]

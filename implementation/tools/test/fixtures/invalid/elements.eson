@@ -1,0 +1,4 @@
+[
+    { "kind": "schema", "id": "vw-test-car", "data": { "!make": "string", "!year": "number" } },
+    { "kind": "vw-test-car", "id": "vw-test-bad-car", "data": { "year": "not-a-number" } }
+]

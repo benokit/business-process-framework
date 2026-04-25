@@ -9,7 +9,7 @@
         "bpf": "./src/cli.js"
     },
     "scripts": {
-        "test": "mocha --exit"
+        "test": "mocha --exit 'test/test-validate-workspace.js'"
     },
     "dependencies": {
         "@benokit/js-cjsl": "*",

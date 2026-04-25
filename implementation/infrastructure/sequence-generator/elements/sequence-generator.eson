@@ -14,26 +14,18 @@
         }
     },
     {
-        "id": "sequence-generator-interface",
-        "data": {
-            "next": {
-                "input": "@sequence-next-input",
-                "output": "@sequence-next-output"
-            }
-        }
-    },
-    {
-        "id": "sequence-generator-implementation",
-        "data": {
-            "next": { "inputMap": "#.input", "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
-        }
-    },
-    {
         "kind": "service",
         "id": "sequence-generator",
         "data": {
-            "interface": "sequence-generator-interface",
-            "implementation": "sequence-generator-implementation"
+            "interface": {
+                "next": {
+                    "input": "@sequence-next-input",
+                    "output": "@sequence-next-output"
+                }
+            },
+            "implementation": {
+                "next": { "inputMap": "#.input", "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
+            }
         }
     },
     {

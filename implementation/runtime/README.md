@@ -198,8 +198,8 @@ The supported schema language is the compact schema language: <https://github.co
 
 A `service` element embodies a named, callable API — a set of methods each with a defined input/output contract and an implementation. Its `data` contains:
 
-- `interface`: method definitions, each with `input` and `output` schemas (compact schema language). May be an inline object or an element id string.
-- `implementation`: method implementations keyed by method name. May be an inline object or an element id string.
+- `interface`: an object mapping method names to their `input` and `output` schemas (compact schema language). Must be an inline object — string element ids are not supported. Use `/ref` in `/data` to pull in interface data from another element.
+- `implementation`: an object mapping method names to their pipeline implementations. Must be an inline object — string element ids are not supported. Use `/ref` in `/data` to pull in implementation data from another element.
 
 Each method's implementation is a pipeline — a single node or an array of nodes — executed by the framework's pipeline engine (see [Pipeline execution](#pipeline-execution)).
 

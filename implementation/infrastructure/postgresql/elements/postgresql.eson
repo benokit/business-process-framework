@@ -1,19 +1,15 @@
 [
     {
-        "id": "db-driver-postgresql-implementation",
-        "data": {
-            "execute": {
-                "inputMap": "#.input",
-                "low": { "module": "@business-framework/postgresql/driver", "functionName": "execute" }
-            }
-        }
-    },
-    {
         "kind": "service/db-driver/postgresql",
         "id": "db-driver-postgresql",
-        "data": {
-            "interface": "db-driver-interface",
-            "implementation": "db-driver-postgresql-implementation"
+        "/data": {
+            "interface": { "/ref": "db-driver-interface" },
+            "implementation": {
+                "execute": {
+                    "inputMap": "#.input",
+                    "low": { "module": "@business-framework/postgresql/driver", "functionName": "execute" }
+                }
+            }
         }
     }
 ]
