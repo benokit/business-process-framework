@@ -45,7 +45,7 @@ describe('entity relations — integration', function () {
             packageDir('@business-framework/transactional-outbox'),
             packageDir('@business-framework/sequence-generator'),
             packageDir('@business-framework/postgresql'),
-            packageDir('@business-framework/db-modelling'),
+            packageDir('@business-framework/database'),
             packageDir('@business-framework/entities')
         ]);
 

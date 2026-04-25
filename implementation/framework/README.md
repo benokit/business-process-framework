@@ -6,7 +6,7 @@ Cross-cutting packages used by infrastructure, security, and other layers.
 | --- | --- |
 | [`messaging`](messaging/README.md) | Broker-agnostic messaging facade; `publish` pipeline keyword |
 | [`middleware`](middleware/README.md) | Generic middleware runner; chains middlewares before a final action |
-| [`db-modelling`](db-modelling/README.md) | Creates database objects from declarative `db-model` elements |
+| [`database`](database/README.md) | Creates database objects from declarative `db-model` elements |
 | [`entities`](entities/README.md) | Generic entity lifecycle management backed by a persistent document store |
 | [`security/users`](security/users/README.md) | User entity type with username as business key; `set-password` and `validate-password` component methods |
 | [`security/authorization-basic`](security/authorization-basic/README.md) | JWT login endpoint (`POST /login`) and Bearer token HTTP middleware |

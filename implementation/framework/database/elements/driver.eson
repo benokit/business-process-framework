@@ -1,0 +1,18 @@
+[
+    {
+        "kind": "schema",
+        "id": "db-execute-input",
+        "data": {
+            "!command": "string",
+            "parameters{}": "string"
+        }
+    },
+    {
+        "id": "db-driver-interface",
+        "data": {
+            "execute": {
+                "input": "@db-execute-input"
+            }
+        }
+    }
+]
