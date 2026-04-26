@@ -6,6 +6,7 @@ import { evaluateData } from './data.js';
 const registry = { };
 const kindIndex = { };
 const injections = { };
+let appConfigCache = null;
 
 function indexByKind(element) {
     const kind = element.kind ?? 'data';
@@ -51,7 +52,23 @@ function registerElement(element) {
     }
     indexByKind(element);
 
+    if (element.kind?.startsWith('app-config')) {
+        appConfigCache = null;
+    }
+
     kindSpecificRegistrationEffect[element.kind]?.(element);
+}
+
+function getAppConfig() {
+    if (!appConfigCache) {
+        const elements = [...(kindIndex['app-config'] ?? [])];
+        appConfigCache = {};
+        for (const element of elements) {
+            evaluateElement(element);
+            Object.assign(appConfigCache, element.data);
+        }
+    }
+    return appConfigCache;
 }
 
 function getElement(id) {
@@ -79,5 +96,6 @@ function getElementsOfKind(kind) {
 export {
     registerElement,
     getElement,
-    getElementsOfKind
+    getElementsOfKind,
+    getAppConfig
 }

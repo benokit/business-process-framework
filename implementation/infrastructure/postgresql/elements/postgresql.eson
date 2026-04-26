@@ -1,5 +1,18 @@
 [
     {
+        "kind": "schema",
+        "id": "app-config/postgresql",
+        "data": {
+            "!postgresUrl": "string"
+        }
+    },
+    {
+        "kind": "app-config/postgresql",
+        "data": {
+            "postgresUrl": "postgresql://admin:password@localhost:5432/app"
+        }
+    },
+    {
         "kind": "service/db-driver/postgresql",
         "id": "db-driver-postgresql",
         "/data": {

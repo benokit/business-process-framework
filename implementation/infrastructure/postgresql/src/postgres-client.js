@@ -1,10 +1,11 @@
 import pg from 'pg';
+import { getAppConfig } from '@business-framework/runtime/elements-registry';
 
-const url = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 let pool = null;
 
 async function connect() {
     if (pool) return;
+    const url = getAppConfig().postgresUrl;
     pool = new pg.Pool({ connectionString: url });
     const client = await pool.connect();
     client.release();

@@ -100,10 +100,11 @@ If neither `return` nor `exit` is present, the pipeline returns the output of th
 | `execution-node-template` | available as `#._ctx` in the template's context |
 | `if` / `switch` / `try` / `catch` / `finally` | carried implicitly as part of the full context |
 
-**Reserved keys**: Two keys on `_ctx` are reserved by the framework and must not be modified by user code:
+**Reserved keys**: Three keys on `_ctx` are set by the framework and must not be modified by user code:
 
 - `_execution` — internal tracing state (trace array, current node). Managed entirely by the executor.
 - `timestampUTC` — an ISO-8601 timestamp string set once at the root call entry and never overwritten. All nested calls share the same timestamp, giving a consistent "wall-clock time of this request" across the execution graph.
+- `appConfig` — the merged application configuration object (see [App config](#app-config)). Set once at the root call; the same object reference is shared throughout the execution graph.
 
 **Usage pattern**: `_ctx` is the right place for request-scoped state that must be shared across service boundaries without being passed through method inputs — for example, a database connection, a transaction handle, or a request-level cache. Write to it in one node, read from it via `#._ctx.<key>` in any later node, even across `service` or `call` boundaries. Use `finally` to perform cleanup with side effects (e.g. rolling back a transaction) that must happen regardless of whether an error occurred.
 
@@ -275,6 +276,75 @@ After loading this element:
 - `getElement("/entity-service")` returns `entity-service` directly, bypassing injection. The `/` prefix is the escape hatch for direct registry access.
 - `getElementsOfKind(kind)` excludes elements that are injection targets (`into` ids), so only the concrete replacements appear in listings.
 
+## App config
+
+App config is a mechanism for supplying static, deployment-time configuration to modules without coupling them to environment variables or hardcoded values.
+
+### How it works
+
+Any element whose `kind` starts with `app-config` contributes to a single merged configuration object. The runtime collects all such elements in registration order, merges their `data` objects (later registrations win on key conflicts), and caches the result. This object is exposed as `_ctx.appConfig` on every execution and can also be obtained directly via `getAppConfig()` from `runtime/elements-registry`.
+
+### Declaring module config
+
+Each module that needs configuration should define, in its elements file, both a schema and a default element:
+
+```json
+{
+    "kind": "schema",
+    "id": "app-config/my-module",
+    "data": {
+        "!myOption": "string"
+    }
+},
+{
+    "kind": "app-config/my-module",
+    "data": {
+        "myOption": "default-value"
+    }
+}
+```
+
+The schema `id` matching the element `kind` allows tooling to validate the config element against its schema.
+
+### Overriding config
+
+To override a module's defaults, load an additional element with the same kind and the desired values. Because elements are merged in registration order, load overrides after the defaults:
+
+```json
+{
+    "kind": "app-config/my-module",
+    "data": {
+        "myOption": "production-value"
+    }
+}
+```
+
+### Accessing config
+
+In pipelines, access via `_ctx.appConfig`:
+
+```json
+{ "set": "#._ctx.appConfig.myOption" }
+```
+
+In `low` functions:
+
+```js
+export function myFunc({ _ctx, input }) {
+    const value = _ctx.appConfig.myOption;
+}
+```
+
+In JS modules that run outside pipeline execution (e.g. lazy connection pools), import `getAppConfig` directly:
+
+```js
+import { getAppConfig } from '@business-framework/runtime/elements-registry';
+
+function init() {
+    const config = getAppConfig();
+}
+```
+
 ## Loading elements
 
 Elements are loaded from directory trees by `loadElements`. Two file formats are recognised:
@@ -321,7 +391,7 @@ element._source  // { file: '/abs/path/to/file.eson', line: 7 }
 ```js
 import { loadElements }             from 'runtime/elements-loader';
 import { execute }                  from 'runtime/execution';
-import { getElement, getElementsOfKind } from 'runtime/elements-registry';
+import { getElement, getElementsOfKind, getAppConfig } from 'runtime/elements-registry';
 
 // Load all *.eson and *.eson.* files from one or more directory trees.
 // Returns the array of loaded elements (each with _source metadata attached).

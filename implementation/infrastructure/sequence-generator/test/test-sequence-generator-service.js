@@ -25,7 +25,7 @@ describe('sequence-generator (service element)', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — sequence-generator service element tests skipped\n');
             this.skip();
         }
-        await loadElements([packageDir('@business-framework/sequence-generator')]);
+        await loadElements([packageDir('@business-framework/postgresql'), packageDir('@business-framework/sequence-generator')]);
         await connect();
         connected = true;
     });

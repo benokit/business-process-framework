@@ -1,8 +1,13 @@
 import { expect } from 'chai';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import pg from 'pg';
+import { loadElements } from '@business-framework/runtime/elements-loader';
 import { connect, disconnect } from '@business-framework/postgresql';
 import { next } from '../src/sequence-generator.js';
 
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const SEQUENCE = `test-seq-${Date.now()}`;
 
@@ -19,6 +24,7 @@ describe('sequence-generator', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — sequence-generator tests skipped\n');
             this.skip();
         }
+        await loadElements([packageDir('@business-framework/postgresql')]);
         await connect();
         connected = true;
     });

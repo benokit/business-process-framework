@@ -31,11 +31,9 @@ describe('entity service — integration', function () {
             this.skip();
         }
 
-        await connect();
-        connected = true;
-
         await loadElements([
             packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/postgresql'),
             packageDir('@business-framework/middleware'),
             packageDir('@business-framework/transaction'),
             packageDir('@business-framework/messaging'),
@@ -43,6 +41,9 @@ describe('entity service — integration', function () {
             packageDir('@business-framework/sequence-generator'),
             packageDir('@business-framework/entities')
         ]);
+
+        await connect();
+        connected = true;
 
         // Entity type with a business-key rule backed by a sequence generator.
         registerElement({ type: 'data', id: BK_ENTITY_TYPE, data: {

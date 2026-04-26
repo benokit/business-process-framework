@@ -25,7 +25,7 @@ describe('transaction (service elements)', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — tests skipped\n');
             this.skip();
         }
-        await loadElements([packageDir('@business-framework/transaction')]);
+        await loadElements([packageDir('@business-framework/postgresql'), packageDir('@business-framework/transaction')]);
         await connect();
         connected = true;
     });

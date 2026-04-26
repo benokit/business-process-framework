@@ -1,12 +1,23 @@
-# tooling
+# app config
 
-folder: implementation/tools
-package: @business-framework/tools
+app configurations specify static properties that determine a behavior of the application.
+app configurations should be specified in elements.
 
-purpose: provides tools for discovery, validation, etc 
+kind: app-config/{specific}
 
-implement workspace validation:
-    For each element resolve corresponding schema for its kind (note that kind has a hierarchical structure with / as delimiter).
-    (A schema is a corresponding schema of an element, if the element's kind or any of its parent kinds matches the schema id.)
-    Validate elements against corresponding schemas. For failing elements print a useful information with a link to the file 
-    and position of the element.
+Each module can declare its own configuration interface with schema id: app-config/{specific} 
+and a default specific app-config element.
+
+The runtime module, exposes a lazily instantiated object appConfig which is constructed from a collection all elements of kind app-config
+merge in the same order as they were registered into a single object.
+
+App config is accessible from _ctx.appConfig everywhere.
+
+-----------
+
+Implement the app config functionality.
+
+In modules where currently an env variable is used, use app config instead.
+
+
+

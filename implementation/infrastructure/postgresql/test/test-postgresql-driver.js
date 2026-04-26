@@ -1,8 +1,13 @@
 import { expect } from 'chai';
+import { dirname } from 'path';
+import { createRequire } from 'module';
 import pg from 'pg';
+import { loadElements } from '@business-framework/runtime/elements-loader';
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 import { execute } from '@business-framework/postgresql/driver';
 
+const require = createRequire(import.meta.url);
+const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 const POSTGRES_URL = process.env.POSTGRES_URL ?? 'postgresql://admin:password@localhost:5432/app';
 const TABLE = `test_pg_driver_${Date.now()}`;
 
@@ -19,6 +24,7 @@ describe('postgresql driver', function () {
             console.warn('\n  WARNING: PostgreSQL not reachable — postgresql driver tests skipped\n');
             this.skip();
         }
+        await loadElements([packageDir('@business-framework/postgresql')]);
         await connect();
         await getPool().query(`CREATE TABLE ${TABLE} (id SERIAL, status TEXT, type TEXT)`);
         await getPool().query(`INSERT INTO ${TABLE} (status, type) VALUES ('pending', 'online'), ('shipped', 'offline')`);

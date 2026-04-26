@@ -3,7 +3,7 @@
         "kind": "schema",
         "id": "element",
         "data":{
-            "!id": "string",
+            "id": "string",
             "kind": "string",
             "meta": "object",
             "$data#1": [
@@ -78,5 +78,10 @@
         "kind": "schema",
         "id": "pure-function",
         "data": "@function"
+    },
+    {
+        "kind": "schema",
+        "id": "app-config",
+        "data": "object"
     }
 ]

@@ -9,12 +9,12 @@ Shared connection pool. Imported directly by packages that need raw database acc
 ```js
 import { connect, disconnect, getPool } from '@business-framework/postgresql';
 
-await connect();          // initialises the pool; reads POSTGRES_URL env var
+await connect();          // initialises the pool; reads postgresUrl from app config
 const pool = getPool();   // returns the active pg.Pool instance
 await disconnect();       // drains and closes the pool
 ```
 
-`POSTGRES_URL` default: `postgresql://admin:password@localhost:5432/app`.
+The connection URL is read from `appConfig.postgresUrl` (see [App config](../../runtime/README.md#app-config)). The default value is defined in `elements/postgresql.eson` via the `app-config/postgresql` element. Override it by loading an additional `app-config/postgresql` element with the desired `postgresUrl` before calling `connect()`.
 
 ## db-driver-postgresql service
 

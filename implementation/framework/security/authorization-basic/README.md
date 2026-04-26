@@ -31,8 +31,12 @@ Reads the `Authorization: Bearer <token>` header, validates the JWT signature an
 
 If the header is absent the middleware passes through without setting `_ctx.user`. If the header is present but invalid the token verification returns `null` and `_ctx.user` is not set.
 
-## Environment variables
+## App config
 
-| Variable | Default | Description |
+Configuration is supplied via the `app-config/authorization-basic` element (see [App config](../../../../runtime/README.md#app-config)).
+
+| Field | Required | Description |
 | --- | --- | --- |
-| `JWT_SECRET` | `default-secret-change-in-production` | HMAC-SHA256 signing secret — **must be overridden in production** |
+| `jwtSecret` | yes | HMAC-SHA256 signing secret — **must be overridden in production** |
+
+The default value (`default-secret-change-in-production`) is defined in `elements/auth.eson`. Override it by loading an additional `app-config/authorization-basic` element with the production secret before any tokens are issued or verified.

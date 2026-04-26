@@ -1,5 +1,5 @@
 import { validateSchema } from './schema.js';
-import { getElement } from './elements-registry.js';
+import { getElement, getAppConfig } from './elements-registry.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
 import { filter, has, isArray, isPlainObject, isString, keys, merge, map, join } from 'lodash-es';
 import { compile } from 'lambdajson-js';
@@ -75,6 +75,7 @@ function registerExecutionNodeTemplate(kw, implementation) {
 
 async function executeMethod(implementation, input, _ctx = {}) {
     if (!_ctx.timestampUTC) _ctx.timestampUTC = new Date().toISOString();
+    if (!_ctx.appConfig) _ctx.appConfig = getAppConfig();
     const isRoot = !_ctx._execution;
     if (!_ctx._execution) _ctx._execution = { trace: [] };
     const traceStart = _ctx._execution.trace.length;

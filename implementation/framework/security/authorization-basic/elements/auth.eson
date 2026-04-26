@@ -1,5 +1,18 @@
 [
     {
+        "kind": "schema",
+        "id": "app-config/authorization-basic",
+        "data": {
+            "!jwtSecret": "string"
+        }
+    },
+    {
+        "kind": "app-config/authorization-basic",
+        "data": {
+            "jwtSecret": "default-secret-change-in-production"
+        }
+    },
+    {
         "kind": "service",
         "id": "auth-login",
         "data": {

@@ -1,9 +1,14 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { getAppConfig } from '@business-framework/runtime/elements-registry';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-in-production';
 const JWT_EXPIRES_IN = 24 * 60 * 60; // 24 hours in seconds
 
+function getJwtSecret() {
+    return getAppConfig().jwtSecret;
+}
+
 export function generateToken({ input: { userId, username, email } }) {
+    const JWT_SECRET = getJwtSecret();
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
     const now = Math.floor(Date.now() / 1000);
     const payload = Buffer.from(JSON.stringify({
@@ -20,6 +25,7 @@ export function generateToken({ input: { userId, username, email } }) {
 }
 
 export function verifyToken({ input: authHeader }) {
+    const JWT_SECRET = getJwtSecret();
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.slice(7);
     const parts = token.split('.');
