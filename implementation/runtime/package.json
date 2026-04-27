@@ -9,6 +9,7 @@
     "./execution": "./src/execution.js",
     "./data": "./src/data.js",
     "./elements-registry": "./src/elements-registry.js",
+    "./app-config": "./src/app-config.js",
     "./schema": "./src/schema.js",
     "./elements": "./src/elements.js",
     "./elements-loader": "./src/elements-loader.js"

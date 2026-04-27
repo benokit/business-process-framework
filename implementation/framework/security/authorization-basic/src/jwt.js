@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
-import { getAppConfig } from '@business-framework/runtime/elements-registry';
+import { getAppConfig } from '@business-framework/runtime/app-config';
 
 const JWT_EXPIRES_IN = 24 * 60 * 60; // 24 hours in seconds
 

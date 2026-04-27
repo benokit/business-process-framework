@@ -1,5 +1,6 @@
 import { validateSchema } from './schema.js';
-import { getElement, getAppConfig } from './elements-registry.js';
+import { getElement } from './elements-registry.js';
+import { getAppConfig } from './app-config.js';
 import { getPureFunctionPrimitives } from './pure-functions.js';
 import { filter, has, isArray, isPlainObject, isString, keys, merge, map, join } from 'lodash-es';
 import { compile } from 'lambdajson-js';

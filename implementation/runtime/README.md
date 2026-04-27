@@ -319,6 +319,28 @@ To override a module's defaults, load an additional element with the same kind a
 }
 ```
 
+### Environment variable overrides
+
+Any app-config property can be overridden at deployment time with an environment variable of the form:
+
+```
+BPF__<segment1>__<segment2>...__<key>=value
+```
+
+- The prefix `BPF__` identifies the variable as a framework config override.
+- Path segments are separated by `__` (double underscore). Single underscores inside a segment are treated as part of the property name.
+- All values arrive as strings; the consuming module is responsible for coercion if a non-string type is needed.
+- Env overrides are applied last — they win over any `app-config` element registered from files.
+
+Examples:
+
+| Variable | Config path overridden |
+|---|---|
+| `BPF__myOption=prod` | `config.myOption` |
+| `BPF__database__host=db.prod` | `config.database.host` |
+| `BPF__database__port=5432` | `config.database.port` |
+| `BPF__auth__jwt__secret=xyz` | `config.auth.jwt.secret` |
+
 ### Accessing config
 
 In pipelines, access via `_ctx.appConfig`:

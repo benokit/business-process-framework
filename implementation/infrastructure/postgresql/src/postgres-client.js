@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { getAppConfig } from '@business-framework/runtime/elements-registry';
+import { getAppConfig } from '@business-framework/runtime/app-config';
 
 let pool = null;
 
