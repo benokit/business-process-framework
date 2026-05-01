@@ -11,7 +11,7 @@ const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 describe('db-access service', function () {
     before(async function () {
         await loadElements([
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/database')
         ]);
         registerElement({

@@ -4,6 +4,7 @@ Cross-cutting packages used by infrastructure, security, and other layers.
 
 | Package | Description |
 | --- | --- |
+| [`definitions`](definitions/README.md) | Schema elements defining the shapes of core framework building blocks |
 | [`messaging`](messaging/README.md) | Broker-agnostic messaging facade; `publish` pipeline keyword |
 | [`middleware`](middleware/README.md) | Generic middleware runner; chains middlewares before a final action |
 | [`database`](database/README.md) | Creates database objects from declarative `db-model` elements |

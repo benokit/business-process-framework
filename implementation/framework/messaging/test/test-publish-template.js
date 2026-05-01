@@ -27,7 +27,7 @@ const TEST_PUBLISHER = {
 
 before(async function () {
     await loadElements([
-        packageDir('@business-framework/runtime'),
+        packageDir('@business-framework/definitions'),
         packageDir('@business-framework/messaging')
     ]);
 

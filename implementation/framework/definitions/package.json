@@ -1,0 +1,8 @@
+{
+  "name": "@business-framework/definitions",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  }
+}

@@ -11,7 +11,7 @@ const packageDir = name => dirname(require.resolve(`${name}/package.json`));
 describe('entity-catalog service', function () {
 
     before(async () => {
-        await loadElements([packageDir('@business-framework/entities'), packageDir('@business-framework/runtime')]);
+        await loadElements([packageDir('@business-framework/entities'), packageDir('@business-framework/definitions')]);
 
         // Schema element referenced by @product-data in the product entity type below.
         registerElement({

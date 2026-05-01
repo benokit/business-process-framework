@@ -15,7 +15,7 @@ describe('entity relations middleware', function () {
     before(async () => {
         await loadElements([
             packageDir('@business-framework/entities'),
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/middleware')
         ]);
 

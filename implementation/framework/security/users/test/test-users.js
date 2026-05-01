@@ -40,7 +40,7 @@ describe('user component methods', () => {
     before(async () => {
         await loadElements([
             packageDir('@business-framework/users'),
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/entities'),
             packageDir('@business-framework/middleware'),
             packageDir('@business-framework/transaction')

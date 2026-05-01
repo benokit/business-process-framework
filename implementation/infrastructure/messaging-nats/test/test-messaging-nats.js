@@ -26,7 +26,7 @@ describe('messaging service (nats)', function () {
         }
 
         await loadElements([
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/middleware'),
             packageDir('@business-framework/messaging'),
             packageDir('@business-framework/messaging-nats')

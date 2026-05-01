@@ -18,7 +18,7 @@ const HEADERS = { 'x-correlation-id': 'corr-42' };
 describe('entity-controller', function () {
 
     before(async () => {
-        await loadElements([packageDir('@business-framework/entities'), packageDir('@business-framework/runtime')]);
+        await loadElements([packageDir('@business-framework/entities'), packageDir('@business-framework/definitions')]);
 
         // Mock entity service: echoes input, captures _ctx, always returns RECORD.
         // capturedInput stored on _ctx so tests can inspect it after executeService().

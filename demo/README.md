@@ -108,8 +108,7 @@ Pass the demo element paths alongside the framework elements when calling `loadE
 import { loadElements } from '@business-framework/runtime/elements-loader';
 
 const elements = await loadElements([
-    'implementation/runtime/elements/**/*.eson',
-    'implementation/security/entities/elements/**/*.eson',
+    'implementation/framework/**/elements/**/*.eson',
     'implementation/infrastructure/**/elements/**/*.eson',
     'demo/**/*.eson'
 ]);

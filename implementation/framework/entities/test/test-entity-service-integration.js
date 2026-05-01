@@ -32,7 +32,7 @@ describe('entity service — integration', function () {
         }
 
         await loadElements([
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/postgresql'),
             packageDir('@business-framework/middleware'),
             packageDir('@business-framework/transaction'),

@@ -16,7 +16,7 @@ const ACTION = [
 describe('middleware', function () {
     before(async function () {
         await loadElements([
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/middleware')
         ]);
 

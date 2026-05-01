@@ -49,7 +49,7 @@ describe('auth-login service', () => {
     before(async () => {
         await loadElements([
             packageDir('@business-framework/authorization-basic'),
-            packageDir('@business-framework/runtime'),
+            packageDir('@business-framework/definitions'),
             packageDir('@business-framework/entities'),
             packageDir('@business-framework/users'),
             packageDir('@business-framework/middleware')
