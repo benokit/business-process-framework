@@ -331,7 +331,7 @@ Register one or more rule elements to enable relations for an entity type. Each 
         {
             "return": {
                 "relations": [
-                    { "targetEntityBusinessKey": "#.input.data.customerId", "relationType": "customer" }
+                    { "targetEntityType": "customer", "targetEntityBusinessKey": "#.input.data.customerId", "relationType": "customer" }
                 ]
             }
         }
@@ -344,7 +344,7 @@ Register one or more rule elements to enable relations for an entity type. Each 
 | `kind` | `entity-rule/relations/{entityType}` |
 | `data` | Pipeline: `entity-record` → `{ relations[] }` |
 
-`relations[]` items: `{ targetEntityBusinessKey, relationType }`. The target entity must exist; its UUID is resolved automatically. On `delete`, relations are cleared regardless of rules.
+`relations[]` items: `{ targetEntityType, targetEntityBusinessKey, relationType }`. The target entity must exist; its UUID is resolved by `(entity_type, business_key)`, which is unique per the DB schema. On `delete`, relations are cleared regardless of rules.
 
 All registered rules for the entity type are evaluated and their `relations` arrays concatenated. Duplicate `(targetEntityBusinessKey, relationType)` pairs across rules are deduplicated by `setRelations` before writing to the database.
 

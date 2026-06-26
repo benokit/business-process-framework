@@ -7,12 +7,12 @@ async function db(ctx) {
     return getPool();
 }
 
-async function resolveTargetId(dbConn, targetEntityBusinessKey) {
+async function resolveTargetId(dbConn, targetEntityType, targetEntityBusinessKey) {
     const result = await dbConn.query(
-        'SELECT id FROM entities WHERE business_key = $1 LIMIT 1',
-        [targetEntityBusinessKey]
+        'SELECT id FROM entities WHERE entity_type = $1 AND business_key = $2',
+        [targetEntityType, targetEntityBusinessKey]
     );
-    if (!result.rows.length) throw `entity-relations: target entity not found: ${targetEntityBusinessKey}`;
+    if (!result.rows.length) throw `entity-relations: target entity not found: ${targetEntityType}/${targetEntityBusinessKey}`;
     return result.rows[0].id;
 }
 
@@ -27,7 +27,7 @@ async function setRelations({ _ctx, input: { sourceEntityId, sourceEntityVersion
     const existingSet = new Set(existing.map(r => `${r.target_entity_id}\0${r.relation_type}`));
     const resolvedRelations = await Promise.all(
         relations.map(async r => ({
-            targetEntityId: await resolveTargetId(conn, r.targetEntityBusinessKey),
+            targetEntityId: await resolveTargetId(conn, r.targetEntityType, r.targetEntityBusinessKey),
             relationType: r.relationType
         }))
     );

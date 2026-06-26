@@ -1,18 +1,20 @@
 import { connect, getPool } from '@business-framework/postgresql';
+import { getClient } from '@business-framework/transaction';
 import jsonPatchModule from 'fast-json-patch';
 const { compare: patchCompare, applyPatch } = jsonPatchModule;
 
-async function pool() {
+async function db(ctx) {
+    if (ctx?.transaction?.sessionId != null) return getClient(ctx.transaction.sessionId);
     await connect();
     return getPool();
 }
 
-async function create({ input: { entityType, businessKey, data, state = {} } }) {
+async function create({ _ctx, input: { entityType, businessKey, data, state = {} } }) {
     if (typeof businessKey !== 'string' || businessKey === '') {
         throw 'create failed: businessKey must be a non-empty string';
     }
     try {
-        const result = await (await pool()).query(
+        const result = await (await db(_ctx)).query(
             `INSERT INTO entities (entity_type, business_key, data, state, timestamp_utc) VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
             [entityType, businessKey, JSON.stringify(data), JSON.stringify(state)]
         );
@@ -23,16 +25,17 @@ async function create({ input: { entityType, businessKey, data, state = {} } }) 
     }
 }
 
-async function read({ input: { entityType, id, businessKey, revision } }) {
+async function read({ _ctx, input: { entityType, id, businessKey, revision } }) {
     try {
+        const conn = await db(_ctx);
         let result;
         if (businessKey) {
-            result = await (await pool()).query(
+            result = await conn.query(
                 'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2',
                 [entityType, businessKey]
             );
         } else {
-            result = await (await pool()).query(
+            result = await conn.query(
                 'SELECT * FROM entities WHERE entity_type = $1 AND id = $2',
                 [entityType, id]
             );
@@ -42,7 +45,7 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
         if (revision === undefined || revision === current.revision) return toRecord(current);
         if (revision < 1 || revision > current.revision) return null;
 
-        const history = await (await pool()).query(
+        const history = await conn.query(
             `SELECT revision, data_patch, state_patch, timestamp_utc FROM entity_history
              WHERE id = $1 AND revision >= $2 AND revision < $3
              ORDER BY revision DESC`,
@@ -63,10 +66,11 @@ async function read({ input: { entityType, id, businessKey, revision } }) {
     }
 }
 
-async function update({ input: { entityType, id, businessKey, revision, data, state } }) {
-    const client = await (await pool()).connect();
+async function update({ _ctx, input: { entityType, id, businessKey, revision, data, state } }) {
+    const outerTransaction = _ctx?.transaction?.sessionId != null;
+    const client = outerTransaction ? getClient(_ctx.transaction.sessionId) : await (await db()).connect();
     try {
-        await client.query('BEGIN');
+        if (!outerTransaction) await client.query('BEGIN');
         let current;
         if (businessKey) {
             const r = await client.query(
@@ -98,20 +102,21 @@ async function update({ input: { entityType, id, businessKey, revision, data, st
              RETURNING *`,
             [JSON.stringify(newData), JSON.stringify(newState), current.id, current.revision]
         );
-        await client.query('COMMIT');
+        if (!outerTransaction) await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
-        await client.query('ROLLBACK');
+        if (!outerTransaction) await client.query('ROLLBACK');
         throw err;
     } finally {
-        client.release();
+        if (!outerTransaction) client.release();
     }
 }
 
-async function amend({ input: { entityType, id, businessKey, revision, data, validFrom } }) {
-    const client = await (await pool()).connect();
+async function amend({ _ctx, input: { entityType, id, businessKey, revision, data, validFrom } }) {
+    const outerTransaction = _ctx?.transaction?.sessionId != null;
+    const client = outerTransaction ? getClient(_ctx.transaction.sessionId) : await (await db()).connect();
     try {
-        await client.query('BEGIN');
+        if (!outerTransaction) await client.query('BEGIN');
         let current;
         if (businessKey) {
             const r = await client.query(
@@ -139,20 +144,21 @@ async function amend({ input: { entityType, id, businessKey, revision, data, val
              RETURNING *`,
             [JSON.stringify(data), current.id, current.revision]
         );
-        await client.query('COMMIT');
+        if (!outerTransaction) await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
-        await client.query('ROLLBACK');
+        if (!outerTransaction) await client.query('ROLLBACK');
         throw err;
     } finally {
-        client.release();
+        if (!outerTransaction) client.release();
     }
 }
 
-async function del({ input: { entityType, id, businessKey, revision } }) {
-    const client = await (await pool()).connect();
+async function del({ _ctx, input: { entityType, id, businessKey, revision } }) {
+    const outerTransaction = _ctx?.transaction?.sessionId != null;
+    const client = outerTransaction ? getClient(_ctx.transaction.sessionId) : await (await db()).connect();
     try {
-        await client.query('BEGIN');
+        if (!outerTransaction) await client.query('BEGIN');
         let result;
         if (businessKey) {
             const sql = revision !== undefined
@@ -170,16 +176,15 @@ async function del({ input: { entityType, id, businessKey, revision } }) {
         if (!result.rows.length) throw 'delete failed: document not found or revision mismatch';
         await client.query('DELETE FROM entity_history WHERE id = $1', [result.rows[0].id]);
         await client.query('DELETE FROM entity_versions WHERE id = $1', [result.rows[0].id]);
-        await client.query('COMMIT');
+        if (!outerTransaction) await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
-        await client.query('ROLLBACK');
+        if (!outerTransaction) await client.query('ROLLBACK');
         throw err;
     } finally {
-        client.release();
+        if (!outerTransaction) client.release();
     }
 }
-
 
 function toRecord(row) {
     return { id: row.id, entityType: row.entity_type, businessKey: row.business_key, revision: row.revision, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
@@ -189,15 +194,16 @@ function toIso(value) {
     return value instanceof Date ? value.toISOString() : value;
 }
 
-async function list({ input: { entityType, limit = 50, offset = 0 } }) {
+async function list({ _ctx, input: { entityType, limit = 50, offset = 0 } }) {
     const safeLimit = Math.min(Number(limit) || 50, 200);
     const safeOffset = Number(offset) || 0;
+    const conn = await db(_ctx);
     const [rows, count] = await Promise.all([
-        (await pool()).query(
+        conn.query(
             'SELECT * FROM entities WHERE entity_type = $1 ORDER BY timestamp_utc DESC LIMIT $2 OFFSET $3',
             [entityType, safeLimit, safeOffset]
         ),
-        (await pool()).query(
+        conn.query(
             'SELECT COUNT(*)::int AS total FROM entities WHERE entity_type = $1',
             [entityType]
         )

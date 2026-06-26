@@ -83,5 +83,10 @@
         "kind": "schema",
         "id": "app-config",
         "data": "object"
+    },
+    {
+        "kind": "schema",
+        "id": "date",
+        "data": "string:^\\d{4}-\\d{2}-\\d{2}$"
     }
 ]
