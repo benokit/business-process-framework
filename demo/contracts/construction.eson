@@ -1,0 +1,62 @@
+[
+    {
+        "kind": "entity-type/insurance-contract",
+        "id": "construction",
+        "data": {
+            "dataSchema": {
+                "!policyholder": "string",
+                "!project": "string",
+                "!currency": "string",
+                "!startDate": "string",
+                "!endDate": "string"
+            },
+            "statesModel": {
+                "states": {
+                    "status": ["draft", "discarded", "issued", "active", "cancelled"]
+                },
+                "transitions": {
+                    "discard": {
+                        "from": { "status": ["draft"] },
+                        "to": { "status": "discarded" }
+                    },
+                    "issue": {
+                        "from": { "status": ["draft"] },
+                        "to": { "status": "issued" }
+                    },
+                    "activate": {
+                        "from": { "status": ["issued"] },
+                        "to": { "status": "active" }
+                    },
+                    "cancel": {
+                        "from": { "status": ["issued", "active"] },
+                        "to": { "status": "cancelled" }
+                    }
+                },
+                "initialStates": {
+                    "default": { "status": "draft" }
+                }
+            },
+            "dataVersioning": { "enabled": true }
+        }
+    },
+    {
+        "kind": "middleware/entity-service/amend/insurance-contract",
+        "id": "construction-amend-state-guard",
+        "data": {
+            "ordering": 10,
+            "implementation": [
+                {
+                    "outputKey": "entity",
+                    "service": "entity",
+                    "method": "read",
+                    "inputMap": { "entityType": "#.input.context.entityType", "businessKey": "#.input.input.businessKey" }
+                },
+                {
+                    "if": { "$eq": ["#.entity.state.dimensions.status", "active"] },
+                    "then": { "inputMap": "#.input.input", "execute": "#.input.next" },
+                    "else": { "throw": "amendments are only allowed in state active" }
+                }
+            ]
+        }
+    }
+]

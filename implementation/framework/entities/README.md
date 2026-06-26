@@ -122,9 +122,54 @@ When `transition` is called:
 - `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [amend — business versioning](#amend--business-versioning) for storage details.
 - All methods run through the middleware chain for their kind before executing the core operation.
 
+## Entity type class hierarchy
+
+An entity type's `kind` field encodes its **class**. The class is the part of `kind` after the `entity-type/` prefix:
+
+| `kind` | Class |
+| --- | --- |
+| `entity-type/insurance-contract` | `insurance-contract` |
+| `entity-type/insurance-contract/property` | `insurance-contract/property` |
+| `entity-type` (no suffix) | *(none)* |
+
+Classes are slash-separated hierarchies. An entity type with class `a/b/c` is considered a member of `a`, `a/b`, and `a/b/c` simultaneously. This drives the middleware resolution tier described below.
+
 ## Middleware
 
-Every entity service method is wrapped in a middleware chain before its core operation runs. Middleware elements use the kind `middleware/entity-service/{method}/{entityType}` and follow the standard [`middleware`](../../infrastructure/middleware/README.md) shape.
+Every entity service method is wrapped in a middleware chain before its core operation runs. Middleware elements follow the standard [`middleware`](../../infrastructure/middleware/README.md) shape and are resolved in three tiers, concatenated in this order:
+
+| Tier | Kind pattern | Scope |
+| --- | --- | --- |
+| Root | `middleware/entity-service/{method}/root-entity-class` | All entity types |
+| Class hierarchy | `middleware/entity-service/{method}/{class}` (walked breadth-first, e.g. `a` → `a/b` → `a/b/c`) | All entity types whose `kind` falls under that class prefix |
+| Specific | `middleware/entity-service/{method}/{entityType}` | One entity type by id |
+
+Middleware registered at a higher tier always runs before middleware registered at a lower tier (within the same tier, `ordering` determines sequence). Entity types without a class (no `entity-type/` suffix in `kind`) skip the class tier entirely.
+
+A class-level middleware applies to every entity type whose class hierarchy includes the class name:
+
+```json
+{
+    "kind": "middleware/entity-service/amend/insurance-contract",
+    "data": {
+        "ordering": 10,
+        "implementation": [
+            {
+                "outputKey": "entity",
+                "service": "entity", "method": "read",
+                "inputMap": { "entityType": "#.input.context.entityType", "businessKey": "#.input.input.businessKey" }
+            },
+            {
+                "if": { "$eq": ["#.entity.state.dimensions.status", "active"] },
+                "then": { "inputMap": "#.input.input", "execute": "#.input.next" },
+                "else": { "throw": "amendments are only allowed in state active" }
+            }
+        ]
+    }
+}
+```
+
+This fires for every entity type with `kind: "entity-type/insurance-contract"` or `kind: "entity-type/insurance-contract/..."`.
 
 Each middleware receives `{ context, input, next }` as its pipeline input:
 

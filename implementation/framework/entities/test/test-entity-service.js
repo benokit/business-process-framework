@@ -777,4 +777,104 @@ describe('entity service', function () {
 
     });
 
+    // -------------------------------------------------------------------------
+    describe('create — class middleware', () => {
+
+        before(() => {
+            // Entity type with class "test-class" (single-level)
+            registerElement({
+                kind: 'entity-type/test-class',
+                id: 'order-with-class',
+                data: { dataSchema: { '!amount': 'number', '!currency': 'string' } }
+            });
+            // Class-level middleware — should fire for ALL entity-type/test-class entities
+            registerElement({
+                kind: 'middleware/entity-service/create/test-class',
+                id: 'test-class-create-middleware',
+                data: {
+                    ordering: 10,
+                    implementation: [
+                        { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                        { outputKey: '_ctx', set: { classMiddlewareCalled: true } },
+                        { return: '#.result' }
+                    ]
+                }
+            });
+        });
+
+        it('class middleware fires when entity type has matching class', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-with-class', businessKey: 'bk-class-test', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.classMiddlewareCalled).to.be.true;
+        });
+
+        it('class middleware does NOT fire for an entity type with a different class', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order', businessKey: 'bk-no-class-test', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.classMiddlewareCalled).to.be.undefined;
+        });
+
+    });
+
+    // -------------------------------------------------------------------------
+    describe('create — class hierarchy middleware', () => {
+
+        before(() => {
+            // Entity type with class "test-ns/leaf" (two-level hierarchy)
+            registerElement({
+                kind: 'entity-type/test-ns/leaf',
+                id: 'order-with-subclass',
+                data: { dataSchema: { '!amount': 'number', '!currency': 'string' } }
+            });
+            // Root namespace middleware — fires for all entity-type/test-ns/* entities
+            registerElement({
+                kind: 'middleware/entity-service/create/test-ns',
+                id: 'test-ns-create-middleware',
+                data: {
+                    ordering: 10,
+                    implementation: [
+                        { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                        { outputKey: '_ctx', set: { nsMiddlewareCalled: true } },
+                        { return: '#.result' }
+                    ]
+                }
+            });
+            // Leaf-level middleware — fires only for entity-type/test-ns/leaf entities
+            registerElement({
+                kind: 'middleware/entity-service/create/test-ns/leaf',
+                id: 'test-ns-leaf-create-middleware',
+                data: {
+                    ordering: 20,
+                    implementation: [
+                        { outputKey: 'result', inputMap: '#.input.input', execute: '#.input.next' },
+                        { outputKey: '_ctx', set: { leafMiddlewareCalled: true } },
+                        { return: '#.result' }
+                    ]
+                }
+            });
+        });
+
+        it('both namespace and leaf middleware fire for order-with-subclass', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-with-subclass', businessKey: 'bk-subclass-test', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.nsMiddlewareCalled).to.be.true;
+            expect(_ctx.leafMiddlewareCalled).to.be.true;
+        });
+
+        it('namespace middleware does NOT fire for an entity type with a different class', async () => {
+            const _ctx = {};
+            await executeService(SERVICE, 'create', {
+                entityType: 'order-with-class', businessKey: 'bk-class-no-ns-test', data: { amount: 100, currency: 'USD' }
+            }, _ctx);
+            expect(_ctx.nsMiddlewareCalled).to.be.undefined;
+        });
+
+    });
+
 });

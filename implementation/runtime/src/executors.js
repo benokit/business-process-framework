@@ -110,6 +110,16 @@ export const executors = {
         return getElementsOfKind(kind);
     },
 
+    getElementsOfKindHierarchy: node => async input => {
+        const { _prefix, _hierarchy } = await executeMapping(node.getElementsOfKindHierarchy, input);
+        if (!_hierarchy) return { items: [] };
+        const segments = _hierarchy.split('/');
+        const items = segments.flatMap((_, i) =>
+            getElementsOfKind(_prefix + segments.slice(0, i + 1).join('/')).items
+        );
+        return { items };
+    },
+
     switch: node => async input => {
         const value = await executeMapping(node.switch.value, input);
         const g = node.switch.cases[value] || node.switch.cases['default'];

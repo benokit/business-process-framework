@@ -138,8 +138,17 @@
                     ]
                 },
                 {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/create/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/create/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -149,7 +158,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -182,8 +191,21 @@
             ],
             "read": [
                 {
+                    "outputKey": "entityTypeDef",
+                    "getElement": "#.input.entityType"
+                },
+                {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/read/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/read/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -193,7 +215,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -223,8 +245,17 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/update/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/update/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -234,7 +265,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -262,8 +293,21 @@
             ],
             "delete": [
                 {
+                    "outputKey": "entityTypeDef",
+                    "getElement": "#.input.entityType"
+                },
+                {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/delete/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/delete/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -273,7 +317,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -345,8 +389,17 @@
                 },
                 { "outputKey": "newStateDims", "set": { "$merge": ["#.current.state.dimensions", "#.transitionDef.to"] } },
                 {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/transition/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/transition/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -356,7 +409,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -401,8 +454,17 @@
                     "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
                 },
                 {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/amend/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/amend/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -412,7 +474,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
@@ -484,8 +546,21 @@
                     "else": [{ "return": "#" }]
                 },
                 {
+                    "outputKey": "entityTypeDef",
+                    "getElement": "#.input.entityType"
+                },
+                {
+                    "outputKey": "entityHierarchy",
+                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
+                },
+                {
                     "outputKey": "baseMiddlewareItems",
                     "getElementsOfKind": "middleware/entity-service/execute/root-entity-class",
+                    "outputMap": "#.items"
+                },
+                {
+                    "outputKey": "classMiddlewareItems",
+                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/execute/", "_hierarchy": "#.entityHierarchy" },
                     "outputMap": "#.items"
                 },
                 {
@@ -495,7 +570,7 @@
                 },
                 {
                     "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.specificMiddlewareItems"] }
+                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
                 },
                 {
                     "outputKey": "wrappedAction",
