@@ -1,0 +1,75 @@
+[
+    {
+        "kind": "on-startup",
+        "data": [
+            {
+                "service": "messaging-service", "method": "startConsumers"
+            }
+        ]
+    },
+    {
+        "kind": "message-consumer",
+        "id": "entity-search-consumer",
+        "data": {
+            "channel": "entity-events",
+            "name": "entity-search-indexer",
+            "handler": { "service": "entity-search-indexer", "method": "handle" }
+        }
+    },
+    {
+        "kind": "service",
+        "id": "entity-search-indexer",
+        "data": {
+            "interface": {
+                "handle": { "input": "object" }
+            },
+            "implementation": {
+                "handle": [
+                    {
+                        "outputKey": "event",
+                        "set": "#.input.message"
+                    },
+                    {
+                        "outputKey": "indices",
+                        "getElementsOfKind": { "$join": { "_strings": ["entity-search-index/", "#.event.entityType"] } },
+                        "outputMap": "#.items"
+                    },
+                    {
+                        "forEach": [
+                            {
+                                "if": { "$eq": ["#.event.eventType", "delete"] },
+                                "then": [
+                                    {
+                                        "inputMap": {
+                                            "indexName": "#.input.data.indexName",
+                                            "document": { "id": "#.event.id" }
+                                        },
+                                        "execute": { "service": "#.input.data.searchEngine", "method": "removeDocument" }
+                                    }
+                                ],
+                                "else": [
+                                    {
+                                        "outputKey": "entity",
+                                        "inputMap": {
+                                            "entityType": "#.event.entityType",
+                                            "businessKey": "#.event.businessKey"
+                                        },
+                                        "service": "entity-database", "method": "read"
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "entity": "#.entity",
+                                            "indexDef": "#.input"
+                                        },
+                                        "call": "index-entity-document"
+                                    }
+                                ]
+                            }
+                        ],
+                        "inputMap": "#.indices"
+                    }
+                ]
+            }
+        }
+    }
+]

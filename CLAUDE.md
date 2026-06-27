@@ -19,10 +19,12 @@ implementation/
   runtime/         # Framework runtime (elements-loader, service, schema, data, date, random)
   infrastructure/  # See infrastructure/README.md for index
   framework/       # See framework/README.md for index (includes entities, security/*)
+  server/          # Bootstrap entry point; see server/README.md
 ```
 
 See [infrastructure/README.md](implementation/infrastructure/README.md) for the infrastructure package index.
 See [framework/README.md](implementation/framework/README.md) for the framework package index.
+See [server/README.md](implementation/server/README.md) for the bootstrap sequence and the `on-startup` element kind.
 
 ## LambdaJSON
 
@@ -51,3 +53,4 @@ PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRE
 - `.eson` files contain arrays of element objects (or a single object).
 - Service errors are thrown as strings (not Error objects).
 - `entity-record` shape: `{ id, businessKey, revision, data, state }`. `businessKey` required non-empty string on create. Optimistic concurrency: `update`/`delete` require matching `revision`.
+- `on-startup` elements run pipelines once after all elements are loaded, before the HTTP server starts. See [server/README.md](implementation/server/README.md).

@@ -10,3 +10,4 @@
 | [`transactional-outbox`](transactional-outbox/README.md) | At-least-once delivery via PostgreSQL-backed outbox |
 | [`logging`](logging/README.md) | Structured JSON logging; `log` pipeline keyword |
 | [`cache`](cache/README.md) | In-memory L1 cache; `withCache` pipeline keyword |
+| [`meilisearch`](meilisearch/README.md) | Meilisearch implementation of the `service/search-engine` interface |

@@ -1,0 +1,115 @@
+[
+    {
+        "kind": "service",
+        "id": "entity-index-management",
+        "data": {
+            "interface": {
+                "reindex": {
+                    "input": { "!entityType": "string" }
+                }
+            },
+            "implementation": {
+                "reindex": [
+                    {
+                        "outputKey": "entityType",
+                        "set": "#.input.entityType"
+                    },
+                    {
+                        "outputKey": "indices",
+                        "getElementsOfKind": { "$join": { "_strings": ["entity-search-index/", "#.entityType"] } },
+                        "outputMap": "#.items"
+                    },
+                    {
+                        "forEach": [
+                            {
+                                "outputKey": "indexDef",
+                                "set": "#.input"
+                            },
+                            {
+                                "inputMap": {
+                                    "indexName": "#.input.data.indexName",
+                                    "configuration": "#.input.data.indexConfiguration"
+                                },
+                                "execute": { "service": "#.input.data.searchEngine", "method": "configureIndex" }
+                            },
+                            {
+                                "outputKey": "entities",
+                                "inputMap": {
+                                    "entityType": "#.entityType",
+                                    "limit": 200
+                                },
+                                "service": "entity-database", "method": "list"
+                            },
+                            {
+                                "forEach": [
+                                    {
+                                        "inputMap": {
+                                            "entity": "#.input",
+                                            "indexDef": "#.indexDef"
+                                        },
+                                        "call": "index-entity-document"
+                                    }
+                                ],
+                                "inputMap": "#.entities.items"
+                            }
+                        ],
+                        "inputMap": "#.indices"
+                    }
+                ]
+            }
+        }
+    },
+
+    {
+        "kind": "service",
+        "id": "entity-search-controller",
+        "data": {
+            "interface": {
+                "search": { "input": "object", "output": "object" }
+            },
+            "implementation": {
+                "search": [
+                    {
+                        "outputKey": "result",
+                        "inputMap": {
+                            "entityIndex": "#.input.params.entityIndex",
+                            "query": "#.input.body"
+                        },
+                        "service": "entity-search", "method": "search"
+                    },
+                    { "return": { "status": 200, "body": "#.result" } }
+                ]
+            }
+        }
+    },
+
+    { "id": "entity-search-endpoint", "kind": "http-endpoint", "data": { "method": "POST", "path": "/entity-search/:entityIndex", "controller": { "service": "entity-search-controller", "method": "search" } } },
+
+    {
+        "kind": "service",
+        "id": "entity-search",
+        "data": {
+            "interface": {
+                "search": {
+                    "input": { "!entityIndex": "string", "!query": "object" },
+                    "output": "object"
+                }
+            },
+            "implementation": {
+                "search": [
+                    {
+                        "outputKey": "indexDef",
+                        "getElement": "#.input.entityIndex"
+                    },
+                    {
+                        "inputMap": {
+                            "indexName": "#.indexDef.data.indexName",
+                            "query": "#.input.query"
+                        },
+                        "execute": { "service": "#.indexDef.data.searchEngine", "method": "search" }
+                    }
+                ]
+            }
+        }
+    }
+]

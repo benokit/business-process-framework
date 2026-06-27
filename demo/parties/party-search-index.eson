@@ -1,0 +1,36 @@
+[
+    {
+        "kind": "entity-search-index/party",
+        "id": "party-search-index",
+        "data": {
+            "searchEngine": "meilisearch",
+            "indexName": "parties",
+            "indexConfiguration": {
+                "settings": {
+                    "searchableAttributes": ["name", "email", "partyType", "businessKey"],
+                    "filterableAttributes": ["partyType"]
+                }
+            },
+            "mapping": [
+                {
+                    "return": {
+                        "id": "#.input.id",
+                        "businessKey": "#.input.businessKey",
+                        "partyType": "#.input.data.partyType",
+                        "name": "#.input.data.name",
+                        "email": "#.input.data.email"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "kind": "on-startup",
+        "data": [
+            {
+                "inputMap": { "entityType": "party" },
+                "service": "entity-index-management", "method": "reindex"
+            }
+        ]
+    }
+]

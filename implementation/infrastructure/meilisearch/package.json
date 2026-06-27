@@ -1,0 +1,20 @@
+{
+    "name": "@business-framework/meilisearch",
+    "version": "1.0.0",
+    "type": "module",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": "./src/meilisearch-client.js"
+    },
+    "scripts": {
+        "test": "mocha --exit"
+    },
+    "dependencies": {
+        "@business-framework/runtime": "*",
+        "meilisearch": "^0.38.0"
+    },
+    "devDependencies": {
+        "chai": "*",
+        "mocha": "*"
+    }
+}

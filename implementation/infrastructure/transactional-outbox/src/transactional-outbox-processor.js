@@ -1,4 +1,4 @@
-import { getPool } from '@business-framework/postgresql';
+import { connect, getPool } from '@business-framework/postgresql';
 import { executeService } from '@business-framework/runtime/execution';
 import { getElement } from '@business-framework/runtime/elements-registry';
 
@@ -41,6 +41,7 @@ async function loop({ lockIntervalInMilliseconds, idleIntervalInMilliseconds }) 
 }
 
 async function findAndLockItem(lockIntervalInMilliseconds) {
+    await connect();
     const pool = getPool();
     const client = await pool.connect();
     try {

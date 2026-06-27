@@ -1,0 +1,31 @@
+[
+    {
+        "kind": "schema",
+        "id": "app-config/meilisearch",
+        "data": {
+            "meilisearchUrl": "string",
+            "meilisearchApiKey": "string"
+        }
+    },
+    {
+        "kind": "app-config/meilisearch",
+        "data": {
+            "meilisearchUrl": "http://localhost:7700",
+            "meilisearchApiKey": ""
+        }
+    },
+    {
+        "kind": "service/search-engine",
+        "id": "meilisearch",
+        "/data": {
+            "interface": { "/ref": "search-engine-interface" },
+            "implementation": {
+                "configureIndex":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "configureIndex" } },
+                "deleteIndex":     { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "deleteIndex" } },
+                "insertDocument":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "insertDocument" } },
+                "removeDocument":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "removeDocument" } },
+                "search":          { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "search" } }
+            }
+        }
+    }
+]

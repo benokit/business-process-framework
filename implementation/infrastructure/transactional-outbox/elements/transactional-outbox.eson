@@ -38,6 +38,14 @@
         }
     },
     {
+        "kind": "on-startup",
+        "data": [
+            {
+                "service": "transactional-outbox-processor", "method": "run"
+            }
+        ]
+    },
+    {
         "kind": "service",
         "id": "transactional-outbox-processor",
         "data": {

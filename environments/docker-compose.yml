@@ -22,5 +22,18 @@ services:
     ports:
       - "4222:4222"
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.8
+    container_name: meilisearch
+    restart: always
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: ""
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch_data:/meili_data
+
 volumes:
   postgres_data:
+  meilisearch_data:

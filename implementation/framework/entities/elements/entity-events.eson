@@ -9,10 +9,11 @@
     },
     {
         "id": "entity-events",
+        "kind": "message-channel",
         "data": {
             "broker": "entity-events-broker",
             "topology": "topic",
-            "outputKey": "entity-events",
+            "name": "entity-events",
             "publisher": {
                 "transactionalOutbox": true,
                 "retry": { "attempts": 5, "backoff": 500 }
@@ -25,6 +26,7 @@
         "data":{
             "!eventType": "string",
             "!entityType": "string",
+            "!id": "string",
             "!businessKey": "string",
             "!revision": "number"
         }
@@ -61,6 +63,7 @@
                             "message": {
                                 "eventType": "#.input.eventType",
                                 "entityType": "#.input.entityType",
+                                "id": "#.input.record.id",
                                 "businessKey": "#.input.record.businessKey",
                                 "revision": "#.input.record.revision"
                             }

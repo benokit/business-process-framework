@@ -1,0 +1,82 @@
+[
+    {
+        "id": "search-engine-interface",
+        "data": {
+            "configureIndex": {
+                "input": { "!indexName": "string", "configuration": "object" },
+                "output": "object"
+            },
+            "deleteIndex": {
+                "input": { "!indexName": "string" }
+            },
+            "insertDocument": {
+                "input": { "!indexName": "string", "!document": "object" },
+                "output": "object"
+            },
+            "removeDocument": {
+                "input": { "!indexName": "string", "!document": "object" },
+                "output": "object"
+            },
+            "search": {
+                "input": { "!indexName": "string", "!query": "object" },
+                "output": "object"
+            }
+        }
+    },
+    {
+        "kind": "schema",
+        "id": "entity-search-index-data",
+        "data": {
+            "!searchEngine": "string",
+            "!indexName": "string",
+            "indexConfiguration": "object",
+            "!mapping": "@method"
+        }
+    }
+    ,
+    {
+        "kind": "on-startup",
+        "data": [
+            {
+                "outputKey": "indices",
+                "getElementsOfKind": "entity-search-index",
+                "outputMap": "#.items"
+            },
+            {
+                "forEach": [
+                    {
+                        "inputMap": {
+                            "indexName": "#.input.data.indexName",
+                            "configuration": "#.input.data.indexConfiguration"
+                        },
+                        "execute": { "service": "#.input.data.searchEngine", "method": "configureIndex" }
+                    }
+                ],
+                "inputMap": "#.indices"
+            }
+        ]
+    }
+    ,
+    {
+        "id": "index-entity-document",
+        "kind": "executable",
+        "data": [
+            {
+                "outputKey": "document",
+                "inputMap": "#.input.entity",
+                "execute": "#.input.indexDef.data.mapping"
+            },
+            {
+                "outputKey": "document",
+                "set": { "$merge": ["#.document", { "id": "#.input.entity.id" }] }
+            },
+            {
+                "inputMap": {
+                    "indexName": "#.input.indexDef.data.indexName",
+                    "document": "#.document"
+                },
+                "execute": { "service": "#.input.indexDef.data.searchEngine", "method": "insertDocument" }
+            }
+        ]
+    }
+]

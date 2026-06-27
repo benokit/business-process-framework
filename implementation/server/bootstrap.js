@@ -1,7 +1,8 @@
 import path from 'path';
 import pkg from 'glob';
 import { loadElements } from '@business-framework/runtime/elements-loader';
-import { executeService } from '@business-framework/runtime/execution';
+import { executeService, executeMethod } from '@business-framework/runtime/execution';
+import { getElementsOfKind } from '@business-framework/runtime/elements-registry';
 const { sync: globSync } = pkg;
 
 async function bootstrap(customPaths = []) {
@@ -11,6 +12,8 @@ async function bootstrap(customPaths = []) {
     });
 
     await loadElements([...frameworkPaths, ...customPaths]);
+
+    await runStartupItems();
 
     await ensureAdminUser();
 
@@ -22,6 +25,13 @@ async function bootstrap(customPaths = []) {
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
+}
+
+async function runStartupItems() {
+    const { items } = getElementsOfKind('on-startup');
+    for (const item of items) {
+        await executeMethod(item.data, {}, {});
+    }
 }
 
 async function shutdown() {

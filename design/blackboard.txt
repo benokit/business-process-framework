@@ -1,0 +1,75 @@
+# Entities search
+
+design:
+    infrastructure:
+        meilisearch
+    framework/entities
+        entity search index schema
+        entity index management
+        entity event consumer -> insert or remove from index
+        entity search service
+
+## Entity index
+
+kind: entity-search-index/{entity-type}
+schema: 
+    searchEngine: string
+    indexName: string
+    indexConfiguration: object
+    mapping: executable // entity -> index document
+
+## Search engine 
+
+kind: service/search-engine
+interface:
+    configureIndex: 
+        input: 
+            indexName: string 
+            configuration: object
+        output: object
+    deleteIndex:
+        input: indexName
+    insertDocument:
+        input: 
+            indexName: string 
+            document: object 
+        output: object 
+    removeDocument:
+        input: 
+            indexName: string 
+            document: object 
+        output: object 
+    search:
+        input:
+            indexName: string 
+            query: object
+        output: object
+
+### meilisearch 
+
+meilisearch instance of search engine service
+
+include meilisearch in the docker environment
+
+## Entity index management service 
+
+kind: service
+id: entity-index-management
+interface:
+    reindex:
+        input: 
+            entityType
+
+## Automatic indexation 
+
+Register an event handler (message consumer):
+    on entity events created/updated/deleted insert or remove a corresponding document in indices associated with entity's type.
+
+## Entity search service
+
+kind: service 
+id: entity-search
+interface:
+    search:
+        entityIndex: string // id of instance of entity-search-index/
+        query: object
