@@ -73,7 +73,9 @@
                         "outputKey": "result",
                         "inputMap": {
                             "entityIndex": "#.input.params.entityIndex",
-                            "query": "#.input.body"
+                            "query": "#.input.body.query",
+                            "offset": "#.input.body.offset",
+                            "limit": "#.input.body.limit"
                         },
                         "service": "entity-search", "method": "search"
                     },
@@ -91,7 +93,7 @@
         "data": {
             "interface": {
                 "search": {
-                    "input": { "!entityIndex": "string", "!query": "object" },
+                    "input": { "!entityIndex": "string", "query": "@any", "offset": "number", "limit": "number" },
                     "output": "object"
                 }
             },
@@ -104,7 +106,9 @@
                     {
                         "inputMap": {
                             "indexName": "#.indexDef.data.indexName",
-                            "query": "#.input.query"
+                            "query": "#.input.query",
+                            "offset": "#.input.offset",
+                            "limit": "#.input.limit"
                         },
                         "execute": { "service": "#.indexDef.data.searchEngine", "method": "search" }
                     }

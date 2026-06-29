@@ -57,11 +57,16 @@ async function removeDocument({ input: { indexName, document } }) {
     return {};
 }
 
-async function search({ input: { indexName, query } }) {
+async function search({ input: { indexName, query, offset, limit } }) {
     const ms = getClient();
     const index = ms.index(indexName);
-    const { q, ...options } = query;
-    return await index.search(q ?? '', options);
+    const result = await index.search(query ?? '', { offset, limit });
+    return {
+        hits: result.hits,
+        total: result.totalHits ?? result.estimatedTotalHits,
+        offset: result.offset,
+        limit: result.limit
+    };
 }
 
 export { configureIndex, deleteIndex, insertDocument, removeDocument, search };

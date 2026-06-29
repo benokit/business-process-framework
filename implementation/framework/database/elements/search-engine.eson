@@ -1,0 +1,36 @@
+[
+    {
+        "kind": "schema",
+        "id": "search-engine-response",
+        "data": {
+            "!hits[]": "@any",
+            "total": "number",
+            "offset": "number",
+            "limit": "number"
+        }
+    },
+    {
+        "id": "search-engine-interface",
+        "data": {
+            "configureIndex": {
+                "input": { "!indexName": "string", "configuration": "object" },
+                "output": "object"
+            },
+            "deleteIndex": {
+                "input": { "!indexName": "string" }
+            },
+            "insertDocument": {
+                "input": { "!indexName": "string", "!document": "object" },
+                "output": "object"
+            },
+            "removeDocument": {
+                "input": { "!indexName": "string", "!document": "object" },
+                "output": "object"
+            },
+            "search": {
+                "input": { "!indexName": "string", "query": "@any", "offset": "number", "limit": "number" },
+                "output": "@search-engine-response"
+            }
+        }
+    }
+]

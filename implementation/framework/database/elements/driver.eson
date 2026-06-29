@@ -14,29 +14,5 @@
                 "input": "@db-execute-input"
             }
         }
-    },
-    {
-        "id": "search-engine-interface",
-        "data": {
-            "configureIndex": {
-                "input": { "!indexName": "string", "configuration": "object" },
-                "output": "object"
-            },
-            "deleteIndex": {
-                "input": { "!indexName": "string" }
-            },
-            "insertDocument": {
-                "input": { "!indexName": "string", "!document": "object" },
-                "output": "object"
-            },
-            "removeDocument": {
-                "input": { "!indexName": "string", "!document": "object" },
-                "output": "object"
-            },
-            "search": {
-                "input": { "!indexName": "string", "!query": "object" },
-                "output": "object"
-            }
-        }
     }
 ]
