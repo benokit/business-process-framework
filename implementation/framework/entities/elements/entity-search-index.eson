@@ -1,29 +1,5 @@
 [
     {
-        "id": "search-engine-interface",
-        "data": {
-            "configureIndex": {
-                "input": { "!indexName": "string", "configuration": "object" },
-                "output": "object"
-            },
-            "deleteIndex": {
-                "input": { "!indexName": "string" }
-            },
-            "insertDocument": {
-                "input": { "!indexName": "string", "!document": "object" },
-                "output": "object"
-            },
-            "removeDocument": {
-                "input": { "!indexName": "string", "!document": "object" },
-                "output": "object"
-            },
-            "search": {
-                "input": { "!indexName": "string", "!query": "object" },
-                "output": "object"
-            }
-        }
-    },
-    {
         "kind": "schema",
         "id": "entity-search-index-data",
         "data": {
@@ -32,8 +8,7 @@
             "indexConfiguration": "object",
             "!mapping": "@method"
         }
-    }
-    ,
+    },
     {
         "kind": "on-startup",
         "data": [
@@ -55,8 +30,7 @@
                 "inputMap": "#.indices"
             }
         ]
-    }
-    ,
+    },
     {
         "id": "index-entity-document",
         "kind": "executable",

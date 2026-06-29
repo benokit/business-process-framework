@@ -2,6 +2,15 @@
 
 Service for creating database objects from declarative `db-model` elements. Decouples schema creation from the business logic that operates on those schemas.
 
+## Interfaces
+
+`driver.eson` defines two abstract method interfaces used by driver and search-engine implementations:
+
+| Element | Description |
+| --- | --- |
+| `db-driver-interface` | Method interface shared by all `db-driver-{dbType}` implementations (`execute`) |
+| `search-engine-interface` | Method interface shared by all `service/search-engine` implementations (`configureIndex`, `deleteIndex`, `insertDocument`, `removeDocument`, `search`) |
+
 ## db-model elements
 
 Define database objects as elements of kind `db-model/{db-type}`:

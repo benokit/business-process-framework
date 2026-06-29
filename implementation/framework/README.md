@@ -11,4 +11,3 @@ Cross-cutting packages used by infrastructure, security, and other layers.
 | [`entities`](entities/README.md) | Generic entity lifecycle management backed by a persistent document store |
 | [`security/users`](security/users/README.md) | User entity type with username as business key; `set-password` and `validate-password` component methods |
 | [`security/authorization-basic`](security/authorization-basic/README.md) | JWT login endpoint (`POST /login`) and Bearer token HTTP middleware |
-| [`entity-search`](entity-search/README.md) | Full-text search for entities; event consumer, reindex, and search services |
