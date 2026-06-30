@@ -31,14 +31,12 @@ describe('entity service', function () {
                 create: { input: {}, output: {} },
                 read:   { input: {}, output: {} },
                 update: { input: {}, output: {} },
-                amend:  { input: {}, output: {} },
                 delete: { input: {}, output: {} }
             },
             implementation: {
                 create: { return: '#.input' },
-                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', revision: 1, version: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
+                read:   { return: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', id: 'rec-1', revision: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: { status: 'draft' } } } },
                 update: { return: '#.input' },
-                amend:  { return: '#.input' },
                 delete: { return: '#.input' }
             }}
         });
@@ -147,25 +145,6 @@ describe('entity service', function () {
         registerElement({
             kind: 'middleware/entity-service/update/order-with-update-guard',
             id: 'order-with-update-guard-middleware',
-            data: {
-                ordering: 10,
-                implementation: [
-                    {
-                        if: { '$lte': ['#.input.input.data.amount', 0] },
-                        then: [{ throw: 'amount must be positive' }],
-                        else: [{ inputMap: '#.input.input', execute: '#.input.next' }]
-                    }
-                ]
-            }
-        });
-
-        // Entity type with pre-action middleware used by amend middleware tests.
-        registerElement({ type: 'data', id: 'order-with-amend-guard', data: {
-            dataSchema: { '!amount': 'number', '!currency': 'string' }
-        }});
-        registerElement({
-            kind: 'middleware/entity-service/amend/order-with-amend-guard',
-            id: 'order-with-amend-guard-middleware',
             data: {
                 ordering: 10,
                 implementation: [
@@ -551,64 +530,6 @@ describe('entity service', function () {
             expect(result.entityType).to.equal('order');
             expect(result.businessKey).to.equal('order-001');
             expect(result.revision).to.equal(1);
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('amend', () => {
-
-        it('passes entityType, businessKey, revision and data to entity-database', async () => {
-            const result = await executeService(SERVICE, 'amend', {
-                entityType: 'order', businessKey: 'order-001', revision: 3, data: { amount: 500, currency: 'USD' }
-            });
-            expect(result.entityType).to.equal('order');
-            expect(result.businessKey).to.equal('order-001');
-            expect(result.revision).to.equal(3);
-            expect(result.data).to.deep.equal({ amount: 500, currency: 'USD' });
-        });
-
-        it('throws when data does not match the entity type dataSchema', async () => {
-            let error;
-            try { await executeService(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 'bad' } }); }
-            catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('validation failed');
-        });
-
-        it('throws when revision is missing', async () => {
-            let error;
-            try { await executeService(SERVICE, 'amend', { entityType: 'order', businessKey: 'order-001', data: { amount: 100, currency: 'USD' } }); }
-            catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('input is not valid');
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('amend — pre-action middleware', () => {
-
-        it('throws when middleware blocks the operation', async () => {
-            let error;
-            try {
-                await executeService(SERVICE, 'amend', {
-                    entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 0, currency: 'USD' }
-                });
-            } catch (e) { error = e; }
-            expect(error.cause).to.be.a('string').that.includes('amount must be positive');
-        });
-
-        it('proceeds when middleware allows the operation', async () => {
-            const result = await executeService(SERVICE, 'amend', {
-                entityType: 'order-with-amend-guard', businessKey: 'order-001', revision: 1, data: { amount: 50, currency: 'USD' }
-            });
-            expect(result.data.amount).to.equal(50);
-        });
-
-        it('proceeds normally when no middleware is registered', async () => {
-            const result = await executeService(SERVICE, 'amend', {
-                entityType: 'order', businessKey: 'order-001', revision: 1, data: { amount: 10, currency: 'USD' }
-            });
-            expect(result.entityType).to.equal('order');
         });
 
     });

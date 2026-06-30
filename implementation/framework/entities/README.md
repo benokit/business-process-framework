@@ -13,7 +13,6 @@ Endpoints are registered as `http-endpoint` data elements and served by the `htt
 | `PUT` | `/entities/:entityType/:businessKey` | update |
 | `DELETE` | `/entities/:entityType/:businessKey` | delete |
 | `POST` | `/entities/:entityType/:businessKey/transitions/:transition` | transition |
-| `PUT` | `/entities/:entityType/:businessKey/amend` | amend |
 | `POST` | `/entities/:entityType/:businessKey/:method` | execute |
 
 ### Request
@@ -21,7 +20,7 @@ Endpoints are registered as `http-endpoint` data elements and served by the `htt
 | Header | Description |
 | --- | --- |
 | `X-Correlation-Id` | Optional. Propagated as `_ctx.correlation` through the execution graph. |
-| `If-Match` | Required for `update`, `delete`, and `amend`. Optional for `execute` — when present, throws if it does not match the entity's current revision. Quoted revision, e.g. `"5"`. |
+| `If-Match` | Required for `update` and `delete`. Optional for `execute` — when present, throws if it does not match the entity's current revision. Quoted revision, e.g. `"5"`. |
 
 Request body fields per operation:
 
@@ -32,7 +31,6 @@ Request body fields per operation:
 | `update` | `data` (required) |
 | `delete` | — |
 | `transition` | — |
-| `amend` | `data` (required), `validFrom` (optional) |
 | `execute` | arbitrary — passed as `methodInput` to the extension method |
 
 ### Response
@@ -44,7 +42,6 @@ Request body fields per operation:
 | `update` | `200` | entity record | `ETag: "<revision>"` |
 | `delete` | `200` | entity record | — |
 | `transition` | `200` | entity record | `ETag: "<revision>"` |
-| `amend` | `200` | entity record | `ETag: "<revision>"` |
 | `execute` | `200` | component method result | — |
 
 The `ETag` value is the entity revision formatted as a quoted integer (e.g. `"5"`). Pass it back as `If-Match` on subsequent mutating requests.
@@ -77,7 +74,6 @@ Each entity type is an element with `kind = "entity-type"`:
 | --- | --- |
 | `dataSchema` | CJSL schema validated against `data` on `create` and `update` |
 | `statesModel` | Optional finite-state model; used by `transition` |
-| `dataVersioning` | Optional `{ enabled, validFrom }` flags |
 | `history` | Optional `{ enabled }` flag |
 | `dimensions` | Arbitrary grouping metadata |
 
@@ -114,12 +110,10 @@ When `transition` is called:
 | `update` | `entityType`, `businessKey`, `revision`, `data` | `entity-record` |
 | `delete` | `entityType`, `businessKey`, `revision?` | `entity-record` |
 | `transition` | `entityType`, `businessKey`, `transition` | `entity-record` |
-| `amend` | `entityType`, `businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
 | `execute` | `entityType`, `businessKey`, `method`, `methodInput?`, `revision?` | varies |
 
 - `create` and `update` validate `data` against `dataSchema`.
 - `update` and `delete` use optimistic concurrency via `revision`.
-- `amend` validates `data` against `dataSchema` and uses optimistic concurrency via `revision` (same as `update`). `state` is never modified. See [amend — business versioning](#amend--business-versioning) for storage details.
 - All methods run through the middleware chain for their kind before executing the core operation.
 
 ## Entity type class hierarchy
@@ -150,7 +144,7 @@ A class-level middleware applies to every entity type whose class hierarchy incl
 
 ```json
 {
-    "kind": "middleware/entity-service/amend/insurance-contract",
+    "kind": "middleware/entity-service/update/insurance-contract",
     "data": {
         "ordering": 10,
         "implementation": [
@@ -162,7 +156,7 @@ A class-level middleware applies to every entity type whose class hierarchy incl
             {
                 "if": { "$eq": ["#.entity.state.dimensions.status", "active"] },
                 "then": { "inputMap": "#.input.input", "execute": "#.input.next" },
-                "else": { "throw": "amendments are only allowed in state active" }
+                "else": { "throw": "updates are only allowed in state active" }
             }
         ]
     }
@@ -217,7 +211,7 @@ Middlewares are sorted by `ordering` (ascending) before the chain is built. Mult
 
 ### Transaction boundary
 
-For write methods (`create`, `update`, `delete`, `transition`, `amend`) a built-in middleware at `ordering: 50` establishes a database transaction. `ordering` determines where a middleware runs relative to that boundary:
+For write methods (`create`, `update`, `delete`, `transition`) a built-in middleware at `ordering: 50` establishes a database transaction. `ordering` determines where a middleware runs relative to that boundary:
 
 | `ordering` | Runs | Typical use |
 | --- | --- | --- |
@@ -269,28 +263,22 @@ Extension methods may read `_ctx.entity` to access the entity record (id, entity
 
 ## `entity-database` service
 
-Generic document store with optimistic concurrency, full revision history, and business versioning. Each document carries an `id`, a unique `businessKey`, a `revision`, a `version`, a `data` object, and a `state` object.
+Generic document store with optimistic concurrency and full revision history. Each document carries an `id`, a unique `businessKey`, a `revision`, a `data` object, and a `state` object.
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
 | `create` | `entityType`, `businessKey`, `data`, `state?` | `entity-record` |
 | `read` | `entityType`, `id`/`businessKey`, `revision?` | `entity-record` |
 | `update` | `entityType`, `id`/`businessKey`, `revision`, `data?`, `state?` | `entity-record` |
-| `amend` | `entityType`, `id`/`businessKey`, `revision`, `data`, `validFrom?` | `entity-record` |
 | `delete` | `entityType`, `id`/`businessKey`, `revision?` | `entity-record` |
 
-`businessKey` must be a non-empty string, unique per `entityType`. `update`, `amend`, and `delete` use optimistic locking via `revision`. `state` defaults to `{}` when omitted.
+`businessKey` must be a non-empty string, unique per `entityType`. `update` and `delete` use optimistic locking via `revision`. `state` defaults to `{}` when omitted.
 
 ## `entity-record` shape
 
 ```json
-{ "id": "uuid", "businessKey": "string", "revision": 1, "version": 1, "data": {}, "state": {}, "timestampUtc": "ISO string" }
+{ "id": "uuid", "businessKey": "string", "revision": 1, "data": {}, "state": {}, "timestampUtc": "ISO string" }
 ```
-
-## `revision` vs `version`
-
-- **`revision`** — optimistic concurrency counter. Increments on every write (`update`, `amend`). Used for conflict detection.
-- **`version`** — business version counter. Starts at `1` and increments only on `amend`. Identifies distinct business-meaningful snapshots of `data`.
 
 ## Point-in-time read
 
@@ -300,24 +288,19 @@ Passing `revision` to `read` reconstructs the entity as it was at that revision.
 
 Every `update` inserts a row into `entity_history` containing reverse JSON patches (RFC 6902) — separate `data_patch` and `state_patch` columns.
 
-## `amend` — business versioning
-
-`amend` replaces `data` and snapshots the **previous** data into `entity_versions`. `state` is never touched. Both `revision` and `version` are incremented. `amend` does **not** write to `entity_history`.
-
 ## Storage
 
 | Table | Key columns | Purpose |
 | --- | --- | --- |
-| `entities` | `id`, `entity_type`, `business_key`, `revision`, `version`, `data`, `state`, `timestamp_utc` | Current entity state |
+| `entities` | `id`, `entity_type`, `business_key`, `revision`, `data`, `state`, `timestamp_utc` | Current entity state |
 | `entity_history` | `id`, `entity_type`, `revision`, `data_patch`, `state_patch`, `timestamp_utc` | Reverse patches per revision |
-| `entity_versions` | `id`, `entity_type`, `version`, `data`, `valid_to` | Whole data snapshots per business version |
-| `entity_relations` | `source_entity_id`, `source_entity_version`, `target_entity_id`, `relation_type` | Directed relations between entities |
+| `entity_relations` | `source_entity_id`, `target_entity_id`, `relation_type` | Directed relations between entities |
 
 All tables are created automatically on first use.
 
 ## Entity relations
 
-Entities can declare directed relations to other entities. Relations are maintained automatically on `create`, `update`, `amend`, and `delete` via a built-in middleware at `ordering: 75` (inside the transaction, after the core write).
+Entities can declare directed relations to other entities. Relations are maintained automatically on `create`, `update`, and `delete` via a built-in middleware at `ordering: 75` (inside the transaction, after the core write).
 
 ### Relation rule
 
@@ -352,7 +335,7 @@ All registered rules for the entity type are evaluated and their `relations` arr
 
 | Method | Key input fields | Returns |
 | --- | --- | --- |
-| `setRelations` | `sourceEntityId`, `sourceEntityVersion`, `relations[]` | — |
+| `setRelations` | `sourceEntityId`, `relations[]` | — |
 
 Compares existing relations for the source entity against the new set and executes the minimal inserts and deletes. Participates in the active database transaction when one is present.
 
@@ -421,4 +404,4 @@ Call `entity-index-management.reindex({ entityType })` to configure the search i
 
 ### Automatic indexation
 
-`entity-search-consumer` listens on the `entity-events` channel. On every entity create, update, transition, or amend it maps the current entity record and upserts the document. On delete it removes the document by entity UUID.
+`entity-search-consumer` listens on the `entity-events` channel. On every entity create, update, or transition it maps the current entity record and upserts the document. On delete it removes the document by entity UUID.

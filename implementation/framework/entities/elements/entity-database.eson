@@ -7,7 +7,7 @@
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "!version": "number",
+
             "!data": "object",
             "state": "object",
             "!timestampUtc": "string"
@@ -45,16 +45,6 @@
     },
     {
         "kind": "schema",
-        "id": "entity-database-amend-input",
-        "data":{
-            "$data#1": [
-                { "!entityType": "string", "!id": "string", "!revision": "number", "!data": "object", "validFrom": "string" },
-                { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!data": "object", "validFrom": "string" }
-            ]
-        }
-    },
-    {
-        "kind": "schema",
         "id": "entity-database-delete-input",
         "data":{
             "$data#1": [
@@ -71,7 +61,6 @@
                 "create": { "input": "@entity-database-create-input", "output": "@entity-record" },
                 "read":   { "input": "@entity-database-read-input",   "output": "@entity-record" },
                 "update": { "input": "@entity-database-update-input", "output": "@entity-record" },
-                "amend":  { "input": "@entity-database-amend-input",  "output": "@entity-record" },
                 "delete": { "input": "@entity-database-delete-input", "output": "@entity-record" },
                 "list":   { "input": "object", "output": "object" }
             },
@@ -79,7 +68,6 @@
                 "create": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "create" } },
                 "read":   { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "read" } },
                 "update": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "update" } },
-                "amend":  { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "amend" } },
                 "delete": { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "delete" } },
                 "list":   { "inputMap": "#.input", "low": { "module": "@business-framework/entities", "functionName": "list" } }
             }

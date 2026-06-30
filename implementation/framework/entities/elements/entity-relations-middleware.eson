@@ -30,7 +30,6 @@
                     {
                         "inputMap": {
                             "sourceEntityId": "#.result.id",
-                            "sourceEntityVersion": "#.result.version",
                             "relations": { "$concat": "#.allRelationsArrays" }
                         },
                         "service": "entity-relations", "method": "setRelations"
@@ -60,7 +59,6 @@
                     {
                         "inputMap": {
                             "sourceEntityId": "#.result.id",
-                            "sourceEntityVersion": "#.result.version",
                             "relations": []
                         },
                         "service": "entity-relations", "method": "setRelations"
@@ -81,14 +79,6 @@
     {
         "id": "entity-relations-middleware-update",
         "kind": "middleware/entity-service/update/root-entity-class",
-        "data": {
-            "ordering": 75,
-            "implementation": [{ "call": "entity-relations-middleware-write-base" }]
-        }
-    },
-    {
-        "id": "entity-relations-middleware-amend",
-        "kind": "middleware/entity-service/amend/root-entity-class",
         "data": {
             "ordering": 75,
             "implementation": [{ "call": "entity-relations-middleware-write-base" }]

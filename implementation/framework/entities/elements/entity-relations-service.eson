@@ -19,7 +19,6 @@
         "id": "entity-relations-set-input",
         "data": {
             "!sourceEntityId": "string",
-            "!sourceEntityVersion": "number",
             "relations[]": "@entity-relation"
         }
     },

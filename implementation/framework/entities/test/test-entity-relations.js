@@ -19,8 +19,8 @@ describe('entity relations middleware', function () {
             packageDir('@business-framework/middleware')
         ]);
 
-        // entity-database mock: returns a proper entity record with id and version so
-        // the relations middleware can extract sourceEntityId and sourceEntityVersion.
+        // entity-database mock: returns a proper entity record with id so
+        // the relations middleware can extract sourceEntityId.
         registerElement({
             kind: 'service',
             id: 'entity-database',
@@ -29,15 +29,13 @@ describe('entity relations middleware', function () {
                     create: { input: {}, output: {} },
                     read:   { input: {}, output: {} },
                     update: { input: {}, output: {} },
-                    amend:  { input: {}, output: {} },
                     delete: { input: {}, output: {} }
                 },
                 implementation: {
-                    create: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, version: 1, data: '#.input.data', state: { dimensions: {} } } },
-                    read:   { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, version: 1, data: { amount: 100, currency: 'USD', customerId: 'cust-001' }, state: { dimensions: { status: 'draft' } } } },
-                    update: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 2, version: 1, data: '#.input.data', state: { dimensions: {} } } },
-                    amend:  { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 2, version: 2, data: '#.input.data', state: { dimensions: {} } } },
-                    delete: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, version: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: {} } } }
+                    create: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, data: '#.input.data', state: { dimensions: {} } } },
+                    read:   { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, data: { amount: 100, currency: 'USD', customerId: 'cust-001' }, state: { dimensions: { status: 'draft' } } } },
+                    update: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 2, data: '#.input.data', state: { dimensions: {} } } },
+                    delete: { return: { id: 'entity-uuid-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 1, data: { amount: 100, currency: 'USD' }, state: { dimensions: {} } } }
                 }
             }
         });
@@ -177,14 +175,6 @@ describe('entity relations middleware', function () {
             expect(_ctx.setRelationsCalled).to.be.undefined;
         });
 
-        it('amend does not call setRelations', async () => {
-            const _ctx = {};
-            await executeService(SERVICE, 'amend', {
-                entityType: 'order-no-rule', businessKey: 'no-rule-001', revision: 1, data: { amount: 200, currency: 'USD' }
-            }, _ctx);
-            expect(_ctx.setRelationsCalled).to.be.undefined;
-        });
-
     });
 
     // -------------------------------------------------------------------------
@@ -197,14 +187,6 @@ describe('entity relations middleware', function () {
             }, _ctx);
             expect(_ctx.setRelationsCalled).to.exist;
             expect(_ctx.setRelationsCalled.sourceEntityId).to.equal('entity-uuid-1');
-        });
-
-        it('calls setRelations with sourceEntityVersion from entity record', async () => {
-            const _ctx = {};
-            await executeService(SERVICE, 'create', {
-                entityType: 'order-with-rule', businessKey: 'rule-001', data: { amount: 100, currency: 'USD', customerId: 'cust-001' }
-            }, _ctx);
-            expect(_ctx.setRelationsCalled.sourceEntityVersion).to.equal(1);
         });
 
         it('calls setRelations with relations derived from the rule', async () => {
@@ -230,13 +212,12 @@ describe('entity relations middleware', function () {
     // -------------------------------------------------------------------------
     describe('relation rule registered — update', () => {
 
-        it('calls setRelations with sourceEntityId and updated version', async () => {
+        it('calls setRelations with sourceEntityId from entity record', async () => {
             const _ctx = {};
             await executeService(SERVICE, 'update', {
                 entityType: 'order-with-rule', businessKey: 'rule-001', revision: 1, data: { amount: 200, currency: 'USD', customerId: 'cust-002' }
             }, _ctx);
             expect(_ctx.setRelationsCalled.sourceEntityId).to.equal('entity-uuid-1');
-            expect(_ctx.setRelationsCalled.sourceEntityVersion).to.equal(1); // update mock returns version: 1
         });
 
         it('calls setRelations with relations derived from updated data', async () => {
@@ -246,30 +227,6 @@ describe('entity relations middleware', function () {
             }, _ctx);
             expect(_ctx.setRelationsCalled.relations).to.deep.equal([
                 { targetEntityBusinessKey: 'cust-002', relationType: 'customer' }
-            ]);
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('relation rule registered — amend', () => {
-
-        it('calls setRelations after amend with incremented version', async () => {
-            const _ctx = {};
-            await executeService(SERVICE, 'amend', {
-                entityType: 'order-with-rule', businessKey: 'rule-001', revision: 1, data: { amount: 300, currency: 'USD', customerId: 'cust-003' }
-            }, _ctx);
-            expect(_ctx.setRelationsCalled.sourceEntityId).to.equal('entity-uuid-1');
-            expect(_ctx.setRelationsCalled.sourceEntityVersion).to.equal(2); // amend mock returns version: 2
-        });
-
-        it('calls setRelations with relations from amended data', async () => {
-            const _ctx = {};
-            await executeService(SERVICE, 'amend', {
-                entityType: 'order-with-rule', businessKey: 'rule-001', revision: 1, data: { amount: 300, currency: 'USD', customerId: 'cust-003' }
-            }, _ctx);
-            expect(_ctx.setRelationsCalled.relations).to.deep.equal([
-                { targetEntityBusinessKey: 'cust-003', relationType: 'customer' }
             ]);
         });
 

@@ -9,7 +9,6 @@
                 "update":     { "input": "object", "output": "object" },
                 "delete":     { "input": "object", "output": "object" },
                 "transition": { "input": "object", "output": "object" },
-                "amend":      { "input": "object", "output": "object" },
                 "execute":    { "input": "object", "output": "object" }
             },
             "implementation": {
@@ -111,31 +110,6 @@
                         }
                     }
                 ],
-                "amend": [
-                    { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
-                    {
-                        "outputKey": "revision",
-                        "set": { "$func/parse-if-match": "#.input.headers.if-match" }
-                    },
-                    {
-                        "outputKey": "record",
-                        "inputMap": {
-                            "entityType":  "#.input.params.entityType",
-                            "businessKey": "#.input.params.businessKey",
-                            "revision":    "#.revision",
-                            "data":        "#.input.body.data",
-                            "validFrom":   "#.input.body.validFrom"
-                        },
-                        "service": "entity", "method": "amend"
-                    },
-                    {
-                        "return": {
-                            "status": 200,
-                            "headers": { "ETag": { "$func/make-etag": "#.record.revision" } },
-                            "body": "#.record"
-                        }
-                    }
-                ],
                 "execute": [
                     { "outputKey": "_ctx", "set": { "correlation": "#.input.headers.x-correlation-id" } },
                     {
@@ -167,6 +141,5 @@
     { "id": "entity-update-endpoint",     "kind": "http-endpoint", "data": { "method": "PUT",    "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "update"     } } },
     { "id": "entity-delete-endpoint",     "kind": "http-endpoint", "data": { "method": "DELETE", "path": "/entities/:entityType/:businessKey",                                 "controller": { "service": "entity-controller", "method": "delete"     } } },
     { "id": "entity-transition-endpoint", "kind": "http-endpoint", "data": { "method": "POST",   "path": "/entities/:entityType/:businessKey/transitions/:transition",         "controller": { "service": "entity-controller", "method": "transition" } } },
-    { "id": "entity-amend-endpoint",      "kind": "http-endpoint", "data": { "method": "PUT",    "path": "/entities/:entityType/:businessKey/amend",                           "controller": { "service": "entity-controller", "method": "amend"      } } },
     { "id": "entity-execute-endpoint",    "kind": "http-endpoint", "data": { "method": "POST",   "path": "/entities/:entityType/:businessKey/:method",                       "controller": { "service": "entity-controller", "method": "execute"    } } }
 ]

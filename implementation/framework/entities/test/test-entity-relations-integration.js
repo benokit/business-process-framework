@@ -17,7 +17,7 @@ const CUSTOMER_TYPE = `rel-customer-${Date.now()}`;
 
 async function queryRelations(sourceEntityId) {
     const { rows } = await getPool().query(
-        'SELECT source_entity_id, source_entity_version, target_entity_id, relation_type FROM entity_relations WHERE source_entity_id = $1 ORDER BY relation_type',
+        'SELECT source_entity_id, target_entity_id, relation_type FROM entity_relations WHERE source_entity_id = $1 ORDER BY relation_type',
         [sourceEntityId]
     );
     return rows;
@@ -88,7 +88,6 @@ describe('entity relations — integration', function () {
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [ORDER_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entities WHERE entity_type = $1`, [CUSTOMER_TYPE]).catch(() => {});
         await getPool().query(`DELETE FROM entity_history WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
-        await getPool().query(`DELETE FROM entity_versions WHERE id NOT IN (SELECT id FROM entities)`).catch(() => {});
         await getPool().query(`DELETE FROM transactional_outbox WHERE channel = 'entity-events'`).catch(() => {});
         await disconnect();
     });
@@ -120,7 +119,6 @@ describe('entity relations — integration', function () {
         expect(rows).to.have.length(1);
         expect(rows[0].target_entity_id).to.equal(customerA.id);
         expect(rows[0].relation_type).to.equal('customer');
-        expect(rows[0].source_entity_version).to.equal(1);
     });
 
     it('creates multiple relations when the rule returns multiple items', async () => {
@@ -196,23 +194,5 @@ describe('entity relations — integration', function () {
         expect(error.cause).to.be.a('string').that.includes('target entity not found');
     });
 
-    it('amend updates the relation to match the amended data', async () => {
-        const created = await executeService('entity', 'create', {
-            entityType: ORDER_TYPE, businessKey: 'order-amend-test',
-            data: { amount: 500, currency: 'USD', customerId: 'cust-a' }
-        });
-
-        const amended = await executeService('entity', 'amend', {
-            entityType: ORDER_TYPE, businessKey: 'order-amend-test',
-            revision: created.revision,
-            data: { amount: 600, currency: 'USD', customerId: 'cust-c' },
-            validFrom: '2025-01-01T00:00:00.000Z'
-        });
-
-        const rows = await queryRelations(created.id);
-        expect(rows).to.have.length(1);
-        expect(rows[0].target_entity_id).to.equal(customerC.id);
-        expect(rows[0].source_entity_version).to.equal(amended.version);
-    });
-
 });
+

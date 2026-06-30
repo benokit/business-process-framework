@@ -76,7 +76,6 @@ describe('entity-catalog service', function () {
                     create: { input: {}, output: {} },
                     read:   { input: {}, output: {} },
                     update: { input: {}, output: {} },
-                    amend:  { input: {}, output: {} },
                     delete: { input: {}, output: {} },
                     list:   { input: {}, output: {} }
                 },
@@ -84,7 +83,6 @@ describe('entity-catalog service', function () {
                     create: { return: '#.input' },
                     read:   { return: '#.input' },
                     update: { return: '#.input' },
-                    amend:  { return: '#.input' },
                     delete: { return: '#.input' },
                     list: [
                         { outputKey: '_ctx', set: { listCalledWith: '#.input' } },

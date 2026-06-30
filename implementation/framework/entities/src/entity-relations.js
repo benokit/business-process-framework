@@ -16,7 +16,7 @@ async function resolveTargetId(dbConn, targetEntityType, targetEntityBusinessKey
     return result.rows[0].id;
 }
 
-async function setRelations({ _ctx, input: { sourceEntityId, sourceEntityVersion, relations = [] } }) {
+async function setRelations({ _ctx, input: { sourceEntityId, relations = [] } }) {
     const conn = await db(_ctx);
 
     const { rows: existing } = await conn.query(
@@ -45,8 +45,8 @@ async function setRelations({ _ctx, input: { sourceEntityId, sourceEntityVersion
 
     for (const r of toInsert) {
         await conn.query(
-            'INSERT INTO entity_relations (source_entity_id, source_entity_version, target_entity_id, relation_type) VALUES ($1, $2, $3, $4)',
-            [sourceEntityId, sourceEntityVersion, r.targetEntityId, r.relationType]
+            'INSERT INTO entity_relations (source_entity_id, target_entity_id, relation_type) VALUES ($1, $2, $3)',
+            [sourceEntityId, r.targetEntityId, r.relationType]
         );
     }
 }

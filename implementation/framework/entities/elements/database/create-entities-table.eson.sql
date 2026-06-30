@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS entities (
     entity_type TEXT NOT NULL,
     business_key TEXT NOT NULL,
     revision INTEGER NOT NULL DEFAULT 1,
-    version INTEGER NOT NULL DEFAULT 1,
     data JSONB NOT NULL DEFAULT '{}',
     state JSONB NOT NULL DEFAULT '{}',
     timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(),

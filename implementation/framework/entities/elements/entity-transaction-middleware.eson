@@ -43,13 +43,5 @@
             "ordering": 50,
             "implementation": [{ "call": "entity-transaction-middleware-base" }]
         }
-    },
-    {
-        "id": "entity-transaction-middleware-amend",
-        "kind": "middleware/entity-service/amend/root-entity-class",
-        "data": {
-            "ordering": 50,
-            "implementation": [{ "call": "entity-transaction-middleware-base" }]
-        }
     }
 ]

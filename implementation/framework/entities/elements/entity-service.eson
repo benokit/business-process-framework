@@ -47,17 +47,6 @@
     },
     {
         "kind": "schema",
-        "id": "entity-amend-input",
-        "data":{
-            "!entityType": "string",
-            "!businessKey": "string",
-            "!revision": "number",
-            "!data": "object",
-            "validFrom": "string"
-        }
-    },
-    {
-        "kind": "schema",
         "id": "entity-execute-input",
         "data":{
             "!entityType": "string",
@@ -88,10 +77,6 @@
             },
             "transition": {
                 "input": "@entity-transition-input",
-                "output": "@entity-record"
-            },
-            "amend": {
-                "input": "@entity-amend-input",
                 "output": "@entity-record"
             },
             "execute": {
@@ -441,63 +426,6 @@
                             "fromTransition": "#.input.transition"
                         }
                     },
-                    "execute": "#.wrappedAction"
-                }
-            ],
-            "amend": [
-                {
-                    "outputKey": "entityTypeDef",
-                    "getElement": "#.input.entityType"
-                },
-                {
-                    "inputMap": "#.input.data",
-                    "execute": { "validateSchema": "#.entityTypeDef.data.dataSchema" }
-                },
-                {
-                    "outputKey": "entityHierarchy",
-                    "set": { "$head": { "$tail": { "$split": { "_string": "#.entityTypeDef.kind", "_separator": "\\entity-type/" } } } }
-                },
-                {
-                    "outputKey": "baseMiddlewareItems",
-                    "getElementsOfKind": "middleware/entity-service/amend/root-entity-class",
-                    "outputMap": "#.items"
-                },
-                {
-                    "outputKey": "classMiddlewareItems",
-                    "getElementsOfKindHierarchy": { "_prefix": "\\middleware/entity-service/amend/", "_hierarchy": "#.entityHierarchy" },
-                    "outputMap": "#.items"
-                },
-                {
-                    "outputKey": "specificMiddlewareItems",
-                    "getElementsOfKind": { "$join": { "_strings": ["middleware/entity-service/amend/", "#.input.entityType"] } },
-                    "outputMap": "#.items"
-                },
-                {
-                    "outputKey": "middlewareItems",
-                    "set": { "$concat": ["#.baseMiddlewareItems", "#.classMiddlewareItems", "#.specificMiddlewareItems"] }
-                },
-                {
-                    "outputKey": "wrappedAction",
-                    "inputMap": {
-                        "middlewares": "#.middlewareItems",
-                        "action": {
-                            "$literal": {
-                                "inputMap": {
-                                    "entityType": "#.input.entityType",
-                                    "businessKey": "#.input.businessKey",
-                                    "revision": "#.input.revision",
-                                    "data": "#.input.data",
-                                    "validFrom": "#.input.validFrom"
-                                },
-                                "service": "entity-database", "method": "amend"
-                            }
-                        },
-                        "context": { "method": "amend", "entityType": "#.input.entityType", "correlation": "#._ctx.correlation" }
-                    },
-                    "call": "middleware-wrap"
-                },
-                {
-                    "inputMap": "#.input",
                     "execute": "#.wrappedAction"
                 }
             ],

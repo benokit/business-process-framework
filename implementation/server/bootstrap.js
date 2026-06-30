@@ -53,6 +53,7 @@ async function ensureAdminUser() {
 
     await executeService('entity', 'create', {
         entityType: 'user',
+        businessKey: username,
         data: { username, email }
     });
     await executeService('entity', 'execute', {

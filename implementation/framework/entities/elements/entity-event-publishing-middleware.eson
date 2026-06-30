@@ -51,13 +51,5 @@
             "ordering": 100,
             "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
         }
-    },
-    {
-        "id": "entity-event-publishing-middleware-amend",
-        "kind": "middleware/entity-service/amend/root-entity-class",
-        "data": {
-            "ordering": 100,
-            "implementation": [{ "call": "entity-event-publishing-middleware-base" }]
-        }
     }
 ]

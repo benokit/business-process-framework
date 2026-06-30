@@ -17,14 +17,6 @@
     },
     {
         "kind": "db-model/postgresql",
-        "id": "entity-versions-table",
-        "/data": {
-            "command": { "/ref": "create-entity-versions-table" },
-            "order": 30
-        }
-    },
-    {
-        "kind": "db-model/postgresql",
         "id": "entity-relations-table",
         "/data": {
             "command": { "/ref": "create-entity-relations-table" },

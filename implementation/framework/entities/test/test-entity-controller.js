@@ -32,7 +32,6 @@ describe('entity-controller', function () {
                 update:     { input: {}, output: {} },
                 delete:     { input: {}, output: {} },
                 transition: { input: {}, output: {} },
-                amend:      { input: {}, output: {} },
                 execute:    { input: {}, output: {} }
             },
             implementation: {
@@ -41,7 +40,6 @@ describe('entity-controller', function () {
                 update:     [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
                 delete:     [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: {} } }],
                 transition: [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: {},              state: { dimensions: { status: 'confirmed' } } } }],
-                amend:      [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { id: 'rec-1', entityType: '#.input.entityType', businessKey: '#.input.businessKey', revision: 5, data: '#.input.data',   state: { dimensions: {} } } }],
                 execute:    [{ outputKey: '_ctx', set: { capturedInput: '#.input' } }, { return: { ok: true } }]
             }}
         });
@@ -223,45 +221,6 @@ describe('entity-controller', function () {
                 body: {}, params: { entityType: 'order', businessKey: 'order-001', transition: 'cancel' }, headers: {}
             }, _ctx);
             expect(_ctx.capturedInput.transition).to.equal('cancel');
-        });
-
-    });
-
-    // -------------------------------------------------------------------------
-    describe('amend', () => {
-
-        it('returns status 200', async () => {
-            const { status } = await executeService(CTRL, 'amend', {
-                body: { data: { amount: 50, currency: 'USD' } },
-                params: PARAMS, headers: { 'if-match': '"2"' }
-            });
-            expect(status).to.equal(200);
-        });
-
-        it('returns ETag header with quoted revision', async () => {
-            const { headers } = await executeService(CTRL, 'amend', {
-                body: { data: { amount: 50, currency: 'USD' } },
-                params: PARAMS, headers: { 'if-match': '"2"' }
-            });
-            expect(headers.ETag).to.equal('"5"');
-        });
-
-        it('parses revision from quoted If-Match header', async () => {
-            const _ctx = {};
-            await executeService(CTRL, 'amend', {
-                body: { data: { amount: 50, currency: 'USD' } },
-                params: PARAMS, headers: { 'if-match': '"4"' }
-            }, _ctx);
-            expect(_ctx.capturedInput.revision).to.equal(4);
-        });
-
-        it('maps optional validFrom from body', async () => {
-            const _ctx = {};
-            await executeService(CTRL, 'amend', {
-                body: { data: { amount: 50, currency: 'USD' }, validFrom: '2026-01-01' },
-                params: PARAMS, headers: { 'if-match': '"1"' }
-            }, _ctx);
-            expect(_ctx.capturedInput.validFrom).to.equal('2026-01-01');
         });
 
     });

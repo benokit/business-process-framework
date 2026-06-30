@@ -59,7 +59,7 @@ async function read({ _ctx, input: { entityType, id, businessKey, revision } }) 
             state = applyPatch(state, row.state_patch).newDocument;
             timestampUtc = row.timestamp_utc;
         }
-        return { id: current.id, businessKey: current.business_key, revision, version: current.version, data, state, timestampUtc: toIso(timestampUtc) };
+        return { id: current.id, entityType: current.entity_type, businessKey: current.business_key, revision, data, state, timestampUtc: toIso(timestampUtc) };
     } catch (err) {
         if (err.code === '22P02') return null; // invalid UUID format
         throw err;
@@ -112,48 +112,6 @@ async function update({ _ctx, input: { entityType, id, businessKey, revision, da
     }
 }
 
-async function amend({ _ctx, input: { entityType, id, businessKey, revision, data, validFrom } }) {
-    const outerTransaction = _ctx?.transaction?.sessionId != null;
-    const client = outerTransaction ? getClient(_ctx.transaction.sessionId) : await (await db()).connect();
-    try {
-        if (!outerTransaction) await client.query('BEGIN');
-        let current;
-        if (businessKey) {
-            const r = await client.query(
-                'SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2 AND revision = $3 FOR UPDATE',
-                [entityType, businessKey, revision]
-            );
-            current = r.rows[0];
-        } else {
-            const r = await client.query(
-                'SELECT * FROM entities WHERE entity_type = $1 AND id = $2 AND revision = $3 FOR UPDATE',
-                [entityType, id, revision]
-            );
-            current = r.rows[0];
-        }
-        if (!current) throw 'amend failed: document not found or revision mismatch';
-
-        await client.query(
-            `INSERT INTO entity_versions (id, entity_type, version, data, valid_to) VALUES ($1, $2, $3, $4, $5)`,
-            [current.id, current.entity_type, current.version, JSON.stringify(current.data), validFrom]
-        );
-
-        const result = await client.query(
-            `UPDATE entities SET data = $1, revision = revision + 1, version = version + 1, timestamp_utc = NOW()
-             WHERE id = $2 AND revision = $3
-             RETURNING *`,
-            [JSON.stringify(data), current.id, current.revision]
-        );
-        if (!outerTransaction) await client.query('COMMIT');
-        return toRecord(result.rows[0]);
-    } catch (err) {
-        if (!outerTransaction) await client.query('ROLLBACK');
-        throw err;
-    } finally {
-        if (!outerTransaction) client.release();
-    }
-}
-
 async function del({ _ctx, input: { entityType, id, businessKey, revision } }) {
     const outerTransaction = _ctx?.transaction?.sessionId != null;
     const client = outerTransaction ? getClient(_ctx.transaction.sessionId) : await (await db()).connect();
@@ -175,7 +133,6 @@ async function del({ _ctx, input: { entityType, id, businessKey, revision } }) {
         }
         if (!result.rows.length) throw 'delete failed: document not found or revision mismatch';
         await client.query('DELETE FROM entity_history WHERE id = $1', [result.rows[0].id]);
-        await client.query('DELETE FROM entity_versions WHERE id = $1', [result.rows[0].id]);
         if (!outerTransaction) await client.query('COMMIT');
         return toRecord(result.rows[0]);
     } catch (err) {
@@ -187,7 +144,7 @@ async function del({ _ctx, input: { entityType, id, businessKey, revision } }) {
 }
 
 function toRecord(row) {
-    return { id: row.id, entityType: row.entity_type, businessKey: row.business_key, revision: row.revision, version: row.version, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
+    return { id: row.id, entityType: row.entity_type, businessKey: row.business_key, revision: row.revision, data: row.data, state: row.state ?? {}, timestampUtc: toIso(row.timestamp_utc) };
 }
 
 function toIso(value) {
@@ -211,4 +168,4 @@ async function list({ _ctx, input: { entityType, limit = 50, offset = 0 } }) {
     return { items: rows.rows.map(toRecord), total: count.rows[0].total };
 }
 
-export { create, read, update, amend, del as delete, list };
+export { create, read, update, del as delete, list };
