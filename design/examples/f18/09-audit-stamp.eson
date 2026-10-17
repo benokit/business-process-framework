@@ -1,0 +1,21 @@
+[
+    {
+        "kind": "slot-fill",
+        "id": "stamp-modified-by",
+        "meta": { "note": "Middleware around the database write (the interceptors slot). It changes the input it passes on with next: every data write records who made it. A middleware may also act on next's output, skip next (short-circuit), or call it more than once (retry)." },
+        "data": {
+            "target": "entity-type",
+            "slot": "interceptors",
+            "value": {
+                "if": "#.input.data",
+                "then": {
+                    "inputMap": {
+                        "$merge": ["#.input", { "data": { "modifiedBy": { "$coalesce": ["#._ctx.user.userId", "system"] } } }]
+                    },
+                    "next": true
+                },
+                "else": { "next": true }
+            }
+        }
+    }
+]

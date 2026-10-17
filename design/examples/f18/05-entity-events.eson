@@ -1,0 +1,20 @@
+[
+    {
+        "kind": "slot-fill",
+        "id": "publish-entity-events",
+        "meta": { "note": "The entity-events package contributes a reaction to every entity type. This replaces four root-entity-class middleware elements at ordering 100." },
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "value": {
+                "inputMap": {
+                    "entityType": "#.self.id",
+                    "record": "#.input.after",
+                    "eventType": "#.input.operation",
+                    "correlation": "#._ctx.correlation"
+                },
+                "invoke": "entity-event-publisher", "operation": "publish"
+            }
+        }
+    }
+]

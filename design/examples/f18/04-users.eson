@@ -1,0 +1,101 @@
+[
+    {
+        "id": "password-hasher",
+        "kind": "kind",
+        "meta": { "note": "A declared effect wrapping low (F13). Hashing uses a random salt, so it's nondeterministic." },
+        "data": {
+            "shape": { "!rounds": "number" },
+            "operations": {
+                "hash": {
+                    "input": "string",
+                    "output": "string",
+                    "implementation": {
+                        "inputMap": { "password": "#.input", "rounds": "#.self.data.rounds" },
+                        "low": { "module": "@business-framework/users", "functionName": "hashPassword" }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "password",
+        "kind": "password-hasher",
+        "meta": { "note": "The singleton instance (P8, P10): the receiver for hash, holding its configuration." },
+        "data": { "rounds": 12 }
+    },
+
+    {
+        "id": "user-account",
+        "kind": "kind",
+        "meta": { "note": "A subkind adds an operation. It inherits create, read, update and transition from entity-type, and can't override them (Q7)." },
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "set-password": {
+                    "input": { "!businessKey": "string", "!password": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "outputKey": "user", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "hash", "inputMap": "#.input.password", "invoke": "password", "operation": "hash" },
+                        {
+                            "inputMap": {
+                                "businessKey": "#.input.businessKey",
+                                "revision": "#.user.revision",
+                                "data": { "$merge": ["#.user.data", { "password_hash": "#.hash" }] }
+                            },
+                            "invoke": "#.self.id", "operation": "update"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+
+    {
+        "id": "user",
+        "kind": "user-account",
+        "data": {
+            "dataSchema": { "!username": "string", "!email": "string", "password_hash": "string" },
+            "statesModel": {
+                "states": { "status": ["active", "suspended"] },
+                "transitions": {
+                    "suspend":    { "from": { "status": ["active"] },    "to": { "status": "suspended" } },
+                    "reactivate": { "from": { "status": ["suspended"] }, "to": { "status": "active" } }
+                },
+                "initialStates": { "default": { "status": "active" } }
+            }
+        }
+    },
+    {
+        "kind": "slot-fill",
+        "data": { "target": "user", "slot": "businessKey", "value": { "return": "#.input.data.username" } }
+    },
+
+    {
+        "kind": "app-config/users",
+        "data": { "users": { "adminUsername": "admin", "adminPassword": "admin", "adminEmail": "admin@localhost" } }
+    },
+    {
+        "kind": "on-startup",
+        "meta": { "note": "Replaces ensureAdminUser in bootstrap.js. The writes run as the system user: withContext binds _ctx.user for its block only (F8), so 09 stamps 'system' and the binding can't outlive the block." },
+        "data": {
+            "withContext": { "user": { "userId": "system", "roles": ["system"] } },
+            "do": [
+                { "outputKey": "admin", "inputMap": { "businessKey": "#._ctx.appConfig.users.adminUsername" }, "invoke": "user", "operation": "read" },
+                {
+                    "if": { "$negate": "#.admin" },
+                    "then": [
+                        {
+                            "inputMap": { "data": { "username": "#._ctx.appConfig.users.adminUsername", "email": "#._ctx.appConfig.users.adminEmail" } },
+                            "invoke": "user", "operation": "create"
+                        },
+                        {
+                            "inputMap": { "businessKey": "#._ctx.appConfig.users.adminUsername", "password": "#._ctx.appConfig.users.adminPassword" },
+                            "invoke": "user", "operation": "set-password"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+]

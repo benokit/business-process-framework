@@ -1,0 +1,18 @@
+# Framework postulates
+
+- **P1 — Everything is data.** This is the fundamental postulate. It has no representation as an element; it defines what an element is. An element has the properties `id`, `kind` and `data`.
+- **P2 — Fundamental concepts.** Data is the fundamental concept (P1). The most primitive *element* is the abstraction: the kind, whose kind is `kind`. (Earlier set: data, schema, execution.)
+  - *Open:* how behaviour is associated with an element.
+- **P3 — Effects vs. pure code.** Side effects are decoupled from pure code.
+  - A pipeline **node** represents a side effect.
+  - **Data flow** at node boundaries is controlled by **pure functions** (mappings).
+  - The **JSON representation** is the semantic boundary between the two.
+- **P4 — `low` node.** `low` calls a host-language (JS) implementation of a side effect. Its side effect may include mutating `_ctx`.
+- **P5 — Complex pure functions.** Pure logic too complex for the expression language may be written in the host language. The implementer is responsible for its purity.
+- **P6 — Data composition.** The framework's data composition primitives are three keywords, defined by postulate: `/data`, `/ref`, `/merge`.
+- **P7 — Schemas.** Schema data has the shape of a compact schema. Validation is done by AJV, which also resolves `$ref`s; the framework doesn't. Schemas are registered with AJV in the load phase; AJV compiles each schema lazily, at most once, when a validation is first requested.
+- **P8 — Operations.** Operations are a primitive property of the kind. They are invoked through an instance.
+- **P9 — Instance data.** An instance's data is defined by the shape of its kind, and nothing more. No keys are reserved in it.
+- **P10 — No service kind.** There is no `service` kind. An element with operations is an instance of a kind that defines them.
+- **P11 — Open slots.** A package may declare new slots on a kind it doesn't own.
+- **P12 — Slots and middleware.** A slot fill can be any data. A generic middleware node accepts a sequence of executables and runs them in order; each receives `next` (the continuation) and is responsible for firing it.
