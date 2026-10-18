@@ -1,3 +1,0 @@
-[
-    { "kind": "schema", "id": "vw-test-schema-only", "data": { "!x": "number" } }
-]

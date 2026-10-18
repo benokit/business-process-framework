@@ -1,48 +1,44 @@
 [
     {
-        "kind": "entity-type/insurance-contract",
         "id": "construction",
-        "/data": {
-            "/merge": [
-                { "/ref": "insurance-contract-base-config" },
+        "kind": "insurance-contract",
+        "data": {
+            "dataSchema": {
+                "!policyholder": "string",
+                "!project": "string",
+                "!currency": "string",
+                "!startDate": "@date",
+                "!endDate": "@date"
+            }
+        }
+    },
+    {
+        "id": "construction-business-key",
+        "kind": "slot-fill",
+        "data": {
+            "target": "construction",
+            "slot": "businessKey",
+            "value": [
+                { "outputKey": "seq", "nextFromSequence": "construction-seq" },
+                { "outputKey": "now", "invoke": "clock", "operation": "now" },
                 {
-                    "dataSchema": {
-                        "!policyholder": "string",
-                        "!project": "string",
-                        "!currency": "string",
-                        "!startDate": "@date",
-                        "!endDate": "@date"
+                    "set": {
+                        "$join": {
+                            "_strings": ["CON", { "$head": { "$split": { "_string": "#.now", "_separator": "-" } } }, { "$printf": { "_template": "%04d", "_args": ["#.seq"] } }],
+                            "_separator": "-"
+                        }
                     }
                 }
             ]
         }
     },
     {
-        "kind": "entity-rule/business-key/construction",
-        "data": [
-            { "outputKey": "seq", "nextFromSequence": "construction-seq" },
-            {
-                "return": {
-                    "$join": {
-                        "_strings": [
-                            "CON",
-                            { "$head": { "$split": { "_string": "#._ctx.timestampUTC", "_separator": "-" } } },
-                            { "$printf": { "_template": "%04d", "_args": ["#.seq"] } }
-                        ],
-                        "_separator": "-"
-                    }
-                }
-            }
-        ]
-    },
-    {
-        "kind": "entity-rule/relations/construction",
+        "id": "construction-policyholder",
+        "kind": "slot-fill",
         "data": {
-            "return": {
-                "relations": [
-                    { "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.policyholder", "relationType": "policyholder" }
-                ]
-            }
+            "target": "construction",
+            "slot": "relations",
+            "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.policyholder", "relationType": "policyholder" }] } }
         }
     }
 ]

@@ -1,114 +1,80 @@
-import { connect, JSONCodec, consumerOpts, createInbox } from 'nats';
-import { executeMethod } from '@business-framework/runtime/execution';
+import { connect, consumerOpts, createInbox, JSONCodec } from 'nats';
+import { invoke } from '@business-framework/core';
 
-const jc = JSONCodec();
-
-// broker.url → { nc, js, jsm }
+const codec = JSONCodec();
 const connections = new Map();
+const subscriptions = new Map();
+const streams = new Set();
 
-// `${broker.url}:${channel.name}` → Subscription[]
-const activeSubscriptions = new Map();
-
-// stream names confirmed to exist: `${broker.url}:${streamName}`
-const initializedStreams = new Set();
-
-async function getConnection(brokerUrl) {
-    if (!connections.has(brokerUrl)) {
-        const nc = await connect({ servers: brokerUrl });
-        const js = nc.jetstream();
-        const jsm = await nc.jetstreamManager();
-        connections.set(brokerUrl, { nc, js, jsm });
+const connectionTo = async url => {
+    if (!connections.has(url)) {
+        connections.set(url, connect({ servers: url }).then(async nc => ({ nc, js: nc.jetstream(), jsm: await nc.jetstreamManager() })));
     }
-    return connections.get(brokerUrl);
-}
+    return connections.get(url);
+};
 
-async function ensureStream(jsm, brokerUrl, streamName) {
-    const key = `${brokerUrl}:${streamName}`;
-    if (initializedStreams.has(key)) return;
-    try {
-        await jsm.streams.info(streamName);
-    } catch {
-        await jsm.streams.add({ name: streamName, subjects: [streamName] });
-    }
-    initializedStreams.add(key);
-}
+const ensureStream = async (url, jsm, name) => {
+    if (streams.has(`${url}:${name}`)) return;
+    await jsm.streams.info(name).catch(() => jsm.streams.add({ name, subjects: [name] }));
+    streams.add(`${url}:${name}`);
+};
 
-async function publish({ input: { channel, broker, envelope } }) {
-    const { js, jsm } = await getConnection(broker.url);
-    await ensureStream(jsm, broker.url, channel.name);
-    await js.publish(channel.name, jc.encode(envelope));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+export const publish = async ({ input: { url, channel, envelope } }) => {
+    const { js, jsm } = await connectionTo(url);
+    await ensureStream(url, jsm, channel.name);
+    await js.publish(channel.name, codec.encode(envelope));
     return { messageId: envelope.messageId };
-}
+};
 
-async function consume({ _ctx, input: { channel, broker, consumer, handler } }) {
-    const { js, jsm } = await getConnection(broker.url);
-    await ensureStream(jsm, broker.url, channel.name);
-
-    const topology = channel.topology;
-    const retryAttempts = channel.consumer?.retry?.attempts ?? 3;
-    const retryBackoff = channel.consumer?.retry?.backoff ?? 1000;
-    const consumerName = consumer.name;
-    const durableName = topology === 'queue' ? channel.name : consumerName;
-
+const options = (channel, name) => {
     const opts = consumerOpts();
-    opts.durable(durableName);
+    opts.durable(channel.topology === 'queue' ? channel.name : name);
     opts.deliverNew();
     opts.ackExplicit();
     opts.deliverTo(createInbox());
-    if (topology === 'queue') {
-        opts.queue(channel.name);
-    }
+    if (channel.topology === 'queue') opts.queue(channel.name);
+    return opts;
+};
 
-    const sub = await js.subscribe(channel.name, opts);
-    const subKey = `${broker.url}:${channel.name}`;
-    if (!activeSubscriptions.has(subKey)) {
-        activeSubscriptions.set(subKey, []);
+const handleWithRetry = async (consumer, envelope, { attempts = 3, backoff = 1000 }, attempt = 0) => {
+    try {
+        await invoke(consumer, 'handle', envelope);
+        return true;
+    } catch {
+        if (attempt >= attempts) return false;
+        await sleep(backoff);
+        return handleWithRetry(consumer, envelope, { attempts, backoff }, attempt + 1);
     }
-    activeSubscriptions.get(subKey).push(sub);
+};
 
-    (async () => {
-        for await (const msg of sub) {
-            const envelope = jc.decode(msg.data);
-            let attempt = 0;
-            while (true) {
-                try {
-                    await executeMethod(handler, envelope, _ctx);
-                    msg.ack();
-                    break;
-                } catch {
-                    attempt++;
-                    if (attempt > retryAttempts) {
-                        msg.term();
-                        break;
-                    }
-                    await sleep(retryBackoff);
-                }
-            }
-        }
-    })();
-}
-
-async function stopConsuming({ input: { channel, broker } }) {
-    const subKey = `${broker.url}:${channel.name}`;
-    const subs = activeSubscriptions.get(subKey) ?? [];
-    for (const sub of subs) {
-        sub.unsubscribe();
+const dispatch = async (subscription, consumer, retry) => {
+    for await (const message of subscription) {
+        const handled = await handleWithRetry(consumer, codec.decode(message.data), retry);
+        handled ? message.ack() : message.term();
     }
-    activeSubscriptions.delete(subKey);
-    return {};
-}
+};
 
-async function disconnect() {
-    for (const { nc } of connections.values()) {
-        await nc.drain();
-    }
+export const subscribe = async ({ input: { url, channel, consumer, name } }) => {
+    const { js, jsm } = await connectionTo(url);
+    await ensureStream(url, jsm, channel.name);
+    const subscription = await js.subscribe(channel.name, options(channel, name));
+    subscriptions.set(consumer, subscription);
+    dispatch(subscription, consumer, channel.consumer?.retry ?? {});
+    return null;
+};
+
+export const unsubscribe = ({ input: { consumer } }) => {
+    subscriptions.get(consumer)?.unsubscribe();
+    subscriptions.delete(consumer);
+    return null;
+};
+
+export const disconnect = async () => {
+    await Promise.all([...connections.values()].map(async connection => (await connection).nc.drain()));
     connections.clear();
-    activeSubscriptions.clear();
-    initializedStreams.clear();
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-export { publish, consume, stopConsuming, disconnect };
+    subscriptions.clear();
+    streams.clear();
+    return null;
+};

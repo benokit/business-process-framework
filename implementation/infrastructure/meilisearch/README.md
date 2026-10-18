@@ -1,14 +1,3 @@
 # meilisearch
 
-Meilisearch implementation of the `service/search-engine` interface.
-
-## Elements
-
-- `meilisearch` — `service/search-engine` implementing `configureIndex`, `deleteIndex`, `insertDocument`, `removeDocument`, `search`
-
-## Configuration
-
-| Key | Default | Description |
-| --- | --- | --- |
-| `meilisearchUrl` | `http://localhost:7700` | Meilisearch host URL |
-| `meilisearchApiKey` | `""` | Master or API key (empty for no-auth dev) |
+Meilisearch [search engine](../../framework/search/README.md): kind `meilisearch-engine`, instance `meilisearch`. It connects in `start` with the `meilisearch` app config (`{ url, apiKey }`, default `http://localhost:7700`, override with `BPF__meilisearch__url`). Indexes use `id` as primary key; every write waits for its task to finish.

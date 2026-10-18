@@ -1,139 +1,118 @@
 [
     {
-        "kind": "schema",
         "id": "message-envelope",
-        "data":{
-            "!messageId": "string",
-            "!timestampUTC": "string",
-            "!group": "string",
-            "!correlation": "string",
-            "!message": "object"
-        }
+        "kind": "schema",
+        "data": { "!messageId": "string", "!timestampUTC": "string", "!group": "string", "!correlation": "string", "!message": "object" }
     },
     {
+        "id": "message-context",
         "kind": "schema",
-        "id": "message-channel",
-        "data":{
-            "!broker": "string",
-            "!topology": "string",
-            "!name": "string",
-            "publisher": {
-                "transactionalOutbox": "boolean",
-                "retry": {
-                    "attempts": "number",
-                    "backoff": "number"
-                }
-            },
-            "consumer": {
-                "concurrency": "number",
-                "retry": {
-                    "attempts": "number",
-                    "backoff": "number"
-                }
-            }
-        }
+        "data": { "!channel": "string", "!messageId": "string", "!group": "string", "!timestampUTC": "string" }
     },
     {
+        "id": "outgoing-message",
         "kind": "schema",
-        "id": "message-consumer",
-        "data":{
-            "!channel": "string",
-            "name": "string",
-            "!handler": "@method"
-        }
+        "data": { "!message": "object", "group": "string", "messageId": "string", "timestampUTC": "string" }
     },
     {
-        "kind": "schema",
         "id": "message-broker",
-        "data":{
-            "!service": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-publish-input",
-        "data":{
-            "!channel": "string",
-            "!envelope": "@message-envelope"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-publish-output",
-        "data":{
-            "!messageId": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-consumers-input",
-        "data":{
-            "channel": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-start-consumers-output",
-        "data":{
-            "consumers[]": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-broker-publish-input",
-        "data":{
-            "!channel": "object",
-            "!broker": "object",
-            "!envelope": "@message-envelope"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-broker-consume-input",
-        "data":{
-            "!channel": "object",
-            "!broker": "object",
-            "!consumer": "object",
-            "!handler": "object"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "messaging-broker-stop-consuming-input",
-        "data":{
-            "!channel": "object",
-            "!broker": "object"
-        }
-    },
-    {
-        "id": "messaging-broker-interface",
+        "kind": "kind",
         "data": {
-            "publish": {
-                "input": "@messaging-broker-publish-input",
-                "output": "@messaging-publish-output"
+            "lifecycle": { "startPosition": "first" }
+        }
+    },
+    {
+        "id": "message-channel",
+        "kind": "kind",
+        "data": {
+            "context": { "reads": ["trace"] },
+            "shape": {
+                "!broker": "string",
+                "!topology=1": ["queue", "topic"],
+                "!name": "string",
+                "publisher": { "transactionalOutbox": "boolean", "retry": { "attempts": "number", "backoff": "number" } },
+                "consumer": { "retry": { "attempts": "number", "backoff": "number" } }
             },
-            "consume": {
-                "input": "@messaging-broker-consume-input"
-            },
-            "stopConsuming": {
-                "input": "@messaging-broker-stop-consuming-input"
+            "operations": {
+                "publish": {
+                    "input": "@outgoing-message",
+                    "output": { "!messageId": "string" },
+                    "implementation": [
+                        {
+                            "outputKey": "envelope",
+                            "inputMap": { "$merge": ["#.input", { "correlation": "#._ctx.trace.correlation" }] },
+                            "low": { "module": "@business-framework/messaging", "functionName": "createEnvelope" }
+                        },
+                        {
+                            "if": "#.self.data.publisher.transactionalOutbox",
+                            "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope" }, "invoke": "outbox", "operation": "put" },
+                            "else": { "inputMap": "#.envelope", "invoke": "#.self.id", "operation": "deliver" }
+                        }
+                    ]
+                },
+                "deliver": {
+                    "input": "@message-envelope",
+                    "output": { "!messageId": "string" },
+                    "implementation": {
+                        "inputMap": { "channel": { "$merge": ["#.self.data", { "id": "#.self.id" }] }, "envelope": "#.input" },
+                        "invoke": "#.self.data.broker",
+                        "operation": "publish"
+                    }
+                },
+                "subscribe": {
+                    "input": { "!consumer": "string", "!name": "string" },
+                    "implementation": {
+                        "inputMap": { "channel": { "$merge": ["#.self.data", { "id": "#.self.id" }] }, "consumer": "#.input.consumer", "name": "#.input.name" },
+                        "invoke": "#.self.data.broker",
+                        "operation": "subscribe"
+                    }
+                },
+                "unsubscribe": {
+                    "input": { "!consumer": "string" },
+                    "implementation": { "invoke": "#.self.data.broker", "operation": "unsubscribe" }
+                }
             }
         }
     },
     {
-        "id": "messaging-service-interface",
+        "id": "message-consumer",
+        "kind": "kind",
         "data": {
-            "publish": {
-                "input": "@messaging-publish-input",
-                "output": "@messaging-publish-output"
+            "extends": "entry-point",
+            "context": { "manages": { "message": "@message-context" } },
+            "shape": { "!channel": "string", "name": "string", "!handler": "@method" },
+            "operations": {
+                "handle": {
+                    "input": "@message-envelope",
+                    "implementation": {
+                        "withContext": {
+                            "message": { "channel": "#.self.data.channel", "messageId": "#.input.messageId", "group": "#.input.group", "timestampUTC": "#.input.timestampUTC" },
+                            "trace": { "correlation": "#.input.correlation" }
+                        },
+                        "do": { "inputMap": "#.input.message", "execute": "#.self.data.handler" }
+                    }
+                }
             },
-            "startConsumers": {
-                "input": "@messaging-consumers-input",
-                "output": "@messaging-start-consumers-output"
-            },
-            "stopConsumers": {
-                "input": "@messaging-consumers-input"
+            "lifecycle": {
+                "start": {
+                    "inputMap": { "consumer": "#.self.id", "name": { "$coalesce": ["#.self.data.name", "#.self.id"] } },
+                    "invoke": "#.self.data.channel",
+                    "operation": "subscribe"
+                },
+                "stop": {
+                    "inputMap": { "consumer": "#.self.id" },
+                    "invoke": "#.self.data.channel",
+                    "operation": "unsubscribe"
+                }
             }
+        }
+    },
+    {
+        "id": "publish",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "publish",
+            "implementation": { "invoke": "#.node.publish", "operation": "publish" }
         }
     }
 ]

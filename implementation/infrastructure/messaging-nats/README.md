@@ -1,33 +1,8 @@
 # messaging-nats
 
-NATS JetStream implementation of [`messaging-broker-interface`](../messaging/README.md#broker-interface-messaging-broker-interface). Requires NATS with JetStream enabled.
+NATS JetStream broker. Kind `nats-broker` (a [`message-broker`](../../framework/messaging/README.md)), instance `nats`, URL from the `nats.url` app config (default `nats://localhost:4222`, `BPF__nats__url`).
 
-## Broker data element
-
-```json
-{
-    "id": "my-nats-broker",
-    "kind": "message-broker",
-    "data": { "service": "messaging-nats", "url": "nats://localhost:4222" }
-}
-```
-
-## Behaviour
-
-| Aspect | Detail |
-| --- | --- |
-| Transport | NATS JetStream (persistent, at-least-once delivery) |
-| Stream | One stream per channel, auto-created on first use |
-| `topology: "queue"` | Competing consumers — one delivery per message; all consumers share a durable group keyed on `channelId` |
-| `topology: "topic"` | Fan-out — each `message-consumer` has its own durable consumer and receives every message |
-| Retry | On handler failure, redelivered up to `consumer.retry.attempts` times with `consumer.retry.backoff` ms delay; terminated after exhaustion (`msg.term()`) |
-| Shutdown | Call `disconnect()` to drain all connections |
-
-## `disconnect`
-
-```js
-import { disconnect } from 'messaging-nats/nats';
-await disconnect();
-```
-
-> Start NATS with JetStream: `nats -js` or `docker compose up nats`.
+- One stream per channel `name`, created on first use.
+- `queue` channels share a durable consumer named after the channel (one delivery per message); `topic` channels give each consumer its own durable consumer (named by the consumer's `name`).
+- A handler failure is retried `channel.consumer.retry.attempts` times (default 3), `backoff` ms apart (default 1000); then the message is terminated.
+- `stop` drains the connections.

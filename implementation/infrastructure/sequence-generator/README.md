@@ -1,19 +1,9 @@
 # sequence-generator
 
-Monotonically increasing integer counter per named sequence. Backed by native PostgreSQL sequences, created on first use.
+Kind `sequence-generator`, instance `sequences`: `next({ sequence })` → `{ value }`, from a PostgreSQL sequence created on first use. Names allow letters, digits, `_` and `-`. Needs the [postgresql](../postgresql/README.md) element started.
 
-## Methods
-
-| Method | Key input fields | Returns             |
-|--------|------------------|---------------------|
-| `next` | `sequence`       | `{ value: number }` |
-
-## `nextFromSequence` pipeline keyword
-
-Fetches the next value from a named PostgreSQL sequence and returns it as a number.
+Keyword `nextFromSequence`: its output is the next value.
 
 ```json
-{ "nextFromSequence": "invoice-number" }
+{ "outputKey": "number", "nextFromSequence": "invoice-number" }
 ```
-
-The keyword value is the sequence name (a string). The node output is the next integer value from that sequence.

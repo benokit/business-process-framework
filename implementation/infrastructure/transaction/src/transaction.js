@@ -1,43 +1,50 @@
-import { connect, getPool } from '@business-framework/postgresql';
+import { CoreError } from '@business-framework/core';
+import { getPool } from '@business-framework/postgresql';
 
 const clients = new Map();
-let nextId = 1;
+let lastSessionId = 0;
 
-async function beginTransaction() {
-    await connect();
+const clientOf = sessionId => clients.get(sessionId)
+    ?? (() => { throw new CoreError('unknown-session', `no transaction session ${sessionId}`, { sessionId }); })();
+
+export const beginTransaction = async ({ input: { isolation } }) => {
     const client = await getPool().connect();
-    await client.query('BEGIN');
-    const sessionId = nextId++;
-    clients.set(sessionId, client);
-    return { sessionId };
-}
+    await client.query(`BEGIN ISOLATION LEVEL ${isolation}`);
+    lastSessionId += 1;
+    clients.set(lastSessionId, client);
+    return { sessionId: lastSessionId };
+};
 
-async function commitTransaction({ input: { sessionId } }) {
-    const client = clients.get(sessionId);
-    if (!client) throw 'commitTransaction failed: unknown session';
+const end = statement => async ({ input: { sessionId } }) => {
+    const client = clientOf(sessionId);
     try {
+        await client.query(statement);
+    } finally {
+        client.release();
+        clients.delete(sessionId);
+    }
+    return null;
+};
+
+export const commitTransaction = end('COMMIT');
+
+export const rollbackTransaction = end('ROLLBACK');
+
+export const queryable = _ctx => _ctx.transaction ? clientOf(_ctx.transaction.sessionId) : getPool();
+
+const inOwnSession = async work => {
+    const client = await getPool().connect();
+    try {
+        await client.query('BEGIN');
+        const result = await work(client);
         await client.query('COMMIT');
-    } finally {
-        client.release();
-        clients.delete(sessionId);
-    }
-    return { sessionId };
-}
-
-async function rollbackTransaction({ input: { sessionId } }) {
-    const client = clients.get(sessionId);
-    if (!client) throw 'rollbackTransaction failed: unknown session';
-    try {
+        return result;
+    } catch (error) {
         await client.query('ROLLBACK');
+        throw error;
     } finally {
         client.release();
-        clients.delete(sessionId);
     }
-    return { sessionId };
-}
+};
 
-function getClient(sessionId) {
-    return clients.get(sessionId);
-}
-
-export { beginTransaction, commitTransaction, rollbackTransaction, getClient };
+export const inSession = (_ctx, work) => _ctx.transaction ? work(clientOf(_ctx.transaction.sessionId)) : inOwnSession(work);

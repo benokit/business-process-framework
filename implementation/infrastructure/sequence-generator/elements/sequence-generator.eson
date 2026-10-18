@@ -1,44 +1,31 @@
 [
     {
-        "kind": "schema",
-        "id": "sequence-next-input",
-        "data":{
-            "!sequence": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "sequence-next-output",
-        "data":{
-            "!value": "number"
-        }
-    },
-    {
-        "kind": "service",
         "id": "sequence-generator",
+        "kind": "kind",
         "data": {
-            "interface": {
+            "operations": {
                 "next": {
-                    "input": "@sequence-next-input",
-                    "output": "@sequence-next-output"
+                    "input": { "!sequence": "string:^[a-zA-Z0-9_-]+$" },
+                    "output": { "!value": "number" },
+                    "implementation": { "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
                 }
-            },
-            "implementation": {
-                "next": { "inputMap": "#.input", "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
             }
         }
     },
     {
-        "id": "next-from-sequence-node-template",
+        "id": "sequences",
+        "kind": "sequence-generator",
+        "data": {}
+    },
+    {
+        "id": "next-from-sequence",
         "kind": "execution-node-template",
         "data": {
             "keyword": "nextFromSequence",
-            "implementation": {
-                "inputMap": { "sequence": "#.node.nextFromSequence" },
-                "outputMap": "#.value",
-                "service": "sequence-generator",
-                "method": "next"
-            }
+            "implementation": [
+                { "outputKey": "next", "inputMap": { "sequence": "#.node.nextFromSequence" }, "invoke": "sequences", "operation": "next" },
+                { "set": "#.next.value" }
+            ]
         }
     }
 ]

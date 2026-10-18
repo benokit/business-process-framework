@@ -4,13 +4,13 @@ Plan for implementing the improvements in [critique.md](critique.md) (A*, F*, Q*
 
 Status: **draft** (not yet discussed) · **agreed** · **in progress** · **done** · **dropped**.
 
-Last updated: 2026-10-18 (core started in `implementation-new/core`).
+Last updated: 2026-10-18 (phase 4 done: the new implementation replaced the old one).
 
 ---
 
 ## Strategy
 
-- **A new core alongside the old runtime.** The new core is built in `implementation-new/core/`, starting from [examples/f18](examples/f18/README.md) (the bootstrap kinds and `dispatch-sketch.js`). The old `implementation/runtime/` stays untouched and keeps running the existing packages.
+- **A new core alongside the old runtime.** The new core was built in `implementation-new/core/` (now `implementation/core/`), starting from [examples/f18](examples/f18/README.md) (the bootstrap kinds and `dispatch-sketch.js`). The old `implementation/runtime/` stays untouched and keeps running the existing packages.
 - **Packages move one by one** (phase 4) into `implementation-new/`, each as its own package: each package is rewritten onto the core (services become kinds and instances, numbered middleware becomes slot fills, `_ctx` writes become `withContext`), its tests are ported and pass, and then the old version is deleted. The old runtime is deleted with the last package.
 - **The kind comes first.** Every later step (context rights, wrappers, slots, lifecycle, validation) is declared on kinds.
 - The [programming rules](../.claude/skills/programming-rules/SKILL.md) apply to all new code.
@@ -34,6 +34,7 @@ Last updated: 2026-10-18 (core started in `implementation-new/core`).
 | R1.4 | Typed errors: a code, a message and data, used by every check in the core from the start | A8 | No string is thrown in the core | done |
 | R1.5 | Lifecycle driver: `load`, `start`, `stop`, hooks along the kind chain from general to specific; start order with the slot-order mechanism (Q8): base order by element id, `after`/`before`, `position: first\|last`, cycles are errors | F18, Q8, A9 | Bootstrap is load then start; a consumer starts after the messaging connection without ordering numbers. Kinds declare `startAfter`/`startBefore` (kind names) and `startPosition` (Q8) | done |
 | R1.6 | Slots: declarations on kinds and by other packages (`slot-declaration`, P11), fills of kind `slot-fill` or its subkinds, `$func/slot-values`, order (base order, `after`/`before`, `position`), `one` vs `many` | F4, P11, P12, Q15, Q16, A2 | Fill order is deterministic and independent of load order; covered by tests | done |
+| R1.7 | Interfaces (Q19): abstract operations implemented by subkinds, references by kind resolved to the single or bound instance, application bindings; then `message-broker`, `search-engine`, `database` declare their operations and packages reference them | P15, Q19, F17 | `entity-events` names no broker implementation; `validate()` reports unimplemented abstract operations and ambiguous references | agreed |
 
 ---
 
@@ -79,7 +80,7 @@ Order follows dependencies. For each package: rewrite its elements onto kinds, p
 | R4.9 | Security: `users` (`set-password` on the instance), `authorization-basic` as the `user-scope` wrappers (`authenticated`, `asSystem`); every `low` call in `auth.eson` wrapped in a declared effect | A11, A13, F13, P13, [04](examples/f18/04-users.eson), [07](examples/f18/07-authorization.eson) | No `_ctx.user` writes; authorization tests pass. Split into `security` (principal, `user-scope`, `asSystem`), `users`, `authorization-basic`; the admin account is a start hook | done |
 | R4.10 | `server`: bootstrap is load then start; `on-startup` and `ensureAdminUser` become kinds or instances; the dead demo handler is fixed or removed | A1, F18 | `bootstrap.js` has no kind-specific code. `on-startup` is a kind of the server package; the admin account moved to users; the demo is ported to `demo-new/` (the dead handler became a `contract-activated` reaction) | done |
 | R4.11 | `tools`: `validate-workspace.js` replaced by a CLI around `validate()` | Q18 | CI runs `validate()`. Done: `bpf-validate`; CI wiring is open (no CI configured) | done |
-| R4.12 | Delete `implementation/runtime/` | — | Nothing imports it | draft |
+| R4.12 | Delete `implementation/runtime/` | — | Nothing imports it. Done: the old `implementation/` and `demo/` were removed and replaced by the new trees | done |
 | R4.13 | Decide how to split pipelines: orchestration as data, computation as code or pure functions | F9, F14 | A decision is recorded in the critique | draft |
 
 ---

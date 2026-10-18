@@ -2,34 +2,43 @@
 
 ## Architecture
 
-The framework is built around **elements** — declarative JSON objects loaded from `.eson` files. Every element has an `id`, a `kind` string tag, and a `data` object. `kind` drives both behaviour and querying: `schema` elements register a CJSL schema, `service` elements expose a callable API, and all other kinds are plain data.
+The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, `context` rights and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data. There is no `service` kind.
 
-Elements are loaded via `loadElements(paths)` from `runtime/elements-loader`. Services are invoked via `execute(serviceId, methodName, input, _ctx?)` from `runtime/service`. `_ctx` is an optional shared context object (default `{}`) that propagates through the entire execution graph.
+```js
+import { boot, start, stop, invoke, validate } from '@business-framework/core';
+await boot({ paths, elements });   // load elements, run 'load' hooks
+await start();                     // run 'start' hooks in start order
+await invoke('order', 'create', { data: { amount: 5 } });
+validate();                        // on demand, never on start
+```
 
-See [runtime/README.md](implementation/runtime/README.md) for full details on element structure, pipelines, pipeline context/input shape, `set` merge behaviour, execution node templates, and JS module conventions.
+- Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS and can't change context.
+- `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; code sees only the keys its kind manages or reads.
+- Slots are typed contribution points filled by `slot-fill` elements, ordered by `position`, `after`, `before`; no ordering numbers.
+
+See [core/README.md](implementation/core/README.md) for pipeline rules, context, lifecycle and data composition. The design rationale lives in [design/](design/): `postulates.md` (the user's principles), `critique.md`, `refactoring-plan.md`.
 
 ## Schema syntax (CJSL)
 
-`"!field"` = required, `"field"` = optional, `"!field="` = fixed value, `"@schemaId"` = reference, `"field[]"` = array, `"field{}"` = map, `"$data#1": [...]` = one-of, `"data#&": [s1, s2]` = allOf.
+`"!field"` = required, `"field"` = optional, `"!field="` = fixed value, `"field=1": [...]` = enum, `"@schemaId"` = reference, `"field[]"` = array, `"field{}"` = map, `"$data#": [...]` = any-of, `"$data#1": [...]` = one-of, `"$data#&": [...]` = all-of. A property whose value is `false` is silently dropped.
 
 ## Implementation layout
 
 ```
 implementation/
-  runtime/         # Framework runtime (elements-loader, service, schema, data, date, random)
-  infrastructure/  # See infrastructure/README.md for index
-  framework/       # See framework/README.md for index (includes entities, security/*)
-  server/          # Bootstrap entry point; see server/README.md
-implementation-new/  # Rewrite in progress (new core, packages move here one by one); see implementation-new/README.md
+  core/            # kinds, schemas, pipelines, slots, context, lifecycle, validation
+  infrastructure/  # See infrastructure/README.md for the index
+  framework/       # See framework/README.md for the index
+  server/          # Starts an application; on-startup
+  tools/           # bpf-validate
+demo/              # Insurance example application
 ```
 
-See [infrastructure/README.md](implementation/infrastructure/README.md) for the infrastructure package index.
-See [framework/README.md](implementation/framework/README.md) for the framework package index.
-See [server/README.md](implementation/server/README.md) for the bootstrap sequence and the `on-startup` element kind.
+See [implementation/README.md](implementation/README.md) for the package index.
 
 ## LambdaJSON
 
-Source: `implementation/node_modules/lambdajson-js/src/`. Key refs: `"#"` (input), `"#.field"` (lodash path), `"@name"` ($let var), `"\\literal"` (escape). Expression forms: primitive (≤2 keys, all registered), function call (≤2 keys, all `$`), plain object (everything else). `$let` only propagates vars in the first two forms. See source for full primitives list.
+Source: `implementation/node_modules/lambdajson-js/src/`. Key refs: `"#"` (input), `"#.field"` (lodash path), `"@name"` ($let var), `"\\literal"` (escape). Expression forms: primitive (≤2 keys, all registered), function call (≤2 keys, all `$`), plain object (everything else). `{ "$literal": … }` keeps a tree as data. Pure functions are `$func/<id>`.
 
 ## Documentation rules
 
@@ -41,17 +50,17 @@ Source: `implementation/node_modules/lambdajson-js/src/`. Key refs: `"#"` (input
 
 ## Running tests
 
-Tests use **Mocha + Chai** (`"test": "mocha --exit"` per package). Start infrastructure:
+Tests use **Mocha + Chai** (`npm test` in `implementation/` runs every package). Start infrastructure:
 
 ```sh
 docker compose -f environments/docker-compose.yml up -d
 ```
 
-PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (override: `NATS_URL`). Both skip gracefully when unavailable.
+PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). Tests that need them skip when unavailable. Lint with `npx eslint .`.
 
 ## Key conventions
 
-- `.eson` files contain arrays of element objects (or a single object).
-- Service errors are thrown as strings (not Error objects).
-- `entity-record` shape: `{ id, businessKey, revision, data, state }`. `businessKey` required non-empty string on create. Optimistic concurrency: `update`/`delete` require matching `revision`.
-- `on-startup` elements run pipelines once after all elements are loaded, before the HTTP server starts. See [server/README.md](implementation/server/README.md).
+- `.eson` files contain arrays of element objects (or a single object). Element ids share one namespace: a kind and its instance need different ids.
+- Errors are `CoreError` (`code`, `message`, `data`); `throw` in a pipeline raises one. HTTP maps `invalid` 400, `unauthorized` 401, `forbidden` 403, `not-found` 404, `conflict` 409.
+- Configuration is `app-config` elements plus `BPF__<section>__<key>` environment variables, read with `$func/app-config-section`; it is never in `_ctx`.
+- `entity-record` shape: `{ id, entityType, businessKey, revision, data, state, timestampUtc }`. See [framework/entities](implementation/framework/entities/README.md).

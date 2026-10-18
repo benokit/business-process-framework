@@ -1,6 +1,6 @@
 {
   "name": "@business-framework/transaction",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
@@ -10,7 +10,7 @@
     "test": "mocha --exit"
   },
   "dependencies": {
-    "@business-framework/runtime": "*",
+    "@business-framework/core": "*",
     "@business-framework/postgresql": "*"
   }
 }

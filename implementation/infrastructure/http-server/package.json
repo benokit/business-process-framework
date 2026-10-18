@@ -1,16 +1,16 @@
 {
   "name": "@business-framework/http-server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    "./express": "./src/http-server-express.js"
+    ".": "./src/http-server.js"
   },
   "scripts": {
     "test": "mocha --exit"
   },
   "dependencies": {
-    "@business-framework/runtime": "*",
+    "@business-framework/core": "*",
     "express": "^4.21.2"
   }
 }

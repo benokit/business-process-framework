@@ -1,13 +1,16 @@
-# Shared Packages
-
-Cross-cutting packages used by infrastructure, security, and other layers.
+# Framework
 
 | Package | Description |
 | --- | --- |
-| [`definitions`](definitions/README.md) | Schema elements defining the shapes of core framework building blocks |
-| [`messaging`](messaging/README.md) | Broker-agnostic messaging facade; `publish` pipeline keyword |
-| [`middleware`](middleware/README.md) | Generic middleware runner; chains middlewares before a final action |
-| [`database`](database/README.md) | Creates database objects from declarative `db-model` elements |
-| [`entities`](entities/README.md) | Generic entity lifecycle management backed by a persistent document store |
-| [`security/users`](security/users/README.md) | User entity type with username as business key; `set-password` and `validate-password` component methods |
-| [`security/authorization-basic`](security/authorization-basic/README.md) | JWT login endpoint (`POST /login`) and Bearer token HTTP middleware |
+| [database](database/README.md) | The abstract `database` kind and its `models` slot |
+| [messaging](messaging/README.md) | Brokers, channels, consumers; `publish` keyword |
+| [entities](entities/README.md) | Entity types, their slots and the entity store |
+| [entity-events](entity-events/README.md) | An event per entity write, through the outbox |
+| [entity-relations](entity-relations/README.md) | The `relations` slot and relation maintenance |
+| [entities-http](entities-http/README.md) | REST endpoints for entities, through a checked gateway |
+| [search](search/README.md) | The abstract `search-engine` kind |
+| [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
+| [entity-search-http](entity-search-http/README.md) | `POST /entity-search/:entityType` |
+| [security](security/README.md) | The principal as context: `user-scope`, `asSystem` |
+| [users](users/README.md) | The `user` entity type, passwords, the admin account |
+| [authorization-basic](authorization-basic/README.md) | JWT login and the `authenticated` request middleware |

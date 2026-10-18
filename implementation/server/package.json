@@ -1,13 +1,20 @@
 {
   "name": "@business-framework/server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/server.js"
+  },
+  "bin": {
+    "business-framework-server": "./bootstrap.js"
+  },
   "scripts": {
     "start": "node bootstrap.js",
-    "start-demo": "node bootstrap.js ../../demo"
+    "start-demo": "node bootstrap.js ../../demo",
+    "test": "mocha --exit"
   },
   "dependencies": {
-    "@business-framework/runtime": "*",
-    "glob": "*"
+    "@business-framework/core": "*"
   }
 }

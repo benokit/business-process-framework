@@ -1,34 +1,22 @@
 # cache
 
-In-memory L1 cache service and `withCache` pipeline keyword.
+Kind `in-memory-cache`, instance `local-l1`: `get({ key })` → `{ found, value? }`, `set({ key, value })`. Each instance has its own store.
 
-## `local-l1`
-
-An in-process Map-backed cache. Entries persist for the lifetime of the process.
-
-| Method | Input                     | Returns                          |
-|--------|---------------------------|----------------------------------|
-| `get`  | `{ key: string }`         | `{ found: false }` or `{ found: true, value }` |
-| `set`  | `{ key: string, value? }` | —                                |
-
-## `withCache` pipeline keyword
+Keyword `withCache` (an `execution-node-wrapper`): its value is the pipeline that computes the value on a miss, run in the caller's context.
 
 ```json
 {
-    "withCache": {
-        "cache": "local-l1",
-        "key": { "$join": { "_strings": ["user-profile/", "#.input.userId"], "_separator": "" } },
-        "validate": { "$eq": ["#.cached.revision", "#.input.revision"] },
-        "compute": { "service": "user-profile", "method": "load" }
-    }
+    "withCache": { "invoke": "user-profile", "operation": "load" },
+    "cache": "local-l1",
+    "key": { "$join": { "_strings": ["user-profile/", "#.input.userId"] } },
+    "validate": { "$eq": ["#.cached.revision", "#.input.revision"] }
 }
 ```
 
-| Field      | Required | Description |
-|------------|----------|-------------|
-| `cache`    | yes      | Id of the cache service to use |
-| `key`      | yes      | LambdaJSON expression evaluated against the pipeline context; result is the cache key string |
-| `validate` | no       | LambdaJSON expression evaluated with `#.cached` = the stored value plus the full pipeline context; returns boolean — `false` triggers recompute. Defaults to always valid |
-| `compute`  | yes      | Pipeline node or array executed on cache miss or failed validation; its result is stored and returned |
+| Field | Required | Description |
+|---|---|---|
+| `cache` | yes | Id of the cache element |
+| `key` | yes | Mapping over `#.input` and `#.self` of the caller; the cache key |
+| `validate` | no | Mapping over `#.cached`, `#.input`, `#.self`; `false` recomputes. Default: valid |
 
-`inputMap` and `outputMap` on the outer `withCache` node are applied by the standard executor before and after the template runs.
+Unlike the old package, `key` and `validate` don't see the caller's earlier outputs: compute what they need into `#.input` with an `inputMap` on the node.

@@ -1,31 +1,22 @@
 {
   "name": "@business-framework/implementation",
-  "workspaces": [
-    "runtime",
-    "tools",
-    "infrastructure/*",
-    "framework/*"
-  ],
   "private": true,
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "type": "module",
+  "workspaces": [
+    "core",
+    "infrastructure/*",
+    "framework/*",
+    "server",
+    "tools"
+  ],
   "scripts": {
     "test": "npm run test --workspaces --if-present"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
+    "@eslint/js": "^9.39.5",
     "chai": "^6.2.2",
-    "eslint": "^9.33.0",
-    "globals": "^16.3.0",
-    "jest": "^29.7.0",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
     "mocha": "^11.7.5"
-  },
-  "dependencies": {
-    "pg": "^8.20.0"
   }
 }

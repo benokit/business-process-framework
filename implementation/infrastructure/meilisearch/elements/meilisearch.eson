@@ -1,31 +1,44 @@
 [
     {
-        "kind": "schema",
-        "id": "app-config/meilisearch",
-        "data": {
-            "meilisearchUrl": "string",
-            "meilisearchApiKey": "string"
-        }
+        "kind": "app-config",
+        "data": { "meilisearch": { "url": "http://localhost:7700", "apiKey": "" } }
     },
     {
-        "kind": "app-config/meilisearch",
+        "id": "meilisearch-engine",
+        "kind": "kind",
         "data": {
-            "meilisearchUrl": "http://localhost:7700",
-            "meilisearchApiKey": ""
-        }
-    },
-    {
-        "kind": "service/search-engine",
-        "id": "meilisearch",
-        "/data": {
-            "interface": { "/ref": "search-engine-interface" },
-            "implementation": {
-                "configureIndex":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "configureIndex" } },
-                "deleteIndex":     { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "deleteIndex" } },
-                "insertDocument":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "insertDocument" } },
-                "removeDocument":  { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "removeDocument" } },
-                "search":          { "inputMap": "#.input", "low": { "module": "@business-framework/meilisearch", "functionName": "search" } }
+            "extends": "search-engine",
+            "operations": {
+                "configureIndex": {
+                    "input": { "!indexName": "string", "settings": "object" },
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "configureIndex" } }
+                },
+                "deleteIndex": {
+                    "input": { "!indexName": "string" },
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "deleteIndex" } }
+                },
+                "insertDocument": {
+                    "input": { "!indexName": "string", "!document": { "!id": "string" } },
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "insertDocument" } }
+                },
+                "removeDocument": {
+                    "input": { "!indexName": "string", "!id": "string" },
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "removeDocument" } }
+                },
+                "search": {
+                    "input": "@search-query",
+                    "output": "@search-result",
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "search" } }
+                }
+            },
+            "lifecycle": {
+                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "functionName": "connect" } }
             }
         }
+    },
+    {
+        "id": "meilisearch",
+        "kind": "meilisearch-engine",
+        "data": {}
     }
 ]

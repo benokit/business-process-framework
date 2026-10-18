@@ -1,13 +1,13 @@
-# Infrastructure Services
+# Infrastructure
 
 | Package | Description |
 | --- | --- |
-| [`postgresql`](postgresql/README.md) | PostgreSQL connection pool and `db-driver-postgresql` service |
-| [`sequence-generator`](sequence-generator/README.md) | Monotonically increasing integer counters per named sequence |
-| [`http-server`](http-server/README.md) | Express HTTP server; routes from `http-endpoint` data elements |
-| [`transaction`](transaction/README.md) | PostgreSQL transaction lifecycle; `inTransaction` pipeline keyword |
-| [`messaging-nats`](messaging-nats/README.md) | NATS JetStream broker implementation |
-| [`transactional-outbox`](transactional-outbox/README.md) | At-least-once delivery via PostgreSQL-backed outbox |
-| [`logging`](logging/README.md) | Structured JSON logging; `log` pipeline keyword |
-| [`cache`](cache/README.md) | In-memory L1 cache; `withCache` pipeline keyword |
-| [`meilisearch`](meilisearch/README.md) | Meilisearch implementation of the `service/search-engine` interface |
+| [logging](logging/README.md) | Structured JSON logging; `log` keyword |
+| [cache](cache/README.md) | In-memory cache; `withCache` wrapper |
+| [postgresql](postgresql/README.md) | Connection pool owned by the `postgresql` element's lifecycle; `execute` |
+| [sequence-generator](sequence-generator/README.md) | Named PostgreSQL sequences; `nextFromSequence` keyword |
+| [transaction](transaction/README.md) | Transactions as scoped context; `inTransaction` wrapper |
+| [http-server](http-server/README.md) | Express server; `http-endpoint` kind with request context and request middleware |
+| [messaging-nats](messaging-nats/README.md) | NATS JetStream broker |
+| [transactional-outbox](transactional-outbox/README.md) | At-least-once delivery committed with the business transaction |
+| [meilisearch](meilisearch/README.md) | Meilisearch search engine |

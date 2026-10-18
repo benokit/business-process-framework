@@ -1,4 +1,0 @@
-[
-    { "kind": "schema", "id": "vw-test-animal", "data": { "!name": "string" } },
-    { "kind": "vw-test-animal", "id": "vw-test-lion", "data": { "name": "Lion" } }
-]

@@ -1,14 +1,17 @@
-const store = new Map();
+const stores = new Map();
 
-export function cacheGet({ input: { key } }) {
-    if (!store.has(key)) return { found: false };
-    return { found: true, value: store.get(key) };
-}
+const storeOf = cache => {
+    if (!stores.has(cache)) stores.set(cache, new Map());
+    return stores.get(cache);
+};
 
-export function cacheSet({ input: { key, value } }) {
-    store.set(key, value);
-}
+export const cacheGet = ({ input: { cache, key } }) => storeOf(cache).has(key)
+    ? { found: true, value: storeOf(cache).get(key) }
+    : { found: false };
 
-export function cacheClear() {
-    store.clear();
-}
+export const cacheSet = ({ input: { cache, key, value } }) => {
+    storeOf(cache).set(key, value);
+    return null;
+};
+
+export const cacheClear = () => stores.clear();

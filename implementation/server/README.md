@@ -1,29 +1,23 @@
 # server
 
-Bootstrap entry point for the framework application.
+Starts an application: every installed `@business-framework/*` package that has `elements`, plus the directories given as arguments.
 
-## bootstrap.js
-
-Startup sequence:
-
-1. Glob all `node_modules/@business-framework/*/elements` directories and any paths passed as CLI arguments, then call `loadElements`.
-2. Execute every `on-startup` element in load order.
-3. Ensure the admin user exists (`ADMIN_USERNAME` / `ADMIN_PASSWORD` / `ADMIN_EMAIL`, defaults `admin` / `admin` / `admin@localhost`).
-4. Start the HTTP server on `PORT` (default `3000`).
-
-Shutdown on `SIGTERM` / `SIGINT` stops the HTTP server gracefully.
-
-## on-startup kind
-
-Any element with `kind: "on-startup"` is executed once during step 2, before the HTTP server opens. Use it to perform warm-up work that depends on loaded elements — configuring external services, seeding data, validating state, etc.
-
-```json
-{
-    "kind": "on-startup",
-    "data": [
-        { "..." : "pipeline nodes" }
-    ]
-}
+```sh
+node bootstrap.js ../../demo        # npm run start-demo
 ```
 
-`data` is a standard pipeline (a single node or an array of nodes). It receives an empty input `{}` and runs with an empty context. The startup items run sequentially in the order elements were loaded; if any item throws the process exits with a non-zero code.
+1. `boot`: load the core and package elements and the arguments' `.eson` files, then run the `load` hooks.
+2. `start`: run the `start` hooks in start order: databases, brokers and search engines first; entry points (HTTP server, endpoints, consumers) and `on-startup` elements last.
+3. `SIGTERM` / `SIGINT`: `stop` in reverse order, then exit.
+
+Configuration comes from `app-config` elements and `BPF__<section>__<key>` environment variables, e.g. `BPF__http__port=8080`, `BPF__postgresql__url=…`, `BPF__users__adminPassword=…`, `BPF__authorization__jwtSecret=…`.
+
+## on-startup
+
+A kind whose instances are pipelines run once at start, in the last position, with an empty input. Use it for warm-up work that needs started resources, such as reindexing.
+
+```json
+{ "kind": "on-startup", "data": { "inputMap": { "entityType": "party" }, "invoke": "entity-search", "operation": "reindex" } }
+```
+
+`startServer({ packages?, paths?, elements? })` (from `@business-framework/server`) does the same in a process of your own and returns `stop`.

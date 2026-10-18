@@ -1,37 +1,11 @@
 # logging
 
-Structured JSON logging. Writes log entries to stdout (or stderr for `error`/`fatal` levels).
+Kind `logger`, instance `logging`: `log({ message, level?, context? })` writes one JSON line (`timestamp`, `level`, `message`, plus `context` fields, which can't override those three) to stdout, or stderr for `error` and `fatal`. Levels: `trace`, `debug`, `info` (default), `warn`, `error`, `fatal`.
 
-## `logging` service
-
-| Method | Key input fields                    | Returns |
-|--------|-------------------------------------|---------|
-| `log`  | `message`, `level?`, `context?`     | `null`  |
-
-Each entry is written as a single JSON line with the fields: `timestamp`, `level`, `message`, and any additional fields from `context` merged in at the top level.
-
-`level` defaults to `'info'`. Supported levels: `trace`, `debug`, `info`, `warn`, `error`, `fatal`. Entries at `error` or `fatal` go to stderr; all others go to stdout.
-
-## `log` pipeline keyword
-
-This package registers an [execution node template](../../runtime/README.md#execution-node-templates) that adds `log` as a first-class pipeline keyword:
+Keyword `log` (an `execution-node-template`); its output is `null`:
 
 ```json
-{ "log": "something happened" }
+{ "log": "payment failed", "level": "warn", "context": { "orderId": 7 } }
 ```
 
-```json
-{ "log": "payment failed", "level": "warn", "context": { "orderId": "..." } }
-```
-
-| Field     | Required | Description                              |
-|-----------|----------|------------------------------------------|
-| `log`     | yes      | Log message string                       |
-| `level`   | no       | Log level (default `info`)               |
-| `context` | no       | Object merged into the log entry as-is   |
-
-The node's output is `null`; it is purely a side effect. Use `outputKey` to capture the `null` if needed:
-
-```json
-{ "outputKey": "logged", "log": "step completed", "level": "debug" }
-```
+`context` is configuration, taken as written.

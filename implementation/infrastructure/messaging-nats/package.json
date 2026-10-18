@@ -1,20 +1,17 @@
 {
-    "name": "@business-framework/messaging-nats",
-    "version": "1.0.0",
-    "type": "module",
-    "exports": {
-        "./package.json": "./package.json",
-        "./nats": "./src/messaging-nats.js"
-    },
-    "scripts": {
-        "test": "mocha --exit"
-    },
-    "dependencies": {
-        "@business-framework/runtime": "*",
-        "nats": "^2.29.0"
-    },
-    "devDependencies": {
-        "chai": "*",
-        "mocha": "*"
-    }
+  "name": "@business-framework/messaging-nats",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/messaging-nats.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/messaging": "*",
+    "nats": "^2.29.0"
+  }
 }

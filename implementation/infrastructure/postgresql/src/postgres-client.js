@@ -1,25 +1,37 @@
 import pg from 'pg';
-import { getAppConfig } from '@business-framework/runtime/app-config';
+import { CoreError } from '@business-framework/core';
 
 let pool = null;
 
-async function connect() {
-    if (pool) return;
-    const url = getAppConfig().postgresUrl;
+export const connect = async ({ input: { url } }) => {
+    if (pool) return null;
     pool = new pg.Pool({ connectionString: url });
-    const client = await pool.connect();
-    client.release();
-}
+    (await pool.connect()).release();
+    return null;
+};
 
-async function disconnect() {
-    if (pool) {
-        await pool.end();
-        pool = null;
-    }
-}
+export const disconnect = async () => {
+    await pool?.end();
+    pool = null;
+    return null;
+};
 
-function getPool() {
-    return pool;
-}
+export const getPool = () => pool ?? (() => {
+    throw new CoreError('not-connected', 'postgresql is not connected: start it first', {});
+})();
 
-export { connect, disconnect, getPool };
+const namedToPositional = (command, parameters) => {
+    const names = [...command.matchAll(/:(\w+)/g)].map(([, name]) => name);
+    return {
+        text: names.reduce((text, name, index) => text.replace(`:${name}`, `$${index + 1}`), command),
+        values: names.map(name => parameters[name])
+    };
+};
+
+const queryOf = ({ command, parameters }) => Array.isArray(parameters)
+    ? { text: command, values: parameters }
+    : parameters && Object.keys(parameters).length > 0
+        ? namedToPositional(command, parameters)
+        : { text: command, values: [] };
+
+export const execute = ({ input }) => getPool().query(queryOf(input));

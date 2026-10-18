@@ -1,62 +1,59 @@
 [
     {
-        "kind": "schema",
-        "id": "transactional-outbox-put-input",
-        "data":{
-            "!channel": "string",
-            "!envelope": "@message-envelope"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "transactional-outbox-put-output",
-        "data":{
-            "!messageId": "string"
-        }
-    },
-    {
-        "kind": "schema",
-        "id": "transactional-outbox-run-input",
-        "data":{
-            "lockIntervalInMilliseconds": "number",
-            "idleIntervalInMilliseconds": "number"
-        }
-    },
-    {
-        "kind": "service",
         "id": "transactional-outbox",
+        "kind": "kind",
         "data": {
-            "interface": {
+            "context": { "reads": ["transaction"] },
+            "shape": { "lockIntervalInMilliseconds": "number", "idleIntervalInMilliseconds": "number" },
+            "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000 },
+            "operations": {
                 "put": {
-                    "input": "@transactional-outbox-put-input",
-                    "output": "@transactional-outbox-put-output"
+                    "input": { "!channel": "string", "!envelope": "@message-envelope" },
+                    "output": { "!messageId": "string" },
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
                 }
             },
-            "implementation": {
-                "put": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
+            "lifecycle": {
+                "start": { "inputMap": "#.self.data", "low": { "module": "@business-framework/transactional-outbox", "functionName": "startProcessor" } },
+                "stop": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "stopProcessor" } },
+                "startAfter": ["database", "message-broker"]
             }
         }
     },
     {
-        "kind": "on-startup",
-        "data": [
-            {
-                "service": "transactional-outbox-processor", "method": "run"
-            }
-        ]
+        "id": "outbox",
+        "kind": "transactional-outbox",
+        "data": {}
     },
     {
-        "kind": "service",
-        "id": "transactional-outbox-processor",
+        "id": "transactional-outbox-table",
+        "kind": "slot-fill",
         "data": {
-            "interface": {
-                "run":  { "input": "@transactional-outbox-run-input" },
-                "stop": { "input": {} }
-            },
-            "implementation": {
-                "run":  { "inputMap": "#.input", "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "run" } },
-                "stop": { "low": { "module": "@business-framework/transactional-outbox/processor", "functionName": "stop" } }
+            "target": "postgresql-database",
+            "slot": "models",
+            "value": {
+                "command": "CREATE TABLE IF NOT EXISTS transactional_outbox (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), channel TEXT NOT NULL, message_id TEXT NOT NULL UNIQUE, message_group TEXT NOT NULL, message_timestamp_utc TEXT NOT NULL, envelope JSONB NOT NULL, status INTEGER NOT NULL DEFAULT 0, retry_count INTEGER NOT NULL DEFAULT 0, process_after_timestamp_utc TEXT NOT NULL, processed_at TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
             }
+        }
+    },
+    {
+        "id": "transactional-outbox-status-index",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["transactional-outbox-table"],
+            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_status_process ON transactional_outbox (status, process_after_timestamp_utc)" }
+        }
+    },
+    {
+        "id": "transactional-outbox-group-index",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["transactional-outbox-table"],
+            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_group_ts ON transactional_outbox (message_group, message_timestamp_utc)" }
         }
     }
 ]
