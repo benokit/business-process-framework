@@ -11,6 +11,7 @@ await boot({ paths: ['./elements'], elements: [] }); // load: core elements + yo
 await start();                                         // 'start' hooks
 await invoke('hello', 'greet', 'Ada');                 // an operation of the element's kind chain
 validate();                                            // on demand: a list of problems, [] when valid
+packageElements('@business-framework/logging');       // the elements directory of an installed package
 ```
 
 Errors are `CoreError` with `code`, `message` and `data`.

@@ -69,7 +69,7 @@ Order follows dependencies. For each package: rewrite its elements onto kinds, p
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R4.1 | Infrastructure without context: `logging`, `cache`, `sequence-generator`, `postgresql` as singleton kinds (a kind plus one instance holding its configuration) | P10 | Their tests pass on the core | done |
-| R4.2 | `transaction`: `transaction-manager` and the `transaction-scope` wrapper kind (`inTransaction`), managing `transaction` | F8, P13, [10](examples/f18/10-scoped-context.eson) | No `_ctx.transaction` writes; nested `inTransaction` joins the enclosing one | draft |
+| R4.2 | `transaction`: `transaction-manager` and the `transaction-scope` wrapper kind (`inTransaction`), managing `transaction` | F8, P13, [10](examples/f18/10-scoped-context.eson) | No `_ctx.transaction` writes; nested `inTransaction` joins the enclosing one | done |
 | R4.3 | `http-server`: `http-endpoint` kind managing `request`, request middleware as a slot, routes registered by a `start` hook | F18, P13, [01](examples/f18/01-bootstrap-kinds.eson) | An endpoint answers with the request's correlation bound | draft |
 | R4.4 | Messaging (`messaging-nats`, `transactional-outbox`, `framework/messaging`): the publisher chooses the context it propagates; `message-consumer` kind managing `message`, subscribing in `start` (replaces `startConsumers`) | F8, P13, [11](examples/f18/11-message-consumer.eson) | A consumer's run has the producer's correlation | draft |
 | R4.5 | `framework/definitions` and `framework/database` onto the core | F18 | Their tests pass on the core | draft |
