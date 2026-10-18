@@ -1,0 +1,76 @@
+[
+    {
+        "id": "http-request",
+        "kind": "schema",
+        "data": { "!headers": "object", "params": "object", "query": "object", "body": "@any" }
+    },
+    {
+        "id": "http-response",
+        "kind": "schema",
+        "data": { "status": "number", "headers": "object", "body": "@any" }
+    },
+    {
+        "id": "request-context",
+        "kind": "schema",
+        "data": { "!correlation": "string", "!receivedAt": "string" }
+    },
+    {
+        "id": "http-endpoint",
+        "kind": "kind",
+        "data": {
+            "context": { "manages": { "request": "@request-context" } },
+            "shape": {
+                "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+                "!path": "string",
+                "!target": { "!element": "string", "!operation": "string" },
+                "request": "@mapping",
+                "response": "@mapping"
+            },
+            "slots": {
+                "requestMiddleware": { "cardinality": "many", "value": "@method" }
+            },
+            "operations": {
+                "handle": {
+                    "input": "@http-request",
+                    "output": "@http-response",
+                    "implementation": [
+                        {
+                            "outputKey": "requestContext",
+                            "inputMap": "#.input.headers",
+                            "low": { "module": "@business-framework/http-server", "functionName": "requestContext" }
+                        },
+                        {
+                            "withContext": { "request": "#.requestContext" },
+                            "do": {
+                                "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
+                                "action": [
+                                    {
+                                        "outputKey": "output",
+                                        "inputMap": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.self.data.request", { "$literal": "#.body" }] }, "input": "#.input" } },
+                                        "invoke": "#.self.data.target.element",
+                                        "operation": "#.self.data.target.operation"
+                                    },
+                                    {
+                                        "set": {
+                                            "$func/apply-mapping": {
+                                                "mapping": { "$coalesce": ["#.self.data.response", { "$literal": { "body": "#.output" } }] },
+                                                "input": { "output": "#.output", "request": "#.input" }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "start": {
+                    "inputMap": { "method": "#.self.data.method", "path": "#.self.data.path", "endpoint": "#.self.id" },
+                    "invoke": "http-server",
+                    "operation": "registerRoute"
+                }
+            }
+        }
+    }
+]

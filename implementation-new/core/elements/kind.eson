@@ -102,5 +102,10 @@
         "id": "any",
         "kind": "schema",
         "data": {}
+    },
+    {
+        "id": "mapping",
+        "kind": "schema",
+        "data": {}
     }
 ]
