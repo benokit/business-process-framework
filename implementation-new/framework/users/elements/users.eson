@@ -1,0 +1,102 @@
+[
+    {
+        "kind": "app-config",
+        "data": { "users": { "adminUsername": "admin", "adminPassword": "admin", "adminEmail": "admin@localhost" } }
+    },
+    {
+        "id": "password-hasher",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "hash": {
+                    "input": "string",
+                    "output": "string",
+                    "implementation": { "low": { "module": "@business-framework/users", "functionName": "hashPassword" } }
+                },
+                "verify": {
+                    "input": { "!password": "string", "hash": "string" },
+                    "output": "boolean",
+                    "implementation": { "low": { "module": "@business-framework/users", "functionName": "verifyPassword" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "password",
+        "kind": "password-hasher",
+        "data": {}
+    },
+    {
+        "id": "user-account",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "set-password": {
+                    "input": { "!businessKey": "string", "!password": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "outputKey": "user", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "hash", "inputMap": "#.input.password", "invoke": "password", "operation": "hash" },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.user.revision", "data": { "$merge": ["#.user.data", { "passwordHash": "#.hash" }] } },
+                            "invoke": "#.self.id",
+                            "operation": "update"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "user",
+        "kind": "user-account",
+        "data": {
+            "dataSchema": { "!username": "string", "!email": "string", "roles[]": "string", "passwordHash": "string" },
+            "statesModel": {
+                "states": { "status": ["active", "suspended"] },
+                "transitions": {
+                    "suspend": { "from": { "status": ["active"] }, "to": { "status": "suspended" } },
+                    "reactivate": { "from": { "status": ["suspended"] }, "to": { "status": "active" } }
+                },
+                "initialStates": { "default": { "status": "active" } }
+            }
+        }
+    },
+    {
+        "id": "username-is-business-key",
+        "kind": "slot-fill",
+        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.data.username" } }
+    },
+    {
+        "id": "admin-account",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "start": {
+                    "asSystem": [
+                        { "outputKey": "config", "set": { "$func/app-config-section": "users" } },
+                        {
+                            "outputKey": "exists",
+                            "try": [{ "inputMap": { "businessKey": "#.config.adminUsername" }, "invoke": "user", "operation": "read" }, { "set": true }],
+                            "catch": { "if": { "$eq": ["#.error.code", "not-found"] }, "then": { "set": false }, "else": { "throw": "#.error" } }
+                        },
+                        {
+                            "if": { "$negate": "#.exists" },
+                            "then": [
+                                { "inputMap": { "data": { "username": "#.config.adminUsername", "email": "#.config.adminEmail", "roles": ["admin"] } }, "invoke": "user", "operation": "create" },
+                                { "inputMap": { "businessKey": "#.config.adminUsername", "password": "#.config.adminPassword" }, "invoke": "user", "operation": "set-password" }
+                            ]
+                        }
+                    ]
+                },
+                "startAfter": ["database"]
+            }
+        }
+    },
+    {
+        "id": "ensure-admin-account",
+        "kind": "admin-account",
+        "data": {}
+    }
+]

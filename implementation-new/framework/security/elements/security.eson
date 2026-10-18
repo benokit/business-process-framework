@@ -1,0 +1,23 @@
+[
+    {
+        "id": "principal",
+        "kind": "schema",
+        "data": { "!userId": "string", "username": "string", "email": "string", "roles[]": "string" }
+    },
+    {
+        "id": "user-scope",
+        "kind": "kind",
+        "data": {
+            "extends": "execution-node-wrapper",
+            "context": { "manages": { "user": "@principal" } }
+        }
+    },
+    {
+        "id": "as-system",
+        "kind": "user-scope",
+        "data": {
+            "keyword": "asSystem",
+            "implementation": { "withContext": { "user": { "userId": "system", "roles": ["system"] } }, "do": { "next": true } }
+        }
+    }
+]

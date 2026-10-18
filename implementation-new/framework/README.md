@@ -11,3 +11,6 @@
 | [search](search/README.md) | The abstract `search-engine` kind |
 | [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
 | [entity-search-http](entity-search-http/README.md) | `POST /entity-search/:entityType` |
+| [security](security/README.md) | The principal as context: `user-scope`, `asSystem` |
+| [users](users/README.md) | The `user` entity type, passwords, the admin account |
+| [authorization-basic](authorization-basic/README.md) | JWT login and the `authenticated` request middleware |

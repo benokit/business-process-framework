@@ -1,0 +1,17 @@
+{
+  "name": "@business-framework/users",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/password.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/entities": "*",
+    "@business-framework/security": "*"
+  }
+}
