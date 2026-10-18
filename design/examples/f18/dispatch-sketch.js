@@ -312,7 +312,8 @@ function lazyIndex(kindId, keyOf) {
 //          Hooks must not depend on each other's effects: they read element data (all loaded
 //          before this phase), add to AJV (order-free), and use $func, keywords and slot fills,
 //          which are lazy native views over the registry, not registrations.
-//   start  effects: routes, consumers, startup pipelines (order between elements: Q8)
+//   start  effects: routes, consumers, startup pipelines (order between elements: Q8, ordered
+//          like slot fills; not sketched here, which still uses load order)
 //   stop   effects, at shutdown
 // Hooks along the kind chain all run, most general first. There is no special case for
 // kinds: an element of kind 'kind' runs kind.lifecycle like any other element, and so

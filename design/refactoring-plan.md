@@ -2,102 +2,134 @@
 
 Plan for implementing the improvements in [critique.md](critique.md) (A*, F*, Q*). The goals ([project-goals.md](project-goals.md), G*) and postulates ([postulates.md](postulates.md), P*) are the constraints. This file owns the *order and scope of work*; the reasoning behind each step stays in the critique.
 
-Status: **draft** (not yet discussed) · **planned** · **in progress** · **done** · **dropped**.
+Status: **draft** (not yet discussed) · **agreed** · **in progress** · **done** · **dropped**.
 
-Last updated: 2026-10-17.
+Last updated: 2026-10-18.
 
 ---
+
+## Strategy
+
+- **A new core alongside the old runtime.** The new core is built in `implementation/core/`, starting from [examples/f18](examples/f18/README.md) (the bootstrap kinds and `dispatch-sketch.js`). The old `implementation/runtime/` stays untouched and keeps running the existing packages.
+- **Packages move one by one** (phase 4): each package is rewritten onto the core (services become kinds and instances, numbered middleware becomes slot fills, `_ctx` writes become `withContext`), its tests are ported and pass, and then the old version is deleted. The old runtime is deleted with the last package.
+- **The kind comes first.** Every later step (context rights, wrappers, slots, lifecycle, validation) is declared on kinds.
+- The [programming rules](../.claude/skills/programming-rules/SKILL.md) apply to all new code.
 
 ## Principles
 
-- Each phase leaves the framework working, with tests passing.
-- Fix confirmed bugs before redesigning.
-- Build the foundation (phases 1–3) before rebuilding business concepts on it (phase 4+).
-- A phase that depends on an open question (Q*) waits until that question is decided.
+- Each step leaves the core working, with its tests passing; each moved package leaves the system working.
+- Build the core (phases 1–3) before moving packages onto it (phase 4), and those before domain concepts (phase 5).
+- A step that depends on an open question (Q*) waits until that question is decided.
+- No fixes in the old runtime unless a moved package needs one in the meantime: its known bugs are acceptance tests for the core instead (R1.4, R4.6).
 
 ---
 
-## Phase 0: Fixes that need no design decision
+## Phase 1: Kind model and bootstrap (core)
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R0.1 | Reproduce with a test, then fix the `_ctx.entity` leak in `entity.execute` (restore the previous value after the extension call) | A7 | Test: a nested `execute` on another entity leaves the caller's `_ctx.entity` unchanged | draft |
-| R0.2 | Validate output schemas, at least in dev/test | A6 | Wrong output from a service fails a test | draft |
-| R0.3 | Cache compiled mappings instead of recompiling on every `executeMapping` | — | Each mapping tree is compiled once | draft |
-| R0.4 | Fix or remove the dead demo handler and channel | A1 | The demo approval handler runs, or is deleted | draft |
-| R0.5 | Wrap the direct `low` calls in `auth.eson` in contracted services | A13, F13 | No `low` call outside a service or effect declaration | draft |
-| R0.7 | Factor the 6× middleware-resolution block in `entity-service.eson` into one `entity-middleware-chain` element, called with `call` + `inputMap` | A3, F17 | No copy-pasted resolution blocks | draft |
-| R0.8 | Let one middleware declaration target several methods (`"methods": [...]`), replacing the 11 near-duplicate transaction, event and relations middleware elements | A3, F17 | One element per middleware | draft |
-| R0.9 | Compile each schema once. Keep `addSchema` at registration (load), validate only through `ajv.getSchema(id)`, which compiles lazily on the first request, and never validate during loading. Give service interface schemas ids (`<service>/<method>/input`) so they're compiled once too. Drop `compactSchemas`. | A14, P7 | No `ajv.compile` calls; each schema is compiled at most once; the workspace validator requests every schema id to report unresolved `$ref`s | draft |
-| ~~R0.6~~ | Superseded by R1.8. Original: Extend the workspace validator with reference checks (services, methods, `/ref`, `@schema`, `call`/`getElement` ids) and support for `/data` elements | A10 | The validator reports a typo in any of these | dropped |
+| R1.1 | Specify the `kind` element: `extends`, `shape`, `defaults`, `operations` (add-only along the chain, Q7), `slots`, `context`, `lifecycle`; operations invoked through an instance with `#.self`; `kind` as the fixed point; the native bootstrap set | F4, F17, F18, P8–P10, [examples/f18](examples/f18/README.md) | The spec in [examples/f18](examples/f18/README.md) is agreed | agreed |
+| R1.2 | Create `implementation/core/`: registry, loader (records each element's author), kind resolution (chain, operations, slots, `manages`/`reads`), `kind` with its own `load` hook, `instancesOf` including subkinds; default kind `data`; an undefined kind is an error; `$func`, node keywords and slot fills are lazy views over the registry, with no kind-specific code in the registry or the driver | F1, F4, F18, A1 | The f18 bootstrap kinds load; the registry has no `switch` over kinds | draft |
+| R1.3 | Schemas and contracts: one AJV instance; schemas added at load and compiled lazily on first use, never during load; contract ids `<owner>/<op>/input\|output`, `<kind>/slots/<slot>`, `<kind>/context/manages`; operation input and output validated on every call | A6, A14, P7 | No `ajv.compile` calls; a wrong output fails a test | draft |
+| R1.4 | Typed errors: a code, a message and data, used by every check in the core from the start | A8 | No string is thrown in the core | draft |
+| R1.5 | Lifecycle driver: `load`, `start`, `stop`, hooks along the kind chain from general to specific; start order with the slot-order mechanism (Q8): base order by element id, `after`/`before`, `position: first\|last`, cycles are errors | F18, Q8, A9 | Bootstrap is load then start; a consumer starts after the messaging connection without ordering numbers | draft |
+| R1.6 | Slots: declarations on kinds and by other packages (`slot-declaration`, P11), fills of kind `slot-fill` or its subkinds, `$func/slot-values`, order (base order, `after`/`before`, `position`), `one` vs `many` | F4, P11, P12, Q15, Q16, A2 | Fill order is deterministic and independent of load order; covered by tests | draft |
 
 ---
 
-## Phase 1: Effect boundary (P3)
+## Phase 2: Execution and effect boundary (core)
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R1.1 | Add a scoped `withContext` combinator; make `next` carry the current `_ctx`; add the `execution-node-wrapper` kind, whose `next` runs the keyword's value in the caller's context | F8 | Bindings are visible only within their subtree; a block sees the enclosing outputs and `#.self`; covered by tests | agreed |
-| R1.2 | Migrate every `_ctx` write to `withContext`: `inTransaction` as an `execution-node-wrapper`, JWT user as request middleware, correlation and time at the request root; `_ctx.entity` goes with F18. Then forbid `outputKey: "_ctx"` and freeze `_ctx` for `low` | F8, A7 | No code writes to `_ctx`; the validator rejects such writes | agreed |
-| R1.2a | Context rights on kinds (P13): `context: { manages, reads }`; one tree of managers per key; read keys optional; authorship recorded by the loader; `withContext` checks rights and schemas; mappings and `low` see only their author's keys; empty root; `appConfig` and `timestampUTC` leave `_ctx` | F8, P13 | Binding an unmanaged key fails; code can't see undeclared keys | agreed |
-| R1.2b | Move execution tracing out of `_ctx._execution` into a native execution object | F8 | `_ctx` holds no runtime internals | draft |
-| R1.2c | Context propagation across process boundaries (messages, outbox, jobs): the publisher puts the context it chooses into the message; the consumer kind manages its own key (`message`) and binds it from the envelope; `message-consumer` becomes a kind with `handle` and a `start` hook, replacing `startConsumers` | F8, P13 | A consumer's run has the producer's correlation | draft |
-| R1.3 | Declare effect node kinds with contracts and an effect class (read / write / external / nondeterministic) | F7 | Every effect node has a declaration the loader checks | draft |
-| R1.4 | Enforce: `low` only as the implementation of a declared effect | F13 | The loader rejects any other use | draft |
-| R1.5 | Remove `$low` from expressions (it's unused today) | F7 | The runtime no longer supports `$low` | draft |
-| R1.6 | Build a test interpreter that runs pipelines with stubbed effects | F6, F7 | At least one entity flow is tested with no database or NATS | draft |
-| R1.7 | Typed errors: a code, a message, and data | A8 | Callers and HTTP mapping use the error code, not text | draft |
-| R1.8 | Static validation, levels 1 and 2 (Q18), as `validate()` over the loaded registry, run on demand (CLI, CI, tests), not on start: code found through `@method`/`@mapping` positions in shapes; node structure, references, slot names, `low` resolution, context rights (P13), slot order (Q15), fill values (Q16); add the `@mapping` type | Q18, A10, F5, P13 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; `bootstrap` doesn't run it; `validate-workspace.js` is removed | agreed |
+| R2.1 | Pipeline executor: node forms (`inputMap`, `outputKey`, `set`, `if`, `switch`, `try`, `forEach`, `invoke`, `execute`, `low`, `return`, `throw`), mappings compiled once and cached, no `$low` in expressions, no construction of programs at run time | A5, F5, F7 | The f18 examples' node forms run; covered by tests | draft |
+| R2.2 | `middleware` node and native `next`; execution node templates and the `execution-node-wrapper` kind (`next` runs the keyword's value in the caller's context) | P12, F8 | Middleware can act before and after, short-circuit and retry; a wrapper sees the caller's outputs and `#.self` | draft |
+| R2.3 | Scoped context: `withContext`, `next` carrying the current `_ctx`, empty root, `_ctx` frozen for `low` (P4), `outputKey: "_ctx"` rejected; configuration through `$func/app-config`, time through `clock` | F8, P4 | Bindings are visible only within their subtree; no code can write `_ctx` | draft |
+| R2.4 | Context rights (P13): `withContext` checks the author's `manages` and the key's schema; mappings and `low` see only their author's keys; one tree of managers per key; read keys optional and managed somewhere | P13, F8 | Binding an unmanaged key fails; code can't see undeclared keys | agreed |
+| R2.5 | Execution tracing in a native execution object, not in `_ctx` | F8 | `_ctx` holds no runtime internals | draft |
+| R2.6 | Static validation, levels 1 and 2 (Q18), as `validate()` over the loaded registry, run on demand (CLI, CI, tests), never on start: code found through `@method`/`@mapping` positions in shapes; node structure, references, slot names, `low` resolution, context rights, slot and start order, fill values; add the `@mapping` type | Q18, A10, F5, P13 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; start doesn't run it | agreed |
+| R2.7 | Effect declarations with contracts and an effect class (read / write / external / nondeterministic); `low` only as the implementation of a declared effect | F7, F13 | `validate()` rejects any other use of `low` | draft |
+| R2.8 | A test interpreter that runs pipelines with stubbed effects | F6, F7 | At least one entity flow is tested with no database or NATS | draft |
 
 ---
 
-## Phase 2: Pure side (P5)
+## Phase 3: Pure side (core)
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R2.1 | ~~Expression syntax and compiler~~ | F10 | — | dropped |
-| R2.2 | Add `$and` and `$or` to LambdaJSON | F12 | Both short-circuit; covered by tests | draft |
-| R2.3 | `pure-function` elements with a JS `implementation`, a `signature` and `examples` | F11 | Callable the same way as expression functions; `verifyPassword` is migrated | draft |
-| R2.4 | Purity checks: frozen inputs, a lint config for pure modules, a determinism test, and running `examples` in the validator | F11 | CI runs these checks for every pure function | draft |
-| ~~R2.5~~ | ~~Make expressions see context data as read-only, with handles hidden~~ **Dropped** (P13: reads are not restricted). Read-only context is covered by R1.2 | F8 | | dropped |
+| R3.1 | Add `$and` and `$or` to LambdaJSON | F12 | Both short-circuit; covered by tests | draft |
+| R3.2 | `pure-function` elements with a JS `implementation`, a `signature` and `examples` | F11 | Callable the same way as expression functions; `verifyPassword` is migrated | draft |
+| R3.3 | Purity checks: frozen inputs, a lint config for pure modules, a determinism test, and running `examples` in `validate()` | F11 | CI runs these checks for every pure function | draft |
 
 ---
 
-## Phase 3: Load-time composition (F2–F5)
+## Phase 4: Move packages onto the core, one by one
+
+Order follows dependencies. For each package: rewrite its elements onto kinds, port its tests, delete the old version.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R3.0 | ~~Unify `/data` with LambdaJSON~~ (dropped with F16). Original:  element `data` is literal by default, with code only inside `{ "/eval": tree }`; add a `$ref` primitive in both phases, allow `$func/*` in `/eval`, reject reference cycles, and validate data against the kind's shape after evaluation | F15, F16, Q4 | `/eval` works in `data`; `/merge` and `/literal` are removed; the demo's `construction` is defined through a parameterized pure function | dropped |
-| R3.1a | Specify behaviour on kinds: operations with `#.self`, the `invoke` node, lifecycle hooks (`load`/`start`/`stop`), `from-instance` operations, and the native bootstrap set | F18, Q6–Q10, [examples/f18](examples/f18/README.md) | A spec in `design/` has been agreed | draft |
-| R3.1b | Move bootstrap special cases into kinds: `on-startup`, `ensureAdminUser`, endpoint and consumer activation | F18 | `bootstrap.js` only loads, then runs `load` and `start` hooks | draft |
-| R3.1 | Specify the `kind` element: shape, slots, `extends`, and meaning | F4 | A spec in `design/` has been agreed | draft |
-| R3.2 | Add explicit slot fills (target and slot), validated against declared slots | F4, A1, A2 | An undeclared slot or missing target fails at load time | draft |
-| R3.3 | Add a load-time expansion phase that produces plain, resolved elements, and a tool that dumps the result | F5 | The expanded workspace can be inspected | draft |
-| R3.4 | Replace ordering numbers with declared phases and relations | A9, F4 | No `ordering` integers remain | draft |
-| R3.5 | Bootstrap: `kind` as the fixed point with its own `load` hook; redefine `schema`, `service`, `pure-function`, `execution-node-template`, `injection` as kinds; turn `$func`, keywords, injections and slot-fill lookup into lazy views over the registry; default kind `data`; error on undefined kinds | F1, F4, F18, A1, [examples/f18](examples/f18/README.md) | The `switch` in `elements-registry` is gone and the lifecycle driver has no kind-specific code | draft |
-| R3.6 | Forbid building programs at run time (`execute` of computed pipelines) outside the core | F5, A5 | The validator flags any such use | draft |
-
----
-
-## Phase 4: Rebuild framework concepts on the foundation
-
-| ID | Step | Refs | Done when | Status |
-|---|---|---|---|---|
-| R4.1 | Redefine `entity-type` as a kind with slots (business key, relations, guards, reactions, extensions), and remove the duplicated middleware resolution | A3, F4 | `entity-service.eson` has no copy-pasted blocks | draft |
-| R4.2 | Implement entity class inheritance through `extends` (schema, states model, slots) | A4 | The demo's `construction` inherits from an `insurance-contract` class | draft |
-| R4.3 | Replace generic middleware with typed slots and phases | A9, F4 | The runtime middleware chain builders are removed | draft |
-| R4.4 | Decide how to split pipelines: orchestration as data, computation as code/pure functions | F9, F14 | A decision is recorded in the critique | draft |
+| R4.1 | Infrastructure without context: `logging`, `cache`, `sequence-generator`, `postgresql` as singleton kinds (a kind plus one instance holding its configuration) | P10 | Their tests pass on the core | draft |
+| R4.2 | `transaction`: `transaction-manager` and the `transaction-scope` wrapper kind (`inTransaction`), managing `transaction` | F8, P13, [10](examples/f18/10-scoped-context.eson) | No `_ctx.transaction` writes; nested `inTransaction` joins the enclosing one | draft |
+| R4.3 | `http-server`: `http-endpoint` kind managing `request`, request middleware as a slot, routes registered by a `start` hook | F18, P13, [01](examples/f18/01-bootstrap-kinds.eson) | An endpoint answers with the request's correlation bound | draft |
+| R4.4 | Messaging (`messaging-nats`, `transactional-outbox`, `framework/messaging`): the publisher chooses the context it propagates; `message-consumer` kind managing `message`, subscribing in `start` (replaces `startConsumers`) | F8, P13, [11](examples/f18/11-message-consumer.eson) | A consumer's run has the producer's correlation | draft |
+| R4.5 | `framework/definitions` and `framework/database` onto the core | F18 | Their tests pass on the core | draft |
+| R4.6 | Entities: `entity-type` as a kind with slots (business key, guards, interceptors, reactions), events through the outbox, relations as a slot declared by its package; `framework/middleware` and the numbered middleware disappear; the old `_ctx.entity` leak (A7) is an acceptance test | A3, A4, A7, A9, F4, Q6, [02](examples/f18/02-entity-type.eson)–[06](examples/f18/06-entity-relations.eson) | No copy-pasted middleware resolution; no ordering numbers; a nested operation on another entity can't change the caller's context | draft |
+| R4.7 | Entity inheritance through `extends` (schema, states model, slots) | A4, Q5 | The demo's `construction` inherits from an `insurance-contract` kind | draft |
+| R4.8 | `meilisearch` and entity search: the search index as a data slot | Q16, [08](examples/f18/08-search-index.eson) | Search tests pass on the core | draft |
+| R4.9 | Security: `users` (`set-password` on the instance), `authorization-basic` as the `user-scope` wrappers (`authenticated`, `asSystem`); every `low` call in `auth.eson` wrapped in a declared effect | A11, A13, F13, P13, [04](examples/f18/04-users.eson), [07](examples/f18/07-authorization.eson) | No `_ctx.user` writes; authorization tests pass | draft |
+| R4.10 | `server`: bootstrap is load then start; `on-startup` and `ensureAdminUser` become kinds or instances; the dead demo handler is fixed or removed | A1, F18 | `bootstrap.js` has no kind-specific code | draft |
+| R4.11 | `tools`: `validate-workspace.js` replaced by a CLI around `validate()` | Q18 | CI runs `validate()` | draft |
+| R4.12 | Delete `implementation/runtime/` | — | Nothing imports it | draft |
+| R4.13 | Decide how to split pipelines: orchestration as data, computation as code or pure functions | F9, F14 | A decision is recorded in the critique | draft |
 
 ---
 
 ## Phase 5: Domain concepts (G1)
 
-Waits on **Q3** (whether business processes need durable execution).
-
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R5.1 | Decision table kind | F12 | The demo has a rating or eligibility table | draft |
-| R5.2 | Authorization: permission model and enforcement at the effect level | A11, [organisation.txt](organisation.txt) | `_ctx.user` is checked on entity operations | draft |
+| R5.2 | Authorization: permission model and enforcement at the effect level | A11, [organisation.txt](organisation.txt) | The principal is checked on entity operations | draft |
 | R5.3 | Process orchestration outside the core (P14): a process kind built from entity states, message consumers and delayed messages; named steps, waits between pipelines, declared overridable points | F9, Q3, P14 | A multi-step demo process with a timer runs end to end; no core change is needed | draft |
-| R5.3a | Messaging guarantees that make R5.3 buildable: atomic state change and publish (outbox), stable `messageId` for idempotent consumers, delayed delivery | Q3, P14 | A consumer handles a redelivered message once; a delayed message arrives after its delay | draft |
-| R5.4 | Durable execution with a replay interpreter and pure-function versioning | F6, F11, Q3 | A process resumes after a restart | draft |
+| R5.4 | Messaging guarantees that make R5.3 buildable: atomic state change and publish (outbox), stable `messageId` for idempotent consumers, delayed delivery | Q3, P14 | A consumer handles a redelivered message once; a delayed message arrives after its delay | draft |
+
+---
+
+## Dropped or absorbed
+
+The plan was renumbered on 2026-10-18 (kind first, new core alongside). Old ids, for references in the history:
+
+| Old | Now | Note |
+|---|---|---|
+| R0.1 | R4.6 | The `_ctx.entity` leak becomes an acceptance test of the entity port |
+| R0.2, R0.9 | R1.3 | |
+| R0.3 | R2.1 | |
+| R0.4 | R4.10 | |
+| R0.5 | R4.9 | |
+| R0.6 | R2.6 | Superseded by `validate()` |
+| R0.7, R0.8 | R4.6 | Obsolete: slots replace the middleware resolution |
+| R1.1 | R2.2, R2.3 | |
+| R1.2 | R4.2, R4.3, R4.9 | Migration of each `_ctx` write happens in its package's port |
+| R1.2a | R2.4 | |
+| R1.2b | R2.5 | |
+| R1.2c | R4.4 | |
+| R1.3, R1.4 | R2.7 | |
+| R1.5 | R2.1 | |
+| R1.6 | R2.8 | |
+| R1.7 | R1.4 | |
+| R1.8 | R2.6 | |
+| R2.1 | — | Dropped with F10: no expression syntax or compiler |
+| R2.2–R2.4 | R3.1–R3.3 | |
+| R2.5 | — | Dropped: reads are not restricted (P13) |
+| R3.0 | — | Dropped with F16 |
+| R3.1, R3.1a | R1.1 | |
+| R3.1b | R4.10 | |
+| R3.2, R3.4 | R1.6, R1.5 | |
+| R3.3 | — | Waits on Q4 (expansion); none of the examples needs it |
+| R3.5 | R1.2 | |
+| R3.6 | R2.1 | |
+| R4.1, R4.3 | R4.6 | |
+| R4.2 | R4.7 | |
+| R4.4 | R4.13 | |
+| R5.3a | R5.4 | |
+| R5.4 (durable execution in the core) | — | Dropped by P14 |

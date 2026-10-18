@@ -176,7 +176,7 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 |---|---|
 | Q6: contracts that depend on the instance | Not solved. The contract says `data: object`, and the operation validates against `@<id>/dataSchema`. |
 | Q7: inheritance | Subkinds **add** operations and slots, and never override. For `one` slots, the most specific value wins; for `many`, all values apply, from general to specific. |
-| Q8: start order | Not solved: load order is used. |
+| Q8: start order | Decided: the slot-order mechanism (base order by element id, `after`/`before`, `position`). Not yet shown in the examples, which still use load order. |
 | Q9: dynamic invocation | `invoke` takes an expression. Static ids (`"user"`) are checked by `validate()`; `"#.self.id"` is the common dynamic case. |
 | Q10: adding slots to a kind you don't own | **Allowed** (P11): `relations` (06) and `searchIndex` (08) on `entity-type`. |
 | Q11: `defaults` | Kept, as P6 merge. The schema caveats still apply (`!field` vs `field`, allOf). |
