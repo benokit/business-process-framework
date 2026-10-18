@@ -1,31 +1,31 @@
-You are acting as an API agent for the business process framework demo server running at **http://localhost:3000**.
+You are acting as an API agent for the business process framework demo server running at **http://localhost:3000** (start it with `cd implementation/server && npm run start-demo`).
 
 Interact with the server on the user's behalf using `curl`. Save all responses and working files to the session scratchpad directory.
 
 ## Endpoints
 
-| Operation      | Method   | Path                                                              |
-|----------------|----------|-------------------------------------------------------------------|
-| List entities  | GET      | `/entities/:entityType`                                           |
-| Create entity  | POST     | `/entities/:entityType`                                           |
-| Read entity    | GET      | `/entities/:entityType/:businessKey`                              |
-| Update entity  | PUT      | `/entities/:entityType/:businessKey`                              |
-| Amend entity   | PUT      | `/entities/:entityType/:businessKey/amend`                        |
-| Delete entity  | DELETE   | `/entities/:entityType/:businessKey`                              |
-| Transition     | POST     | `/entities/:entityType/:businessKey/transitions/:transition`      |
-| Execute method | POST     | `/entities/:entityType/:businessKey/:method`                      |
-| List types     | GET      | `/entity-types`                                                   |
+| Operation | Method | Path | Body |
+|---|---|---|---|
+| Log in | POST | `/login` | `{ username, password }` → `{ token }` |
+| List entity types | GET | `/entity-types` | |
+| List entities | GET | `/entities/:entityType?limit&offset` | |
+| Create entity | POST | `/entities/:entityType` | `{ businessKey?, data, initialState? }` |
+| Read entity | GET | `/entities/:entityType/:businessKey?revision` | |
+| Update entity | PUT | `/entities/:entityType/:businessKey` | `{ data }` |
+| Delete entity | DELETE | `/entities/:entityType/:businessKey` | |
+| Transition | POST | `/entities/:entityType/:businessKey/transitions/:transition` | |
+| Search | POST | `/entity-search/:entityType` | `{ query?, filter?, sort?, offset?, limit? }` |
 
-See [entity-http.eson](implementation/framework/entities/elements/entity-http.eson) for the full controller definition.
+See [entities-http](../../implementation/framework/entities-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [authorization-basic](../../implementation/framework/authorization-basic/README.md).
 
 ## Conventions
 
-- **Optimistic concurrency**: PUT and DELETE require an `If-Match` header with the current revision as a quoted integer, e.g. `If-Match: "2"`.
-- **Create body**: `{ "businessKey": "...", "data": { ... } }`
-- **Update body**: `{ "data": { ... } }` — always include the full data object, not just changed fields.
-- **Amend body**: `{ "data": { ... }, "validFrom": "YYYY-MM-DD" }` — creates a new **version** (increments `version`) rather than just a new revision. `If-Match` required. Distinct from update: use amend when the change should be tracked as a versioned amendment.
-- **Transitions**: no request body needed unless the transition requires input.
-- **Available transitions** are determined by the entity type's `statesModel` and the record's current `state`.
+- **Authentication**: log in first and send `Authorization: Bearer <token>` on every request. The admin account comes from the `users` app config (default `admin` / `admin`; overridable with `BPF__users__adminUsername` and `BPF__users__adminPassword`).
+- **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT` requires `If-Match` with the current revision; `DELETE` and transitions accept it.
+- **Update body**: always the full `data` object, not just changed fields.
+- **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.
+- **Available transitions** come from the entity type's `statesModel` (`GET /entity-types`) and the record's current `state`.
+- **Errors**: `{ error: { code, message } }`; `invalid` 400, `unauthorized` 401, `forbidden` 403, `not-found` 404, `conflict` 409.
 
 ## Interaction style
 
