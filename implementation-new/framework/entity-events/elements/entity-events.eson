@@ -1,0 +1,51 @@
+[
+    {
+        "id": "entity-event",
+        "kind": "schema",
+        "data": {
+            "!eventType=1": ["create", "update", "transition", "delete"],
+            "!entityType": "string",
+            "!id": "string",
+            "!businessKey": "string",
+            "!revision": "number",
+            "transition": "string"
+        }
+    },
+    {
+        "id": "entity-events",
+        "kind": "message-channel",
+        "data": {
+            "broker": "nats",
+            "topology": "topic",
+            "name": "entity-events",
+            "publisher": { "transactionalOutbox": true, "retry": { "attempts": 5, "backoff": 500 } }
+        }
+    },
+    {
+        "id": "publish-entity-events",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "value": [
+                { "outputKey": "record", "set": { "$coalesce": ["#.input.after", "#.input.before"] } },
+                {
+                    "inputMap": {
+                        "message": {
+                            "eventType": "#.input.operation",
+                            "entityType": "#.record.entityType",
+                            "id": "#.record.id",
+                            "businessKey": "#.record.businessKey",
+                            "revision": "#.record.revision",
+                            "transition": "#.input.transition"
+                        },
+                        "messageId": { "$join": { "_strings": ["#.record.id", "#.record.revision", "#.input.operation"], "_separator": "-" } },
+                        "group": "#.record.businessKey",
+                        "timestampUTC": "#.record.timestampUtc"
+                    },
+                    "publish": "entity-events"
+                }
+            ]
+        }
+    }
+]

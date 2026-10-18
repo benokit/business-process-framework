@@ -1,0 +1,17 @@
+{
+  "name": "@business-framework/entity-relations",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/entity-relations.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/entities": "*",
+    "@business-framework/transaction": "*"
+  }
+}

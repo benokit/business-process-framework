@@ -1,0 +1,77 @@
+[
+    {
+        "id": "entity-relation",
+        "kind": "schema",
+        "data": { "!targetEntityType": "string", "!targetEntityBusinessKey": "string", "!relationType": "string" }
+    },
+    {
+        "id": "entity-relations",
+        "kind": "schema",
+        "data": { "!relations[]": "@entity-relation" }
+    },
+    {
+        "id": "entity-relations-slot",
+        "kind": "slot-declaration",
+        "data": { "target": "entity-type", "slot": "relations", "cardinality": "many", "value": "@method" }
+    },
+    {
+        "id": "entity-relation-store",
+        "kind": "kind",
+        "data": {
+            "context": { "reads": ["transaction"] },
+            "operations": {
+                "setRelations": {
+                    "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" },
+                    "implementation": { "low": { "module": "@business-framework/entity-relations", "functionName": "setRelations" } }
+                },
+                "relationsOf": {
+                    "input": { "!sourceEntityId": "string" },
+                    "output": "[object]",
+                    "implementation": { "low": { "module": "@business-framework/entity-relations", "functionName": "relationsOf" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-relation-database",
+        "kind": "entity-relation-store",
+        "data": {}
+    },
+    {
+        "id": "maintain-entity-relations",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "value": {
+                "if": { "$includes": { "_collection": ["create", "update", "transition"], "_value": "#.input.operation" } },
+                "then": [
+                    { "outputKey": "record", "set": "#.input.after" },
+                    {
+                        "outputKey": "results",
+                        "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "relations" } },
+                        "forEach": { "inputMap": "#.record", "execute": "#.input" }
+                    },
+                    {
+                        "inputMap": {
+                            "sourceEntityId": "#.record.id",
+                            "relations": { "$concat": { "$map": { "_over": "#.results", "_fn": "#.relations" } } }
+                        },
+                        "invoke": "entity-relation-database",
+                        "operation": "setRelations"
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "id": "entity-relations-table",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["entities-table"],
+            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_relations (source_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, target_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, relation_type TEXT NOT NULL, PRIMARY KEY (source_entity_id, target_entity_id, relation_type))" }
+        }
+    }
+]

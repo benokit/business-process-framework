@@ -1,0 +1,18 @@
+{
+  "name": "@business-framework/entity-events",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/entities": "*",
+    "@business-framework/messaging": "*",
+    "@business-framework/messaging-nats": "*",
+    "@business-framework/transactional-outbox": "*"
+  }
+}
