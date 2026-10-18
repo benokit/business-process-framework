@@ -1,0 +1,28 @@
+[
+    {
+        "id": "transactional-outbox",
+        "kind": "kind",
+        "data": {
+            "context": { "reads": ["transaction"] },
+            "shape": { "lockIntervalInMilliseconds": "number", "idleIntervalInMilliseconds": "number" },
+            "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000 },
+            "operations": {
+                "put": {
+                    "input": { "!channel": "string", "!envelope": "@message-envelope" },
+                    "output": { "!messageId": "string" },
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
+                }
+            },
+            "lifecycle": {
+                "start": { "inputMap": "#.self.data", "low": { "module": "@business-framework/transactional-outbox", "functionName": "startProcessor" } },
+                "stop": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "stopProcessor" } },
+                "startAfter": ["database", "message-broker"]
+            }
+        }
+    },
+    {
+        "id": "outbox",
+        "kind": "transactional-outbox",
+        "data": {}
+    }
+]
