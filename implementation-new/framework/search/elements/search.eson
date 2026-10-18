@@ -1,0 +1,19 @@
+[
+    {
+        "id": "search-result",
+        "kind": "schema",
+        "data": { "!hits[]": "object", "total": "number", "offset": "number", "limit": "number" }
+    },
+    {
+        "id": "search-query",
+        "kind": "schema",
+        "data": { "!indexName": "string", "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" }
+    },
+    {
+        "id": "search-engine",
+        "kind": "kind",
+        "data": {
+            "lifecycle": { "startPosition": "first" }
+        }
+    }
+]

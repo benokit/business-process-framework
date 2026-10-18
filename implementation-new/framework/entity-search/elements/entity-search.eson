@@ -1,0 +1,117 @@
+[
+    {
+        "id": "entity-search-index",
+        "kind": "schema",
+        "data": { "!searchEngine": "string", "!indexName": "string", "settings": "object", "!mapping": "@method" }
+    },
+    {
+        "id": "entity-search-index-slot",
+        "kind": "slot-declaration",
+        "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index" }
+    },
+    {
+        "id": "index-entity-record",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "args", "set": "#.input" },
+            { "outputKey": "document", "inputMap": "#.args.record", "execute": "#.args.index.mapping" },
+            {
+                "inputMap": { "indexName": "#.args.index.indexName", "document": { "$merge": ["#.document", { "id": "#.args.record.id" }] } },
+                "invoke": "#.args.index.searchEngine",
+                "operation": "insertDocument"
+            }
+        ]
+    },
+    {
+        "id": "configure-entity-search-index",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input", "slot": "searchIndex" } } },
+            {
+                "if": "#.index",
+                "then": { "inputMap": { "indexName": "#.index.indexName", "settings": "#.index.settings" }, "invoke": "#.index.searchEngine", "operation": "configureIndex" }
+            }
+        ]
+    },
+    {
+        "id": "entity-search-service",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "index": {
+                    "input": "@entity-event",
+                    "implementation": [
+                        { "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } }, "then": { "return": null } },
+                        { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
+                        {
+                            "if": "#.index",
+                            "then": {
+                                "if": { "$eq": ["#.input.eventType", "delete"] },
+                                "then": { "inputMap": { "indexName": "#.index.indexName", "id": "#.input.id" }, "invoke": "#.index.searchEngine", "operation": "removeDocument" },
+                                "else": [
+                                    {
+                                        "outputKey": "record",
+                                        "try": { "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
+                                        "catch": { "if": { "$eq": ["#.error.code", "not-found"] }, "then": { "set": null }, "else": { "throw": "#.error" } }
+                                    },
+                                    { "if": "#.record", "then": { "inputMap": { "index": "#.index", "record": "#.record" }, "call": "index-entity-record" } }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "reindex": {
+                    "input": { "!entityType": "string" },
+                    "implementation": [
+                        { "inputMap": "#.input.entityType", "call": "configure-entity-search-index" },
+                        { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
+                        { "outputKey": "records", "inputMap": { "limit": 200 }, "invoke": "#.input.entityType", "operation": "list" },
+                        { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.input" }, "call": "index-entity-record" } },
+                        { "set": null }
+                    ]
+                },
+                "search": {
+                    "input": { "!entityType": "string", "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" },
+                    "output": "@search-result",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                        },
+                        { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
+                        {
+                            "if": { "$negate": "#.index" },
+                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["#.input.entityType", "\\ has no search index"] } } } }
+                        },
+                        {
+                            "inputMap": { "indexName": "#.index.indexName", "query": "#.input.query", "filter": "#.input.filter", "sort": "#.input.sort", "offset": "#.input.offset", "limit": "#.input.limit" },
+                            "invoke": "#.index.searchEngine",
+                            "operation": "search"
+                        }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "start": {
+                    "inputMap": { "$map": { "_over": { "$func/instances-of": "entity-type" }, "_fn": "#.id" } },
+                    "forEach": { "call": "configure-entity-search-index" }
+                },
+                "startAfter": ["search-engine"]
+            }
+        }
+    },
+    {
+        "id": "entity-search",
+        "kind": "entity-search-service",
+        "data": {}
+    },
+    {
+        "id": "entity-search-indexer",
+        "kind": "message-consumer",
+        "data": {
+            "channel": "entity-events",
+            "name": "entity-search-indexer",
+            "handler": { "invoke": "entity-search", "operation": "index" }
+        }
+    }
+]

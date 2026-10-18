@@ -1,0 +1,13 @@
+{
+  "name": "@business-framework/entity-search-http",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/entity-search": "*",
+    "@business-framework/http-server": "*"
+  }
+}

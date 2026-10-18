@@ -1,0 +1,19 @@
+[
+    {
+        "id": "entity-search-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entity-search/:entityType",
+            "target": { "element": "entity-search", "operation": "search" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "query": "#.body.query",
+                "filter": "#.body.filter",
+                "sort": "#.body.sort",
+                "offset": "#.body.offset",
+                "limit": "#.body.limit"
+            }
+        }
+    }
+]
