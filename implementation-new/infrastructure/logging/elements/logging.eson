@@ -1,0 +1,36 @@
+[
+    {
+        "id": "log-entry",
+        "kind": "schema",
+        "data": { "!message": "string", "level=1": ["trace", "debug", "info", "warn", "error", "fatal"], "context": "object" }
+    },
+    {
+        "id": "logger",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "log": {
+                    "input": "@log-entry",
+                    "implementation": { "low": { "module": "@business-framework/logging", "functionName": "log" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "logging",
+        "kind": "logger",
+        "data": {}
+    },
+    {
+        "id": "log",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "log",
+            "implementation": {
+                "inputMap": { "message": "#.node.log", "level": { "$coalesce": ["#.node.level", "\\info"] }, "context": { "$coalesce": ["#.node.context", {}] } },
+                "invoke": "logging",
+                "operation": "log"
+            }
+        }
+    }
+]

@@ -11,6 +11,7 @@ export { invoke } from './execution/invoke.js';
 export { validate } from './validation.js';
 export { CoreError } from './errors.js';
 export { getElement } from './registry.js';
+export { packageElements } from './packages.js';
 
 const CORE_ELEMENTS = fileURLToPath(new URL('../elements', import.meta.url));
 

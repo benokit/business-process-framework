@@ -1,0 +1,16 @@
+{
+  "name": "@business-framework/postgresql",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/postgres-client.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "pg": "^8.13.3"
+  }
+}

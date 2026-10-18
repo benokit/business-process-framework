@@ -5,9 +5,10 @@ The rewrite alongside [implementation](../implementation): packages move here on
 | Package | Purpose |
 |---|---|
 | [core](core/README.md) | kinds, schemas, pipelines, slots, context, lifecycle, validation |
+| [infrastructure](infrastructure/README.md) | logging, cache, postgresql, sequence-generator |
 
 ```sh
 npm install
 npm test
-npx eslint core
+npx eslint .
 ```
