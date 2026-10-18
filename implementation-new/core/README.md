@@ -35,7 +35,8 @@ Errors are `CoreError` with `code`, `message` and `data`.
 
 ## Pipeline rules
 
-- A node has one keyword plus `inputMap` and `outputKey`. `inputMap` rebinds `#.input` for that node.
+- A node has one keyword plus `inputMap` and `outputKey`. The node's own expressions (`set`, `if`, `invoke`, `execute`, …) see the scope it is written in; `inputMap` sets the node's input: what it passes to what it calls or runs (operations, `low`, methods, `forEach` items, branches, `next`). Without `inputMap` the input is the current `#.input`.
+- `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
 - `return` ends the current method: an operation, hook, middleware method, `call`/`execute` target, template implementation, or the pipeline a wrapper's `next` runs.
 - `low` receives `{ input, _ctx }`, with `_ctx` frozen and limited to the author's keys.

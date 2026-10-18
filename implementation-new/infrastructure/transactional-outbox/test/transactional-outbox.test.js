@@ -77,7 +77,7 @@ describe('transactional-outbox', function () {
     });
 
     it('never delivers a message whose transaction rolled back', async () => {
-        expect(await place('rolled', { fail: true }).catch(e => e)).to.equal('rolled back');
+        expect((await place('rolled', { fail: true }).catch(e => e)).message).to.equal('rolled back');
         await place('marker');
         await eventually(() => deliveredIds().includes('marker'));
         expect(deliveredIds()).to.not.include('rolled');

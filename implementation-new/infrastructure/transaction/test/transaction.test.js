@@ -87,7 +87,7 @@ describe('transaction', function () {
     it('commits on success and rolls back and rethrows on failure', async () => {
         await invoke('the-user', 'insert', { name: 'kept' });
         const error = await invoke('the-user', 'insert', { name: 'lost', fail: true }).catch(e => e);
-        expect(error).to.equal('failed on purpose');
+        expect(error.message).to.equal('failed on purpose');
         expect(await rows()).to.deep.equal(['kept']);
     });
 

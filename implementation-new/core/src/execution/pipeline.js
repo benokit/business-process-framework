@@ -20,14 +20,14 @@ const executorOf = node => {
     const native = keys.find(key => key in executors);
     if (native) return executors[native];
     const template = keys.map(findTemplate).find(Boolean);
-    if (template) return (node, scope) => runTemplate(template, node, scope);
+    if (template) return (node, scope, input) => runTemplate(template, node, scope, input);
     if (keys.length > 0) fail('unknown-keyword', `no node keyword among '${keys.join("', '")}'`, { keys });
-    return (node, scope) => scope.input;
+    return (node, scope, input) => input;
 };
 
-const runNode = (node, scope) => executorOf(node)(node, 'inputMap' in node
-    ? { ...scope, input: evaluate(node.inputMap, scope, node) }
-    : scope);
+const inputOf = (node, scope) => 'inputMap' in node ? evaluate(node.inputMap, scope, node) : scope.input;
+
+const runNode = (node, scope) => executorOf(node)(node, scope, inputOf(node, scope));
 
 const withOutput = (scope, node, output) => {
     if (node.outputKey === '_ctx') fail('context-write', "outputKey '_ctx' is not allowed: bind context with withContext", { node });
@@ -52,4 +52,4 @@ export const runMethod = async (pipeline, scope) => {
     }
 };
 
-export const methodScope = ({ input, self, _ctx }) => ({ input, self, _ctx });
+export const methodScope = ({ self, _ctx }, input) => ({ input, self, _ctx });

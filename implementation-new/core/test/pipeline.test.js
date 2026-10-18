@@ -15,8 +15,12 @@ describe('pipelines', () => {
         ], 21)).to.equal(42);
     });
 
-    it('rebinds #.input for a node with inputMap', async () => {
-        expect(await run({ inputMap: { $sum: '#.input' }, set: '#.input' }, [1, 2, 3])).to.equal(6);
+    it('passes the inputMap result on, while the node itself sees its own scope', async () => {
+        expect(await run([
+            { outputKey: 'method', set: { $literal: { set: { $sum: '#.input' } } } },
+            { inputMap: [1, 2, 3], execute: '#.method' }
+        ])).to.equal(6);
+        expect(await run({ inputMap: { $sum: '#.input' }, if: { $eq: ['#.input', 'raw'] }, then: { set: '#.input' } }, 'raw')).to.equal('raw');
     });
 
     it('keeps outputs of a branch inside the branch', async () => {
@@ -46,10 +50,15 @@ describe('pipelines', () => {
         expect(await run([
             {
                 try: { throw: '\\boom' },
-                catch: { set: { $join: { _strings: ['\\caught ', '#.error'] } } },
+                catch: { set: { $join: { _strings: ['\\caught ', '#.error.code', '\\ ', '#.error.message'] } } },
                 finally: { set: 1 }
             }
-        ])).to.equal('caught boom');
+        ])).to.equal('caught error boom');
+    });
+
+    it('throws typed errors from objects', async () => {
+        const error = await run({ throw: { code: '\\conflict', message: '\\taken', data: { key: 1 } } }).catch(e => e);
+        expect([error.code, error.message, error.data]).to.deep.equal(['conflict', 'taken', { key: 1 }]);
     });
 
     it('fails on an unknown node keyword', async () => {

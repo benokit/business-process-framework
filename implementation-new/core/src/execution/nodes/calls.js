@@ -6,15 +6,15 @@ import { invoke } from '../invoke.js';
 const lowFunction = async ({ module, functionName }) => (await import(module))[functionName];
 
 export const calls = {
-    invoke: (node, scope) => invoke(
+    invoke: (node, scope, input) => invoke(
         evaluate(node.invoke, scope, node),
         evaluate(node.operation, scope, node),
-        scope.input,
+        input,
         scope._ctx),
 
-    call: (node, scope) => runMethod(getElement(node.call).data, methodScope(scope)),
+    call: (node, scope, input) => runMethod(getElement(node.call).data, methodScope(scope, input)),
 
-    execute: (node, scope) => runMethod(evaluate(node.execute, scope, node), methodScope(scope)),
+    execute: (node, scope, input) => runMethod(evaluate(node.execute, scope, node), methodScope(scope, input)),
 
-    low: async (node, scope) => (await lowFunction(node.low))({ input: scope.input, _ctx: visibleContext(node, scope._ctx) })
+    low: async (node, scope, input) => (await lowFunction(node.low))({ input, _ctx: visibleContext(node, scope._ctx) })
 };
