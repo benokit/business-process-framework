@@ -1,0 +1,60 @@
+[
+    {
+        "id": "insurance-contract",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "defaults": {
+                "statesModel": {
+                    "states": { "status": ["draft", "discarded", "issued", "active", "cancelled"] },
+                    "transitions": {
+                        "discard": { "from": { "status": ["draft"] }, "to": { "status": "discarded" } },
+                        "issue": { "from": { "status": ["draft"] }, "to": { "status": "issued" } },
+                        "activate": { "from": { "status": ["issued"] }, "to": { "status": "active" } },
+                        "cancel": { "from": { "status": ["issued", "active"] }, "to": { "status": "cancelled" } }
+                    },
+                    "initialStates": { "default": { "status": "draft" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "contract-updates-only-in-draft",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract",
+            "slot": "guards",
+            "value": {
+                "if": { "$eq": ["#.input.operation", "update"] },
+                "then": {
+                    "if": { "$neq": ["#.input.before.state.dimensions.status", "draft"] },
+                    "then": { "throw": { "code": "conflict", "message": "insurance contracts can only be updated in draft" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "contract-events",
+        "kind": "message-channel",
+        "data": { "broker": "nats", "topology": "topic", "name": "contract-events", "publisher": { "transactionalOutbox": true } }
+    },
+    {
+        "id": "contract-activation-events",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract",
+            "slot": "reactions",
+            "after": ["publish-entity-events"],
+            "value": {
+                "if": { "$eq": ["#.input.transition", "activate"] },
+                "then": {
+                    "inputMap": {
+                        "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey" },
+                        "group": "#.input.after.businessKey"
+                    },
+                    "publish": "contract-events"
+                }
+            }
+        }
+    }
+]

@@ -6,7 +6,10 @@ The rewrite alongside [implementation](../implementation): packages move here on
 |---|---|
 | [core](core/README.md) | kinds, schemas, pipelines, slots, context, lifecycle, validation |
 | [framework](framework/README.md) | database, messaging, entities, entity-events, entity-relations, entities-http, search, entity-search, entity-search-http, security, users, authorization-basic |
+| [server](server/README.md) | Starts an application from the installed packages; `on-startup` |
 | [infrastructure](infrastructure/README.md) | logging, cache, postgresql, sequence-generator, transaction, http-server, messaging-nats, transactional-outbox, meilisearch |
+
+The demo application is in [demo-new](../demo-new/README.md).
 
 ```sh
 npm install

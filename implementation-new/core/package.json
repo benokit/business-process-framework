@@ -8,7 +8,8 @@
     "./schemas": "./src/schemas.js",
     "./slots": "./src/slots.js",
     "./mappings": "./src/mappings.js",
-    "./app-config": "./src/app-config.js"
+    "./app-config": "./src/app-config.js",
+    "./clock": "./src/effects/clock.js"
   },
   "scripts": {
     "test": "mocha"

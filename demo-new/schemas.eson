@@ -1,0 +1,7 @@
+[
+    {
+        "id": "date",
+        "kind": "schema",
+        "data": "string:^\\d{4}-\\d{2}-\\d{2}$"
+    }
+]

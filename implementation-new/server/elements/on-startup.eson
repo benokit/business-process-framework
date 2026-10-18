@@ -1,0 +1,13 @@
+[
+    {
+        "id": "on-startup",
+        "kind": "kind",
+        "data": {
+            "shape": "@method",
+            "lifecycle": {
+                "start": { "inputMap": {}, "execute": "#.self.data" },
+                "startPosition": "last"
+            }
+        }
+    }
+]

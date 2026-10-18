@@ -1,0 +1,20 @@
+[
+    {
+        "id": "clock-source",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "now": {
+                    "input": "@any",
+                    "output": "string",
+                    "implementation": { "low": { "module": "@business-framework/core/clock", "functionName": "now" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "clock",
+        "kind": "clock-source",
+        "data": {}
+    }
+]
