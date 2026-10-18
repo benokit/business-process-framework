@@ -14,4 +14,4 @@ REST endpoints for [entities](../entities/README.md). Every route targets `entit
 
 The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../infrastructure/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409.
 
-Only these operations are exposed; operations that entity classes add are reachable through `invoke`, not over HTTP.
+Only these operations are exposed. An operation that an entity class adds is exposed by an [`http-endpoint`](../../infrastructure/http-server/README.md#http-endpoint) written for it.
