@@ -18,7 +18,21 @@
         "id": "message-broker",
         "kind": "kind",
         "data": {
+            "operations": {
+                "publish": { "input": { "!channel": "object", "!envelope": "@message-envelope" }, "output": { "!messageId": "string" } },
+                "subscribe": { "input": { "!channel": "object", "!consumer": "string", "!name": "string" } },
+                "unsubscribe": { "input": { "!consumer": "string" } }
+            },
             "lifecycle": { "startPosition": "first" }
+        }
+    },
+    {
+        "id": "message-outbox",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "put": { "input": { "!channel": "string", "!envelope": "@message-envelope" }, "output": { "!messageId": "string" } }
+            }
         }
     },
     {
@@ -27,7 +41,7 @@
         "data": {
             "context": { "reads": ["trace"] },
             "shape": {
-                "!broker": "string",
+                "!broker": "@element-ref",
                 "!topology=1": ["queue", "topic"],
                 "!name": "string",
                 "publisher": { "transactionalOutbox": "boolean", "retry": { "attempts": "number", "backoff": "number" } },
@@ -45,7 +59,7 @@
                         },
                         {
                             "if": "#.self.data.publisher.transactionalOutbox",
-                            "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope" }, "invoke": "outbox", "operation": "put" },
+                            "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope" }, "invoke": { "instanceOf": "message-outbox" }, "operation": "put" },
                             "else": { "inputMap": "#.envelope", "invoke": "#.self.id", "operation": "deliver" }
                         }
                     ]

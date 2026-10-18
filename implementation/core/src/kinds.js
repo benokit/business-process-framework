@@ -21,10 +21,22 @@ const slotDeclarationsFor = ids => instancesOf('slot-declaration')
     .filter(element => ids.includes(element.data.target))
     .map(({ data: { target, slot, ...declaration } }) => ({ id: target, data: { slots: { [slot]: declaration } } }));
 
+const isImplementation = (inherited, value) => inherited.implementation === undefined
+    && Object.keys(value).every(key => key === 'implementation');
+
+const added = (kind, what, name, value) => what === 'operation' && value.input === undefined
+    ? fail('missing-contract', `${kind.id}: operation '${name}' implements nothing and declares no input`, { kind: kind.id, name })
+    : { ...value, owner: kind.id };
+
+const entry = (kind, what, acc, name, value) => {
+    if (!(name in acc)) return added(kind, what, name, value);
+    if (what === 'operation' && isImplementation(acc[name], value)) return { ...acc[name], implementation: value.implementation };
+    return fail('redefined', `${kind.id} may not redefine ${what} '${name}'`, { kind: kind.id, name });
+};
+
 const collect = (kinds, property, what) => kinds.reduce((all, kind) =>
-    Object.entries(kind.data[property] ?? {}).reduce((acc, [name, value]) => name in acc
-        ? fail('redefined', `${kind.id} may not redefine ${what} '${name}'`, { kind: kind.id, name })
-        : { ...acc, [name]: { ...value, owner: kind.id } }, all), {});
+    Object.entries(kind.data[property] ?? {}).reduce((acc, [name, value]) =>
+        ({ ...acc, [name]: entry(kind, what, acc, name, value) }), all), {});
 
 const managedKeys = chain => Object.fromEntries(chain.flatMap(kind =>
     Object.keys(kind.data.context?.manages ?? {}).map(key => [key, kind.id])));

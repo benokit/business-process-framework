@@ -1,6 +1,6 @@
 # search
 
-The abstract kind `search-engine` (starts first). An engine kind extends it and provides:
+The abstract kind `search-engine` (starts first). It declares these [abstract operations](../../core/README.md#interfaces), which an engine kind implements:
 
 | Operation | Input | Output |
 |---|---|---|

@@ -1,6 +1,8 @@
 # database
 
-The abstract kind `database`. Implementations extend it (`postgresql-database`), so other kinds can depend on "a database" without naming one, e.g. `"lifecycle": { "startAfter": ["database"] }`. Databases start first.
+The abstract kind `database`. Implementations extend it (`postgresql-database`), so other kinds can depend on "a database" without naming one, e.g. `"lifecycle": { "startAfter": ["database"] }` or `{ "invoke": { "instanceOf": "database" }, "operation": "execute" }`. Databases start first.
+
+The [abstract operation](../../core/README.md#interfaces) `execute(`[`sql-command`](elements/database.eson)` { command, parameters? })` → `{ rows, rowCount }`.
 
 ## Models
 

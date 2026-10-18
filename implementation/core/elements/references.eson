@@ -1,0 +1,14 @@
+[
+    {
+        "id": "binding",
+        "kind": "kind",
+        "data": {
+            "shape": { "!abstraction": "string", "!instance": "string" }
+        }
+    },
+    {
+        "id": "element-ref",
+        "kind": "schema",
+        "data": { "$data#": ["string", { "!instanceOf": "string" }] }
+    }
+]

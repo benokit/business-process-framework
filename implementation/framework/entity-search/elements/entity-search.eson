@@ -2,7 +2,7 @@
     {
         "id": "entity-search-index",
         "kind": "schema",
-        "data": { "!searchEngine": "string", "!indexName": "string", "settings": "object", "!mapping": "@method" }
+        "data": { "!searchEngine": "@element-ref", "!indexName": "string", "settings": "object", "!mapping": "@method" }
     },
     {
         "id": "entity-search-index-slot",

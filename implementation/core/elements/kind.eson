@@ -76,8 +76,11 @@
                     { "outputKey": "contract", "set": { "$get": { "_object": "#.args.contracts", "_path": "#.input" } } },
                     { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.args.owner", "/", "#.input", "/"] } } },
                     {
-                        "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
-                        "invoke": "ajv", "operation": "add"
+                        "if": "#.contract.input",
+                        "then": {
+                            "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
+                            "invoke": "ajv", "operation": "add"
+                        }
                     },
                     {
                         "if": "#.contract.output",
@@ -93,7 +96,7 @@
     {
         "id": "operation",
         "kind": "schema",
-        "data": { "!input": "@schema", "output": "@schema", "!implementation": "@method" }
+        "data": { "input": "@schema", "output": "@schema", "implementation": "@method" }
     },
     {
         "id": "slot",

@@ -3,13 +3,12 @@
         "id": "transactional-outbox",
         "kind": "kind",
         "data": {
+            "extends": "message-outbox",
             "context": { "reads": ["transaction"] },
             "shape": { "lockIntervalInMilliseconds": "number", "idleIntervalInMilliseconds": "number" },
             "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000 },
             "operations": {
                 "put": {
-                    "input": { "!channel": "string", "!envelope": "@message-envelope" },
-                    "output": { "!messageId": "string" },
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
                 }
             },

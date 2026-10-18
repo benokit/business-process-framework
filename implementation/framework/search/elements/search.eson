@@ -13,6 +13,13 @@
         "id": "search-engine",
         "kind": "kind",
         "data": {
+            "operations": {
+                "configureIndex": { "input": { "!indexName": "string", "settings": "object" } },
+                "deleteIndex": { "input": { "!indexName": "string" } },
+                "insertDocument": { "input": { "!indexName": "string", "!document": { "!id": "string" } } },
+                "removeDocument": { "input": { "!indexName": "string", "!id": "string" } },
+                "search": { "input": "@search-query", "output": "@search-result" }
+            },
             "lifecycle": { "startPosition": "first" }
         }
     }

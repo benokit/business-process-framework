@@ -1,8 +1,16 @@
 [
     {
+        "id": "sql-command",
+        "kind": "schema",
+        "data": { "!command": "string", "parameters": { "$data#": ["[@any]", "object"] } }
+    },
+    {
         "id": "database",
         "kind": "kind",
         "data": {
+            "operations": {
+                "execute": { "input": "@sql-command", "output": { "!rows[]": "object", "rowCount": { "$data#": ["number", "null"] } } }
+            },
             "slots": {
                 "models": { "cardinality": "many", "value": { "!command": "string" } }
             },

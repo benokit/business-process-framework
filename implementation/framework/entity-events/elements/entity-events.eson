@@ -15,7 +15,7 @@
         "id": "entity-events",
         "kind": "message-channel",
         "data": {
-            "broker": "nats",
+            "broker": { "instanceOf": "message-broker" },
             "topology": "topic",
             "name": "entity-events",
             "publisher": { "transactionalOutbox": true, "retry": { "attempts": 5, "backoff": 500 } }

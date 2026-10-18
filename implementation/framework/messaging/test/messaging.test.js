@@ -15,9 +15,9 @@ const elements = [
         data: {
             extends: 'message-broker',
             operations: {
-                publish: { input: '@any', implementation: lowOf(BROKER, 'publish') },
-                subscribe: { input: '@any', implementation: lowOf(BROKER, 'subscribe') },
-                unsubscribe: { input: '@any', implementation: lowOf(BROKER, 'unsubscribe') }
+                publish: { implementation: lowOf(BROKER, 'publish') },
+                subscribe: { implementation: lowOf(BROKER, 'subscribe') },
+                unsubscribe: { implementation: lowOf(BROKER, 'unsubscribe') }
             }
         }
     },

@@ -11,7 +11,9 @@
   "dependencies": {
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
-    "@business-framework/messaging": "*",
+    "@business-framework/messaging": "*"
+  },
+  "devDependencies": {
     "@business-framework/messaging-nats": "*",
     "@business-framework/transactional-outbox": "*"
   }

@@ -14,6 +14,7 @@ validate();                        // on demand, never on start
 
 - Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS and can't change context.
 - `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; code sees only the keys its kind manages or reads.
+- Program against kinds: an abstract kind declares operation contracts, a subkind implements them; `{ "instanceOf": "<kind>" }` references the single or bound (`binding`) instance, a string names one element.
 - Slots are typed contribution points filled by `slot-fill` elements, ordered by `position`, `after`, `before`; no ordering numbers.
 
 See [core/README.md](implementation/core/README.md) for pipeline rules, context, lifecycle and data composition. The design rationale lives in [design/](design/): `postulates.md` (the user's principles), `critique.md`, `refactoring-plan.md`.

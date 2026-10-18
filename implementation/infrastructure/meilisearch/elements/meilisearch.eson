@@ -10,24 +10,18 @@
             "extends": "search-engine",
             "operations": {
                 "configureIndex": {
-                    "input": { "!indexName": "string", "settings": "object" },
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "configureIndex" } }
                 },
                 "deleteIndex": {
-                    "input": { "!indexName": "string" },
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "deleteIndex" } }
                 },
                 "insertDocument": {
-                    "input": { "!indexName": "string", "!document": { "!id": "string" } },
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "insertDocument" } }
                 },
                 "removeDocument": {
-                    "input": { "!indexName": "string", "!id": "string" },
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "removeDocument" } }
                 },
                 "search": {
-                    "input": "@search-query",
-                    "output": "@search-result",
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "search" } }
                 }
             },

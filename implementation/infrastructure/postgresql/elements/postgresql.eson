@@ -4,19 +4,12 @@
         "data": { "postgresql": { "url": "postgresql://admin:password@localhost:5432/app" } }
     },
     {
-        "id": "sql-command",
-        "kind": "schema",
-        "data": { "!command": "string", "parameters": { "$data#": ["[@any]", "object"] } }
-    },
-    {
         "id": "postgresql-database",
         "kind": "kind",
         "data": {
             "extends": "database",
             "operations": {
                 "execute": {
-                    "input": "@sql-command",
-                    "output": { "!rows[]": "object", "rowCount": { "$data#": ["number", "null"] } },
                     "implementation": [
                         { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "functionName": "execute" } },
                         { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }

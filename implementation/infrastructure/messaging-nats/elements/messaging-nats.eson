@@ -10,22 +10,18 @@
             "extends": "message-broker",
             "operations": {
                 "publish": {
-                    "input": { "!channel": "object", "!envelope": "@message-envelope" },
-                    "output": { "!messageId": "string" },
                     "implementation": [
                         { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "functionName": "publish" } }
                     ]
                 },
                 "subscribe": {
-                    "input": { "!channel": "object", "!consumer": "string", "!name": "string" },
                     "implementation": [
                         { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "functionName": "subscribe" } }
                     ]
                 },
                 "unsubscribe": {
-                    "input": { "!consumer": "string" },
                     "implementation": { "low": { "module": "@business-framework/messaging-nats", "functionName": "unsubscribe" } }
                 }
             },

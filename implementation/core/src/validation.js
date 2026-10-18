@@ -3,6 +3,7 @@ import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { validateValue } from './schemas.js';
 import { fillsOf, orderFills } from './slots.js';
 import { elementsInStartOrder } from './lifecycle.js';
+import { checkBinding, isKindReference, resolveReference } from './references.js';
 import { fail, problemsOf } from './errors.js';
 
 const kinds = () => instancesOf('kind');
@@ -63,6 +64,25 @@ const startOrderNames = () => kinds().flatMap(kind => ['startAfter', 'startBefor
         if (findElement(name)?.kind !== 'kind') fail('unknown-kind', `${kind.id}: ${property} names '${name}', which is not a kind`, { kind: kind.id, name });
     })));
 
+const unimplementedOperations = element => Object.entries(resolveKind(kindOf(element)).operations)
+    .filter(([, operation]) => operation.implementation === undefined)
+    .map(([name, operation]) => () => fail('unimplemented-operation',
+        `${element.id} doesn't implement ${operation.owner}.${name}`, { element: element.id, operation: name }));
+
+const kindReferences = value => {
+    if (isKindReference(value)) return [value];
+    if (typeof value !== 'object' || value === null) return [];
+    return Object.values(value).flatMap(kindReferences);
+};
+
+const isUnusedInCode = (element, { instanceOf }) => element.kind === 'kind'
+    && findElement(instanceOf)?.kind === 'kind'
+    && instancesOf(instanceOf).length === 0;
+
+const referenceProblems = element => kindReferences(element.data)
+    .filter(reference => !isUnusedInCode(element, reference))
+    .map(reference => () => resolveReference(reference));
+
 const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
@@ -70,6 +90,9 @@ const checks = () => [
     ...instancesOf('slot-fill').map(fillProblem),
     ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems),
     ...startOrderNames(),
+    ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),
+    ...instancesOf('binding').map(binding => () => checkBinding(binding)),
+    ...allElements().flatMap(referenceProblems),
     elementsInStartOrder
 ];
 

@@ -30,7 +30,7 @@
             "target": "party",
             "slot": "searchIndex",
             "value": {
-                "searchEngine": "meilisearch",
+                "searchEngine": { "instanceOf": "search-engine" },
                 "indexName": "parties",
                 "settings": {
                     "searchableAttributes": ["name", "email", "partyType", "businessKey"],

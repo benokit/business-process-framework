@@ -30,12 +30,13 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [context.js](src/context.js) | code authors, visible context, binding rights (P13) |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke` |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks |
+| [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
 | [elements/](elements) | the bootstrap kinds, in data |
 
 ## Core elements
 
-Besides the bootstrap kinds: `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
 
 ## Pipeline rules
 
@@ -56,6 +57,24 @@ Besides the bootstrap kinds: `clock` (`now()` → ISO time, an effect), `entry-p
 `load` runs every element's hooks in element id order (load hooks don't depend on each other). `start` orders elements by element id, then by what their kinds declare in `lifecycle`: `startPosition` (`first`, `last`), `startAfter` and `startBefore`, which name kinds and cover all their instances, subkinds included. `stop` runs in reverse start order. A cycle is an error.
 
 The kind `entry-point` manages the context key `trace` (`{ correlation }`) and starts last. Kinds that receive work from outside (`http-endpoint`, `message-consumer`) extend it and bind `trace` next to their own key; code that propagates a correlation reads `trace`.
+
+## Interfaces
+
+A kind can declare an operation with a contract (`input`, `output`) and no `implementation`: an abstract operation. A subkind implements it once, with `{ "implementation": … }` only. The contract stays the abstract kind's, so every implementation is checked against it; changing the contract or implementing again is a load error. Invoking an unimplemented operation fails with `unimplemented-operation`, and `validate()` reports instances that leave one unimplemented.
+
+```json
+{ "id": "message-broker", "kind": "kind", "data": { "operations": { "unsubscribe": { "input": { "!consumer": "string" } } } } }
+{ "id": "nats-broker", "kind": "kind", "data": { "extends": "message-broker", "operations": { "unsubscribe": { "implementation": { "low": … } } } } }
+```
+
+Where an element is expected (`invoke`, and data fields typed `@element-ref`), a string is always that element. `{ "instanceOf": "<kind>" }` is whichever instance implements the kind, subkinds included: the instance a `binding` names, else the only instance; none or several unbound instances fail at the call (`no-instance`, `ambiguous-reference`).
+
+```json
+{ "invoke": { "instanceOf": "message-outbox" }, "operation": "put" }
+{ "kind": "binding", "data": { "abstraction": "message-broker", "instance": "nats" } }
+```
+
+Packages reference kinds and don't write bindings; the application binds, or names an instance where it means a specific one (a channel to an external system on another transport). `validate()` checks every reference in data and bindings (the bound element is an instance of the abstraction, one binding per abstraction). In the code of a kind, a reference to a kind without instances is accepted: that path may never run.
 
 ## Data composition
 
