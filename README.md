@@ -1,30 +1,32 @@
 # Business Process Framework
 
-A declarative, data-driven framework for building backend services as structured JSON elements — without writing imperative code for the common case.
+A declarative framework for building backend systems from JSON elements. Business logic lives in `.eson` files that are easy to read, diff, version and audit; JavaScript is reserved for effects at the edges.
 
 ## Core idea
 
-Business logic is expressed as a set of **elements**: schemas, data, and services. Each element is a plain JSON object stored in a `.eson` file. A runtime loads these files, validates them, and makes services callable through a simple API.
+Everything is an **element**: `{ id, kind, data }`. The **kind** is the abstraction. A kind is itself an element that declares the shape of its instances, their operations, open contribution points (slots), the context they may bind or read, and their lifecycle. Kinds extend kinds, and `kind` is the kind of all kinds.
 
-Validation rules, data transformations, and service orchestration live in text files that are easy to read, diff, version, and audit. Logic can be updated without touching application code.
+```json
+{ "id": "order", "kind": "entity-type", "data": { "dataSchema": { "!amount": "number" } } }
+```
 
 ## Building blocks
 
-**Schema** declares the shape of data using a compact notation. Schemas validate inputs and outputs across service boundaries and can reference each other.
-
-**Data** holds configuration, lookup tables, or any static values. Data elements compose by reference and deep-merge — no duplication required.
-
-**Service** is a callable unit with a typed interface and a declarative implementation. Methods are expressed as pipelines of steps: call another service, apply a transformation, branch on a condition, handle errors.
-
-Side effects are isolated to explicit `low` nodes that delegate to host JavaScript functions, keeping the rest of the pipeline portable and easy to inspect.
-
-The pipeline keyword set is open for extension: packages register **execution node templates** that add new first-class keywords. For example, the `transaction` package adds `inTransaction`, which wraps a sub-pipeline in a database transaction with a single declarative node.
+- **Operations** are pipelines of nodes: invoke, transform, branch, iterate, handle errors. Mappings are pure LambdaJSON trees; effects are nodes, and `low` nodes call JavaScript.
+- **Interfaces**: an abstract kind declares operation contracts and its subkinds implement them. Code references `{ "instanceOf": "message-broker" }` rather than a specific broker, and the application decides which instance that is.
+- **Slots** let packages contribute behaviour to kinds they don't own (guards, reactions, request middleware, search indexes), ordered declaratively.
+- **Scoped context**: values such as the user, the transaction and the correlation are bound for a subtree, only by the kind that manages them, and seen only by code that declares it reads them.
+- **Schemas** in a compact notation check element shapes and operation contracts.
+- **Lifecycle**: elements load, start in a declared order (databases first, entry points last) and stop in reverse.
+- **Validation** of a whole application runs on demand, never on start.
 
 ## Packages
 
 | | |
 | --- | --- |
-| [Runtime](implementation/runtime/README.md) | Element specification, pipeline keywords, runtime API |
-| [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, messaging, cache, logging |
-| [Framework](implementation/framework/README.md) | Entities, messaging facade, database modelling, security |
-| [Tools](implementation/tools/README.md) | Workspace validation CLI and API |
+| [Core](implementation/core/README.md) | Elements, kinds, schemas, pipelines, slots, context, lifecycle, validation |
+| [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, NATS, transactional outbox, Meilisearch, cache, logging |
+| [Framework](implementation/framework/README.md) | Databases, messaging, entities, events, relations, search, security, users, JWT authorization |
+| [Server](implementation/server/README.md) | Starts an application |
+| [Tools](implementation/tools/README.md) | `bpf-validate` |
+| [Demo](demo/README.md) | An insurance application |

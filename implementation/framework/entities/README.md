@@ -1,6 +1,6 @@
 # entities
 
-Keyed, versioned business records ([F18](../../../design/critique.md), [f18 example](https://github.com/benokit/business-process-framework/blob/3a7760e/design/examples/f18/02-entity-type.eson)).
+Keyed, versioned business records.
 
 ## entity-type
 

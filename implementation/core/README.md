@@ -1,6 +1,6 @@
 # @business-framework/core
 
-The new core ([refactoring plan](../../design/refactoring-plan.md), phases 1–2), built from [design/examples/f18](https://github.com/benokit/business-process-framework/blob/3a7760e/design/examples/f18/README.md). Behaviour belongs to kinds; the core knows no business concept.
+Elements, kinds and their execution. Behaviour belongs to kinds; the core knows no business concept.
 
 ## API
 
@@ -27,7 +27,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [schemas.js](src/schemas.js) | the AJV instance: add at load, compile on first use, contract checks after load |
 | [mappings.js](src/mappings.js) | compiled LambdaJSON mappings, `$func/<id>` from `pure-function` elements |
 | [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
-| [context.js](src/context.js) | code authors, visible context, binding rights (P13) |
+| [context.js](src/context.js) | code authors, visible context, binding rights |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke` |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
@@ -47,10 +47,9 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 - `low` receives `{ input, _ctx }`, with `_ctx` frozen and limited to the author's keys.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
 
-## Not yet
+## Validation
 
-- Static checks of code (levels 1 and 2 of Q18): `validate()` checks kinds, context declarations, shapes, slot fills and fill order, not pipelines.
-- Pure function signatures aren't checked.
+`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf-validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. It doesn't inspect pipelines or pure function signatures.
 
 ## Lifecycle
 
@@ -80,4 +79,4 @@ Packages reference kinds and don't write bindings; the application binds, or nam
 
 An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` deep merges its items (arrays by index, Q5), `{ "/literal": value }` is taken as written. Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
 
-Code keeps the rights (P13) of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.
+Code keeps the context rights of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.

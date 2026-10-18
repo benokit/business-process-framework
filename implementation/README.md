@@ -1,6 +1,6 @@
 # implementation
 
-The framework implementation, rebuilt on the new core ([refactoring plan](../design/refactoring-plan.md)).
+The framework packages.
 
 | Package | Purpose |
 |---|---|
