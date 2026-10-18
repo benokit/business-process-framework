@@ -1,6 +1,6 @@
 # @business-framework/core
 
-The new core ([refactoring plan](../../design/refactoring-plan.md), phases 1–2), built from [design/examples/f18](../../design/examples/f18/README.md). Behaviour belongs to kinds; the core knows no business concept.
+The new core ([refactoring plan](../../design/refactoring-plan.md), phases 1–2), built from [design/examples/f18](https://github.com/benokit/business-process-framework/blob/3a7760e/design/examples/f18/README.md). Behaviour belongs to kinds; the core knows no business concept.
 
 ## API
 
