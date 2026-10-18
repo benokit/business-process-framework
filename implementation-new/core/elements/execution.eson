@@ -36,6 +36,14 @@
         }
     },
     {
+        "id": "instances-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[object]" },
+            "implementation": { "module": "@business-framework/core/kinds", "export": "selvesOf" }
+        }
+    },
+    {
         "id": "assert-valid",
         "kind": "executable",
         "data": [

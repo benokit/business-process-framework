@@ -1,0 +1,59 @@
+[
+    {
+        "id": "entity-gateway",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "dispatch": {
+                    "input": {
+                        "!entityType": "string",
+                        "!operation=1": ["create", "read", "update", "delete", "transition", "list"],
+                        "!request": "object"
+                    },
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                        },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "#.input.operation" }
+                    ]
+                },
+                "types": {
+                    "input": "@any",
+                    "output": { "!items[]": { "!id": "string", "!kind": "string", "!dataSchema": "@schema", "statesModel": "object" } },
+                    "implementation": {
+                        "set": {
+                            "items": {
+                                "$map": {
+                                    "_over": { "$func/instances-of": "entity-type" },
+                                    "_fn": { "id": "#.id", "kind": "#.kind", "dataSchema": "#.data.dataSchema", "statesModel": "#.data.statesModel" }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "entities",
+        "kind": "entity-gateway",
+        "data": {}
+    },
+    {
+        "id": "if-match-revision",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "implementation": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#", ""] }, "_global": true } } }
+        }
+    },
+    {
+        "id": "revision-etag",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "number", "output": "string" },
+            "implementation": { "$join": { "_strings": ["\"", "#", "\""] } }
+        }
+    }
+]

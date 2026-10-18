@@ -1,0 +1,100 @@
+[
+    {
+        "id": "entity-types-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "GET",
+            "path": "/entity-types",
+            "target": { "element": "entities", "operation": "types" },
+            "request": {}
+        }
+    },
+    {
+        "id": "entity-list-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "GET",
+            "path": "/entities/:entityType",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "list",
+                "request": { "limit": { "$parseInt": "#.query.limit" }, "offset": { "$parseInt": "#.query.offset" } }
+            }
+        }
+    },
+    {
+        "id": "entity-create-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "create",
+                "request": { "businessKey": "#.body.businessKey", "data": "#.body.data", "initialState": "#.body.initialState" }
+            },
+            "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "entity-read-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "GET",
+            "path": "/entities/:entityType/:businessKey",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "read",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" } }
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "entity-update-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "PUT",
+            "path": "/entities/:entityType/:businessKey",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "update",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" }, "data": "#.body.data" }
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "entity-delete-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "DELETE",
+            "path": "/entities/:entityType/:businessKey",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "delete",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" } }
+            }
+        }
+    },
+    {
+        "id": "entity-transition-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType/:businessKey/transitions/:transition",
+            "target": { "element": "entities", "operation": "dispatch" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "operation": "transition",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" }, "transition": "#.params.transition" }
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    }
+]

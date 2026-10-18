@@ -1,0 +1,78 @@
+import { expect } from 'chai';
+import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
+
+const run = Date.now();
+const ORDER = `order-http-${run}`;
+
+const elements = [
+    { kind: 'app-config', data: { http: { port: 0 } } },
+    {
+        id: ORDER,
+        kind: 'entity-type',
+        data: {
+            dataSchema: { '!amount': 'number' },
+            statesModel: { states: { status: ['draft', 'done'] }, transitions: { finish: { from: { status: ['draft'] }, to: { status: 'done' } } }, initialStates: { default: { status: 'draft' } } }
+        }
+    }
+];
+
+const packages = ['database', 'postgresql', 'transaction', 'entities', 'http-server', 'entities-http'];
+
+const call = async (method, path, { body, headers = {} } = {}) => {
+    const { port } = await invoke('http-server', 'address', null);
+    const response = await fetch(`http://localhost:${port}${path}`, {
+        method,
+        headers: { 'content-type': 'application/json', ...headers },
+        ...(body && { body: JSON.stringify(body) })
+    });
+    return { status: response.status, etag: response.headers.get('etag'), body: await response.json() };
+};
+
+describe('entities-http', function () {
+    before(async function () {
+        await skipWithoutPostgres(this);
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+        await start();
+    });
+
+    after(stop);
+
+    it('validates', () => {
+        expect(validate()).to.deep.equal([]);
+    });
+
+    it('creates, reads, updates, transitions and deletes with ETags', async () => {
+        const created = await call('POST', `/entities/${ORDER}`, { body: { businessKey: 'h-1', data: { amount: 1 } } });
+        expect([created.status, created.etag]).to.deep.equal([201, '"1"']);
+        const read = await call('GET', `/entities/${ORDER}/h-1`);
+        expect([read.status, read.body.data]).to.deep.equal([200, { amount: 1 }]);
+        const updated = await call('PUT', `/entities/${ORDER}/h-1`, { body: { data: { amount: 2 } }, headers: { 'if-match': read.etag } });
+        expect([updated.status, updated.etag]).to.deep.equal([200, '"2"']);
+        const stale = await call('PUT', `/entities/${ORDER}/h-1`, { body: { data: { amount: 3 } }, headers: { 'if-match': '"1"' } });
+        expect(stale.status).to.equal(409);
+        const finished = await call('POST', `/entities/${ORDER}/h-1/transitions/finish`);
+        expect(finished.body.state.dimensions.status).to.equal('done');
+        const past = await call('GET', `/entities/${ORDER}/h-1?revision=1`);
+        expect(past.body.data).to.deep.equal({ amount: 1 });
+        expect((await call('DELETE', `/entities/${ORDER}/h-1`)).status).to.equal(200);
+        expect((await call('GET', `/entities/${ORDER}/h-1`)).status).to.equal(404);
+    });
+
+    it('requires If-Match for updates', async () => {
+        await call('POST', `/entities/${ORDER}`, { body: { businessKey: 'h-2', data: { amount: 1 } } });
+        expect((await call('PUT', `/entities/${ORDER}/h-2`, { body: { data: { amount: 2 } } })).status).to.equal(400);
+    });
+
+    it('lists entities and entity types', async () => {
+        const { body: { items, total } } = await call('GET', `/entities/${ORDER}?limit=1`);
+        expect([items.length, total >= 1]).to.deep.equal([1, true]);
+        const types = await call('GET', '/entity-types');
+        expect(types.body.items.find(type => type.id === ORDER).dataSchema).to.deep.equal({ '!amount': 'number' });
+    });
+
+    it('refuses elements that are not entity types', async () => {
+        const response = await call('POST', '/entities/postgresql', { body: { businessKey: 'x', data: {} } });
+        expect([response.status, response.body.error.code]).to.deep.equal([404, 'not-found']);
+    });
+});

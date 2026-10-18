@@ -35,7 +35,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 
 ## Core elements
 
-Besides the bootstrap kinds: `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+Besides the bootstrap kinds: `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
 
 ## Pipeline rules
 
