@@ -78,7 +78,7 @@ Order follows dependencies. For each package: rewrite its elements onto kinds, p
 | R4.8 | `meilisearch` and entity search: the search index as a data slot | Q16, [08](examples/f18/08-search-index.eson) | Search tests pass on the core. Split into `search` (abstract engine), `meilisearch`, `entity-search`, `entity-search-http` | done |
 | R4.9 | Security: `users` (`set-password` on the instance), `authorization-basic` as the `user-scope` wrappers (`authenticated`, `asSystem`); every `low` call in `auth.eson` wrapped in a declared effect | A11, A13, F13, P13, [04](examples/f18/04-users.eson), [07](examples/f18/07-authorization.eson) | No `_ctx.user` writes; authorization tests pass. Split into `security` (principal, `user-scope`, `asSystem`), `users`, `authorization-basic`; the admin account is a start hook | done |
 | R4.10 | `server`: bootstrap is load then start; `on-startup` and `ensureAdminUser` become kinds or instances; the dead demo handler is fixed or removed | A1, F18 | `bootstrap.js` has no kind-specific code. `on-startup` is a kind of the server package; the admin account moved to users; the demo is ported to `demo-new/` (the dead handler became a `contract-activated` reaction) | done |
-| R4.11 | `tools`: `validate-workspace.js` replaced by a CLI around `validate()` | Q18 | CI runs `validate()` | draft |
+| R4.11 | `tools`: `validate-workspace.js` replaced by a CLI around `validate()` | Q18 | CI runs `validate()`. Done: `bpf-validate`; CI wiring is open (no CI configured) | done |
 | R4.12 | Delete `implementation/runtime/` | — | Nothing imports it | draft |
 | R4.13 | Decide how to split pipelines: orchestration as data, computation as code or pure functions | F9, F14 | A decision is recorded in the critique | draft |
 
