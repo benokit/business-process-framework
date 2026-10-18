@@ -35,7 +35,7 @@ A hypothetical but complete scenario for [critique F18](../../critique.md), buil
 |---|---|
 | `{ "invoke": <expr>, "operation": "op" }` | Invoke an operation **through an instance** (P8): the instance's kind chain provides it. Input and output are checked against `<owner kind>/<op>/input|output`. |
 | `#.self` | The instance being invoked, with the chain's defaults merged in. Bound for the whole invocation, like `_ctx`: operations, branches, `forEach` bodies and middlewares all see it, until the next `invoke`. |
-| `slot-fill` | `{ target, slot, value, position?, after?, before? }`. Contributes a value to a slot; the target is a kind (all its instances) or an element (one instance). The value is checked against the slot's value schema after load. |
+| `slot-fill` | `{ target, slot, value, position?, after?, before? }`. Contributes a value to a slot; the target is a kind (all its instances) or an element (one instance). The value is checked against the slot's value schema by `validate()` (Q18). |
 | `slot-declaration` | `{ target, slot, cardinality, value }`: declares a slot on a kind from outside it (P11). Inherited like the kind's own slots. The kind's operations don't read it, so the declaring package provides the consumer. |
 | `$func/slot-values` | `{ element, slot }` → the value (`one`, or `null`) or the ordered values (`many`). Pure: a read of the immutable registry. |
 | `{ "middleware": <expr>, "action": <pipeline> }` | Runs a list of methods as middleware around `action`. The first method gets the node's input. |
@@ -74,7 +74,7 @@ A slot only collects values. What happens to them is the consumer's code, using 
 3. **A real dependency** on a specific fill is stated with `after` or `before`, by whichever side knows about it. `X before Y` means `Y after X`.
 4. Bands and relations go into one graph per slot (every `first` value precedes every unpositioned one, which precedes every `last` one), sorted topologically over the base order.
 5. For middleware, the order runs from outside to inside: the first value wraps all the others. So `first` is outermost, `last` is innermost (closest to the action), and `after` means "inside": it runs after the other's code before `next`, and finishes before the other's code after `next`.
-6. Load errors: an id that names no fill of the slot, a cycle (including `after`/`before` that contradicts the bands, such as a `first` fill `after` an unpositioned one), two fills of a `one` slot on the same target, or a `position` on a fill of a `one` slot. For `one`, the most specific target wins.
+6. Validation errors: an id that names no fill of the slot, a cycle (including `after`/`before` that contradicts the bands, such as a `first` fill `after` an unpositioned one), two fills of a `one` slot on the same target, or a `position` on a fill of a `one` slot. For `one`, the most specific target wins.
 
 Use `position` for a requirement of the fill itself, and `after`/`before` only when the fill really depends on another one. Neither is needed when values are independent.
 
@@ -124,7 +124,7 @@ Resolved orders are not listed on any single fill once `before` and `position` e
 
 - **Load hooks are order-independent.** They only read element data (all loaded before the phase starts), add to AJV (order-free), and use lazy views. Today `$func` and keywords are registered eagerly, one element at a time, so a load hook using `$func` (as `entity-type`'s does) would depend on load order.
 - **No validation during load.** Contract checks on calls made inside load hooks (`invoke ajv.add`) are skipped, and so is the `validateSchema` node. Load hooks read only element data, and that data is checked right after load.
-- **Every element has a defined kind.** No `kind` means kind `data`, the trivial kind. An undefined kind is a load error, not silence (A1). The examples use a few kinds assumed to be defined by their packages: `message-channel`, `app-config/*`, the `entity-record` schema, and the singletons listed above.
+- **Every element has a defined kind.** No `kind` means kind `data`, the trivial kind. An undefined kind is a validation error, not silence (A1). The examples use a few kinds assumed to be defined by their packages: `message-channel`, `app-config/*`, the `entity-record` schema, and the singletons listed above.
 
 ## Schemas and AJV
 
@@ -137,7 +137,7 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 | Later validations | `ajv.getSchema(id)(value)`: the cached function |
 
 - **Every schema position gets an id at `load`.** Kind shapes: `<kindId>`. Operation contracts: `<kindId>/<operation>/input|output`. Slot values: `<owner>/slots/<slot>`. Schemas inside instance data: added by their kind's `load` hook (`entity-type` adds `<id>/dataSchema`).
-- **The first validations happen in the native checks right after load,** so that's where kind shapes get compiled. Unresolved `$ref`s otherwise surface on first use; the workspace validator can request every id to catch them before deployment.
+- **Validation is on demand (Q18).** `validate()` runs over the loaded registry (CLI, CI, tests), not on every start: a validated solution isn't validated again. It checks shapes, fill values, context declarations and code (levels 1 and 2), and requests every schema id, so unresolved `$ref`s are caught before deployment. Without it, AJV compiles each schema on first use.
 - **Never `ajv.compile` on a fresh object.** AJV caches `compile` by object identity only. Today `validateSchema` calls `ajv.compile(compactToStandard(schema))` on every validation (checked against AJV 8.18).
 - **`@<kindId>` means the kind's shape.** This replaces the meta-schemas in `core.eson`, whose ids (`schema`, `service`, `pure-function`, …) collide with kind ids now that kinds are elements.
 
@@ -177,7 +177,7 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 | Q6: contracts that depend on the instance | Not solved. The contract says `data: object`, and the operation validates against `@<id>/dataSchema`. |
 | Q7: inheritance | Subkinds **add** operations and slots, and never override. For `one` slots, the most specific value wins; for `many`, all values apply, from general to specific. |
 | Q8: start order | Not solved: load order is used. |
-| Q9: dynamic invocation | `invoke` takes an expression. Static ids (`"user"`) can be checked at load time; `"#.self.id"` is the common dynamic case. |
+| Q9: dynamic invocation | `invoke` takes an expression. Static ids (`"user"`) are checked by `validate()`; `"#.self.id"` is the common dynamic case. |
 | Q10: adding slots to a kind you don't own | **Allowed** (P11): `relations` (06) and `searchIndex` (08) on `entity-type`. |
 | Q11: `defaults` | Kept, as P6 merge. The schema caveats still apply (`!field` vs `field`, allOf). |
 | Q15: order | Independent by default in fill-id order, `position: first|last` for a fill's own requirement, `after`/`before` for real dependencies on a named fill, outside-to-inside for middleware. No opt-out mechanism. Per-call contracts of method slots are now the consumer's (Q15c, revised by Q16). |
@@ -194,14 +194,14 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 ```
 
 - **Manages:** keys and their value schemas. The kind's code may bind these keys, and reads them. Each binding is checked against the schema.
-- **Reads:** keys only; the value schema is the manager's, so a reader can't disagree with it. Reading a key no kind manages is a load error (a typo such as `usr`). The kind's code must work without them. Managed schemas have no required keys: `no user` means no roles (07), or `system` (09); no `transaction` means autocommit.
-- **One tree per key:** all kinds managing a key must extend the most general of them. `authenticate` and `as-system` both manage `user` because both are `user-scope`; a second, unrelated manager is a load error.
+- **Reads:** keys only; the value schema is the manager's, so a reader can't disagree with it. Reading a key no kind manages is a validation error (a typo such as `usr`). The kind's code must work without them. Managed schemas have no required keys: `no user` means no roles (07), or `system` (09); no `transaction` means autocommit.
+- **One tree per key:** all kinds managing a key must extend the most general of them. `authenticate` and `as-system` both manage `user` because both are `user-scope`; a second, unrelated manager is a validation error.
 - **Visibility:** code sees in `#._ctx` (and its `low` calls receive) only the keys its kind manages or reads. Other keys are carried on underneath, unseen, to the code it invokes.
 - **Rights belong to the author:** the element a pipeline is written in, not the instance it runs for. An operation has its kind's rights; a fill's value has the fill's kind's rights, even while it runs inside `entity-type.create`; a wrapped pipeline keeps its caller's.
 - **Bind:** `{ "withContext": { "<key>": <expr> }, "do": <block> }`. The block sees the enclosing context, like an `if` branch. When it returns, the outer `_ctx` is in effect again: nothing was changed, so there is nothing to reset.
 - **Bind for what you wrap:** a wrapper or middleware calls `next` inside `withContext`; `next` carries the `_ctx` current at that point.
 - **Bind on behalf of others:** code that needs a key bound but doesn't manage it uses a wrapper of the managing kind: request middleware uses `authenticated`, the admin bootstrap uses `asSystem` (04), `entity-type` uses `inTransaction`.
-- **Write:** never. `outputKey: "_ctx"` is a load error.
+- **Write:** never. `outputKey: "_ctx"` is a validation error.
 - **Root:** empty. The native server, the broker and the lifecycle driver pass `{}`.
 - **Across messages:** the publisher decides which part of the context it propagates in the message. The consumer kind manages its own key (`message`, 11) and binds it from the envelope; it can't bind `request` or `user`. The user who caused an event is not carried over: a consumer that must act as someone uses a `user-scope` wrapper.
 - **Configuration is not context:** it doesn't vary per execution, so it's read with `$func/app-config` (04). The business key in 03 takes the year from the `clock` singleton rather than from the request time, so it reads no context.
@@ -219,4 +219,4 @@ Fills that read context are instances of a subkind of `slot-fill` (`authorizatio
 
 **Still open:**
 - Handles are not restricted: `transaction` is a session id that native code resolves to a client, and any declared reader may read it.
-- Enforcement is sketched at run time (`withContext` checks, visibility projection). Rejecting undeclared reads and binds at load needs the static pipeline check.
+- Enforcement is sketched at run time (`withContext` checks, visibility projection). Rejecting undeclared reads and binds statically is part of `validate()` (Q18, level 2).

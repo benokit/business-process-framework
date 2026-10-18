@@ -84,7 +84,7 @@
     {
         "id": "user-scope",
         "kind": "kind",
-        "meta": { "note": "The only manager of 'user' (P13). Anyone who needs a user bound uses one of its wrappers; nobody else can bind it, so a pipeline can't grant itself roles with withContext. A second manager of 'user' outside this tree would be a load error." },
+        "meta": { "note": "The only manager of 'user' (P13). Anyone who needs a user bound uses one of its wrappers; nobody else can bind it, so a pipeline can't grant itself roles with withContext. A second manager of 'user' outside this tree would be a validation error." },
         "data": {
             "extends": "execution-node-wrapper",
             "context": { "manages": { "user": "@principal" } }

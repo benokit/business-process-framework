@@ -114,7 +114,7 @@ executors.invoke = node => async (nodeInput, context) => {
 // 'after' and 'before' override it where a real dependency exists: 'X before Y' is 'Y after X',
 // one graph per slot (Q15). Ids naming fills that don't apply to this instance (another branch
 // of the hierarchy) are ignored here; ids naming no fill of the slot at all, and cycles, are
-// load errors (checked natively after load, for every instance).
+// validation errors (validate(), for every instance).
 function orderFills(fills, targets, slotName) {
     const byId = new Map(fills.filter(f => f.id).map(f => [f.id, f]));
     const base = [...fills].sort((a, b) =>
@@ -159,7 +159,7 @@ export function slotValues({ input: { element, slot: slotName } }) {
 // --- scoped context (F8) ------------------------------------------------------
 
 // _ctx is read-only: pipelines read #._ctx, low nodes receive it frozen, and 'outputKey: "_ctx"'
-// is a load error. A binding is visible only inside the subtree that made it, so nothing flows
+// is a validation error. A binding is visible only inside the subtree that made it, so nothing flows
 // back up and nothing needs resetting: when the subtree returns, the outer _ctx is in effect
 // again, because it was never changed.
 const bind = (_ctx, bindings) => Object.freeze({ ..._ctx, ...bindings });   // shadows, shallow
@@ -206,7 +206,7 @@ executors.withContext = node => async (nodeInput, context) => {
 // the user-scope wrappers, transaction by inTransaction. Configuration is not context
 // ($func/app-config).
 
-// After load: every context key has one hierarchy tree of managers. All kinds that declare a key
+// Validation: every context key has one hierarchy tree of managers. All kinds that declare a key
 // in 'manages' must extend the most general of them. No managed key is required: code may not
 // demand context it doesn't manage, and even a manager checks before it binds. Every key read
 // is managed somewhere, so a typo ('usr') is an error.
@@ -326,23 +326,35 @@ export async function runLifecycle(phase, _ctx = {}) {
         }
     }
 
-    if (phase === 'load') {
-        validating = true;
-        checkContextDeclarations();
-        for (const element of allElements()) {            // first validations, so AJV compiles here
-            for (const k of resolveKind(element.kind).chain) {
-                if (k.data.shape) check(k.id, selfOf(element).data, element.id); // includes 'kind' checking itself
-            }
-            if (instancesOf('slot-fill').includes(element)) { // a fill's value matches its slot's value schema
-                const { target, slot: slotName, value } = element.data;
-                const slot = resolveKind(getElement(target).kind === 'kind' ? target : getElement(target).kind).slots[slotName];
-                if (!slot) throw `${element.id ?? 'a fill'}: ${target} has no slot '${slotName}'`;
-                check(`${slot.owner}/slots/${slotName}`, value, element.id ?? `fill of ${target}.${slotName}`);
-            }
+}
+
+// Static validation (Q18): on demand, over the loaded registry (after the load phase), never
+// on start. A validated solution runs without it; run time keeps its own contract checks
+// (operation input/output, withContext schemas), and AJV compiles each schema on first use.
+export function validate() {
+    validating = true;
+    checkContextDeclarations();
+    for (const element of allElements()) {
+        for (const k of resolveKind(element.kind).chain) {
+            if (k.data.shape) check(k.id, selfOf(element).data, element.id); // includes 'kind' checking itself
+        }
+        if (instancesOf('slot-fill').includes(element)) { // a fill's value matches its slot's value schema
+            const { target, slot: slotName, value } = element.data;
+            const slot = resolveKind(getElement(target).kind === 'kind' ? target : getElement(target).kind).slots[slotName];
+            if (!slot) throw `${element.id ?? 'a fill'}: ${target} has no slot '${slotName}'`;
+            check(`${slot.owner}/slots/${slotName}`, value, element.id ?? `fill of ${target}.${slotName}`);
         }
     }
+    // Levels 1 and 2 for code: walk every element's data along its kinds' shapes; each value at
+    // an '@method' position is a pipeline (each at '@mapping' a mapping), authored by the element.
+    // Per node: exactly one node form, a known keyword; no 'next' outside a middleware method or
+    // wrapper implementation, no inputMap on 'next' in a wrapper, no outputKey '_ctx'; literal
+    // invoke targets and operations exist; slot-values names declared slots; low resolves;
+    // withContext keys managed by the author's kind; '#._ctx.<key>' read or managed by it.
 }
 
 // The whole bootstrap becomes:
 //   await loadElements(paths);                    // calls recordAuthors for each element
 //   for (const phase of ['load', 'start']) await runLifecycle(phase);
+// and, on demand (CLI, CI, tests), instead of 'start':
+//   await runLifecycle('load'); validate();

@@ -25,7 +25,7 @@
     {
         "kind": "slot-fill",
         "id": "construction-search-index",
-        "meta": { "note": "Configuration, not behaviour: checked against @entity-search-index-config after load. Only 'mapping' inside it is a method." },
+        "meta": { "note": "Configuration, not behaviour: checked against @entity-search-index-config by validate(). Only 'mapping' inside it is a method." },
         "data": {
             "target": "construction",
             "slot": "searchIndex",

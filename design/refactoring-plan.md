@@ -29,7 +29,7 @@ Last updated: 2026-10-17.
 | R0.7 | Factor the 6× middleware-resolution block in `entity-service.eson` into one `entity-middleware-chain` element, called with `call` + `inputMap` | A3, F17 | No copy-pasted resolution blocks | draft |
 | R0.8 | Let one middleware declaration target several methods (`"methods": [...]`), replacing the 11 near-duplicate transaction, event and relations middleware elements | A3, F17 | One element per middleware | draft |
 | R0.9 | Compile each schema once. Keep `addSchema` at registration (load), validate only through `ajv.getSchema(id)`, which compiles lazily on the first request, and never validate during loading. Give service interface schemas ids (`<service>/<method>/input`) so they're compiled once too. Drop `compactSchemas`. | A14, P7 | No `ajv.compile` calls; each schema is compiled at most once; the workspace validator requests every schema id to report unresolved `$ref`s | draft |
-| R0.6 | Extend the workspace validator with reference checks (services, methods, `/ref`, `@schema`, `call`/`getElement` ids) and support for `/data` elements | A10 | The validator reports a typo in any of these | draft |
+| ~~R0.6~~ | Superseded by R1.8. Original: Extend the workspace validator with reference checks (services, methods, `/ref`, `@schema`, `call`/`getElement` ids) and support for `/data` elements | A10 | The validator reports a typo in any of these | dropped |
 
 ---
 
@@ -47,6 +47,7 @@ Last updated: 2026-10-17.
 | R1.5 | Remove `$low` from expressions (it's unused today) | F7 | The runtime no longer supports `$low` | draft |
 | R1.6 | Build a test interpreter that runs pipelines with stubbed effects | F6, F7 | At least one entity flow is tested with no database or NATS | draft |
 | R1.7 | Typed errors: a code, a message, and data | A8 | Callers and HTTP mapping use the error code, not text | draft |
+| R1.8 | Static validation, levels 1 and 2 (Q18), as `validate()` over the loaded registry, run on demand (CLI, CI, tests), not on start: code found through `@method`/`@mapping` positions in shapes; node structure, references, slot names, `low` resolution, context rights (P13), slot order (Q15), fill values (Q16); add the `@mapping` type | Q18, A10, F5, P13 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; `bootstrap` doesn't run it; `validate-workspace.js` is removed | agreed |
 
 ---
 
@@ -97,5 +98,6 @@ Waits on **Q3** (whether business processes need durable execution).
 |---|---|---|---|---|
 | R5.1 | Decision table kind | F12 | The demo has a rating or eligibility table | draft |
 | R5.2 | Authorization: permission model and enforcement at the effect level | A11, [organisation.txt](organisation.txt) | `_ctx.user` is checked on entity operations | draft |
-| R5.3 | Process orchestration: named steps, waits, declared overridable points | F9, Q3 | A multi-step demo process runs end to end | draft |
+| R5.3 | Process orchestration outside the core (P14): a process kind built from entity states, message consumers and delayed messages; named steps, waits between pipelines, declared overridable points | F9, Q3, P14 | A multi-step demo process with a timer runs end to end; no core change is needed | draft |
+| R5.3a | Messaging guarantees that make R5.3 buildable: atomic state change and publish (outbox), stable `messageId` for idempotent consumers, delayed delivery | Q3, P14 | A consumer handles a redelivered message once; a delayed message arrives after its delay | draft |
 | R5.4 | Durable execution with a replay interpreter and pure-function versioning | F6, F11, Q3 | A process resumes after a restart | draft |
