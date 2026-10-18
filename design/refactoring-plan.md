@@ -39,7 +39,9 @@ Last updated: 2026-10-17.
 |---|---|---|---|---|
 | R1.1 | Add a scoped `withContext` combinator; make `next` carry the current `_ctx`; add the `execution-node-wrapper` kind, whose `next` runs the keyword's value in the caller's context | F8 | Bindings are visible only within their subtree; a block sees the enclosing outputs and `#.self`; covered by tests | agreed |
 | R1.2 | Migrate every `_ctx` write to `withContext`: `inTransaction` as an `execution-node-wrapper`, JWT user as request middleware, correlation and time at the request root; `_ctx.entity` goes with F18. Then forbid `outputKey: "_ctx"` and freeze `_ctx` for `low` | F8, A7 | No code writes to `_ctx`; the validator rejects such writes | agreed |
-| R1.2a | Declared context keys: a schema and an owning package per key; `withContext` checks values, the loader rejects reads of undeclared keys | F8 | A typo in `#._ctx.<key>` is a load error | draft |
+| R1.2a | Context rights on kinds (P13): `context: { manages, reads }`; one tree of managers per key; read keys optional; authorship recorded by the loader; `withContext` checks rights and schemas; mappings and `low` see only their author's keys; empty root; `appConfig` and `timestampUTC` leave `_ctx` | F8, P13 | Binding an unmanaged key fails; code can't see undeclared keys | agreed |
+| R1.2b | Move execution tracing out of `_ctx._execution` into a native execution object | F8 | `_ctx` holds no runtime internals | draft |
+| R1.2c | Context propagation across process boundaries (messages, outbox, jobs): the publisher puts the context it chooses into the message; the consumer kind manages its own key (`message`) and binds it from the envelope; `message-consumer` becomes a kind with `handle` and a `start` hook, replacing `startConsumers` | F8, P13 | A consumer's run has the producer's correlation | draft |
 | R1.3 | Declare effect node kinds with contracts and an effect class (read / write / external / nondeterministic) | F7 | Every effect node has a declaration the loader checks | draft |
 | R1.4 | Enforce: `low` only as the implementation of a declared effect | F13 | The loader rejects any other use | draft |
 | R1.5 | Remove `$low` from expressions (it's unused today) | F7 | The runtime no longer supports `$low` | draft |
@@ -56,7 +58,7 @@ Last updated: 2026-10-17.
 | R2.2 | Add `$and` and `$or` to LambdaJSON | F12 | Both short-circuit; covered by tests | draft |
 | R2.3 | `pure-function` elements with a JS `implementation`, a `signature` and `examples` | F11 | Callable the same way as expression functions; `verifyPassword` is migrated | draft |
 | R2.4 | Purity checks: frozen inputs, a lint config for pure modules, a determinism test, and running `examples` in the validator | F11 | CI runs these checks for every pure function | draft |
-| R2.5 | Make expressions see context **data** as read-only, with handles hidden | F8 | Expressions can no longer reach handles | draft |
+| ~~R2.5~~ | ~~Make expressions see context data as read-only, with handles hidden~~ **Dropped** (P13: reads are not restricted). Read-only context is covered by R1.2 | F8 | | dropped |
 
 ---
 

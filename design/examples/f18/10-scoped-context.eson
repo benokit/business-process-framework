@@ -8,7 +8,7 @@
     {
         "id": "transaction-manager",
         "kind": "kind",
-        "meta": { "note": "A singleton kind (P10) wrapping the native session store (low). The session is a handle: native code (entity-database, the outbox) finds its client by sessionId." },
+        "meta": { "note": "A singleton kind (P10) wrapping the native session store (low). It neither manages nor reads the transaction context: it only opens and closes sessions." },
         "data": {
             "shape": { "isolation": "string" },
             "operations": {
@@ -37,9 +37,18 @@
     },
 
     {
+        "id": "transaction-scope",
+        "kind": "kind",
+        "meta": { "note": "The only manager of 'transaction' (P13): only code written in this kind or its instances may bind it. Readers (entity-database, entity-relations, the outbox) declare 'reads: [transaction]' on their kinds and work without it (autocommit)." },
+        "data": {
+            "extends": "execution-node-wrapper",
+            "context": { "manages": { "transaction": "@transaction-session" } }
+        }
+    },
+    {
         "id": "in-transaction",
-        "kind": "execution-node-wrapper",
-        "meta": { "note": "Wraps the pipeline written at the call site: next runs it in the caller's context (its #.self, #.change, #.record), with the _ctx current at the call to next. So inTransaction is a one-method middleware around that pipeline, defined in data. Inside an enclosing transaction it joins it. The binding ends when next returns: there is no 'reset' step, and an outer transaction can't be clobbered. Compare today's transaction.eson, which sets _ctx.transaction and then resets it to false in 'finally'." },
+        "kind": "transaction-scope",
+        "meta": { "note": "Wraps the pipeline written at the call site: next runs it in the caller's context (its #.self, #.change, #.record), with the _ctx current at the call to next. Inside an enclosing transaction it joins it. The binding ends when next returns: there is no 'reset' step. Compare today's transaction.eson, which sets _ctx.transaction and then resets it to false in 'finally'." },
         "data": {
             "keyword": "inTransaction",
             "implementation": {
@@ -68,14 +77,26 @@
     },
 
     {
-        "kind": "slot-fill",
-        "id": "authenticate-jwt",
-        "meta": { "note": "Binds _ctx.user for the rest of the request: the guard in 07 and the middleware in 09 read it. Replaces jwt-auth-middleware, which wrote _ctx with outputKey and had ordering 5. 'first': every other request middleware sees the user." },
+        "kind": "schema",
+        "id": "principal",
+        "data": { "!userId": "string", "roles[]": "string" }
+    },
+    {
+        "id": "user-scope",
+        "kind": "kind",
+        "meta": { "note": "The only manager of 'user' (P13). Anyone who needs a user bound uses one of its wrappers; nobody else can bind it, so a pipeline can't grant itself roles with withContext. A second manager of 'user' outside this tree would be a load error." },
         "data": {
-            "target": "http-endpoint",
-            "slot": "requestMiddleware",
-            "position": "first",
-            "value": [
+            "extends": "execution-node-wrapper",
+            "context": { "manages": { "user": "@principal" } }
+        }
+    },
+    {
+        "id": "authenticate",
+        "kind": "user-scope",
+        "meta": { "note": "Binds the principal from a JWT bearer token, if there is a valid one, for the wrapped pipeline. Its input is the caller's #.input: the request, when used as request middleware." },
+        "data": {
+            "keyword": "authenticated",
+            "implementation": [
                 {
                     "outputKey": "claims",
                     "inputMap": "#.input.headers.authorization",
@@ -87,6 +108,30 @@
                     "else": { "next": true }
                 }
             ]
+        }
+    },
+    {
+        "id": "as-system",
+        "kind": "user-scope",
+        "meta": { "note": "Runs the wrapped pipeline as the system principal: the explicit, privileged 'run as' (04). Same tree as 'authenticate', so both may manage 'user'." },
+        "data": {
+            "keyword": "asSystem",
+            "implementation": {
+                "withContext": { "user": { "userId": "system", "roles": ["system"] } },
+                "do": { "next": true }
+            }
+        }
+    },
+
+    {
+        "kind": "slot-fill",
+        "id": "authenticate-requests",
+        "meta": { "note": "Request middleware on every endpoint. The fill binds nothing itself: it wraps the rest of the chain in 'authenticated', whose kind manages 'user'. In the wrapped pipeline, next is the request middleware's continuation. 'first': every other request middleware sees the user." },
+        "data": {
+            "target": "http-endpoint",
+            "slot": "requestMiddleware",
+            "position": "first",
+            "value": { "authenticated": { "next": true } }
         }
     }
 ]

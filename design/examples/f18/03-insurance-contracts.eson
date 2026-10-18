@@ -57,18 +57,19 @@
     {
         "kind": "slot-fill",
         "id": "construction-business-key",
-        "meta": { "note": "More specific than the default above, so it wins for construction. Travel keeps the default." },
+        "meta": { "note": "More specific than the default above, so it wins for construction. Travel keeps the default. The year comes from the clock singleton (an effect), not from context: the rule reads no context, so it works the same inside and outside a request." },
         "data": {
             "target": "construction",
             "slot": "businessKey",
             "value": [
                 { "outputKey": "seq", "nextFromSequence": "construction-seq" },
+                { "outputKey": "now", "invoke": "clock", "operation": "now" },
                 {
                     "return": {
                         "$join": {
                             "_strings": [
                                 "CON",
-                                { "$head": { "$split": { "_string": "#._ctx.timestampUTC", "_separator": "-" } } },
+                                { "$head": { "$split": { "_string": "#.now", "_separator": "-" } } },
                                 { "$printf": { "_template": "%04d", "_args": ["#.seq"] } }
                             ],
                             "_separator": "-"

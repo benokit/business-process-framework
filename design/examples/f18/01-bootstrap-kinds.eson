@@ -2,7 +2,7 @@
     {
         "id": "kind",
         "kind": "kind",
-        "meta": { "note": "The fixed point: its own kind. The native driver runs kind.lifecycle for every element of kind 'kind', including this one, with no special case. Operations are a primitive property of a kind, invoked through its instances (P8). On load, a kind checks its own definition and adds its shape (as '<kindId>', so '@<kindId>' works in any schema), its operation contracts (as '<kindId>/<operation>/input|output') and the value schema of each slot it declares (as '<kindId>/slots/<slot>') to AJV." },
+        "meta": { "note": "The fixed point: its own kind. The native driver runs kind.lifecycle for every element of kind 'kind', including this one, with no special case. Operations are a primitive property of a kind, invoked through its instances (P8). On load, a kind checks its own definition and adds its shape (as '<kindId>', so '@<kindId>' works in any schema), its operation contracts (as '<kindId>/<operation>/input|output') and the value schema of each slot it declares (as '<kindId>/slots/<slot>') to AJV, and the context it manages (as '<kindId>/context/manages', against which its bindings are checked). 'context' (P13): 'manages' is the context the kind's code may bind, and is also read: an object schema of keys and their value schemas, with no required keys. 'reads' lists the keys it may read but must work without; their schemas are the managers'. Both govern code written in the kind and in its instances, and are collected along the chain." },
         "data": {
             "shape": {
                 "extends": "string",
@@ -10,6 +10,7 @@
                 "defaults": "object",
                 "operations{}": "@operation",
                 "slots{}": "@slot",
+                "context": { "manages": "@schema", "reads[]": "string" },
                 "lifecycle": { "load": "@method", "start": "@method", "stop": "@method" }
             },
             "lifecycle": {
@@ -24,6 +25,13 @@
                         "then": { "inputMap": { "id": "#.self.id", "schema": "#.self.data.shape" }, "invoke": "ajv", "operation": "add" }
                     },
                     { "inputMap": { "owner": "#.self.id", "contracts": "#.self.data.operations" }, "call": "add-contracts" },
+                    {
+                        "if": "#.self.data.context.manages",
+                        "then": {
+                            "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/context/manages"] } }, "schema": "#.self.data.context.manages" },
+                            "invoke": "ajv", "operation": "add"
+                        }
+                    },
                     {
                         "inputMap": { "$keys": { "$coalesce": ["#.self.data.slots", {}] } },
                         "forEach": {
@@ -202,6 +210,15 @@
 
     {
         "kind": "pure-function",
+        "id": "app-config",
+        "meta": { "note": "Native (JS), pure: one section of the application configuration (app-config/* elements with environment overrides), fixed after load. Configuration is not context: it doesn't vary per execution, so it isn't bound or carried. Today the runtime writes it into every _ctx." },
+        "data": {
+            "signature": { "input": "string", "output": "object" },
+            "implementation": { "module": "@business-framework/runtime/app-config", "export": "getAppConfigSection" }
+        }
+    },
+    {
+        "kind": "pure-function",
         "id": "apply-mapping",
         "meta": { "note": "Native (JS), pure: evaluates a LambdaJSON mapping held in data (such as an endpoint's 'request') against an input. It reads no context." },
         "data": {
@@ -255,10 +272,17 @@
         }
     },
     {
+        "kind": "schema",
+        "id": "request-context",
+        "meta": { "note": "correlation: from the x-correlation-id header, or new. receivedAt: ISO time the request arrived." },
+        "data": { "!correlation": "string", "!receivedAt": "string" }
+    },
+    {
         "id": "http-endpoint",
         "kind": "kind",
-        "meta": { "note": "Defined, not native. Each endpoint registers its own route when the server starts. Per request, the native server invokes the endpoint's handle operation with the request and a fresh root _ctx ({ correlation, timestampUTC }); that is the only place a root context is created. Request middleware (authentication, 10) runs around the target and binds context for it with withContext + next." },
+        "meta": { "note": "Defined, not native. Each endpoint registers its own route when the server starts. Per request, the native server invokes the endpoint's handle operation with the request and an empty _ctx. handle binds the request context, which this kind manages (P13), then runs the request middleware (authentication, 10) around the target." },
         "data": {
+            "context": { "manages": { "request": "@request-context" } },
             "shape": {
                 "!method": "string",
                 "!path": "string",
@@ -271,13 +295,23 @@
             "operations": {
                 "handle": {
                     "input": { "!headers": "object", "params": "object", "query": "object", "body": {} },
-                    "implementation": {
-                        "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
-                        "action": [
-                            { "outputKey": "targetInput", "set": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.self.data.request", "#"] }, "input": "#.input" } } },
-                            { "inputMap": "#.targetInput", "invoke": "#.self.data.target.element", "operation": "#.self.data.target.operation" }
-                        ]
-                    }
+                    "implementation": [
+                        {
+                            "outputKey": "requestContext",
+                            "inputMap": "#.input.headers",
+                            "low": { "module": "@business-framework/http-server", "functionName": "requestContext" }
+                        },
+                        {
+                            "withContext": { "request": "#.requestContext" },
+                            "do": {
+                                "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
+                                "action": [
+                                    { "outputKey": "targetInput", "set": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.self.data.request", "#"] }, "input": "#.input" } } },
+                                    { "inputMap": "#.targetInput", "invoke": "#.self.data.target.element", "operation": "#.self.data.target.operation" }
+                                ]
+                            }
+                        }
+                    ]
                 }
             },
             "lifecycle": {

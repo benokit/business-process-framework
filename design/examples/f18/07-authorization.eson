@@ -1,6 +1,15 @@
 [
     {
-        "kind": "slot-fill",
+        "id": "authorization-guard",
+        "kind": "kind",
+        "meta": { "note": "A slot fill that reads the principal (P13). It doesn't manage 'user', so it may not assume one: no user means no roles." },
+        "data": {
+            "extends": "slot-fill",
+            "context": { "reads": ["user"] }
+        }
+    },
+    {
+        "kind": "authorization-guard",
         "id": "contract-update-authority",
         "meta": { "note": "From an authorization package that doesn't own the insurance guards (P11). 'position: first': an unauthorized user must get 'forbidden' before any business guard can answer, for example with 'contracts can only be updated in draft', which would reveal the contract's state. The constraint is about authorization, not about any particular guard, so it names none." },
         "data": {

@@ -15,7 +15,8 @@ A hypothetical but complete scenario for [critique F18](../../critique.md), buil
 | [07-authorization.eson](07-authorization.eson) | A guard from another package that must run `first`, ahead of guards it doesn't know about |
 | [08-search-index.eson](08-search-index.eson) | A **data** slot (`searchIndex`): an entity type contributes configuration, and a reaction reads it |
 | [09-audit-stamp.eson](09-audit-stamp.eson) | A **middleware** around the database write: it changes the input it passes on with `next` |
-| [10-scoped-context.eson](10-scoped-context.eson) | Scoped context (F8): a `transaction` singleton, `inTransaction` as an `execution-node-wrapper`, and authentication binding `_ctx.user` per request |
+| [10-scoped-context.eson](10-scoped-context.eson) | Scoped context (F8, P13): the kinds that manage `transaction` and `user`, their wrappers (`inTransaction`, `authenticated`, `asSystem`), and authentication as request middleware |
+| [11-message-consumer.eson](11-message-consumer.eson) | A message consumer that manages its own context key (`message`), and a consumer whose writes carry the original correlation |
 | [dispatch-sketch.js](dispatch-sketch.js) | The native code: `invoke`, `slot-values`, `withContext`, `middleware` and `next`, node wrappers, kind resolution, and the lifecycle driver |
 
 ## The model
@@ -27,6 +28,7 @@ A hypothetical but complete scenario for [critique F18](../../critique.md), buil
 | `defaults` | Data merged under each instance's data, along the chain from general to specific (P6) |
 | `operations` | A primitive property of the kind (P8): what can be invoked on its instances. Collected along the chain; a subkind adds operations and never overrides them (Q7). |
 | `slots` | Typed contribution points (Q16): `{ cardinality, value }`, where `value` is the schema of what fills contribute: plain data, or `@method` for behaviour |
+| `context` | `{ manages, reads }` (P13): the context keys the kind's code may bind (and read), with their value schemas, and the keys it may only read and must work without. One tree of managers per key. |
 | `lifecycle` | `load` (in-process registration; no I/O, no validation), `start` and `stop` (effects) |
 
 | Construct | Meaning |
@@ -42,7 +44,7 @@ A hypothetical but complete scenario for [critique F18](../../critique.md), buil
 
 **There is no `service` kind (P10).** Every element with operations is an instance of a kind that defines them:
 
-- **Singletons** are a kind plus one instance, and the instance holds the configuration. `password-hasher` (operation `hash`) has the instance `password` with `{ rounds: 12 }`. `schema-registry` (operation `add`) has the instance `ajv` with its AJV options. Other singletons referenced in the examples (`entity-database`, `entity-event-publisher`, `entity-relations`, `meilisearch`, `http-server`) are assumed to follow the same pattern in their packages.
+- **Singletons** are a kind plus one instance, and the instance holds the configuration. `password-hasher` (operation `hash`) has the instance `password` with `{ rounds: 12 }`. `schema-registry` (operation `add`) has the instance `ajv` with its AJV options. Other singletons referenced in the examples (`entity-database`, `entity-event-publisher`, `entity-relations`, `meilisearch`, `http-server`, `clock`) are assumed to follow the same pattern in their packages.
 - **Entity types** are instances of `entity-type`, which defines `create`, `read`, `update` and `transition`.
 - **Extra operations for one entity type** need a subkind: `user-account extends entity-type` adds `set-password`, and `user` is its instance.
 
@@ -142,7 +144,7 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 ## Walkthrough: `POST /contracts/construction`
 
 1. **Start.** The `http-endpoint` kind's `start` hook registered `create-construction`'s route.
-2. **Request.** The native server invokes `create-construction.handle` with the request and a fresh root `_ctx` `{ correlation, timestampUTC }`. Its `requestMiddleware` runs `authenticate-jwt` (10, `first`), which verifies the token and calls `next` inside `withContext: { user }`. The action maps the request to `{ data: body }` and invokes `construction.create`; `_ctx.user` is visible from here down, and only for this request.
+2. **Request.** The native server invokes `create-construction.handle` with the request and an empty `_ctx`. `handle` binds `request` (`{ correlation, receivedAt }`), which `http-endpoint` manages. Its `requestMiddleware` runs `authenticate-requests` (10, `first`), whose value is `{ "authenticated": { "next": true } }`: the `authenticate` wrapper verifies the token and runs the rest of the chain inside `withContext: { user }`. The action maps the request to `{ data: body }` and invokes `construction.create`. `user` is carried from here down for this request, and visible only to code whose kind reads it.
 3. **Resolve.** `construction.kind` is `insurance-contract`, so the kind chain is `[entity-type, insurance-contract]`. `create` comes from `entity-type`. `#.self.data` is `insurance-contract.defaults` (base schema fields and the states model) merged with `construction.data` (the `project` field).
 4. **Check input** against `@entity-type/create/input`.
 5. **Run `create`:**
@@ -180,26 +182,41 @@ Schema data is a compact schema; AJV validates and resolves `$ref`s (P7). `schem
 | Q11: `defaults` | Kept, as P6 merge. The schema caveats still apply (`!field` vs `field`, allOf). |
 | Q15: order | Independent by default in fill-id order, `position: first|last` for a fill's own requirement, `after`/`before` for real dependencies on a named fill, outside-to-inside for middleware. No opt-out mechanism. Per-call contracts of method slots are now the consumer's (Q15c, revised by Q16). |
 | Q16: slots as data | **Applied.** Fills contribute values; `slot-values` reads them; `forEach`, `execute` and `middleware` use them. |
-| F8: context | **Applied.** Read-only `_ctx`, `withContext` for scoped bindings, `next` carrying the current `_ctx`, `inTransaction` as an `execution-node-wrapper`. Context keys are not declared yet. |
+| F8: context | **Applied.** Read-only `_ctx`, `withContext` for scoped bindings, `next` carrying the current `_ctx`, `inTransaction` as an `execution-node-wrapper`; kinds declare the context they manage and read (P13). |
 
-## Scoped context (F8)
+## Scoped context (F8, P13)
 
-`_ctx` is **read-only and flows down only**. It holds what code below a point needs but shouldn't take as input: the request's correlation and time, the authenticated user, the open transaction.
+`_ctx` is **read-only and flows down only**. It holds what code below a point needs but shouldn't take as input: the request's correlation and time, the authenticated user, the open transaction. This is the *dynamically scoped value* pattern (Java `ScopedValue`, Go `context.Context`, React Context). Those languages protect a key by module privacy; here every element is visible to every package, so a kind **declares** its rights (P13):
 
-- **Read:** `#._ctx.<key>` in any mapping; `low` nodes receive it frozen.
-- **Bind:** `{ "withContext": { "<key>": <expr> }, "do": <block> }`. The block sees the bindings, and so does everything it invokes, because `invoke` passes `_ctx` down. When the block returns, the outer `_ctx` is in effect again: it was never changed, so there is nothing to reset.
-- **Bind for what you wrap:** a middleware calls `next` inside `withContext`, and `next` carries the `_ctx` current at that point. `authenticate-jwt` binds `user` this way; `inTransaction` binds `transaction`.
+```json
+"context": { "manages": { "transaction": "@transaction-session" } }
+"context": { "reads": ["user"] }
+```
+
+- **Manages:** keys and their value schemas. The kind's code may bind these keys, and reads them. Each binding is checked against the schema.
+- **Reads:** keys only; the value schema is the manager's, so a reader can't disagree with it. Reading a key no kind manages is a load error (a typo such as `usr`). The kind's code must work without them. Managed schemas have no required keys: `no user` means no roles (07), or `system` (09); no `transaction` means autocommit.
+- **One tree per key:** all kinds managing a key must extend the most general of them. `authenticate` and `as-system` both manage `user` because both are `user-scope`; a second, unrelated manager is a load error.
+- **Visibility:** code sees in `#._ctx` (and its `low` calls receive) only the keys its kind manages or reads. Other keys are carried on underneath, unseen, to the code it invokes.
+- **Rights belong to the author:** the element a pipeline is written in, not the instance it runs for. An operation has its kind's rights; a fill's value has the fill's kind's rights, even while it runs inside `entity-type.create`; a wrapped pipeline keeps its caller's.
+- **Bind:** `{ "withContext": { "<key>": <expr> }, "do": <block> }`. The block sees the enclosing context, like an `if` branch. When it returns, the outer `_ctx` is in effect again: nothing was changed, so there is nothing to reset.
+- **Bind for what you wrap:** a wrapper or middleware calls `next` inside `withContext`; `next` carries the `_ctx` current at that point.
+- **Bind on behalf of others:** code that needs a key bound but doesn't manage it uses a wrapper of the managing kind: request middleware uses `authenticated`, the admin bootstrap uses `asSystem` (04), `entity-type` uses `inTransaction`.
 - **Write:** never. `outputKey: "_ctx"` is a load error.
-- **Root:** created only by the native http server per request (`{ correlation, timestampUTC }`) and by the lifecycle driver (`{ appConfig }`).
+- **Root:** empty. The native server, the broker and the lifecycle driver pass `{}`.
+- **Across messages:** the publisher decides which part of the context it propagates in the message. The consumer kind manages its own key (`message`, 11) and binds it from the envelope; it can't bind `request` or `user`. The user who caused an event is not carried over: a consumer that must act as someone uses a `user-scope` wrapper.
+- **Configuration is not context:** it doesn't vary per execution, so it's read with `$func/app-config` (04). The business key in 03 takes the year from the `clock` singleton rather than from the request time, so it reads no context.
 
-**`inTransaction` is defined in data**, as an `execution-node-wrapper`: a subkind of `execution-node-template` whose keyword's value is a pipeline written at the call site. Its implementation is a middleware around that pipeline, and `next` runs it in the caller's context. The kind, not a flag, tells the executor this. So the wrapped pipeline keeps `#.self`, `#.change` and earlier outputs, which today's `executeInTransaction({ program, programInput })` loses, and it is never passed around as a value (A5). Inside an enclosing transaction it joins it.
+**`inTransaction` is defined in data**, as an instance of `transaction-scope`, a subkind of `execution-node-wrapper`: its keyword's value is a pipeline written at the call site, its implementation is a middleware around that pipeline, and `next` runs it in the caller's context. So the wrapped pipeline keeps `#.self`, `#.change` and earlier outputs, which today's `executeInTransaction({ program, programInput })` loses, and it is never passed around as a value (A5). Inside an enclosing transaction it joins it.
 
-Three uses in the examples:
-
-| Binding | Bound by | Read by |
+| Key | Managed by | Read by |
 |---|---|---|
-| `transaction` | `inTransaction` (10) | `entity-database`, `entity-relations`, the outbox (native, through `low`) |
-| `user` | `authenticate-jwt` (10), per request; the admin bootstrap (04) as `system` | `contract-update-authority` (07), `stamp-modified-by` (09) |
-| `correlation`, `timestampUTC` | The http server (root) | `publish-entity-events` (05), the sequence business key (03) |
+| `request` | `http-endpoint` (01), in `handle` | `entity-event-publisher` (adds the correlation to envelopes) |
+| `message` | `message-consumer` (11), in `handle` | `entity-event-publisher` (keeps the correlation across consumers) |
+| `user` | `user-scope` (10): `authenticate`, `as-system` | `authorization-guard` (07), `audit-interceptor` (09) |
+| `transaction` | `transaction-scope` (10): `in-transaction` | `entity-database`, `entity-relations`, the outbox (native, through `low`) |
 
-**Not solved yet:** which keys exist and what they hold. `_ctx` is still an open bag: a typo in `#._ctx.usr` reads `undefined`, and nothing checks that a reader has a binder around it. The next step is declared context keys, each with a schema and an owning package (`transaction`: `@transaction-session`), so `withContext` checks values and the loader can reject reads of undeclared keys. `transaction` is also a handle (a session id that native code resolves to a client), which R2.5 would hide from expressions.
+Fills that read context are instances of a subkind of `slot-fill` (`authorization-guard`, `audit-interceptor`), because rights are declared on kinds. Fills that read none stay plain `slot-fill`s; `publish-entity-events` (05) no longer passes the correlation, because the publisher reads it.
+
+**Still open:**
+- Handles are not restricted: `transaction` is a session id that native code resolves to a client, and any declared reader may read it.
+- Enforcement is sketched at run time (`withContext` checks, visibility projection). Rejecting undeclared reads and binds at load needs the static pipeline check.

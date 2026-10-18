@@ -2,7 +2,7 @@
     {
         "kind": "slot-fill",
         "id": "publish-entity-events",
-        "meta": { "note": "The entity-events package contributes a reaction to every entity type. This replaces four root-entity-class middleware elements at ordering 100." },
+        "meta": { "note": "The entity-events package contributes a reaction to every entity type. This replaces four root-entity-class middleware elements at ordering 100. The fill reads no context: the publisher's kind declares 'reads: [request, message]' and decides which part of the context it propagates in the message (P13): the correlation of the request or of the message being consumed (11), whichever is bound." },
         "data": {
             "target": "entity-type",
             "slot": "reactions",
@@ -10,8 +10,7 @@
                 "inputMap": {
                     "entityType": "#.self.id",
                     "record": "#.input.after",
-                    "eventType": "#.input.operation",
-                    "correlation": "#._ctx.correlation"
+                    "eventType": "#.input.operation"
                 },
                 "invoke": "entity-event-publisher", "operation": "publish"
             }

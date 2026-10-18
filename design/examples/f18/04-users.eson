@@ -77,20 +77,20 @@
     },
     {
         "kind": "on-startup",
-        "meta": { "note": "Replaces ensureAdminUser in bootstrap.js. The writes run as the system user: withContext binds _ctx.user for its block only (F8), so 09 stamps 'system' and the binding can't outlive the block." },
+        "meta": { "note": "Replaces ensureAdminUser in bootstrap.js. The writes run as the system user. on-startup can't bind 'user' itself (it doesn't manage it, P13), so it uses asSystem, a wrapper whose kind does (10). Configuration is read with $func/app-config, not from _ctx." },
         "data": {
-            "withContext": { "user": { "userId": "system", "roles": ["system"] } },
-            "do": [
-                { "outputKey": "admin", "inputMap": { "businessKey": "#._ctx.appConfig.users.adminUsername" }, "invoke": "user", "operation": "read" },
+            "asSystem": [
+                { "outputKey": "config", "set": { "$func/app-config": "users" } },
+                { "outputKey": "admin", "inputMap": { "businessKey": "#.config.adminUsername" }, "invoke": "user", "operation": "read" },
                 {
                     "if": { "$negate": "#.admin" },
                     "then": [
                         {
-                            "inputMap": { "data": { "username": "#._ctx.appConfig.users.adminUsername", "email": "#._ctx.appConfig.users.adminEmail" } },
+                            "inputMap": { "data": { "username": "#.config.adminUsername", "email": "#.config.adminEmail" } },
                             "invoke": "user", "operation": "create"
                         },
                         {
-                            "inputMap": { "businessKey": "#._ctx.appConfig.users.adminUsername", "password": "#._ctx.appConfig.users.adminPassword" },
+                            "inputMap": { "businessKey": "#.config.adminUsername", "password": "#.config.adminPassword" },
                             "invoke": "user", "operation": "set-password"
                         }
                     ]

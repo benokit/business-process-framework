@@ -7,7 +7,7 @@
   - A pipeline **node** represents a side effect.
   - **Data flow** at node boundaries is controlled by **pure functions** (mappings).
   - The **JSON representation** is the semantic boundary between the two.
-- **P4 — `low` node.** `low` calls a host-language (JS) implementation of a side effect. Its side effect may include mutating `_ctx`.
+- **P4 — `low` node.** `low` calls a host-language (JS) implementation of a side effect. It can't mutate context keys.
 - **P5 — Complex pure functions.** Pure logic too complex for the expression language may be written in the host language. The implementer is responsible for its purity.
 - **P6 — Data composition.** The framework's data composition primitives are three keywords, defined by postulate: `/data`, `/ref`, `/merge`.
 - **P7 — Schemas.** Schema data has the shape of a compact schema. Validation is done by AJV, which also resolves `$ref`s; the framework doesn't. Schemas are registered with AJV in the load phase; AJV compiles each schema lazily, at most once, when a validation is first requested.
@@ -16,3 +16,4 @@
 - **P10 — No service kind.** There is no `service` kind. An element with operations is an instance of a kind that defines them.
 - **P11 — Open slots.** A package may declare new slots on a kind it doesn't own.
 - **P12 — Slots and middleware.** A slot fill can be any data. A generic middleware node accepts a sequence of executables and runs them in order; each receives `next` (the continuation) and is responsible for firing it.
+- **P13 — Context.** A kind specifies the context it manages (a schema) and the context it reads (a schema). The context an element manages is also context it reads. No element demands the existence of context it reads but doesn't manage. Two elements can't manage the same context unless they are from the same hierarchy tree. A reader specifies context keys; a manager specifies context keys and their value schemas. What can be read from the context is not restricted (handles included). In messaging, the publisher decides which part of the context it propagates in the message; the consumer kind manages its own key.

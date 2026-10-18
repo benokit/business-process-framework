@@ -1,6 +1,8 @@
 // Sketch of F18 dispatch. Not wired into the runtime: it shows how little native code
 // "behaviour belongs to the kind" needs. `runPipeline` stands for executeMethod with
-// `self` added to the execution context; `allElements` for a registry listing.
+// `self` added to the execution context; `allElements` for a registry listing. One change to
+// the executor is assumed: each node's mappings, and its low call, see
+// visibleContext(node, _ctx) rather than the full _ctx (P13, below).
 
 import { merge } from 'lodash-es';
 import { getElement, getElementsOfKind } from '../../../implementation/runtime/src/elements-registry.js';
@@ -34,7 +36,7 @@ const resolvedKinds = new Map();
 function resolveKind(kindId) {
     if (resolvedKinds.has(kindId)) return resolvedKinds.get(kindId);
     const chain = kindChain(kindId);
-    const kind = { ids: chain.map(k => k.id), chain, operations: {}, slots: {}, defaults: {} };
+    const kind = { ids: chain.map(k => k.id), chain, operations: {}, slots: {}, defaults: {}, manages: {}, reads: {} };
     for (const { id, data } of chain) {
         for (const [name, op] of Object.entries(data.operations ?? {})) {
             if (kind.operations[name]) throw `${id} may not override operation '${name}'`;
@@ -45,6 +47,10 @@ function resolveKind(kindId) {
             kind.slots[name] = { ...slot, owner: id };   // owner names the registered contract
         }
         merge(kind.defaults, data.defaults);              // P6 merge, general -> specific
+        // Context rights (P13), add-only along the chain. A managed key maps to the kind whose
+        // schema checks it. What a kind manages it also reads; readers name keys only.
+        for (const key of Object.keys(data.context?.manages ?? {})) { kind.manages[key] = id; kind.reads[key] = true; }
+        for (const key of data.context?.reads ?? []) kind.reads[key] = true;
     }
     // Slots declared from outside the kind (Q10), found through a lazy index of slot-declaration elements.
     for (const { data } of getElementsOfKind('slot-declaration').items) {
@@ -137,7 +143,7 @@ export function slotValues({ input: { element, slot: slotName } }) {
     const slot = kind.slots[slotName];
     if (!slot) throw `${self.kind} declares no slot '${slotName}'`;
     const targets = [...kind.ids, self.id];               // general -> specific
-    const fills = getElementsOfKind('slot-fill').items
+    const fills = instancesOf('slot-fill')
         .filter(f => f.data.slot === slotName && targets.includes(f.data.target));
 
     if (slot.cardinality === 'one') {                     // most specific target wins
@@ -158,15 +164,69 @@ export function slotValues({ input: { element, slot: slotName } }) {
 // again, because it was never changed.
 const bind = (_ctx, bindings) => Object.freeze({ ..._ctx, ...bindings });   // shadows, shallow
 
+// Context rights (P13) belong to the code's author: the element a pipeline is written in, not
+// the instance it runs for. A guard written in an authorization-guard fill has that kind's
+// rights, even while it runs inside entity-type.create. The loader records the author of every
+// node object when it loads an element (pipelines are static data, F5), so the wrapped pipeline
+// of inTransaction keeps its caller's rights and the wrapper's implementation has its own.
+const authors = new WeakMap();                            // node object -> element
+
+export function recordAuthors(element, value = element.data) {
+    if (value && typeof value === 'object' && !authors.has(value)) {
+        authors.set(value, element);                      // first writer wins (shared /ref data)
+        Object.values(value).forEach(v => recordAuthors(element, v));
+    }
+}
+
+// Code written in a kind (its operations and hooks) has the kind's rights; code written in any
+// other element has its kind's rights.
+const rightsOf = author => resolveKind(author.kind === 'kind' ? author.id : author.kind);
+
+// What code sees as #._ctx (and what its low nodes receive): only the keys its author manages or
+// reads. Everything else is carried on underneath, unseen, to the code it invokes.
+export const visibleContext = (node, _ctx) =>
+    Object.freeze(Object.fromEntries(Object.entries(_ctx).filter(([key]) => key in rightsOf(authors.get(node)).reads)));
+
 // { "withContext": <mapping>, "do": <pipeline> }. The block runs in the current context (it
 // sees the enclosing #.self, #.input and outputs, like an if branch) with the bindings added
-// to _ctx. Its output is the node's output.
-executors.withContext = node => async (nodeInput, context) =>
-    runPipeline(node.do, { ...context, _ctx: bind(context._ctx, await executeMapping(node.withContext, context)) });
+// to _ctx. Its output is the node's output. Only keys the author manages may be bound, and each
+// value is checked against the managing kind's schema.
+executors.withContext = node => async (nodeInput, context) => {
+    const bindings = await executeMapping(node.withContext, context);
+    const rights = rightsOf(authors.get(node));
+    for (const [key, value] of Object.entries(bindings)) {
+        if (!rights.manages[key]) throw `${authors.get(node).id} may not bind context '${key}': it doesn't manage it`;
+        check(`${rights.manages[key]}/context/manages`, { [key]: value }, `withContext '${key}'`);
+    }
+    return runPipeline(node.do, { ...context, _ctx: bind(context._ctx, bindings) });
+};
 
-// The root _ctx is created in exactly two places: by the native http server per request
-// ({ correlation, timestampUTC }) and by the lifecycle driver ({ appConfig }). Everything
-// else (user, transaction) is bound by withContext around the code that needs it.
+// The root _ctx is empty: the native http server and the lifecycle driver pass {}. Every key is
+// bound by its manager around the code that needs it: request by http-endpoint.handle, user by
+// the user-scope wrappers, transaction by inTransaction. Configuration is not context
+// ($func/app-config).
+
+// After load: every context key has one hierarchy tree of managers. All kinds that declare a key
+// in 'manages' must extend the most general of them. No managed key is required: code may not
+// demand context it doesn't manage, and even a manager checks before it binds. Every key read
+// is managed somewhere, so a typo ('usr') is an error.
+function checkContextDeclarations() {
+    const managers = {}, readers = {};
+    for (const k of instancesOf('kind')) {
+        for (const key of Object.keys(k.data.context?.manages ?? {})) {
+            if (key.startsWith('!')) throw `${k.id}: context '${key.slice(1)}' can't be required`;
+            (managers[key] ??= []).push(k.id);
+        }
+        for (const key of k.data.context?.reads ?? []) (readers[key] ??= []).push(k.id);
+    }
+    for (const [key, ids] of Object.entries(managers)) {
+        const root = ids.find(id => ids.every(other => resolveKind(other).ids.includes(id)));
+        if (!root) throw `context '${key}' is managed by unrelated kinds: ${ids.join(', ')}`;
+    }
+    for (const [key, ids] of Object.entries(readers)) {
+        if (!managers[key]) throw `${ids.join(', ')} read context '${key}', which no kind manages`;
+    }
+}
 
 // --- middleware ------------------------------------------------------------
 
@@ -228,12 +288,17 @@ export function templateExecutor(keyword, node) {
     return (template.kind === 'execution-node-wrapper' ? wrapper : plainTemplate)(template, node);
 }
 
+// Instances of a kind and of its subkinds (fills of authorization-guard are fills too).
+function instancesOf(kindId) {
+    return allElements().filter(e => (e.kind === 'kind' && kindId === 'kind') ||
+        (e.kind && e.kind !== 'kind' && kindChain(e.kind).some(k => k.id === kindId)));
+}
+
 // Built on first use, not registered at load (load hooks stay order-independent). Includes
 // instances of subkinds; a key that occurs twice is an error.
 function lazyIndex(kindId, keyOf) {
     let index;
-    return () => index ??= allElements()
-        .filter(e => e.kind && e.kind !== 'kind' && kindChain(e.kind).some(k => k.id === kindId))
+    return () => index ??= instancesOf(kindId)
         .reduce((map, e) => {
             if (map.has(keyOf(e))) throw `${kindId}: '${keyOf(e)}' is defined twice`;
             return map.set(keyOf(e), e);
@@ -263,11 +328,12 @@ export async function runLifecycle(phase, _ctx = {}) {
 
     if (phase === 'load') {
         validating = true;
+        checkContextDeclarations();
         for (const element of allElements()) {            // first validations, so AJV compiles here
             for (const k of resolveKind(element.kind).chain) {
                 if (k.data.shape) check(k.id, selfOf(element).data, element.id); // includes 'kind' checking itself
             }
-            if (element.kind === 'slot-fill') {               // a fill's value matches its slot's value schema
+            if (instancesOf('slot-fill').includes(element)) { // a fill's value matches its slot's value schema
                 const { target, slot: slotName, value } = element.data;
                 const slot = resolveKind(getElement(target).kind === 'kind' ? target : getElement(target).kind).slots[slotName];
                 if (!slot) throw `${element.id ?? 'a fill'}: ${target} has no slot '${slotName}'`;
@@ -278,5 +344,5 @@ export async function runLifecycle(phase, _ctx = {}) {
 }
 
 // The whole bootstrap becomes:
-//   await loadElements(paths);
+//   await loadElements(paths);                    // calls recordAuthors for each element
 //   for (const phase of ['load', 'start']) await runLifecycle(phase);
