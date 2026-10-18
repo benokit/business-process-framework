@@ -1,0 +1,22 @@
+{
+  "name": "@business-framework/core",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./kinds": "./src/kinds.js",
+    "./schemas": "./src/schemas.js",
+    "./slots": "./src/slots.js",
+    "./mappings": "./src/mappings.js",
+    "./app-config": "./src/app-config.js"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@benokit/js-cjsl": "^0.3.0",
+    "ajv": "^8.17.1",
+    "lambdajson-js": "^1.1.8",
+    "lodash-es": "^4.17.21"
+  }
+}

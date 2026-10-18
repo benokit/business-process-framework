@@ -20,6 +20,7 @@ implementation/
   infrastructure/  # See infrastructure/README.md for index
   framework/       # See framework/README.md for index (includes entities, security/*)
   server/          # Bootstrap entry point; see server/README.md
+implementation-new/  # Rewrite in progress (new core, packages move here one by one); see implementation-new/README.md
 ```
 
 See [infrastructure/README.md](implementation/infrastructure/README.md) for the infrastructure package index.

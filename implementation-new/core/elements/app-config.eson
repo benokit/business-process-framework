@@ -1,0 +1,15 @@
+[
+    {
+        "id": "app-config",
+        "kind": "kind",
+        "data": { "shape": "object" }
+    },
+    {
+        "id": "app-config-section",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "object" },
+            "implementation": { "module": "@business-framework/core/app-config", "export": "getAppConfigSection" }
+        }
+    }
+]

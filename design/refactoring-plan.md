@@ -4,14 +4,14 @@ Plan for implementing the improvements in [critique.md](critique.md) (A*, F*, Q*
 
 Status: **draft** (not yet discussed) · **agreed** · **in progress** · **done** · **dropped**.
 
-Last updated: 2026-10-18.
+Last updated: 2026-10-18 (core started in `implementation-new/core`).
 
 ---
 
 ## Strategy
 
-- **A new core alongside the old runtime.** The new core is built in `implementation/core/`, starting from [examples/f18](examples/f18/README.md) (the bootstrap kinds and `dispatch-sketch.js`). The old `implementation/runtime/` stays untouched and keeps running the existing packages.
-- **Packages move one by one** (phase 4): each package is rewritten onto the core (services become kinds and instances, numbered middleware becomes slot fills, `_ctx` writes become `withContext`), its tests are ported and pass, and then the old version is deleted. The old runtime is deleted with the last package.
+- **A new core alongside the old runtime.** The new core is built in `implementation-new/core/`, starting from [examples/f18](examples/f18/README.md) (the bootstrap kinds and `dispatch-sketch.js`). The old `implementation/runtime/` stays untouched and keeps running the existing packages.
+- **Packages move one by one** (phase 4) into `implementation-new/`, each as its own package: each package is rewritten onto the core (services become kinds and instances, numbered middleware becomes slot fills, `_ctx` writes become `withContext`), its tests are ported and pass, and then the old version is deleted. The old runtime is deleted with the last package.
 - **The kind comes first.** Every later step (context rights, wrappers, slots, lifecycle, validation) is declared on kinds.
 - The [programming rules](../.claude/skills/programming-rules/SKILL.md) apply to all new code.
 
@@ -29,11 +29,11 @@ Last updated: 2026-10-18.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R1.1 | Specify the `kind` element: `extends`, `shape`, `defaults`, `operations` (add-only along the chain, Q7), `slots`, `context`, `lifecycle`; operations invoked through an instance with `#.self`; `kind` as the fixed point; the native bootstrap set | F4, F17, F18, P8–P10, [examples/f18](examples/f18/README.md) | The spec in [examples/f18](examples/f18/README.md) is agreed | agreed |
-| R1.2 | Create `implementation/core/`: registry, loader (records each element's author), kind resolution (chain, operations, slots, `manages`/`reads`), `kind` with its own `load` hook, `instancesOf` including subkinds; default kind `data`; an undefined kind is an error; `$func`, node keywords and slot fills are lazy views over the registry, with no kind-specific code in the registry or the driver | F1, F4, F18, A1 | The f18 bootstrap kinds load; the registry has no `switch` over kinds | draft |
-| R1.3 | Schemas and contracts: one AJV instance; schemas added at load and compiled lazily on first use, never during load; contract ids `<owner>/<op>/input\|output`, `<kind>/slots/<slot>`, `<kind>/context/manages`; operation input and output validated on every call | A6, A14, P7 | No `ajv.compile` calls; a wrong output fails a test | draft |
-| R1.4 | Typed errors: a code, a message and data, used by every check in the core from the start | A8 | No string is thrown in the core | draft |
-| R1.5 | Lifecycle driver: `load`, `start`, `stop`, hooks along the kind chain from general to specific; start order with the slot-order mechanism (Q8): base order by element id, `after`/`before`, `position: first\|last`, cycles are errors | F18, Q8, A9 | Bootstrap is load then start; a consumer starts after the messaging connection without ordering numbers | draft |
-| R1.6 | Slots: declarations on kinds and by other packages (`slot-declaration`, P11), fills of kind `slot-fill` or its subkinds, `$func/slot-values`, order (base order, `after`/`before`, `position`), `one` vs `many` | F4, P11, P12, Q15, Q16, A2 | Fill order is deterministic and independent of load order; covered by tests | draft |
+| R1.2 | Create `implementation-new/core/`: registry, loader (records each element's author), kind resolution (chain, operations, slots, `manages`/`reads`), `kind` with its own `load` hook, `instancesOf` including subkinds; default kind `data`; an undefined kind is an error; `$func`, node keywords and slot fills are lazy views over the registry, with no kind-specific code in the registry or the driver | F1, F4, F18, A1 | The f18 bootstrap kinds load; the registry has no `switch` over kinds | done |
+| R1.3 | Schemas and contracts: one AJV instance; schemas added at load and compiled lazily on first use, never during load; contract ids `<owner>/<op>/input\|output`, `<kind>/slots/<slot>`, `<kind>/context/manages`; operation input and output validated on every call | A6, A14, P7 | No `ajv.compile` calls; a wrong output fails a test | done |
+| R1.4 | Typed errors: a code, a message and data, used by every check in the core from the start | A8 | No string is thrown in the core | done |
+| R1.5 | Lifecycle driver: `load`, `start`, `stop`, hooks along the kind chain from general to specific; start order with the slot-order mechanism (Q8): base order by element id, `after`/`before`, `position: first\|last`, cycles are errors | F18, Q8, A9 | Bootstrap is load then start; a consumer starts after the messaging connection without ordering numbers. Done: phases and base order by element id; open: where `after`/`before` are declared (Q8) | in progress |
+| R1.6 | Slots: declarations on kinds and by other packages (`slot-declaration`, P11), fills of kind `slot-fill` or its subkinds, `$func/slot-values`, order (base order, `after`/`before`, `position`), `one` vs `many` | F4, P11, P12, Q15, Q16, A2 | Fill order is deterministic and independent of load order; covered by tests | done |
 
 ---
 
@@ -41,12 +41,12 @@ Last updated: 2026-10-18.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R2.1 | Pipeline executor: node forms (`inputMap`, `outputKey`, `set`, `if`, `switch`, `try`, `forEach`, `invoke`, `execute`, `low`, `return`, `throw`), mappings compiled once and cached, no `$low` in expressions, no construction of programs at run time | A5, F5, F7 | The f18 examples' node forms run; covered by tests | draft |
-| R2.2 | `middleware` node and native `next`; execution node templates and the `execution-node-wrapper` kind (`next` runs the keyword's value in the caller's context) | P12, F8 | Middleware can act before and after, short-circuit and retry; a wrapper sees the caller's outputs and `#.self` | draft |
-| R2.3 | Scoped context: `withContext`, `next` carrying the current `_ctx`, empty root, `_ctx` frozen for `low` (P4), `outputKey: "_ctx"` rejected; configuration through `$func/app-config`, time through `clock` | F8, P4 | Bindings are visible only within their subtree; no code can write `_ctx` | draft |
-| R2.4 | Context rights (P13): `withContext` checks the author's `manages` and the key's schema; mappings and `low` see only their author's keys; one tree of managers per key; read keys optional and managed somewhere | P13, F8 | Binding an unmanaged key fails; code can't see undeclared keys | agreed |
+| R2.1 | Pipeline executor: node forms (`inputMap`, `outputKey`, `set`, `if`, `switch`, `try`, `forEach`, `invoke`, `execute`, `low`, `return`, `throw`), mappings compiled once and cached, no `$low` in expressions, no construction of programs at run time | A5, F5, F7 | The f18 examples' node forms run; covered by tests | done |
+| R2.2 | `middleware` node and native `next`; execution node templates and the `execution-node-wrapper` kind (`next` runs the keyword's value in the caller's context) | P12, F8 | Middleware can act before and after, short-circuit and retry; a wrapper sees the caller's outputs and `#.self` | done |
+| R2.3 | Scoped context: `withContext`, `next` carrying the current `_ctx`, empty root, `_ctx` frozen for `low` (P4), `outputKey: "_ctx"` rejected; configuration through `$func/app-config`, time through `clock` | F8, P4 | Bindings are visible only within their subtree; no code can write `_ctx` | done |
+| R2.4 | Context rights (P13): `withContext` checks the author's `manages` and the key's schema; mappings and `low` see only their author's keys; one tree of managers per key; read keys optional and managed somewhere | P13, F8 | Binding an unmanaged key fails; code can't see undeclared keys | done |
 | R2.5 | Execution tracing in a native execution object, not in `_ctx` | F8 | `_ctx` holds no runtime internals | draft |
-| R2.6 | Static validation, levels 1 and 2 (Q18), as `validate()` over the loaded registry, run on demand (CLI, CI, tests), never on start: code found through `@method`/`@mapping` positions in shapes; node structure, references, slot names, `low` resolution, context rights, slot and start order, fill values; add the `@mapping` type | Q18, A10, F5, P13 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; start doesn't run it | agreed |
+| R2.6 | Static validation, levels 1 and 2 (Q18), as `validate()` over the loaded registry, run on demand (CLI, CI, tests), never on start: code found through `@method`/`@mapping` positions in shapes; node structure, references, slot names, `low` resolution, context rights, slot and start order, fill values; add the `@mapping` type | Q18, A10, F5, P13 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; start doesn't run it. Done: kinds, context declarations, shapes, slot fills, fill order; open: checks of code (levels 1 and 2) | in progress |
 | R2.7 | Effect declarations with contracts and an effect class (read / write / external / nondeterministic); `low` only as the implementation of a declared effect | F7, F13 | `validate()` rejects any other use of `low` | draft |
 | R2.8 | A test interpreter that runs pipelines with stubbed effects | F6, F7 | At least one entity flow is tested with no database or NATS | draft |
 

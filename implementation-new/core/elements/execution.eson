@@ -1,0 +1,30 @@
+[
+    {
+        "id": "executable",
+        "kind": "kind",
+        "data": { "shape": "@method" }
+    },
+    {
+        "id": "pure-function",
+        "kind": "kind",
+        "data": { "shape": { "signature": { "!input": "@schema", "!output": "@schema" }, "!implementation": "@any" } }
+    },
+    {
+        "id": "execution-node-template",
+        "kind": "kind",
+        "data": { "shape": { "!keyword": "string", "!implementation": "@method" } }
+    },
+    {
+        "id": "execution-node-wrapper",
+        "kind": "kind",
+        "data": { "extends": "execution-node-template" }
+    },
+    {
+        "id": "apply-mapping",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!mapping": "@any", "input": "@any" }, "output": "@any" },
+            "implementation": { "module": "@business-framework/core/mappings", "export": "applyMapping" }
+        }
+    }
+]

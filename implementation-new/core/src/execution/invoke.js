@@ -1,0 +1,18 @@
+import { getElement } from '../registry.js';
+import { resolveKind, selfOf } from '../kinds.js';
+import { check } from '../schemas.js';
+import { fail } from '../errors.js';
+import { runMethod } from './pipeline.js';
+
+export const contractId = (owner, operation, part) => `${owner}/${operation}/${part}`;
+
+export const invoke = async (elementId, operationName, input, _ctx = Object.freeze({})) => {
+    const self = selfOf(getElement(elementId));
+    const operation = resolveKind(self.kind).operations[operationName]
+        ?? fail('unknown-operation', `${elementId} has no operation '${operationName}'`, { element: elementId, operation: operationName });
+    const where = `${elementId}.${operationName}`;
+    check(contractId(operation.owner, operationName, 'input'), input, where);
+    const output = await runMethod(operation.implementation, { input, self, _ctx });
+    if (operation.output !== undefined) check(contractId(operation.owner, operationName, 'output'), output, where);
+    return output;
+};

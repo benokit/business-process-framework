@@ -1,0 +1,57 @@
+[
+    {
+        "id": "schema-registry",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "add": {
+                    "input": { "!id": "string", "!schema": "@schema" },
+                    "implementation": { "low": { "module": "@business-framework/core/schemas", "functionName": "add" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "ajv",
+        "kind": "schema-registry",
+        "data": {}
+    },
+    {
+        "id": "schema-validate",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!schemaId": "string", "value": "@any" }, "output": { "!isValid": "boolean", "errors[]": "object" } },
+            "implementation": { "module": "@business-framework/core/schemas", "export": "validateValue" }
+        }
+    },
+    {
+        "id": "schema-to-json-schema",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!id": "string", "!schema": "@schema" }, "output": "object" },
+            "implementation": { "module": "@business-framework/core/schemas", "export": "toJsonSchema" }
+        }
+    },
+    {
+        "id": "schema",
+        "kind": "kind",
+        "data": {
+            "shape": { "$data#": ["object", "string"] },
+            "operations": {
+                "validate": {
+                    "input": "@any",
+                    "output": { "!isValid": "boolean", "errors[]": "object" },
+                    "implementation": { "set": { "$func/schema-validate": { "schemaId": "#.self.id", "value": "#.input" } } }
+                },
+                "toJsonSchema": {
+                    "input": "@any",
+                    "output": "object",
+                    "implementation": { "set": { "$func/schema-to-json-schema": { "id": "#.self.id", "schema": "#.self.data" } } }
+                }
+            },
+            "lifecycle": {
+                "load": { "inputMap": { "id": "#.self.id", "schema": "#.self.data" }, "invoke": "ajv", "operation": "add" }
+            }
+        }
+    }
+]

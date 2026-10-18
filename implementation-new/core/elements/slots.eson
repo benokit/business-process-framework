@@ -1,0 +1,40 @@
+[
+    {
+        "id": "slot-declaration",
+        "kind": "kind",
+        "data": {
+            "shape": { "!target": "string", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema" },
+            "lifecycle": {
+                "load": {
+                    "inputMap": {
+                        "id": { "$join": { "_strings": ["#.self.data.target", "/slots/", "#.self.data.slot"] } },
+                        "schema": "#.self.data.value"
+                    },
+                    "invoke": "ajv", "operation": "add"
+                }
+            }
+        }
+    },
+    {
+        "id": "slot-fill",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "!target": "string",
+                "!slot": "string",
+                "!value": "@any",
+                "position=1": ["first", "last"],
+                "after[]": "string",
+                "before[]": "string"
+            }
+        }
+    },
+    {
+        "id": "slot-values",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!slot": "string" }, "output": "@any" },
+            "implementation": { "module": "@business-framework/core/slots", "export": "slotValues" }
+        }
+    }
+]

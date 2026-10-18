@@ -1,0 +1,106 @@
+[
+    {
+        "id": "kind",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "extends": "string",
+                "shape": "@schema",
+                "defaults": "object",
+                "operations{}": "@operation",
+                "slots{}": "@slot",
+                "context": { "manages": "@schema", "reads[]": "string" },
+                "lifecycle": { "load": "@method", "start": "@method", "stop": "@method" }
+            },
+            "lifecycle": {
+                "load": [
+                    { "outputKey": "problems", "set": { "$func/check-kind": "#.self" } },
+                    {
+                        "if": { "$head": "#.problems" },
+                        "then": { "throw": { "$join": { "_strings": ["kind ", "#.self.id", ": ", { "$join": { "_strings": "#.problems", "_separator": "; " } }] } } }
+                    },
+                    {
+                        "if": "#.self.data.shape",
+                        "then": { "inputMap": { "id": "#.self.id", "schema": "#.self.data.shape" }, "invoke": "ajv", "operation": "add" }
+                    },
+                    { "inputMap": { "owner": "#.self.id", "contracts": "#.self.data.operations" }, "call": "add-contracts" },
+                    {
+                        "if": "#.self.data.context.manages",
+                        "then": {
+                            "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/context/manages"] } }, "schema": "#.self.data.context.manages" },
+                            "invoke": "ajv", "operation": "add"
+                        }
+                    },
+                    {
+                        "inputMap": { "$keys": { "$coalesce": ["#.self.data.slots", {}] } },
+                        "forEach": {
+                            "inputMap": {
+                                "id": { "$join": { "_strings": ["#.self.id", "/slots/", "#.input"] } },
+                                "schema": { "$get": { "_object": "#.self.data.slots", "_path": { "$join": { "_strings": ["#.input", ".value"] } } } }
+                            },
+                            "invoke": "ajv", "operation": "add"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "id": "data",
+        "kind": "kind",
+        "data": {}
+    },
+    {
+        "id": "check-kind",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "implementation": { "module": "@business-framework/core/kinds", "export": "checkKind" }
+        }
+    },
+    {
+        "id": "add-contracts",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "args", "set": "#.input" },
+            {
+                "inputMap": { "$keys": { "$coalesce": ["#.args.contracts", {}] } },
+                "forEach": [
+                    { "outputKey": "contract", "set": { "$get": { "_object": "#.args.contracts", "_path": "#.input" } } },
+                    { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.args.owner", "/", "#.input", "/"] } } },
+                    {
+                        "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
+                        "invoke": "ajv", "operation": "add"
+                    },
+                    {
+                        "if": "#.contract.output",
+                        "then": {
+                            "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "output"] } }, "schema": "#.contract.output" },
+                            "invoke": "ajv", "operation": "add"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "operation",
+        "kind": "schema",
+        "data": { "!input": "@schema", "output": "@schema", "!implementation": "@method" }
+    },
+    {
+        "id": "slot",
+        "kind": "schema",
+        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema" }
+    },
+    {
+        "id": "method",
+        "kind": "schema",
+        "data": { "$data#": ["object", "[object]"] }
+    },
+    {
+        "id": "any",
+        "kind": "schema",
+        "data": {}
+    }
+]

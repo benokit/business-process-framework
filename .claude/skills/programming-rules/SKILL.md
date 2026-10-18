@@ -5,6 +5,6 @@ description: Programming rules for this repository. Use before writing, changing
 
 # Programming rules
 
-<!-- Write the rules here. One rule per bullet; add a short reason where it isn't obvious. -->
-
--
+- Keep it simple stupid!
+- Avoid comments, if possible, the code should be self-explanatory.
+- Prefer declarative functional writing style
