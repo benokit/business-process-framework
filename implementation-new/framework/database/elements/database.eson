@@ -3,6 +3,9 @@
         "id": "database",
         "kind": "kind",
         "data": {
+            "slots": {
+                "models": { "cardinality": "many", "value": { "!command": "string" } }
+            },
             "lifecycle": { "startPosition": "first" }
         }
     }

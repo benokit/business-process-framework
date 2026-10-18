@@ -24,7 +24,13 @@
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "functionName": "connect" } },
+                "start": [
+                    { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "functionName": "connect" } },
+                    {
+                        "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "models" } },
+                        "forEach": { "invoke": "#.self.id", "operation": "execute" }
+                    }
+                ],
                 "stop": { "low": { "module": "@business-framework/postgresql", "functionName": "disconnect" } }
             }
         }
