@@ -61,4 +61,9 @@ export const selfOf = memo(element => {
 
 export const instancesOf = memo(kindId => allElements().filter(element => extendsKind(kindOf(element), kindId)));
 
+export const isInstanceOf = ({ element, kind }) => {
+    const found = findElement(element);
+    return found !== undefined && extendsKind(kindOf(found), kind);
+};
+
 export const checkKind = self => problemsOf(() => resolveKind(self.id)).map(problem => problem.message);

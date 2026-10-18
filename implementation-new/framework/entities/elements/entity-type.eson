@@ -1,0 +1,198 @@
+[
+    {
+        "id": "apply-transition",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!model": "object", "!state": "object", "!transition": "string" }, "output": "@any" },
+            "implementation": { "module": "@business-framework/entities/states", "export": "applyTransition" }
+        }
+    },
+    {
+        "id": "initial-state",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "model": "object", "name": "string" }, "output": "@entity-state" },
+            "implementation": { "module": "@business-framework/entities/states", "export": "initialState" }
+        }
+    },
+    {
+        "id": "check-states-model",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "implementation": { "module": "@business-framework/entities/states", "export": "checkStatesModel" }
+        }
+    },
+    {
+        "id": "apply-entity-change",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "args", "set": "#.input" },
+            {
+                "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
+                "forEach": { "inputMap": "#.args.change", "execute": "#.input" }
+            },
+            {
+                "inTransaction": [
+                    {
+                        "outputKey": "record",
+                        "inputMap": "#.args.storeInput",
+                        "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
+                        "action": { "invoke": "entity-database", "operation": "#.args.storeOperation" }
+                    },
+                    {
+                        "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
+                        "forEach": {
+                            "inputMap": {
+                                "$conditional": {
+                                    "_if": { "$eq": ["#.args.change.operation", "delete"] },
+                                    "_then": "#.args.change",
+                                    "_else": { "$merge": ["#.args.change", { "after": "#.record" }] }
+                                }
+                            },
+                            "execute": "#.input"
+                        }
+                    },
+                    { "return": "#.record" }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "entity-type",
+        "kind": "kind",
+        "data": {
+            "shape": { "!dataSchema": "@schema", "statesModel": "@entity-states-model" },
+            "slots": {
+                "businessKey": { "cardinality": "one", "value": "@method" },
+                "guards": { "cardinality": "many", "value": "@method" },
+                "interceptors": { "cardinality": "many", "value": "@method" },
+                "reactions": { "cardinality": "many", "value": "@method" }
+            },
+            "operations": {
+                "read": {
+                    "input": { "!businessKey": "string", "revision": "number" },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision" },
+                        "invoke": "entity-database",
+                        "operation": "read"
+                    }
+                },
+                "list": {
+                    "input": { "limit": "number", "offset": "number" },
+                    "output": { "!items[]": "@entity-record", "!total": "number" },
+                    "implementation": {
+                        "inputMap": { "entityType": "#.self.id", "limit": "#.input.limit", "offset": "#.input.offset" },
+                        "invoke": "entity-database",
+                        "operation": "list"
+                    }
+                },
+                "create": {
+                    "input": { "businessKey": "string", "!data": "object", "initialState": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "value": "#.input.data" }, "call": "assert-valid" },
+                        { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
+                        {
+                            "outputKey": "businessKey",
+                            "if": "#.input.businessKey",
+                            "then": { "set": "#.input.businessKey" },
+                            "else": {
+                                "if": "#.businessKeyRule",
+                                "then": { "execute": "#.businessKeyRule" },
+                                "else": { "throw": { "code": "invalid", "message": "businessKey is required" } }
+                            }
+                        },
+                        {
+                            "outputKey": "state",
+                            "set": { "$func/initial-state": { "model": "#.self.data.statesModel", "name": "#.input.initialState" } }
+                        },
+                        {
+                            "inputMap": {
+                                "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.input.data", "state": "#.state" } },
+                                "storeOperation": "create",
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.businessKey", "data": "#.input.data", "state": "#.state" }
+                            },
+                            "call": "apply-entity-change"
+                        }
+                    ]
+                },
+                "update": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!data": "object" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "value": "#.input.data" }, "call": "assert-valid" },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        {
+                            "inputMap": {
+                                "change": {
+                                    "operation": "update",
+                                    "before": "#.before",
+                                    "after": { "id": "#.before.id", "entityType": "#.before.entityType", "businessKey": "#.before.businessKey", "revision": "#.before.revision", "data": "#.input.data", "state": "#.before.state" }
+                                },
+                                "storeOperation": "update",
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision", "data": "#.input.data" }
+                            },
+                            "call": "apply-entity-change"
+                        }
+                    ]
+                },
+                "transition": {
+                    "input": { "!businessKey": "string", "revision": "number", "!transition": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$get": { "_object": { "$coalesce": ["#.self.data.statesModel.transitions", {}] }, "_path": "#.input.transition" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.self.id", "\\ has no transition ", "#.input.transition"] } } } }
+                        },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.self.data.statesModel", "state": "#.before.state", "transition": "#.input.transition" } } },
+                        {
+                            "if": { "$negate": "#.state" },
+                            "then": { "throw": { "code": "conflict", "message": { "$join": { "_strings": ["\\transition ", "#.input.transition", "\\ isn't allowed from the current state"] } } } }
+                        },
+                        {
+                            "inputMap": {
+                                "change": {
+                                    "operation": "transition",
+                                    "transition": "#.input.transition",
+                                    "before": "#.before",
+                                    "after": { "id": "#.before.id", "entityType": "#.before.entityType", "businessKey": "#.before.businessKey", "revision": "#.before.revision", "data": "#.before.data", "state": "#.state" }
+                                },
+                                "storeOperation": "update",
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": { "$coalesce": ["#.input.revision", "#.before.revision"] }, "state": "#.state" }
+                            },
+                            "call": "apply-entity-change"
+                        }
+                    ]
+                },
+                "delete": {
+                    "input": { "!businessKey": "string", "revision": "number" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        {
+                            "inputMap": {
+                                "change": { "operation": "delete", "before": "#.before" },
+                                "storeOperation": "delete",
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision" }
+                            },
+                            "call": "apply-entity-change"
+                        }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "load": [
+                    { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "schema": "#.self.data.dataSchema" }, "invoke": "ajv", "operation": "add" },
+                    { "outputKey": "problems", "set": { "$func/check-states-model": "#.self.data.statesModel" } },
+                    {
+                        "if": { "$head": "#.problems" },
+                        "then": { "throw": { "$join": { "_strings": ["#.self.id", ": ", { "$join": { "_strings": "#.problems", "_separator": "; " } }] } } }
+                    }
+                ]
+            }
+        }
+    }
+]

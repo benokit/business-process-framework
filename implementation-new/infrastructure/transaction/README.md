@@ -10,6 +10,8 @@ PostgreSQL transactions as scoped context ([F8, P13](../../../design/critique.md
 { "inTransaction": [ { "invoke": "contract", "operation": "update" }, { "invoke": "outbox", "operation": "publish" } ] }
 ```
 
+`inSession(_ctx, client => …)` runs work in the bound session, or in a transaction of its own when none is bound.
+
 Code that uses the session declares `"context": { "reads": ["transaction"] }` on its kind and works without it (autocommit). Native code gets the client for its `_ctx`:
 
 ```js

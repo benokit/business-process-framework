@@ -31,3 +31,20 @@ export const commitTransaction = end('COMMIT');
 export const rollbackTransaction = end('ROLLBACK');
 
 export const queryable = _ctx => _ctx.transaction ? clientOf(_ctx.transaction.sessionId) : getPool();
+
+const inOwnSession = async work => {
+    const client = await getPool().connect();
+    try {
+        await client.query('BEGIN');
+        const result = await work(client);
+        await client.query('COMMIT');
+        return result;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+export const inSession = (_ctx, work) => _ctx.transaction ? work(clientOf(_ctx.transaction.sessionId)) : inOwnSession(work);

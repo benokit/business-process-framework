@@ -5,7 +5,7 @@ The rewrite alongside [implementation](../implementation): packages move here on
 | Package | Purpose |
 |---|---|
 | [core](core/README.md) | kinds, schemas, pipelines, slots, context, lifecycle, validation |
-| [framework](framework/README.md) | database, messaging |
+| [framework](framework/README.md) | database, messaging, entities |
 | [infrastructure](infrastructure/README.md) | logging, cache, postgresql, sequence-generator, transaction, http-server, messaging-nats, transactional-outbox |
 
 ```sh

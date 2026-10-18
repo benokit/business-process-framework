@@ -33,6 +33,10 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [validation.js](src/validation.js) | `validate()` |
 | [elements/](elements) | the bootstrap kinds, in data |
 
+## Core elements
+
+Besides the bootstrap kinds: `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+
 ## Pipeline rules
 
 - A node has one keyword plus `inputMap` and `outputKey`. The node's own expressions (`set`, `if`, `invoke`, `execute`, …) see the scope it is written in; `inputMap` sets the node's input: what it passes to what it calls or runs (operations, `low`, methods, `forEach` items, branches, `next`). Without `inputMap` the input is the current `#.input`.

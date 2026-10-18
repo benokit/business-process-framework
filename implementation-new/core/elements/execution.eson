@@ -26,5 +26,25 @@
             "signature": { "input": { "!mapping": "@any", "input": "@any" }, "output": "@any" },
             "implementation": { "module": "@business-framework/core/mappings", "export": "applyMapping" }
         }
+    },
+    {
+        "id": "is-instance-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!kind": "string" }, "output": "boolean" },
+            "implementation": { "module": "@business-framework/core/kinds", "export": "isInstanceOf" }
+        }
+    },
+    {
+        "id": "assert-valid",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "result", "set": { "$func/schema-validate": { "schemaId": "#.input.schemaId", "value": "#.input.value" } } },
+            {
+                "if": { "$negate": "#.result.isValid" },
+                "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["\\value doesn't match ", "#.input.schemaId"] } }, "data": { "errors": "#.result.errors" } } }
+            },
+            { "set": "#.input.value" }
+        ]
     }
 ]
