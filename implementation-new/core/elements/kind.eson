@@ -10,7 +10,14 @@
                 "operations{}": "@operation",
                 "slots{}": "@slot",
                 "context": { "manages": "@schema", "reads[]": "string" },
-                "lifecycle": { "load": "@method", "start": "@method", "stop": "@method" }
+                "lifecycle": {
+                    "load": "@method",
+                    "start": "@method",
+                    "stop": "@method",
+                    "startAfter[]": "string",
+                    "startBefore[]": "string",
+                    "startPosition=1": ["first", "last"]
+                }
             },
             "lifecycle": {
                 "load": [

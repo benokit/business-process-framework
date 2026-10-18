@@ -13,7 +13,7 @@ describe('sequence-generator', function () {
     before(async function () {
         await skipWithoutPostgres(this);
         await boot({
-            paths: ['@business-framework/postgresql', '@business-framework/sequence-generator'].map(packageElements),
+            paths: ['@business-framework/database', '@business-framework/postgresql', '@business-framework/sequence-generator'].map(packageElements),
             elements: numbering
         });
         await start();

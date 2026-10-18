@@ -1,0 +1,9 @@
+[
+    {
+        "id": "database",
+        "kind": "kind",
+        "data": {
+            "lifecycle": { "startPosition": "first" }
+        }
+    }
+]

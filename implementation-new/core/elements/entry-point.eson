@@ -1,0 +1,15 @@
+[
+    {
+        "id": "trace-context",
+        "kind": "schema",
+        "data": { "!correlation": "string" }
+    },
+    {
+        "id": "entry-point",
+        "kind": "kind",
+        "data": {
+            "context": { "manages": { "trace": "@trace-context" } },
+            "lifecycle": { "startPosition": "last" }
+        }
+    }
+]

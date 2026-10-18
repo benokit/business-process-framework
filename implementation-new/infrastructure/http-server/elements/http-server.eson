@@ -24,7 +24,8 @@
                     "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "_object": { "$func/app-config-section": "http" }, "_path": "port" } }] } },
                     "low": { "module": "@business-framework/http-server", "functionName": "listen" }
                 },
-                "stop": { "low": { "module": "@business-framework/http-server", "functionName": "close" } }
+                "stop": { "low": { "module": "@business-framework/http-server", "functionName": "close" } },
+                "startPosition": "last"
             }
         }
     },

@@ -2,6 +2,7 @@ import { allElements, findElement, kindOf } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { validateValue } from './schemas.js';
 import { fillsOf, orderFills } from './slots.js';
+import { elementsInStartOrder } from './lifecycle.js';
 import { fail, problemsOf } from './errors.js';
 
 const kinds = () => instancesOf('kind');
@@ -57,12 +58,19 @@ const orderProblems = element => Object.entries(resolveKind(kindOf(element)).slo
         orderFills(fills, targets, slot);
     });
 
+const startOrderNames = () => kinds().flatMap(kind => ['startAfter', 'startBefore']
+    .flatMap(property => (kind.data.lifecycle?.[property] ?? []).map(name => () => {
+        if (findElement(name)?.kind !== 'kind') fail('unknown-kind', `${kind.id}: ${property} names '${name}', which is not a kind`, { kind: kind.id, name });
+    })));
+
 const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
     ...allElements().flatMap(shapeProblems),
     ...instancesOf('slot-fill').map(fillProblem),
-    ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems)
+    ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems),
+    ...startOrderNames(),
+    elementsInStartOrder
 ];
 
 export const validate = () => checks().flatMap(problemsOf);

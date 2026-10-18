@@ -5,10 +5,10 @@ const echo = {
     id: 'echo',
     kind: 'kind',
     data: {
-        context: { reads: ['request'] },
+        context: { reads: ['request', 'trace'] },
         operations: {
             echo: { input: '@any', implementation: { set: '#.input' } },
-            correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.request.correlation' } } },
+            correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.request.correlation', traced: '#._ctx.trace.correlation' } } },
             strict: { input: { '!amount': 'number' }, implementation: { set: '#.input' } },
             fail: { input: '@any', implementation: { throw: '\\broken' } }
         }
@@ -70,8 +70,8 @@ describe('http-server', () => {
         expect(body).to.deep.equal({ item: { id: '7', sort: 'name' } });
     });
 
-    it('binds the request context, with the correlation from the header', async () => {
-        expect((await call('/correlation', { headers: { 'x-correlation-id': 'c-1' } })).body).to.deep.equal({ correlation: 'c-1' });
+    it('binds the request and trace contexts, with the correlation from the header', async () => {
+        expect((await call('/correlation', { headers: { 'x-correlation-id': 'c-1' } })).body).to.deep.equal({ correlation: 'c-1', traced: 'c-1' });
         expect((await call('/correlation')).body.correlation).to.be.a('string').with.length.above(0);
     });
 

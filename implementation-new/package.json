@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "core",
-    "infrastructure/*"
+    "infrastructure/*",
+    "framework/*"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present"

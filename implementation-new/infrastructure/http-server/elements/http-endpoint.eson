@@ -18,6 +18,7 @@
         "id": "http-endpoint",
         "kind": "kind",
         "data": {
+            "extends": "entry-point",
             "context": { "manages": { "request": "@request-context" } },
             "shape": {
                 "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -40,7 +41,7 @@
                             "low": { "module": "@business-framework/http-server", "functionName": "requestContext" }
                         },
                         {
-                            "withContext": { "request": "#.requestContext" },
+                            "withContext": { "request": "#.requestContext", "trace": { "correlation": "#.requestContext.correlation" } },
                             "do": {
                                 "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
                                 "action": [

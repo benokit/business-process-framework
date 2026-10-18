@@ -44,8 +44,13 @@ Errors are `CoreError` with `code`, `message` and `data`.
 ## Not yet
 
 - Static checks of code (levels 1 and 2 of Q18): `validate()` checks kinds, context declarations, shapes, slot fills and fill order, not pipelines.
-- Declared start dependencies (Q8): hooks start in element id order.
 - Pure function signatures aren't checked.
+
+## Lifecycle
+
+`load` runs every element's hooks in element id order (load hooks don't depend on each other). `start` orders elements by element id, then by what their kinds declare in `lifecycle`: `startPosition` (`first`, `last`), `startAfter` and `startBefore`, which name kinds and cover all their instances, subkinds included. `stop` runs in reverse start order. A cycle is an error.
+
+The kind `entry-point` manages the context key `trace` (`{ correlation }`) and starts last. Kinds that receive work from outside (`http-endpoint`, `message-consumer`) extend it and bind `trace` next to their own key; code that propagates a correlation reads `trace`.
 
 ## Data composition
 

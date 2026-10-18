@@ -49,7 +49,7 @@ describe('transaction', function () {
     before(async function () {
         await skipWithoutPostgres(this);
         await boot({
-            paths: ['@business-framework/postgresql', '@business-framework/transaction'].map(packageElements),
+            paths: ['@business-framework/database', '@business-framework/postgresql', '@business-framework/transaction'].map(packageElements),
             elements: fixtures
         });
         await start();

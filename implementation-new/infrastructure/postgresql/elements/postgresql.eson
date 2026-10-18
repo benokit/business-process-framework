@@ -12,6 +12,7 @@
         "id": "postgresql-database",
         "kind": "kind",
         "data": {
+            "extends": "database",
             "operations": {
                 "execute": {
                     "input": "@sql-command",

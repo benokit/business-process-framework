@@ -6,13 +6,15 @@ import { fail } from './errors.js';
 const baseOrder = targets => (a, b) =>
     targets.indexOf(a.data.target) - targets.indexOf(b.data.target) || (a.id ?? '').localeCompare(b.id ?? '');
 
-export const orderFills = (fills, targets, slot) => orderItems([...fills].sort(baseOrder(targets)), {
-    label: `'${slot}' fills`,
-    idOf: fill => fill.id,
-    positionOf: fill => fill.data.position,
-    afterOf: fill => fill.data.after ?? [],
-    beforeOf: fill => fill.data.before ?? []
-});
+export const orderFills = (fills, targets, slot) => {
+    const byId = id => fills.find(fill => fill.id === id);
+    return orderItems([...fills].sort(baseOrder(targets)), {
+        label: `'${slot}' fills`,
+        positionOf: fill => fill.data.position,
+        afterOf: fill => (fill.data.after ?? []).map(byId),
+        beforeOf: fill => (fill.data.before ?? []).map(byId)
+    });
+};
 
 const singleValue = (fills, targets, slot) => {
     const target = targets.findLast(t => fills.some(fill => fill.data.target === t));

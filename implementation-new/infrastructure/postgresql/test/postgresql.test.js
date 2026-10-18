@@ -9,7 +9,7 @@ const sql = (command, parameters) => invoke('postgresql', 'execute', { command, 
 describe('postgresql', function () {
     before(async function () {
         await skipWithoutPostgres(this);
-        await boot({ paths: [packageElements('@business-framework/postgresql')] });
+        await boot({ paths: ['@business-framework/database', '@business-framework/postgresql'].map(packageElements) });
         await start();
         await sql(`CREATE TABLE ${TABLE} (id SERIAL, status TEXT, type TEXT)`);
         await sql(`INSERT INTO ${TABLE} (status, type) VALUES ('pending', 'online'), ('shipped', 'offline')`);
