@@ -1,0 +1,18 @@
+[
+    {
+        "id": "entity-transition-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType/:businessKey/transitions/:transition",
+            "target": { "element": "entity-states", "operation": "transition" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "businessKey": "#.params.businessKey",
+                "revision": { "$func/if-match-revision": "#.headers.if-match" },
+                "transition": "#.params.transition"
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    }
+]

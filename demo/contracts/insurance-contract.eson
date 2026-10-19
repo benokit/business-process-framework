@@ -2,10 +2,17 @@
     {
         "id": "insurance-contract",
         "kind": "kind",
+        "data": { "extends": "entity-type" }
+    },
+    {
+        "id": "contract-lifecycle",
+        "kind": "slot-fill",
         "data": {
-            "extends": "entity-type",
-            "defaults": {
-                "statesModel": {
+            "target": "insurance-contract",
+            "slot": "traits",
+            "value": {
+                "trait": "state",
+                "configuration": {
                     "states": { "status": ["draft", "discarded", "issued", "active", "cancelled"] },
                     "transitions": {
                         "discard": { "from": { "status": ["draft"] }, "to": { "status": "discarded" } },
@@ -27,7 +34,7 @@
             "value": {
                 "if": { "$eq": ["#.input.operation", "update"] },
                 "then": {
-                    "if": { "$neq": ["#.input.before.state.dimensions.status", "draft"] },
+                    "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
                     "then": { "throw": { "code": "conflict", "message": "insurance contracts can only be updated in draft" } }
                 }
             }
@@ -46,13 +53,16 @@
             "slot": "reactions",
             "after": ["publish-entity-events"],
             "value": {
-                "if": { "$eq": ["#.input.transition", "activate"] },
+                "if": { "$eq": ["#.input.trait", "state"] },
                 "then": {
-                    "inputMap": {
-                        "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey" },
-                        "group": "#.input.after.businessKey"
-                    },
-                    "publish": "contract-events"
+                    "if": { "$eq": ["#.input.command", "activate"] },
+                    "then": {
+                        "inputMap": {
+                            "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey" },
+                            "group": "#.input.after.businessKey"
+                        },
+                        "publish": "contract-events"
+                    }
                 }
             }
         }

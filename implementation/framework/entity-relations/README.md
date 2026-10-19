@@ -3,7 +3,7 @@
 Directed relations between entities, maintained on every write. The package declares its slot on `entity-type`, a kind it doesn't own.
 
 - Declares the slot `relations` on `entity-type` (many methods). Each rule receives the written record and returns `{ relations: [{ targetEntityType, targetEntityBusinessKey, relationType }] }`.
-- A `reactions` fill on `entity-type` runs all rules after `create`, `update` and `transition`, inside the transaction, and writes the minimal changes with `entity-relation-database.setRelations`. Targets must exist (`not-found` otherwise); duplicates are ignored. Deleting an entity deletes its relations (`ON DELETE CASCADE`).
+- A `reactions` fill on `entity-type` runs all rules after every write but a delete, inside the transaction, and writes the minimal changes with `entity-relation-database.setRelations`. Targets must exist (`not-found` otherwise); duplicates are ignored. Deleting an entity deletes its relations (`ON DELETE CASCADE`).
 - `relationsOf({ sourceEntityId })` → `[{ targetEntityId, relationType }]`.
 
 ```json
@@ -12,7 +12,7 @@ Directed relations between entities, maintained on every write. The package decl
     "data": {
         "target": "construction",
         "slot": "relations",
-        "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.policyholder", "relationType": "policyholder" }] } }
+        "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.body.policyholder", "relationType": "policyholder" }] } }
     }
 }
 ```

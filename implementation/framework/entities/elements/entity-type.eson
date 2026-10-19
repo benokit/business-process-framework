@@ -1,29 +1,5 @@
 [
     {
-        "id": "apply-transition",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "!model": "object", "!state": "object", "!transition": "string" }, "output": "@any" },
-            "implementation": { "module": "@business-framework/entities/states", "export": "applyTransition" }
-        }
-    },
-    {
-        "id": "initial-state",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "model": "object", "name": "string" }, "output": "@entity-state" },
-            "implementation": { "module": "@business-framework/entities/states", "export": "initialState" }
-        }
-    },
-    {
-        "id": "check-states-model",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": "@any", "output": "[string]" },
-            "implementation": { "module": "@business-framework/entities/states", "export": "checkStatesModel" }
-        }
-    },
-    {
         "id": "apply-entity-change",
         "kind": "executable",
         "data": [
@@ -62,8 +38,9 @@
         "id": "entity-type",
         "kind": "kind",
         "data": {
-            "shape": { "!dataSchema": "@schema", "statesModel": "@entity-states-model" },
+            "shape": { "!bodySchema": "@schema" },
             "slots": {
+                "traits": { "cardinality": "many", "value": "@entity-trait-use" },
                 "businessKey": { "cardinality": "one", "value": "@method" },
                 "guards": { "cardinality": "many", "value": "@method" },
                 "interceptors": { "cardinality": "many", "value": "@method" },
@@ -89,10 +66,10 @@
                     }
                 },
                 "create": {
-                    "input": { "businessKey": "string", "!data": "object", "initialState": "string" },
+                    "input": { "businessKey": "string", "!body": "object", "traits": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "value": "#.input.data" }, "call": "assert-valid" },
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "call": "assert-valid" },
                         { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
                         {
                             "outputKey": "businessKey",
@@ -105,63 +82,57 @@
                             }
                         },
                         {
-                            "outputKey": "state",
-                            "set": { "$func/initial-state": { "model": "#.self.data.statesModel", "name": "#.input.initialState" } }
+                            "outputKey": "traits",
+                            "inputMap": { "entityType": "#.self.id", "input": { "$coalesce": ["#.input.traits", {}] } },
+                            "call": "initial-trait-values"
                         },
+                        { "outputKey": "data", "set": { "$merge": ["#.traits", { "body": "#.input.body" }] } },
                         {
                             "inputMap": {
-                                "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.input.data", "state": "#.state" } },
+                                "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.data" } },
                                 "storeOperation": "create",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.businessKey", "data": "#.input.data", "state": "#.state" }
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.businessKey", "data": "#.data" }
                             },
                             "call": "apply-entity-change"
                         }
                     ]
                 },
                 "update": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!data": "object" },
+                    "input": { "!businessKey": "string", "!revision": "number", "!body": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "value": "#.input.data" }, "call": "assert-valid" },
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "call": "assert-valid" },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
                             "inputMap": {
-                                "change": {
-                                    "operation": "update",
-                                    "before": "#.before",
-                                    "after": { "id": "#.before.id", "entityType": "#.before.entityType", "businessKey": "#.before.businessKey", "revision": "#.before.revision", "data": "#.input.data", "state": "#.before.state" }
-                                },
+                                "change": { "operation": "update", "trait": "body", "value": "#.input.body", "before": "#.before" },
                                 "storeOperation": "update",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision", "data": "#.input.data" }
+                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "body", "value": "#.input.body" }
                             },
                             "call": "apply-entity-change"
                         }
                     ]
                 },
-                "transition": {
-                    "input": { "!businessKey": "string", "revision": "number", "!transition": "string" },
+                "writeTrait": {
+                    "input": { "!businessKey": "string", "revision": "number", "!trait": "string", "!command": "string", "!value": "@any" },
                     "output": "@entity-record",
                     "implementation": [
                         {
-                            "if": { "$negate": { "$get": { "_object": { "$coalesce": ["#.self.data.statesModel.transitions", {}] }, "_path": "#.input.transition" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.self.id", "\\ has no transition ", "#.input.transition"] } } } }
+                            "if": { "$negate": { "$get": { "_object": { "$func/entity-traits": "#.self.id" }, "_path": "#.input.trait" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.self.id", "\\ has no trait ", "#.input.trait"] } } } }
                         },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.self.data.statesModel", "state": "#.before.state", "transition": "#.input.transition" } } },
-                        {
-                            "if": { "$negate": "#.state" },
-                            "then": { "throw": { "code": "conflict", "message": { "$join": { "_strings": ["\\transition ", "#.input.transition", "\\ isn't allowed from the current state"] } } } }
-                        },
                         {
                             "inputMap": {
-                                "change": {
-                                    "operation": "transition",
-                                    "transition": "#.input.transition",
-                                    "before": "#.before",
-                                    "after": { "id": "#.before.id", "entityType": "#.before.entityType", "businessKey": "#.before.businessKey", "revision": "#.before.revision", "data": "#.before.data", "state": "#.state" }
-                                },
+                                "change": { "operation": "trait", "trait": "#.input.trait", "command": "#.input.command", "value": "#.input.value", "before": "#.before" },
                                 "storeOperation": "update",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": { "$coalesce": ["#.input.revision", "#.before.revision"] }, "state": "#.state" }
+                                "storeInput": {
+                                    "entityType": "#.self.id",
+                                    "businessKey": "#.input.businessKey",
+                                    "revision": { "$coalesce": ["#.input.revision", "#.before.revision"] },
+                                    "trait": "#.input.trait",
+                                    "value": "#.input.value"
+                                }
                             },
                             "call": "apply-entity-change"
                         }
@@ -184,14 +155,8 @@
                 }
             },
             "lifecycle": {
-                "load": [
-                    { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/dataSchema"] } }, "schema": "#.self.data.dataSchema" }, "invoke": "ajv", "operation": "add" },
-                    { "outputKey": "problems", "set": { "$func/check-states-model": "#.self.data.statesModel" } },
-                    {
-                        "if": { "$head": "#.problems" },
-                        "then": { "throw": { "$join": { "_strings": ["#.self.id", ": ", { "$join": { "_strings": "#.problems", "_separator": "; " } }] } } }
-                    }
-                ]
+                "load": { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" },
+                "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
         }
     }

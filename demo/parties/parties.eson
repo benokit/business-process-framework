@@ -3,7 +3,7 @@
         "id": "party",
         "kind": "entity-type",
         "data": {
-            "dataSchema": {
+            "bodySchema": {
                 "!partyType": "string",
                 "!name": "string",
                 "taxId": "string",
@@ -11,15 +11,26 @@
                 "email": "string",
                 "phone": "string",
                 "address": { "street": "string", "city": "string", "country": "string" }
-            },
-            "statesModel": {
-                "states": { "status": ["prospect", "verified", "blacklisted"] },
-                "transitions": {
-                    "verify": { "from": { "status": ["prospect"] }, "to": { "status": "verified" } },
-                    "blacklist": { "from": { "status": ["prospect", "verified"] }, "to": { "status": "blacklisted" } },
-                    "reactivate": { "from": { "status": ["blacklisted"] }, "to": { "status": "prospect" } }
-                },
-                "initialStates": { "default": { "status": "prospect" } }
+            }
+        }
+    },
+    {
+        "id": "party-lifecycle",
+        "kind": "slot-fill",
+        "data": {
+            "target": "party",
+            "slot": "traits",
+            "value": {
+                "trait": "state",
+                "configuration": {
+                    "states": { "status": ["prospect", "verified", "blacklisted"] },
+                    "transitions": {
+                        "verify": { "from": { "status": ["prospect"] }, "to": { "status": "verified" } },
+                        "blacklist": { "from": { "status": ["prospect", "verified"] }, "to": { "status": "blacklisted" } },
+                        "reactivate": { "from": { "status": ["blacklisted"] }, "to": { "status": "prospect" } }
+                    },
+                    "initialStates": { "default": { "status": "prospect" } }
+                }
             }
         }
     },
@@ -36,7 +47,7 @@
                     "searchableAttributes": ["name", "email", "partyType", "businessKey"],
                     "filterableAttributes": ["partyType"]
                 },
-                "mapping": { "set": { "businessKey": "#.input.businessKey", "partyType": "#.input.data.partyType", "name": "#.input.data.name", "email": "#.input.data.email" } }
+                "mapping": { "set": { "businessKey": "#.input.businessKey", "partyType": "#.input.data.body.partyType", "name": "#.input.data.body.name", "email": "#.input.data.body.email" } }
             }
         }
     },

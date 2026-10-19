@@ -1,0 +1,101 @@
+[
+    {
+        "id": "entity-states-model",
+        "kind": "schema",
+        "data": {
+            "!states{}": "[string]",
+            "transitions{}": { "!from{}": "[string]", "!to{}": "string" },
+            "initialStates{}": "{string}"
+        }
+    },
+    {
+        "id": "apply-transition",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!model": "object", "!state": "object", "!transition": "string" }, "output": "@any" },
+            "implementation": { "module": "@business-framework/entity-states/states", "export": "applyTransition" }
+        }
+    },
+    {
+        "id": "initial-state",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!model": "object", "name": "string" }, "output": "@any" },
+            "implementation": { "module": "@business-framework/entity-states/states", "export": "initialState" }
+        }
+    },
+    {
+        "id": "states-model-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "implementation": { "module": "@business-framework/entity-states/states", "export": "statesModelProblems" }
+        }
+    },
+    {
+        "id": "states-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        { "outputKey": "state", "set": { "$func/initial-state": { "model": "#.input.configuration", "name": "#.input.input" } } },
+                        {
+                            "if": { "$negate": "#.state" },
+                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.input.entityType", "\\ has no initial state ", "#.input.input"] } } } }
+                        },
+                        { "set": "#.state" }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "validate": { "$func/states-model-problems": "#.self.id" }
+            }
+        }
+    },
+    {
+        "id": "state",
+        "kind": "states-trait",
+        "data": { "configuration": "@entity-states-model" }
+    },
+    {
+        "id": "entity-state-machine",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "transition": {
+                    "input": { "!entityType": "string", "!businessKey": "string", "revision": "number", "!transition": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                        },
+                        { "outputKey": "model", "set": { "$get": { "_object": { "$func/entity-traits": "#.input.entityType" }, "_path": "state" } } },
+                        {
+                            "if": { "$negate": { "$get": { "_object": { "$coalesce": ["#.model.transitions", {}] }, "_path": "#.input.transition" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.input.entityType", "\\ has no transition ", "#.input.transition"] } } } }
+                        },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
+                        { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.model", "state": "#.before.data.state", "transition": "#.input.transition" } } },
+                        {
+                            "if": { "$negate": "#.state" },
+                            "then": { "throw": { "code": "conflict", "message": { "$join": { "_strings": ["\\transition ", "#.input.transition", "\\ isn't allowed from the current state"] } } } }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "state", "command": "#.input.transition", "value": "#.state" },
+                            "invoke": "#.input.entityType",
+                            "operation": "writeTrait"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-states",
+        "kind": "entity-state-machine",
+        "data": {}
+    }
+]

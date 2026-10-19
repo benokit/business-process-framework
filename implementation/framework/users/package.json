@@ -12,6 +12,7 @@
   "dependencies": {
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
+    "@business-framework/entity-states": "*",
     "@business-framework/security": "*"
   }
 }

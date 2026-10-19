@@ -10,7 +10,7 @@
         "data": {
             "operations": {
                 "create": {
-                    "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": "object", "state": "@entity-state" },
+                    "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": { "!body": "object" } },
                     "output": "@entity-record",
                     "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "create" } }
                 },
@@ -20,7 +20,7 @@
                     "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "read" } }
                 },
                 "update": {
-                    "input": { "!entityType": "string", "!businessKey": "string", "!revision": "number", "data": "object", "state": "@entity-state" },
+                    "input": { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!trait": "string", "!value": "@any" },
                     "output": "@entity-record",
                     "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "update" } }
                 },
@@ -48,7 +48,7 @@
         "data": {
             "target": "postgresql-database",
             "slot": "models",
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entities (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), entity_type TEXT NOT NULL, business_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, data JSONB NOT NULL DEFAULT '{}', state JSONB NOT NULL DEFAULT '{}', timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (entity_type, business_key))" }
+            "value": { "command": "CREATE TABLE IF NOT EXISTS entities (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), entity_type TEXT NOT NULL, business_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, data JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (entity_type, business_key))" }
         }
     },
     {
@@ -58,7 +58,7 @@
             "target": "postgresql-database",
             "slot": "models",
             "after": ["entities-table"],
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, state_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
+            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
         }
     }
 ]

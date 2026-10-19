@@ -12,7 +12,7 @@ const elements = [
     { id: 'whoami-endpoint', kind: 'http-endpoint', data: { method: 'GET', path: '/whoami', target: { element: 'whoami', operation: 'whoami' }, request: {} } }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'http-server', 'security', 'users', 'authorization-basic'];
+const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-states', 'http-server', 'security', 'users', 'authorization-basic'];
 
 const call = async (method, path, { body, headers = {} } = {}) => {
     const { port } = await invoke('http-server', 'address', null);

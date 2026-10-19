@@ -1,4 +1,4 @@
 [
-    { "id": "nameless", "kind": "entity-type", "data": { "statesModel": { "states": { "status": ["a"] } } } },
+    { "id": "nameless", "kind": "entity-type", "data": { "schema": {} } },
     { "kind": "slot-fill", "data": { "target": "entity-type", "slot": "nonsense", "value": {} } }
 ]

@@ -1,10 +1,5 @@
 [
     {
-        "id": "entity-state",
-        "kind": "schema",
-        "data": { "!dimensions{}": "string", "fromTransition": "string" }
-    },
-    {
         "id": "entity-record",
         "kind": "schema",
         "data": {
@@ -12,8 +7,7 @@
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "!data": "object",
-            "!state": "@entity-state",
+            "!data": { "!body": "object" },
             "!timestampUtc": "string"
         }
     },
@@ -21,19 +15,12 @@
         "id": "entity-change",
         "kind": "schema",
         "data": {
-            "!operation=1": ["create", "update", "transition", "delete"],
-            "transition": "string",
+            "!operation=1": ["create", "update", "trait", "delete"],
+            "trait": "string",
+            "command": "string",
+            "value": "@any",
             "before": "@entity-record",
             "after": "object"
-        }
-    },
-    {
-        "id": "entity-states-model",
-        "kind": "schema",
-        "data": {
-            "!states{}": "[string]",
-            "transitions{}": { "!from{}": "[string]", "!to{}": "string" },
-            "initialStates{}": "{string}"
         }
     }
 ]

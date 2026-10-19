@@ -13,7 +13,7 @@ describe('validate', () => {
         expect(await validateApplication({ paths: [DEMO] })).to.deep.equal([]);
     });
 
-    it('reports shape, slot and context problems', async () => {
+    it('reports shape and slot problems', async () => {
         const codes = (await validateApplication({ paths: [BROKEN] })).map(problem => problem.code);
         expect(codes).to.have.members(['invalid-element', 'unknown-slot']);
     });

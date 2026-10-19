@@ -1,6 +1,7 @@
 import { allElements, findElement, kindOf } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { validateValue } from './schemas.js';
+import { applyMapping } from './mappings.js';
 import { fillsOf, orderFills } from './slots.js';
 import { elementsInStartOrder } from './lifecycle.js';
 import { checkBinding, isKindReference, resolveReference } from './references.js';
@@ -77,6 +78,13 @@ const referenceProblems = element => kindReferences(element.data)
     .filter(reference => !isUnusedInCode(element, reference))
     .map(reference => () => resolveReference(reference));
 
+const hookProblems = element => resolveKind(kindOf(element)).chain
+    .filter(kind => kind.data.lifecycle?.validate !== undefined)
+    .map(kind => () => {
+        const messages = applyMapping({ mapping: kind.data.lifecycle.validate, input: { self: selfOf(element) } }) ?? [];
+        if (messages.length > 0) fail('invalid-element', `${element.id}: ${messages.join('; ')}`, { element: element.id, kind: kind.id, messages });
+    });
+
 const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
@@ -87,6 +95,7 @@ const checks = () => [
     ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),
     ...instancesOf('binding').map(binding => () => checkBinding(binding)),
     ...allElements().flatMap(referenceProblems),
+    ...allElements().filter(element => element.id !== undefined).flatMap(hookProblems),
     elementsInStartOrder
 ];
 

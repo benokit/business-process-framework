@@ -14,6 +14,7 @@
     "@business-framework/messaging": "*"
   },
   "devDependencies": {
+    "@business-framework/entity-states": "*",
     "@business-framework/messaging-nats": "*",
     "@business-framework/transactional-outbox": "*"
   }

@@ -9,22 +9,22 @@ Interact with the server on the user's behalf using `curl`. Save all responses a
 | Log in | POST | `/login` | `{ username, password }` → `{ token }` |
 | List entity types | GET | `/entity-types` | |
 | List entities | GET | `/entities/:entityType?limit&offset` | |
-| Create entity | POST | `/entities/:entityType` | `{ businessKey?, data, initialState? }` |
+| Create entity | POST | `/entities/:entityType` | `{ businessKey?, body, traits? }` (`traits.state`: a named initial state) |
 | Read entity | GET | `/entities/:entityType/:businessKey?revision` | |
-| Update entity | PUT | `/entities/:entityType/:businessKey` | `{ data }` |
+| Update entity | PUT | `/entities/:entityType/:businessKey` | `{ body }` |
 | Delete entity | DELETE | `/entities/:entityType/:businessKey` | |
 | Transition | POST | `/entities/:entityType/:businessKey/transitions/:transition` | |
 | Search | POST | `/entity-search/:entityType` | `{ query?, filter?, sort?, offset?, limit? }` |
 
-See [entities-http](../../implementation/framework/entities-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [authorization-basic](../../implementation/framework/authorization-basic/README.md).
+See [entities-http](../../implementation/framework/entities-http/README.md), [entity-states-http](../../implementation/framework/entity-states-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [authorization-basic](../../implementation/framework/authorization-basic/README.md).
 
 ## Conventions
 
 - **Authentication**: log in first and send `Authorization: Bearer <token>` on every request. The admin account comes from the `users` app config (default `admin` / `admin`; overridable with `BPF__users__adminUsername` and `BPF__users__adminPassword`).
 - **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT` requires `If-Match` with the current revision; `DELETE` and transitions accept it.
-- **Update body**: always the full `data` object, not just changed fields.
+- **Records**: `data.body` is the business data; other keys of `data` are traits (`data.state`). An update sends the full `body`, not just changed fields; traits change only through their commands (transitions).
 - **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.
-- **Available transitions** come from the entity type's `statesModel` (`GET /entity-types`) and the record's current `state`.
+- **Available transitions** come from the entity type's `traits.state` (`GET /entity-types`) and the record's `data.state`.
 - **Errors**: `{ error: { code, message } }`; `invalid` 400, `unauthorized` 401, `forbidden` 403, `not-found` 404, `conflict` 409.
 
 ## Interaction style

@@ -8,13 +8,13 @@ const PROJECT = `project-${run}`;
 const INDEX = `projects-${run}`;
 
 const elements = [
-    { id: PROJECT, kind: 'entity-type', data: { dataSchema: { '!name': 'string' } } },
+    { id: PROJECT, kind: 'entity-type', data: { bodySchema: { '!name': 'string' } } },
     {
         kind: 'slot-fill',
         data: {
             target: PROJECT,
             slot: 'searchIndex',
-            value: { searchEngine: 'meilisearch', indexName: INDEX, settings: { searchableAttributes: ['name'] }, mapping: { set: { name: '#.input.data.name', key: '#.input.businessKey' } } }
+            value: { searchEngine: 'meilisearch', indexName: INDEX, settings: { searchableAttributes: ['name'] }, mapping: { set: { name: '#.input.data.body.name', key: '#.input.businessKey' } } }
         }
     }
 ];
@@ -47,8 +47,8 @@ describe('entity-search', function () {
     });
 
     it('indexes created entities and removes deleted ones', async () => {
-        await invoke(PROJECT, 'create', { businessKey: 'p-1', data: { name: 'golden bridge' } });
-        await invoke(PROJECT, 'create', { businessKey: 'p-2', data: { name: 'golden tunnel' } });
+        await invoke(PROJECT, 'create', { businessKey: 'p-1', body: { name: 'golden bridge' } });
+        await invoke(PROJECT, 'create', { businessKey: 'p-2', body: { name: 'golden tunnel' } });
         await eventually(async () => (await keysFor('golden')).length === 2);
         await invoke(PROJECT, 'delete', { businessKey: 'p-1' });
         await eventually(async () => JSON.stringify(await keysFor('golden')) === JSON.stringify(['p-2']));

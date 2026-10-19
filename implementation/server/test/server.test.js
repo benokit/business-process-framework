@@ -39,16 +39,16 @@ describe('server with the demo', function () {
 
     it('logs in as admin and runs a contract through its lifecycle', async () => {
         const { body: { token } } = await call('POST', '/login', { username: 'admin', password: 'admin' });
-        const party = await call('POST', '/entities/party', { businessKey: `p-${run}`, data: { partyType: 'person', name: 'Ada' } }, token);
+        const party = await call('POST', '/entities/party', { businessKey: `p-${run}`, body: { partyType: 'person', name: 'Ada' } }, token);
         expect(party.status).to.equal(201);
         const contract = await call('POST', '/entities/construction', {
-            data: { policyholder: `p-${run}`, project: 'bridge', currency: 'EUR', startDate: '2026-01-01', endDate: '2027-01-01' }
+            body: { policyholder: `p-${run}`, project: 'bridge', currency: 'EUR', startDate: '2026-01-01', endDate: '2027-01-01' }
         }, token);
         expect([contract.status, contract.body.businessKey]).to.satisfy(([status, key]) => status === 201 && /^CON-\d{4}-\d{4,}$/.test(key));
         const key = contract.body.businessKey;
         const issued = await call('POST', `/entities/construction/${key}/transitions/issue`, null, token);
-        expect(issued.body.state.dimensions.status).to.equal('issued');
-        const late = await call('PUT', `/entities/construction/${key}`, { data: contract.body.data }, token, { 'if-match': `"${issued.body.revision}"` });
+        expect(issued.body.data.state.status).to.equal('issued');
+        const late = await call('PUT', `/entities/construction/${key}`, { body: contract.body.data.body }, token, { 'if-match': `"${issued.body.revision}"` });
         expect([late.status, late.body.error.message]).to.deep.equal([409, 'insurance contracts can only be updated in draft']);
     });
 });

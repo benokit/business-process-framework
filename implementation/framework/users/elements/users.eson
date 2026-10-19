@@ -39,7 +39,7 @@
                         { "outputKey": "user", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         { "outputKey": "hash", "inputMap": "#.input.password", "invoke": "password", "operation": "hash" },
                         {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.user.revision", "data": { "$merge": ["#.user.data", { "passwordHash": "#.hash" }] } },
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.user.revision", "body": { "$merge": ["#.user.data.body", { "passwordHash": "#.hash" }] } },
                             "invoke": "#.self.id",
                             "operation": "update"
                         }
@@ -52,21 +52,32 @@
         "id": "user",
         "kind": "user-account",
         "data": {
-            "dataSchema": { "!username": "string", "!email": "string", "roles[]": "string", "passwordHash": "string" },
-            "statesModel": {
-                "states": { "status": ["active", "suspended"] },
-                "transitions": {
-                    "suspend": { "from": { "status": ["active"] }, "to": { "status": "suspended" } },
-                    "reactivate": { "from": { "status": ["suspended"] }, "to": { "status": "active" } }
-                },
-                "initialStates": { "default": { "status": "active" } }
+            "bodySchema": { "!username": "string", "!email": "string", "roles[]": "string", "passwordHash": "string" }
+        }
+    },
+    {
+        "id": "user-lifecycle",
+        "kind": "slot-fill",
+        "data": {
+            "target": "user",
+            "slot": "traits",
+            "value": {
+                "trait": "state",
+                "configuration": {
+                    "states": { "status": ["active", "suspended"] },
+                    "transitions": {
+                        "suspend": { "from": { "status": ["active"] }, "to": { "status": "suspended" } },
+                        "reactivate": { "from": { "status": ["suspended"] }, "to": { "status": "active" } }
+                    },
+                    "initialStates": { "default": { "status": "active" } }
+                }
             }
         }
     },
     {
         "id": "username-is-business-key",
         "kind": "slot-fill",
-        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.data.username" } }
+        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.body.username" } }
     },
     {
         "id": "admin-account",
@@ -84,7 +95,7 @@
                         {
                             "if": { "$negate": "#.exists" },
                             "then": [
-                                { "inputMap": { "data": { "username": "#.config.adminUsername", "email": "#.config.adminEmail", "roles": ["admin"] } }, "invoke": "user", "operation": "create" },
+                                { "inputMap": { "body": { "username": "#.config.adminUsername", "email": "#.config.adminEmail", "roles": ["admin"] } }, "invoke": "user", "operation": "create" },
                                 { "inputMap": { "businessKey": "#.config.adminUsername", "password": "#.config.adminPassword" }, "invoke": "user", "operation": "set-password" }
                             ]
                         }

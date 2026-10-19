@@ -12,7 +12,6 @@ const toRecord = row => ({
     businessKey: row.business_key,
     revision: row.revision,
     data: row.data,
-    state: row.state ?? {},
     timestampUtc: toIso(row.timestamp_utc)
 });
 
@@ -33,11 +32,11 @@ const lockedAt = async (db, entityType, businessKey, revision) => {
     return row;
 };
 
-export const create = async ({ input: { entityType, businessKey, data, state = {} }, _ctx }) => {
+export const create = async ({ input: { entityType, businessKey, data }, _ctx }) => {
     try {
         const { rows: [row] } = await queryable(_ctx).query(
-            'INSERT INTO entities (entity_type, business_key, data, state, timestamp_utc) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
-            [entityType, businessKey, JSON.stringify(data), JSON.stringify(state)]);
+            'INSERT INTO entities (entity_type, business_key, data, timestamp_utc) VALUES ($1, $2, $3, NOW()) RETURNING *',
+            [entityType, businessKey, JSON.stringify(data)]);
         return toRecord(row);
     } catch (error) {
         if (error.code === UNIQUE_VIOLATION) throw new CoreError('conflict', `${entityType} '${businessKey}' already exists`, { entityType, businessKey });
@@ -46,13 +45,12 @@ export const create = async ({ input: { entityType, businessKey, data, state = {
 };
 
 const historyAfter = async (db, row, revision) => (await db.query(
-    'SELECT data_patch, state_patch, timestamp_utc FROM entity_history WHERE id = $1 AND revision >= $2 AND revision < $3 ORDER BY revision DESC',
+    'SELECT data_patch, timestamp_utc FROM entity_history WHERE id = $1 AND revision >= $2 AND revision < $3 ORDER BY revision DESC',
     [row.id, revision, row.revision])).rows;
 
 const rewind = (row, history, revision) => history.reduce((record, patch) => ({
     ...record,
     data: jsonPatch.applyPatch(record.data, patch.data_patch, false, false).newDocument,
-    state: jsonPatch.applyPatch(record.state, patch.state_patch, false, false).newDocument,
     timestampUtc: toIso(patch.timestamp_utc)
 }), { ...toRecord(row), revision });
 
@@ -64,15 +62,15 @@ export const read = async ({ input: { entityType, businessKey, revision }, _ctx 
     return rewind(row, await historyAfter(db, row, revision), revision);
 };
 
-export const update = ({ input: { entityType, businessKey, revision, data, state }, _ctx }) => inSession(_ctx, async db => {
+export const update = ({ input: { entityType, businessKey, revision, trait, value }, _ctx }) => inSession(_ctx, async db => {
     const row = await lockedAt(db, entityType, businessKey, revision);
-    const next = { data: data ?? row.data, state: state ?? row.state ?? {} };
+    const data = { ...row.data, [trait]: value };
     await db.query(
-        'INSERT INTO entity_history (id, entity_type, revision, data_patch, state_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5, $6)',
-        [row.id, row.entity_type, row.revision, JSON.stringify(jsonPatch.compare(next.data, row.data)), JSON.stringify(jsonPatch.compare(next.state, row.state ?? {})), row.timestamp_utc]);
+        'INSERT INTO entity_history (id, entity_type, revision, data_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5)',
+        [row.id, row.entity_type, row.revision, JSON.stringify(jsonPatch.compare(data, row.data)), row.timestamp_utc]);
     const { rows: [updated] } = await db.query(
-        'UPDATE entities SET data = $1, state = $2, revision = revision + 1, timestamp_utc = NOW() WHERE id = $3 RETURNING *',
-        [JSON.stringify(next.data), JSON.stringify(next.state), row.id]);
+        'UPDATE entities SET data = $1, revision = revision + 1, timestamp_utc = NOW() WHERE id = $2 RETURNING *',
+        [JSON.stringify(data), row.id]);
     return toRecord(updated);
 });
 

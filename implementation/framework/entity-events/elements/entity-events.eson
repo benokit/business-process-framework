@@ -3,12 +3,13 @@
         "id": "entity-event",
         "kind": "schema",
         "data": {
-            "!eventType=1": ["create", "update", "transition", "delete"],
+            "!eventType=1": ["create", "update", "trait", "delete"],
             "!entityType": "string",
             "!id": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "transition": "string"
+            "trait": "string",
+            "command": "string"
         }
     },
     {
@@ -37,7 +38,8 @@
                             "id": "#.record.id",
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
-                            "transition": "#.input.transition"
+                            "trait": "#.input.trait",
+                            "command": "#.input.command"
                         },
                         "messageId": { "$join": { "_strings": ["#.record.id", "#.record.revision", "#.input.operation"], "_separator": "-" } },
                         "group": "#.record.businessKey",

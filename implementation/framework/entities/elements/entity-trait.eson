@@ -1,0 +1,66 @@
+[
+    {
+        "id": "entity-trait-use",
+        "kind": "schema",
+        "data": { "!trait": "string", "!configuration": "@any" }
+    },
+    {
+        "id": "entity-trait",
+        "kind": "kind",
+        "data": {
+            "shape": { "!configuration": "@schema" },
+            "operations": {
+                "initialize": { "input": { "!entityType": "string", "!configuration": "@any", "input": "@any" }, "output": "@any" }
+            },
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/configuration"] } }, "schema": "#.self.data.configuration" },
+                    "invoke": "ajv",
+                    "operation": "add"
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-traits",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "object" },
+            "implementation": { "module": "@business-framework/entities/traits", "export": "traitsOf" }
+        }
+    },
+    {
+        "id": "entity-trait-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "implementation": { "module": "@business-framework/entities/traits", "export": "traitProblems" }
+        }
+    },
+    {
+        "id": "initial-trait-values",
+        "kind": "executable",
+        "data": [
+            { "outputKey": "args", "set": "#.input" },
+            { "outputKey": "traits", "set": { "$func/entity-traits": "#.args.entityType" } },
+            {
+                "outputKey": "values",
+                "inputMap": { "$keys": "#.traits" },
+                "forEach": [
+                    {
+                        "outputKey": "value",
+                        "inputMap": {
+                            "entityType": "#.args.entityType",
+                            "configuration": { "$get": { "_object": "#.traits", "_path": "#.input" } },
+                            "input": { "$get": { "_object": "#.args.input", "_path": "#.input" } }
+                        },
+                        "invoke": "#.input",
+                        "operation": "initialize"
+                    },
+                    { "set": { "trait": "#.input", "value": "#.value" } }
+                ]
+            },
+            { "set": { "$mapValues": { "_of": { "$toDictionary": { "_by": "#.trait", "_collection": "#.values" } }, "_fn": "#.value" } } }
+        ]
+    }
+]

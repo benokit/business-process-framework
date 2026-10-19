@@ -29,7 +29,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
 | [context.js](src/context.js) | code authors, binding rights |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke` |
-| [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks |
+| [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (`validate` hooks run in [validation.js](src/validation.js)) |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
 | [elements/](elements) | the bootstrap kinds, in data |
@@ -50,6 +50,8 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 ## Validation
 
 `validate()` runs over the loaded elements, on demand (tests, CI, [`bpf-validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. It doesn't inspect pipelines or pure function signatures.
+
+A kind adds its own checks with `lifecycle.validate`: a mapping from `#.self` to a list of problem messages, run for each identified instance, subkinds included. Any message is reported as `invalid-element`.
 
 ## Lifecycle
 

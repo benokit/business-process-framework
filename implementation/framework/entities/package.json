@@ -5,7 +5,7 @@
   "exports": {
     "./package.json": "./package.json",
     "./store": "./src/entity-store.js",
-    "./states": "./src/states.js"
+    "./traits": "./src/traits.js"
   },
   "scripts": {
     "test": "mocha --exit"

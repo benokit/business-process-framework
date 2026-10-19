@@ -43,7 +43,7 @@
             "target": "entity-type",
             "slot": "reactions",
             "value": {
-                "if": { "$includes": { "_collection": ["create", "update", "transition"], "_value": "#.input.operation" } },
+                "if": { "$neq": ["#.input.operation", "delete"] },
                 "then": [
                     { "outputKey": "record", "set": "#.input.after" },
                     {

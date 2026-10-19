@@ -68,3 +68,17 @@ describe('start order', () => {
         expect(validate().map(p => p.code)).to.have.members(['unknown-kind', 'order-cycle']);
     });
 });
+
+describe('validate hooks', () => {
+    it('reports the messages of every kind in the chain, on demand only', async () => {
+        await bootWith(
+            kind('ranged', { shape: { '!min': 'number', '!max': 'number' }, lifecycle: { validate: { $conditional: { _if: { $gt: ['#.self.data.min', '#.self.data.max'] }, _then: ['\\min exceeds max'], _else: [] } } } }),
+            kind('tight-range', { extends: 'ranged', lifecycle: { validate: { $conditional: { _if: { $eq: ['#.self.data.min', '#.self.data.max'] }, _then: [], _else: ['\\not tight'] } } } }),
+            element('good', 'ranged', { min: 1, max: 2 }),
+            element('bad', 'tight-range', { min: 3, max: 2 }));
+        expect(validate().map(({ code, message }) => [code, message])).to.have.deep.members([
+            ['invalid-element', 'bad: min exceeds max'],
+            ['invalid-element', 'bad: not tight']
+        ]);
+    });
+});

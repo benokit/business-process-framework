@@ -3,7 +3,7 @@
         "id": "construction",
         "kind": "insurance-contract",
         "data": {
-            "dataSchema": {
+            "bodySchema": {
                 "!policyholder": "string",
                 "!project": "string",
                 "!currency": "string",
@@ -38,7 +38,7 @@
         "data": {
             "target": "construction",
             "slot": "relations",
-            "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.policyholder", "relationType": "policyholder" }] } }
+            "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.body.policyholder", "relationType": "policyholder" }] } }
         }
     }
 ]

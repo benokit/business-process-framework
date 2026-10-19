@@ -7,7 +7,7 @@
                 "dispatch": {
                     "input": {
                         "!entityType": "string",
-                        "!operation=1": ["create", "read", "update", "delete", "transition", "list"],
+                        "!operation=1": ["create", "read", "update", "delete", "list"],
                         "!request": "object"
                     },
                     "implementation": [
@@ -20,13 +20,13 @@
                 },
                 "types": {
                     "input": "@any",
-                    "output": { "!items[]": { "!id": "string", "!kind": "string", "!dataSchema": "@schema", "statesModel": "object" } },
+                    "output": { "!items[]": { "!id": "string", "!kind": "string", "!bodySchema": "@schema", "!traits": "object" } },
                     "implementation": {
                         "set": {
                             "items": {
                                 "$map": {
                                     "_over": { "$func/instances-of": "entity-type" },
-                                    "_fn": { "id": "#.id", "kind": "#.kind", "dataSchema": "#.data.dataSchema", "statesModel": "#.data.statesModel" }
+                                    "_fn": { "id": "#.id", "kind": "#.kind", "bodySchema": "#.data.bodySchema", "traits": { "$func/entity-traits": "#.id" } }
                                 }
                             }
                         }

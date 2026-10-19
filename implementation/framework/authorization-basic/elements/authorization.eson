@@ -57,14 +57,14 @@
                         {
                             "outputKey": "valid",
                             "if": "#.user",
-                            "then": { "inputMap": { "password": "#.input.password", "hash": "#.user.data.passwordHash" }, "invoke": "password", "operation": "verify" },
+                            "then": { "inputMap": { "password": "#.input.password", "hash": "#.user.data.body.passwordHash" }, "invoke": "password", "operation": "verify" },
                             "else": { "set": false }
                         },
                         { "if": { "$negate": "#.valid" }, "then": { "throw": { "code": "unauthorized", "message": "invalid credentials" } } },
                         {
                             "outputKey": "token",
                             "inputMap": {
-                                "principal": { "userId": "#.user.businessKey", "username": "#.user.data.username", "email": "#.user.data.email", "roles": { "$coalesce": ["#.user.data.roles", []] } },
+                                "principal": { "userId": "#.user.businessKey", "username": "#.user.data.body.username", "email": "#.user.data.body.email", "roles": { "$coalesce": ["#.user.data.body.roles", []] } },
                                 "secret": { "$func/jwt-secret": null }
                             },
                             "low": { "module": "@business-framework/authorization-basic", "functionName": "generateToken" }

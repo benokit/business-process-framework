@@ -9,57 +9,42 @@ const CONSTRUCTION = `construction-${run}`;
 
 const fill = (id, target, slot, value, order = {}) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target, slot, value, ...order } });
 
+const NOTE = `note-${run}`;
+
 const elements = [
-    {
-        id: ORDER,
-        kind: 'entity-type',
-        data: {
-            dataSchema: { '!amount': 'number', note: 'string' },
-            statesModel: {
-                states: { status: ['draft', 'confirmed', 'cancelled'] },
-                transitions: {
-                    confirm: { from: { status: ['draft'] }, to: { status: 'confirmed' } },
-                    cancel: { from: { status: ['draft', 'confirmed'] }, to: { status: 'cancelled' } }
-                },
-                initialStates: { default: { status: 'draft' }, confirmed: { status: 'confirmed' } }
-            }
-        }
-    },
+    { id: `${NOTE}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $join: { _strings: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', '\\new'] }] } } } } } } },
+    { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
+    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number', note: 'string' } } },
+    fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
-        if: { $lte: ['#.input.after.data.amount', 0] },
+        if: { $lte: ['#.input.after.data.body.amount', 0] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
     fill('stamp-note', ORDER, 'interceptors', {
         if: '#.input.data',
-        then: { inputMap: { $merge: ['#.input', { data: { note: '\\stamped' } }] }, next: true },
+        then: { inputMap: { $merge: ['#.input', { data: { body: { note: '\\stamped' } } }] }, next: true },
         else: { next: true }
     }),
-    fill('fail-on-cancelled-amount', ORDER, 'reactions', {
-        if: { $eq: ['#.input.after.data.amount', 13] },
+    fill('fail-on-unlucky-amount', ORDER, 'reactions', {
+        if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
     }),
-    {
-        id: CONTRACT_CLASS,
-        kind: 'kind',
-        data: {
-            extends: 'entity-type',
-            defaults: {
-                dataSchema: { '!holder': 'string' },
-                statesModel: { states: { status: ['draft', 'active'] }, transitions: { activate: { from: { status: ['draft'] }, to: { status: 'active' } } }, initialStates: { default: { status: 'draft' } } }
-            }
-        }
-    },
-    { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { dataSchema: { '!project': 'string' } } },
-    fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $join: { _strings: ['\\C-', '#.input.data.holder'] } } }),
-    fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $join: { _strings: ['\\CON-', '#.input.data.project'] } } })
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', defaults: { bodySchema: { '!holder': 'string' } } } },
+    { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { bodySchema: { '!project': 'string' } } },
+    fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $join: { _strings: ['\\C-', '#.input.body.holder'] } } }),
+    fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $join: { _strings: ['\\CON-', '#.input.body.project'] } } }),
+    fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),
+    fill('construction-note', CONSTRUCTION, 'traits', { trait: NOTE, configuration: { prefix: 'construction: ' } })
 ];
+
+const packages = ['database', 'postgresql', 'transaction', 'entities'].map(name => `@business-framework/${name}`);
 
 const errorOf = promise => promise.then(() => null, error => error);
 
 describe('entities', function () {
     before(async function () {
         await skipWithoutPostgres(this);
-        await boot({ paths: ['database', 'postgresql', 'transaction', 'entities'].map(name => packageElements(`@business-framework/${name}`)), elements });
+        await boot({ paths: packages.map(packageElements), elements });
         await start();
     });
 
@@ -69,60 +54,56 @@ describe('entities', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('creates with the default initial state and reads back', async () => {
-        const created = await invoke(ORDER, 'create', { businessKey: 'o-1', data: { amount: 5 } });
+    it('creates with the body and initial trait values, and reads back', async () => {
+        const created = await invoke(ORDER, 'create', { businessKey: 'o-1', body: { amount: 5 } });
         expect(created).to.include({ entityType: ORDER, businessKey: 'o-1', revision: 1 });
-        expect(created.state).to.deep.equal({ dimensions: { status: 'draft' } });
+        expect(created.data).to.deep.equal({ body: { amount: 5, note: 'stamped' }, [NOTE]: 'order: new' });
         expect(await invoke(ORDER, 'read', { businessKey: 'o-1' })).to.deep.equal(created);
     });
 
-    it('creates with a named initial state', async () => {
-        const created = await invoke(ORDER, 'create', { businessKey: 'o-2', data: { amount: 5 }, initialState: 'confirmed' });
-        expect(created.state.dimensions).to.deep.equal({ status: 'confirmed' });
+    it('passes trait input on create', async () => {
+        const created = await invoke(ORDER, 'create', { businessKey: 'o-2', body: { amount: 5 }, traits: { [NOTE]: 'given' } });
+        expect(created.data[NOTE]).to.equal('order: given');
     });
 
-    it('rejects invalid data, a missing businessKey, a duplicate and a missing record', async () => {
+    it('rejects an invalid body, a missing businessKey, a duplicate and a missing record', async () => {
         const codes = await Promise.all([
-            errorOf(invoke(ORDER, 'create', { businessKey: 'bad', data: { amount: 'x' } })),
-            errorOf(invoke(ORDER, 'create', { data: { amount: 1 } })),
-            errorOf(invoke(ORDER, 'create', { businessKey: 'o-1', data: { amount: 1 } })),
+            errorOf(invoke(ORDER, 'create', { businessKey: 'bad', body: { amount: 'x' } })),
+            errorOf(invoke(ORDER, 'create', { body: { amount: 1 } })),
+            errorOf(invoke(ORDER, 'create', { businessKey: 'o-1', body: { amount: 1 } })),
             errorOf(invoke(ORDER, 'read', { businessKey: 'nothing' }))
         ]);
         expect(codes.map(error => error.code)).to.deep.equal(['invalid', 'invalid', 'conflict', 'not-found']);
     });
 
     it('runs guards before the write', async () => {
-        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-neg', data: { amount: -1 } }))).message).to.equal('amount must be positive');
+        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-neg', body: { amount: -1 } }))).message).to.equal('amount must be positive');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-neg' }))).code).to.equal('not-found');
     });
 
-    it('runs interceptors around the write', async () => {
-        expect((await invoke(ORDER, 'create', { businessKey: 'o-3', data: { amount: 5 } })).data.note).to.equal('stamped');
-    });
-
     it('rolls the write back when a reaction fails', async () => {
-        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-13', data: { amount: 13 } }))).message).to.equal('unlucky amount');
+        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-13', body: { amount: 13 } }))).message).to.equal('unlucky amount');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-13' }))).code).to.equal('not-found');
     });
 
-    it('updates with optimistic concurrency and reads past revisions', async () => {
-        await invoke(ORDER, 'create', { businessKey: 'o-4', data: { amount: 1 } });
-        const updated = await invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, data: { amount: 2 } });
-        expect([updated.revision, updated.data.amount]).to.deep.equal([2, 2]);
-        expect((await errorOf(invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, data: { amount: 3 } }))).code).to.equal('conflict');
-        expect((await invoke(ORDER, 'read', { businessKey: 'o-4', revision: 1 })).data.amount).to.equal(1);
+    it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-4', body: { amount: 1 } });
+        const updated = await invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, body: { amount: 2 } });
+        expect([updated.revision, updated.data.body, updated.data[NOTE]]).to.deep.equal([2, { amount: 2 }, 'order: new']);
+        expect((await errorOf(invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, body: { amount: 3 } }))).code).to.equal('conflict');
+        expect((await invoke(ORDER, 'read', { businessKey: 'o-4', revision: 1 })).data.body.amount).to.equal(1);
     });
 
-    it('transitions along the states model', async () => {
-        await invoke(ORDER, 'create', { businessKey: 'o-5', data: { amount: 1 } });
-        const confirmed = await invoke(ORDER, 'transition', { businessKey: 'o-5', transition: 'confirm' });
-        expect(confirmed.state).to.deep.equal({ dimensions: { status: 'confirmed' }, fromTransition: 'confirm' });
-        expect((await errorOf(invoke(ORDER, 'transition', { businessKey: 'o-5', transition: 'confirm' }))).code).to.equal('conflict');
-        expect((await errorOf(invoke(ORDER, 'transition', { businessKey: 'o-5', transition: 'ship' }))).code).to.equal('invalid');
+    it('writes a declared trait only, keeping the body', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-5', body: { amount: 1 } });
+        const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', trait: NOTE, command: 'rewrite', value: 'changed' });
+        expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 1, 'changed']);
+        const undeclared = await Promise.all(['body', 'other'].map(trait => errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', trait, command: 'x', value: {} }))));
+        expect(undeclared.map(error => error.code)).to.deep.equal(['invalid', 'invalid']);
     });
 
     it('deletes', async () => {
-        await invoke(ORDER, 'create', { businessKey: 'o-6', data: { amount: 1 } });
+        await invoke(ORDER, 'create', { businessKey: 'o-6', body: { amount: 1 } });
         expect((await invoke(ORDER, 'delete', { businessKey: 'o-6' })).businessKey).to.equal('o-6');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-6' }))).code).to.equal('not-found');
     });
@@ -133,10 +114,28 @@ describe('entities', function () {
         expect(total).to.be.at.least(4);
     });
 
-    it('inherits schema, states model and slots from an entity class, with the most specific business key rule', async () => {
-        const created = await invoke(CONSTRUCTION, 'create', { data: { holder: 'Ada', project: 'bridge' } });
-        expect(created.businessKey).to.equal('CON-bridge');
-        expect((await errorOf(invoke(CONSTRUCTION, 'create', { data: { project: 'no holder' } }))).code).to.equal('invalid');
-        expect((await invoke(CONSTRUCTION, 'transition', { businessKey: 'CON-bridge', transition: 'activate' })).state.dimensions.status).to.equal('active');
+    it('inherits schema, traits and slots from an entity class, with the most specific business key rule', async () => {
+        const created = await invoke(CONSTRUCTION, 'create', { body: { holder: 'Ada', project: 'bridge' } });
+        expect([created.businessKey, created.data[NOTE]]).to.deep.equal(['CON-bridge', 'construction: new']);
+        expect((await errorOf(invoke(CONSTRUCTION, 'create', { body: { project: 'no holder' } }))).code).to.equal('invalid');
+    });
+
+    it('reports invalid trait uses in validate()', async () => {
+        const broken = [
+            { id: `bad-${run}`, kind: 'entity-type', data: { bodySchema: {} } },
+            fill('bad-configuration', `bad-${run}`, 'traits', { trait: NOTE, configuration: { prefix: 1 } }),
+            fill('not-a-trait', ORDER, 'traits', { trait: 'postgresql', configuration: {} }),
+            fill('repeated-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'again' } })
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
+        const messages = validate().flatMap(problem => problem.data.messages ?? []);
+        expect(messages).to.include.members([
+            `trait '${NOTE}': configuration/prefix must be string`,
+            "'postgresql' is not an entity trait",
+            `trait '${NOTE}' is used twice on ${CONTRACT_CLASS}`
+        ]);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
     });
 });

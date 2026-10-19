@@ -7,7 +7,7 @@ A declarative framework for building backend systems from JSON elements. Busines
 Everything is an **element**: `{ id, kind, data }`. The **kind** is the abstraction. A kind is itself an element that declares the shape of its instances, their operations, open contribution points (slots), the context they may bind, and their lifecycle. Kinds extend kinds, and `kind` is the kind of all kinds.
 
 ```json
-{ "id": "order", "kind": "entity-type", "data": { "dataSchema": { "!amount": "number" } } }
+{ "id": "order", "kind": "entity-type", "data": { "bodySchema": { "!amount": "number" } } }
 ```
 
 ## Building blocks
@@ -26,7 +26,7 @@ Everything is an **element**: `{ id, kind, data }`. The **kind** is the abstract
 | --- | --- |
 | [Core](implementation/core/README.md) | Elements, kinds, schemas, pipelines, slots, context, lifecycle, validation |
 | [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, NATS, transactional outbox, Meilisearch, cache, logging |
-| [Framework](implementation/framework/README.md) | Databases, messaging, entities, events, relations, search, security, users, JWT authorization |
+| [Framework](implementation/framework/README.md) | Databases, messaging, entities and their traits, events, relations, search, security, users, JWT authorization |
 | [Server](implementation/server/README.md) | Starts an application |
 | [Tools](implementation/tools/README.md) | `bpf-validate` |
 | [Demo](demo/README.md) | An insurance application |
