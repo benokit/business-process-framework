@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, `context` rights and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data.
+The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, the `context` it manages and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data.
 
 ```js
 import { boot, start, stop, invoke, validate } from '@business-framework/core';
@@ -13,7 +13,7 @@ validate();                        // on demand, never on start
 ```
 
 - Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS and can't change context.
-- `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; code sees only the keys its kind manages or reads.
+- `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; any code sees every bound key.
 - Program against kinds: an abstract kind declares operation contracts, a subkind implements them; `{ "instanceOf": "<kind>" }` references the single or bound (`binding`) instance, a string names one element.
 - Slots are typed contribution points filled by `slot-fill` elements, ordered by `position`, `after`, `before`.
 

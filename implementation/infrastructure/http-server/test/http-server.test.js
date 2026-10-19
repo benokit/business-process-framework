@@ -5,7 +5,6 @@ const echo = {
     id: 'echo',
     kind: 'kind',
     data: {
-        context: { reads: ['request', 'trace'] },
         operations: {
             echo: { input: '@any', implementation: { set: '#.input' } },
             correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.request.correlation', traced: '#._ctx.trace.correlation' } } },

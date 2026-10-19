@@ -23,12 +23,7 @@ const elements = [
     },
     { id: 'memory', kind: 'memory-broker', data: {} },
     { id: 'orders', kind: 'message-channel', data: { broker: 'memory', topology: 'topic', name: 'orders' } },
-    {
-        id: 'order-auditor',
-        kind: 'kind',
-        data: { extends: 'message-consumer', context: { reads: ['message', 'trace'] } }
-    },
-    { id: 'audit-orders', kind: 'order-auditor', data: { channel: 'orders', handler: lowOf(RECORDER, 'record') } },
+    { id: 'audit-orders', kind: 'message-consumer', data: { channel: 'orders', handler: lowOf(RECORDER, 'record') } },
     {
         id: 'order-service',
         kind: 'kind',

@@ -23,15 +23,15 @@ const errorOf = value => value instanceof CoreError
         : new CoreError('error', String(value), {});
 
 export const control = {
-    set: (node, scope) => evaluate(node.set, scope, node),
+    set: (node, scope) => evaluate(node.set, scope),
 
-    if: (node, scope, input) => evaluate(node.if, scope, node)
+    if: (node, scope, input) => evaluate(node.if, scope)
         ? runPipeline(node.then, { ...scope, input })
         : runOptional(node.else, { ...scope, input }),
 
     switch: (node, scope, input) => {
         const { value, cases } = node.switch;
-        return runOptional(cases[evaluate(value, scope, node)] ?? cases.default, { ...scope, input });
+        return runOptional(cases[evaluate(value, scope)] ?? cases.default, { ...scope, input });
     },
 
     forEach: (node, scope, input) => mapSequentially(input ?? [], item => runPipeline(node.forEach, { ...scope, input: item })),
@@ -39,10 +39,10 @@ export const control = {
     try: runTry,
 
     throw: (node, scope) => {
-        throw errorOf(evaluate(node.throw, scope, node));
+        throw errorOf(evaluate(node.throw, scope));
     },
 
     return: (node, scope) => {
-        throw new Return(evaluate(node.return, scope, node));
+        throw new Return(evaluate(node.return, scope));
     }
 };

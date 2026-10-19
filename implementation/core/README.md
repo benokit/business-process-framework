@@ -23,11 +23,11 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [registry.js](src/registry.js) | elements by id, `memo`/`lazy` caches cleared by `reset` |
 | [loader.js](src/loader.js) | reading `.eson` files |
 | [data.js](src/data.js) | data composition: `/data` with `/ref`, `/merge`, `/literal`, evaluated once at boot |
-| [kinds.js](src/kinds.js) | kind chains, resolved kinds (operations, slots, defaults, context rights), `selfOf`, `instancesOf` |
+| [kinds.js](src/kinds.js) | kind chains, resolved kinds (operations, slots, defaults, managed context), `selfOf`, `instancesOf` |
 | [schemas.js](src/schemas.js) | the AJV instance: add at load, compile on first use, contract checks after load |
 | [mappings.js](src/mappings.js) | compiled LambdaJSON mappings, `$func/<id>` from `pure-function` elements |
 | [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
-| [context.js](src/context.js) | code authors, visible context, binding rights |
+| [context.js](src/context.js) | code authors, binding rights |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke` |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
@@ -44,7 +44,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 - `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
 - `return` ends the current method: an operation, hook, middleware method, `call`/`execute` target, template implementation, or the pipeline a wrapper's `next` runs.
-- `low` receives `{ input, _ctx }`, with `_ctx` frozen and limited to the author's keys.
+- `low` receives `{ input, _ctx }`, with `_ctx` frozen.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
 
 ## Validation
@@ -55,7 +55,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 
 `load` runs every element's hooks in element id order (load hooks don't depend on each other). `start` orders elements by element id, then by what their kinds declare in `lifecycle`: `startPosition` (`first`, `last`), `startAfter` and `startBefore`, which name kinds and cover all their instances, subkinds included. `stop` runs in reverse start order. A cycle is an error.
 
-The kind `entry-point` manages the context key `trace` (`{ correlation }`) and starts last. Kinds that receive work from outside (`http-endpoint`, `message-consumer`) extend it and bind `trace` next to their own key; code that propagates a correlation reads `trace`.
+The kind `entry-point` manages the context key `trace` (`{ correlation }`) and starts last. Kinds that receive work from outside (`http-endpoint`, `message-consumer`) extend it and bind `trace` next to their own key.
 
 ## Interfaces
 
@@ -79,4 +79,4 @@ Packages reference kinds and don't write bindings; the application binds, or nam
 
 An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` deep merges its items (arrays by index, Q5), `{ "/literal": value }` is taken as written. Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
 
-Code keeps the context rights of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.
+Code keeps the binding rights of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.

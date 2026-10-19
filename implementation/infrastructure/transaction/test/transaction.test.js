@@ -34,13 +34,10 @@ const fixtures = [
         id: 'tx-user',
         kind: 'kind',
         data: {
-            context: { reads: ['transaction'] },
             operations: Object.fromEntries(Object.entries(operations).map(([name, implementation]) => [name, { input: '@any', implementation }]))
         }
     },
-    { id: 'the-user', kind: 'tx-user', data: {} },
-    { id: 'outsider', kind: 'kind', data: { operations: { look: { input: '@any', implementation: { inTransaction: { set: { $coalesce: ['#._ctx.transaction', '\\hidden'] } } } } } } },
-    { id: 'the-outsider', kind: 'outsider', data: {} }
+    { id: 'the-user', kind: 'tx-user', data: {} }
 ];
 
 const rows = () => invoke('postgresql', 'execute', { command: `SELECT name FROM ${TABLE} ORDER BY name` }).then(result => result.rows.map(row => row.name));
@@ -89,10 +86,6 @@ describe('transaction', function () {
         const error = await invoke('the-user', 'insert', { name: 'lost', fail: true }).catch(e => e);
         expect(error.message).to.equal('failed on purpose');
         expect(await rows()).to.deep.equal(['kept']);
-    });
-
-    it("hides the session from code whose kind doesn't read it", async () => {
-        expect(await invoke('the-outsider', 'look', null)).to.equal('hidden');
     });
 
     it('fails on an unknown session', async () => {

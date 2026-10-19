@@ -39,7 +39,6 @@
         "id": "message-channel",
         "kind": "kind",
         "data": {
-            "context": { "reads": ["trace"] },
             "shape": {
                 "!broker": "@element-ref",
                 "!topology=1": ["queue", "topic"],

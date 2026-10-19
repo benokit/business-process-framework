@@ -17,7 +17,7 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R2.5 | Execution tracing in a native execution object, beside `_ctx` | F21 | A run's path of nodes, operations and slot fills can be logged; `_ctx` holds no runtime internals | draft |
-| R2.6 | Static checks of code, levels 1 and 2, in `validate()`: code found through `@method`/`@mapping` positions in shapes; node structure, literal references (`invoke` targets, `instanceOf` kinds, operations, slot names, `low` modules), context rights | Q18 | A typo in any reference, an unmanaged binding or an undeclared context read is reported; start doesn't run it | in progress |
+| R2.6 | Static checks of code, levels 1 and 2, in `validate()`: code found through `@method`/`@mapping` positions in shapes; node structure, literal references (`invoke` targets, `instanceOf` kinds, operations, slot names, `low` modules), binding rights | Q18 | A typo in any reference or an unmanaged binding is reported; start doesn't run it | in progress |
 | R2.7 | Effect declarations with contracts and an effect class (read / write / external / nondeterministic); `low` only as the implementation of a declared effect | F7 | `validate()` rejects any other use of `low` | agreed |
 | R2.8 | A test interpreter that runs pipelines with stubbed effects | F7 | At least one entity flow is tested with no database or broker | agreed |
 

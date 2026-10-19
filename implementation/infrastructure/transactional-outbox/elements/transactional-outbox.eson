@@ -4,7 +4,6 @@
         "kind": "kind",
         "data": {
             "extends": "message-outbox",
-            "context": { "reads": ["transaction"] },
             "shape": { "lockIntervalInMilliseconds": "number", "idleIntervalInMilliseconds": "number" },
             "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000 },
             "operations": {

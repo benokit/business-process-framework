@@ -8,12 +8,8 @@ import { fail, problemsOf } from './errors.js';
 
 const kinds = () => instancesOf('kind');
 
-const groupKeys = (pick) => kinds().reduce((groups, kind) => pick(kind).reduce(
+const managedKeys = () => kinds().reduce((groups, kind) => Object.keys(kind.data.context?.manages ?? {}).reduce(
     (acc, key) => ({ ...acc, [key]: [...(acc[key] ?? []), kind.id] }), groups), {});
-
-const managedKeys = () => groupKeys(kind => Object.keys(kind.data.context?.manages ?? {}));
-
-const readKeys = () => groupKeys(kind => kind.data.context?.reads ?? []);
 
 const hasRoot = ids => ids.some(root => ids.every(other => resolveKind(other).ids.includes(root)));
 
@@ -23,9 +19,7 @@ const contextProblems = () => {
         ...Object.keys(managers).filter(key => key.startsWith('!')).map(key => () =>
             fail('required-context', `context '${key.slice(1)}' can't be required`, { kinds: managers[key] })),
         ...Object.entries(managers).filter(([, ids]) => !hasRoot(ids)).map(([key, ids]) => () =>
-            fail('context-managers', `context '${key}' is managed by unrelated kinds: ${ids.join(', ')}`, { key, kinds: ids })),
-        ...Object.entries(readKeys()).filter(([key]) => !managers[key]).map(([key, ids]) => () =>
-            fail('unmanaged-context', `${ids.join(', ')} read context '${key}', which no kind manages`, { key, kinds: ids }))
+            fail('context-managers', `context '${key}' is managed by unrelated kinds: ${ids.join(', ')}`, { key, kinds: ids }))
     ];
 };
 

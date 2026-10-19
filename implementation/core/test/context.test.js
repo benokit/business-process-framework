@@ -8,11 +8,10 @@ const principal = { kind: 'schema', id: 'principal', data: { '!userId': 'string'
 const userScope = kind('user-scope', { context: { manages: { user: '@principal' } } });
 
 const reader = kind('user-reader', {
-    context: { reads: ['user'] },
     operations: { whoami: operation({ set: { $coalesce: ['#._ctx.user.userId', '\\nobody'] } }) }
 });
 
-const blind = kind('blind', { operations: { look: operation({ set: '#._ctx' }) } });
+const viewer = kind('viewer', { operations: { look: operation({ set: '#._ctx' }) } });
 
 const sessionKind = kind('session-kind', {
     extends: 'user-scope',
@@ -25,8 +24,8 @@ const sessionKind = kind('session-kind', {
 });
 
 describe('scoped context', () => {
-    const boot = (...more) => bootWith(principal, userScope, reader, blind, sessionKind,
-        element('session', 'session-kind'), element('the-reader', 'user-reader'), element('the-blind', 'blind'), ...more);
+    const boot = (...more) => bootWith(principal, userScope, reader, viewer, sessionKind,
+        element('session', 'session-kind'), element('the-reader', 'user-reader'), element('the-viewer', 'viewer'), ...more);
 
     it('binds a managed key for the subtree only', async () => {
         await boot();
@@ -44,12 +43,12 @@ describe('scoped context', () => {
         expect((await invoke('bad', 'as', null).catch(e => e)).code).to.equal('invalid');
     });
 
-    it('hides keys the author neither manages nor reads, but carries them on', async () => {
+    it('shows every bound key to any code', async () => {
         await boot(kind('carrier', {
             extends: 'user-scope',
-            operations: { carry: operation({ withContext: { user: { userId: '\\ada' } }, do: [{ outputKey: 'seen', invoke: '\\the-blind', operation: '\\look' }, { outputKey: 'name', invoke: '\\the-reader', operation: '\\whoami' }, { set: ['#.seen', '#.name'] }] }) }
+            operations: { carry: operation({ withContext: { user: { userId: '\\ada' } }, do: [{ outputKey: 'seen', invoke: '\\the-viewer', operation: '\\look' }, { outputKey: 'name', invoke: '\\the-reader', operation: '\\whoami' }, { set: ['#.seen', '#.name'] }] }) }
         }), element('the-carrier', 'carrier'));
-        expect(await invoke('the-carrier', 'carry', null)).to.deep.equal([{}, 'ada']);
+        expect(await invoke('the-carrier', 'carry', null)).to.deep.equal([{ user: { userId: 'ada' } }, 'ada']);
     });
 
     it('gives low a frozen context', async () => {
@@ -57,11 +56,9 @@ describe('scoped context', () => {
         expect(await invoke('the-mutator', 'go', null).catch(e => e)).to.be.instanceOf(TypeError);
     });
 
-    it('reports unrelated managers and unmanaged reads', async () => {
-        await boot(
-            kind('other-user-scope', { context: { manages: { user: '@principal' } } }),
-            kind('typo', { context: { reads: ['usr'] } }));
-        expect(validate().map(p => p.code)).to.have.members(['context-managers', 'unmanaged-context']);
+    it('reports unrelated managers', async () => {
+        await boot(kind('other-user-scope', { context: { manages: { user: '@principal' } } }));
+        expect(validate().map(p => p.code)).to.deep.equal(['context-managers']);
     });
 });
 
@@ -83,7 +80,6 @@ describe('execution node wrappers', () => {
             }
         }),
         kind('repository', {
-            context: { reads: ['transaction'] },
             operations: {
                 save: operation([
                     { outputKey: 'prefix', set: '\\saved ' },

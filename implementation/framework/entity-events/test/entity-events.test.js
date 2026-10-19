@@ -13,8 +13,7 @@ export const record = ({ input, _ctx }) => {
 
 const elements = [
     { id: ORDER, kind: 'entity-type', data: { dataSchema: { '!amount': 'number' }, statesModel: { states: { status: ['draft', 'done'] }, transitions: { finish: { from: { status: ['draft'] }, to: { status: 'done' } } }, initialStates: { default: { status: 'draft' } } } } },
-    { id: 'traced-consumer', kind: 'kind', data: { extends: 'message-consumer', context: { reads: ['trace'] } } },
-    { id: `event-recorder-${run}`, kind: 'traced-consumer', data: { channel: 'entity-events', handler: { low: { module: import.meta.url, functionName: 'record' } } } }
+    { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', handler: { low: { module: import.meta.url, functionName: 'record' } } } }
 ];
 
 const packages = ['database', 'postgresql', 'transaction', 'entities', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events'];

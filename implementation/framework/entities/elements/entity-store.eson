@@ -8,7 +8,6 @@
         "id": "entity-store",
         "kind": "kind",
         "data": {
-            "context": { "reads": ["transaction"] },
             "operations": {
                 "create": {
                     "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": "object", "state": "@entity-state" },

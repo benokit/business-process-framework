@@ -7,7 +7,7 @@ const ADMIN = `admin-auth-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { http: { port: 0 }, users: { adminUsername: ADMIN, adminPassword: 'secret', adminEmail: 'admin@test' } } },
-    { id: 'whoami-service', kind: 'kind', data: { context: { reads: ['user'] }, operations: { whoami: { input: '@any', implementation: { set: { user: '#._ctx.user' } } } } } },
+    { id: 'whoami-service', kind: 'kind', data: { operations: { whoami: { input: '@any', implementation: { set: { user: '#._ctx.user' } } } } } },
     { id: 'whoami', kind: 'whoami-service', data: {} },
     { id: 'whoami-endpoint', kind: 'http-endpoint', data: { method: 'GET', path: '/whoami', target: { element: 'whoami', operation: 'whoami' }, request: {} } }
 ];

@@ -41,15 +41,9 @@ const collect = (kinds, property, what) => kinds.reduce((all, kind) =>
 const managedKeys = chain => Object.fromEntries(chain.flatMap(kind =>
     Object.keys(kind.data.context?.manages ?? {}).map(key => [key, kind.id])));
 
-const readKeys = (chain, manages) => new Set([
-    ...Object.keys(manages),
-    ...chain.flatMap(kind => kind.data.context?.reads ?? [])
-]);
-
 export const resolveKind = memo(id => {
     const chain = kindChain(id);
     const ids = chain.map(kind => kind.id);
-    const manages = managedKeys(chain);
     return {
         id,
         ids,
@@ -57,8 +51,7 @@ export const resolveKind = memo(id => {
         operations: collect(chain, 'operations', 'operation'),
         slots: collect([...chain, ...slotDeclarationsFor(ids)], 'slots', 'slot'),
         defaults: merge({}, ...chain.map(kind => kind.data.defaults)),
-        manages,
-        reads: readKeys(chain, manages)
+        manages: managedKeys(chain)
     };
 });
 

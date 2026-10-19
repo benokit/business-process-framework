@@ -1,5 +1,4 @@
 [
     { "id": "nameless", "kind": "entity-type", "data": { "statesModel": { "states": { "status": ["a"] } } } },
-    { "kind": "slot-fill", "data": { "target": "entity-type", "slot": "nonsense", "value": {} } },
-    { "id": "typo-reader", "kind": "kind", "data": { "context": { "reads": ["usr"] } } }
+    { "kind": "slot-fill", "data": { "target": "entity-type", "slot": "nonsense", "value": {} } }
 ]

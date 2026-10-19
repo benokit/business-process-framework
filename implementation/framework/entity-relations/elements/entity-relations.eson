@@ -18,7 +18,6 @@
         "id": "entity-relation-store",
         "kind": "kind",
         "data": {
-            "context": { "reads": ["transaction"] },
             "operations": {
                 "setRelations": {
                     "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" },

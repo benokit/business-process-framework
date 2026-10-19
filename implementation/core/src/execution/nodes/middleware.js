@@ -16,7 +16,7 @@ const runChain = (node, scope, input, chain) => {
 };
 
 export const middleware = {
-    middleware: (node, scope, input) => runChain(node, scope, input, evaluate(node.middleware, scope, node) ?? []),
+    middleware: (node, scope, input) => runChain(node, scope, input, evaluate(node.middleware, scope) ?? []),
 
     next: (node, scope, input) => (scope[NEXT] ?? fail('next-outside-middleware', "'next' used outside a middleware", {}))(input, scope._ctx)
 };

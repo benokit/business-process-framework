@@ -20,8 +20,7 @@ const RECORDER = import.meta.url;
 const elements = [
     { kind: 'app-config', data: { nats: { url: NATS_URL } } },
     { id: 'orders', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
-    { id: 'traced-consumer', kind: 'kind', data: { extends: 'message-consumer', context: { reads: ['trace'] } } },
-    { id: 'order-recorder', kind: 'traced-consumer', data: { channel: 'orders', handler: { low: { module: RECORDER, functionName: 'record' } } } }
+    { id: 'order-recorder', kind: 'message-consumer', data: { channel: 'orders', handler: { low: { module: RECORDER, functionName: 'record' } } } }
 ];
 
 const eventually = async (check, timeout = 3000) => {

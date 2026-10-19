@@ -55,12 +55,12 @@ describe('data composition', () => {
             kind('handler-kind', {
                 extends: 'user-scope',
                 shape: { '!handler': '@method' },
-                operations: { run: operation({ withContext: { user: { userId: '\\ada' } }, do: { execute: '#.self.data.handler' } }) }
+                operations: { run: operation({ execute: '#.self.data.handler' }) }
             }),
-            element('shared', 'executable', { set: { $coalesce: ['#._ctx.user.userId', '\\unseen'] } }),
+            element('shared', 'executable', { withContext: { user: { userId: '\\ada' } }, do: { set: '#._ctx.user.userId' } }),
             composed('borrowing', { handler: { '/ref': 'shared' } }, 'handler-kind'),
-            element('owning', 'handler-kind', { handler: { set: { $coalesce: ['#._ctx.user.userId', '\\unseen'] } } }));
-        expect(await invoke('borrowing', 'run', null)).to.equal('unseen');
+            element('owning', 'handler-kind', { handler: { withContext: { user: { userId: '\\ada' } }, do: { set: '#._ctx.user.userId' } } }));
+        expect((await invoke('borrowing', 'run', null).catch(e => e)).code).to.equal('context-right');
         expect(await invoke('owning', 'run', null)).to.equal('ada');
     });
 });

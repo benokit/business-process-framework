@@ -16,4 +16,4 @@ Keyword `publish`: the node input is the outgoing message.
 { "inputMap": { "message": { "orderId": "#.input.id" }, "group": "#.input.id" }, "publish": "order-events" }
 ```
 
-A consumer kind that reads its context declares it, e.g. `"context": { "reads": ["message", "trace"] }`. Correlation flows on: what a handler publishes carries the correlation of the message it handles.
+A handler reads `#._ctx.message` and `#._ctx.trace`. Correlation flows on: what a handler publishes carries the correlation of the message it handles.

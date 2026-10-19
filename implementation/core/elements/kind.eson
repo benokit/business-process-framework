@@ -9,7 +9,7 @@
                 "defaults": "object",
                 "operations{}": "@operation",
                 "slots{}": "@slot",
-                "context": { "manages": "@schema", "reads[]": "string" },
+                "context": { "manages": "@schema" },
                 "lifecycle": {
                     "load": "@method",
                     "start": "@method",

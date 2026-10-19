@@ -1,5 +1,4 @@
 import { compileMapping } from '../mappings.js';
-import { visibleContext } from '../context.js';
 import { fail } from '../errors.js';
 import { executors } from './nodes/index.js';
 import { findTemplate, runTemplate } from './templates.js';
@@ -13,7 +12,7 @@ export class Return {
 
 const MODIFIERS = new Set(['inputMap', 'outputKey']);
 
-export const evaluate = (tree, scope, node) => compileMapping(tree)({ ...scope, _ctx: visibleContext(node, scope._ctx) });
+export const evaluate = (tree, scope) => compileMapping(tree)(scope);
 
 const executorOf = node => {
     const keys = Object.keys(node).filter(key => !MODIFIERS.has(key));
@@ -25,7 +24,7 @@ const executorOf = node => {
     return (node, scope, input) => input;
 };
 
-const inputOf = (node, scope) => 'inputMap' in node ? evaluate(node.inputMap, scope, node) : scope.input;
+const inputOf = (node, scope) => 'inputMap' in node ? evaluate(node.inputMap, scope) : scope.input;
 
 const runNode = (node, scope) => executorOf(node)(node, scope, inputOf(node, scope));
 
