@@ -10,7 +10,9 @@
     "test": "mocha --exit"
   },
   "dependencies": {
+    "@business-framework/cache": "*",
     "@business-framework/core": "*",
+    "@business-framework/entity-events": "*",
     "@business-framework/http-server": "*",
     "@business-framework/security": "*",
     "@business-framework/users": "*",

@@ -51,9 +51,9 @@ describe('data composition', () => {
     it('keeps the context rights of the element where referenced code is written', async () => {
         await bootWith(
             { kind: 'schema', id: 'principal', data: { '!userId': 'string' } },
-            kind('user-scope', { context: { manages: { user: '@principal' } } }),
+            kind('principal-execution-node-wrapper', { context: { manages: { user: '@principal' } } }),
             kind('handler-kind', {
-                extends: 'user-scope',
+                extends: 'principal-execution-node-wrapper',
                 shape: { '!handler': '@method' },
                 operations: { run: operation({ execute: '#.self.data.handler' }) }
             }),

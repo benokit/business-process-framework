@@ -18,6 +18,7 @@
         "id": "in-memory-cache",
         "kind": "kind",
         "data": {
+            "shape": { "ttl": "number" },
             "operations": {
                 "get": {
                     "input": "@cache-key",
@@ -30,17 +31,19 @@
                 "set": {
                     "input": "@cache-entry",
                     "implementation": {
-                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value" },
+                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl" },
                         "low": { "module": "@business-framework/cache", "functionName": "cacheSet" }
+                    }
+                },
+                "evict": {
+                    "input": "@cache-key",
+                    "implementation": {
+                        "inputMap": { "cache": "#.self.id", "key": "#.input.key" },
+                        "low": { "module": "@business-framework/cache", "functionName": "cacheEvict" }
                     }
                 }
             }
         }
-    },
-    {
-        "id": "local-l1",
-        "kind": "in-memory-cache",
-        "data": {}
     },
     {
         "id": "with-cache",
@@ -50,18 +53,7 @@
             "implementation": [
                 { "outputKey": "key", "set": { "$func/apply-mapping": { "mapping": "#.node.key", "input": "#" } } },
                 { "outputKey": "hit", "inputMap": { "key": "#.key" }, "invoke": "#.node.cache", "operation": "get" },
-                {
-                    "if": "#.hit.found",
-                    "then": [
-                        {
-                            "outputKey": "isValid",
-                            "if": "#.node.validate",
-                            "then": { "set": { "$func/apply-mapping": { "mapping": "#.node.validate", "input": { "cached": "#.hit.value", "input": "#.input", "self": "#.self" } } } },
-                            "else": { "set": true }
-                        },
-                        { "if": "#.isValid", "then": { "return": "#.hit.value" } }
-                    ]
-                },
+                { "if": "#.hit.found", "then": { "return": "#.hit.value" } },
                 { "outputKey": "value", "next": true },
                 { "inputMap": { "key": "#.key", "value": "#.value" }, "invoke": "#.node.cache", "operation": "set" },
                 { "return": "#.value" }

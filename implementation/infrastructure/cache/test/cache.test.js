@@ -2,31 +2,30 @@ import { expect } from 'chai';
 import { boot, invoke, packageElements, validate } from '@business-framework/core';
 import { cacheClear } from '@business-framework/cache';
 
-const cached = (compute, extra = {}) => ({
-    withCache: compute,
-    cache: 'local-l1',
-    key: '#.input.key',
-    ...extra
-});
+const cached = (cache, compute) => ({ withCache: compute, cache, key: '#.input.key' });
 
 const service = {
     id: 'lookups',
     kind: 'kind',
     data: {
         operations: {
-            plain: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\computed' }, cached({ set: { value: '#.prefix' } })] },
-            checked: {
-                input: { '!key': 'string', '!revision': 'number' },
-                implementation: [{ outputKey: 'prefix', set: '\\computed' }, cached({ set: { revision: '#.input.revision', value: '#.prefix' } }, { validate: { $eq: ['#.cached.revision', '#.input.revision'] } })]
-            },
-            other: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\fresh' }, cached({ set: { value: '#.prefix' } })] }
+            plain: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\computed' }, cached('lasting', { set: { value: '#.prefix' } })] },
+            other: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\fresh' }, cached('lasting', { set: { value: '#.prefix' } })] },
+            brief: { input: { '!key': 'string', '!value': 'string' }, implementation: cached('brief', { set: { value: '#.input.value' } }) }
         }
     }
 };
 
+const elements = [
+    service,
+    { id: 'the-lookups', kind: 'lookups', data: {} },
+    { id: 'lasting', kind: 'in-memory-cache', data: {} },
+    { id: 'brief', kind: 'in-memory-cache', data: { ttl: 50 } }
+];
+
 describe('cache', () => {
     before(async () => {
-        await boot({ paths: [packageElements('@business-framework/cache')], elements: [service, { id: 'the-lookups', kind: 'lookups', data: {} }] });
+        await boot({ paths: [packageElements('@business-framework/cache')], elements });
     });
 
     beforeEach(cacheClear);
@@ -44,13 +43,16 @@ describe('cache', () => {
         expect(await invoke('the-lookups', 'other', { key: 'k2' })).to.deep.equal({ value: 'computed' });
     });
 
-    it('recomputes when validate is false', async () => {
-        await invoke('the-lookups', 'checked', { key: 'k3', revision: 1 });
-        expect(await invoke('the-lookups', 'checked', { key: 'k3', revision: 2 })).to.deep.equal({ revision: 2, value: 'computed' });
+    it('recomputes after an eviction', async () => {
+        await invoke('the-lookups', 'plain', { key: 'k3' });
+        await invoke('lasting', 'evict', { key: 'k3' });
+        expect(await invoke('the-lookups', 'other', { key: 'k3' })).to.deep.equal({ value: 'fresh' });
     });
 
-    it('returns the cached value when validate is true', async () => {
-        await invoke('the-lookups', 'checked', { key: 'k4', revision: 5 });
-        expect(await invoke('the-lookups', 'checked', { key: 'k4', revision: 5 })).to.deep.equal({ revision: 5, value: 'computed' });
+    it('recomputes when the entry has expired', async () => {
+        await invoke('the-lookups', 'brief', { key: 'k4', value: 'first' });
+        expect(await invoke('the-lookups', 'brief', { key: 'k4', value: 'second' })).to.deep.equal({ value: 'first' });
+        await new Promise(resolve => setTimeout(resolve, 60));
+        expect(await invoke('the-lookups', 'brief', { key: 'k4', value: 'third' })).to.deep.equal({ value: 'third' });
     });
 });

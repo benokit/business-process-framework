@@ -5,7 +5,7 @@ import { bootWith, element, kind, low, operation } from './helpers.js';
 
 const principal = { kind: 'schema', id: 'principal', data: { '!userId': 'string' } };
 
-const userScope = kind('user-scope', { context: { manages: { user: '@principal' } } });
+const userScope = kind('principal-execution-node-wrapper', { context: { manages: { user: '@principal' } } });
 
 const reader = kind('user-reader', {
     operations: { whoami: operation({ set: { $coalesce: ['#._ctx.user.userId', '\\nobody'] } }) }
@@ -14,7 +14,7 @@ const reader = kind('user-reader', {
 const viewer = kind('viewer', { operations: { look: operation({ set: '#._ctx' }) } });
 
 const sessionKind = kind('session-kind', {
-    extends: 'user-scope',
+    extends: 'principal-execution-node-wrapper',
     operations: {
         as: operation({
             withContext: { user: { userId: '#.input' } },
@@ -39,25 +39,25 @@ describe('scoped context', () => {
     });
 
     it('checks a binding against the manager schema', async () => {
-        await boot(kind('bad-session', { extends: 'user-scope', operations: { as: operation({ withContext: { user: { name: 1 } }, do: { set: 1 } }) } }), element('bad', 'bad-session'));
+        await boot(kind('bad-session', { extends: 'principal-execution-node-wrapper', operations: { as: operation({ withContext: { user: { name: 1 } }, do: { set: 1 } }) } }), element('bad', 'bad-session'));
         expect((await invoke('bad', 'as', null).catch(e => e)).code).to.equal('invalid');
     });
 
     it('shows every bound key to any code', async () => {
         await boot(kind('carrier', {
-            extends: 'user-scope',
+            extends: 'principal-execution-node-wrapper',
             operations: { carry: operation({ withContext: { user: { userId: '\\ada' } }, do: [{ outputKey: 'seen', invoke: '\\the-viewer', operation: '\\look' }, { outputKey: 'name', invoke: '\\the-reader', operation: '\\whoami' }, { set: ['#.seen', '#.name'] }] }) }
         }), element('the-carrier', 'carrier'));
         expect(await invoke('the-carrier', 'carry', null)).to.deep.equal([{ user: { userId: 'ada' } }, 'ada']);
     });
 
     it('gives low a frozen context', async () => {
-        await boot(kind('mutator', { extends: 'user-scope', operations: { go: operation({ withContext: { user: { userId: '\\ada' } }, do: low('tryToMutateContext') }) } }), element('the-mutator', 'mutator'));
+        await boot(kind('mutator', { extends: 'principal-execution-node-wrapper', operations: { go: operation({ withContext: { user: { userId: '\\ada' } }, do: low('tryToMutateContext') }) } }), element('the-mutator', 'mutator'));
         expect(await invoke('the-mutator', 'go', null).catch(e => e)).to.be.instanceOf(TypeError);
     });
 
     it('reports unrelated managers', async () => {
-        await boot(kind('other-user-scope', { context: { manages: { user: '@principal' } } }));
+        await boot(kind('other-principal-execution-node-wrapper', { context: { manages: { user: '@principal' } } }));
         expect(validate().map(p => p.code)).to.deep.equal(['context-managers']);
     });
 });
@@ -65,8 +65,8 @@ describe('scoped context', () => {
 describe('execution node wrappers', () => {
     const transactions = [
         { kind: 'schema', id: 'transaction-session', data: { '!sessionId': 'number' } },
-        kind('transaction-scope', { extends: 'execution-node-wrapper', context: { manages: { transaction: '@transaction-session' } } }),
-        element('in-transaction', 'transaction-scope', {
+        kind('transaction-execution-node-wrapper', { extends: 'execution-node-wrapper', context: { manages: { transaction: '@transaction-session' } } }),
+        element('in-transaction', 'transaction-execution-node-wrapper', {
             keyword: 'inTransaction',
             implementation: {
                 if: '#._ctx.transaction',

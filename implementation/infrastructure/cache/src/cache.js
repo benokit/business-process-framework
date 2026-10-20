@@ -5,12 +5,20 @@ const storeOf = cache => {
     return stores.get(cache);
 };
 
-export const cacheGet = ({ input: { cache, key } }) => storeOf(cache).has(key)
-    ? { found: true, value: storeOf(cache).get(key) }
-    : { found: false };
+const isLive = entry => entry?.expiresAt > Date.now();
 
-export const cacheSet = ({ input: { cache, key, value } }) => {
-    storeOf(cache).set(key, value);
+export const cacheGet = ({ input: { cache, key } }) => {
+    const entry = storeOf(cache).get(key);
+    return isLive(entry) ? { found: true, value: entry.value } : { found: false };
+};
+
+export const cacheSet = ({ input: { cache, key, value, ttl } }) => {
+    storeOf(cache).set(key, { value, expiresAt: Date.now() + (ttl ?? Infinity) });
+    return null;
+};
+
+export const cacheEvict = ({ input: { cache, key } }) => {
+    storeOf(cache).delete(key);
     return null;
 };
 

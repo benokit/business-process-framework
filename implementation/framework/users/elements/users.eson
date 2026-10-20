@@ -1,6 +1,6 @@
 [
     {
-        "id": "user-account",
+        "id": "user-entity-type",
         "kind": "kind",
         "data": {
             "extends": "entity-type",
@@ -29,7 +29,7 @@
     },
     {
         "id": "user",
-        "kind": "user-account",
+        "kind": "user-entity-type",
         "data": {
             "bodySchema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" }
         }

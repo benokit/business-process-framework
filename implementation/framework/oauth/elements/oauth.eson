@@ -5,7 +5,7 @@
     },
     {
         "id": "authenticate",
-        "kind": "user-scope",
+        "kind": "principal-execution-node-wrapper",
         "data": {
             "keyword": "authenticated",
             "implementation": [
@@ -22,7 +22,9 @@
                         {
                             "outputKey": "user",
                             "inputMap": { "subject": "#.claims.sub", "username": { "$coalesce": ["#.claims.preferred_username", "#.claims.sub"] }, "email": "#.claims.email" },
-                            "asSystem": { "invoke": "user", "operation": "identify" }
+                            "withCache": { "asSystem": { "invoke": "user", "operation": "identify" } },
+                            "cache": "user-cache",
+                            "key": "#.input.subject"
                         },
                         {
                             "if": { "$eq": ["#.user.data.state.status", "suspended"] },
@@ -42,6 +44,23 @@
                     ]
                 }
             ]
+        }
+    },
+    {
+        "id": "user-cache",
+        "kind": "in-memory-cache",
+        "data": { "ttl": 60000 }
+    },
+    {
+        "id": "user-cache-eviction",
+        "kind": "message-consumer",
+        "data": {
+            "channel": "entity-events",
+            "broadcast": true,
+            "handler": {
+                "if": { "$eq": ["#.input.entityType", "user"] },
+                "then": { "inputMap": { "key": "#.input.businessKey" }, "invoke": "user-cache", "operation": "evict" }
+            }
         }
     },
     {

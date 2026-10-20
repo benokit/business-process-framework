@@ -1,6 +1,6 @@
 [
     {
-        "id": "insurance-contract",
+        "id": "insurance-contract-type",
         "kind": "kind",
         "data": { "extends": "entity-type" }
     },
@@ -8,7 +8,7 @@
         "id": "contract-lifecycle",
         "kind": "slot-fill",
         "data": {
-            "target": "insurance-contract",
+            "target": "insurance-contract-type",
             "slot": "traits",
             "value": {
                 "trait": "state",
@@ -29,7 +29,7 @@
         "id": "contract-updates-only-in-draft",
         "kind": "slot-fill",
         "data": {
-            "target": "insurance-contract",
+            "target": "insurance-contract-type",
             "slot": "guards",
             "value": {
                 "if": { "$eq": ["#.input.operation", "update"] },
@@ -49,7 +49,7 @@
         "id": "contract-activation-events",
         "kind": "slot-fill",
         "data": {
-            "target": "insurance-contract",
+            "target": "insurance-contract-type",
             "slot": "reactions",
             "after": ["publish-entity-events"],
             "value": {

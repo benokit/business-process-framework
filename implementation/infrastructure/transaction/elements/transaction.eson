@@ -35,7 +35,7 @@
         "data": { "isolation": "read committed" }
     },
     {
-        "id": "transaction-scope",
+        "id": "transaction-execution-node-wrapper",
         "kind": "kind",
         "data": {
             "extends": "execution-node-wrapper",
@@ -44,7 +44,7 @@
     },
     {
         "id": "in-transaction",
-        "kind": "transaction-scope",
+        "kind": "transaction-execution-node-wrapper",
         "data": {
             "keyword": "inTransaction",
             "implementation": {

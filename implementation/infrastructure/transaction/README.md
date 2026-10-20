@@ -3,7 +3,7 @@
 PostgreSQL transactions as scoped context.
 
 - Kind `transaction-manager`, instance `transaction` (`isolation`: `read committed`, `repeatable read` or `serializable`): `begin()` → `{ sessionId }`, `commit({ sessionId })`, `rollback({ sessionId })`.
-- Kind `transaction-scope` (an `execution-node-wrapper`) is the only manager of the context key `transaction`.
+- Kind `transaction-execution-node-wrapper` (an `execution-node-wrapper`) is the only manager of the context key `transaction`.
 - Keyword `inTransaction` (instance `in-transaction`): runs its pipeline in the caller's context with `transaction` bound, commits on success, rolls back and rethrows on failure. Inside an enclosing transaction it joins it; sequential nodes each start their own.
 
 ```json

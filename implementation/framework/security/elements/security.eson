@@ -5,7 +5,7 @@
         "data": { "!userId": "string", "username": "string", "email": "string", "roles[]": "string" }
     },
     {
-        "id": "user-scope",
+        "id": "principal-execution-node-wrapper",
         "kind": "kind",
         "data": {
             "extends": "execution-node-wrapper",
@@ -14,7 +14,7 @@
     },
     {
         "id": "as-system",
-        "kind": "user-scope",
+        "kind": "principal-execution-node-wrapper",
         "data": {
             "keyword": "asSystem",
             "implementation": { "withContext": { "user": { "userId": "system", "roles": ["system"] } }, "do": { "next": true } }
