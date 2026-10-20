@@ -1,0 +1,57 @@
+[
+    {
+        "kind": "app-config",
+        "data": { "oauth": { "issuer": "http://localhost:8080/default" } }
+    },
+    {
+        "id": "authenticate",
+        "kind": "user-scope",
+        "data": {
+            "keyword": "authenticated",
+            "implementation": [
+                { "outputKey": "config", "set": { "$func/app-config-section": "oauth" } },
+                {
+                    "outputKey": "claims",
+                    "inputMap": { "header": "#.input.headers.authorization", "issuer": "#.config.issuer", "audience": "#.config.audience" },
+                    "low": { "module": "@business-framework/oauth", "functionName": "verifyToken" }
+                },
+                {
+                    "if": { "$negate": "#.claims" },
+                    "then": { "next": true },
+                    "else": [
+                        {
+                            "outputKey": "user",
+                            "inputMap": { "subject": "#.claims.sub", "username": { "$coalesce": ["#.claims.preferred_username", "#.claims.sub"] }, "email": "#.claims.email" },
+                            "asSystem": { "invoke": "user", "operation": "identify" }
+                        },
+                        {
+                            "if": { "$eq": ["#.user.data.state.status", "suspended"] },
+                            "then": { "next": true },
+                            "else": {
+                                "withContext": {
+                                    "user": {
+                                        "userId": "#.user.businessKey",
+                                        "username": "#.user.data.body.username",
+                                        "email": "#.user.data.body.email",
+                                        "roles": { "$coalesce": ["#.user.data.body.roles", []] }
+                                    }
+                                },
+                                "do": { "next": true }
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "authenticate-requests",
+        "kind": "slot-fill",
+        "data": {
+            "target": "http-endpoint",
+            "slot": "requestMiddleware",
+            "position": "first",
+            "value": { "authenticated": { "next": true } }
+        }
+    }
+]

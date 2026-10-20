@@ -6,7 +6,6 @@ Interact with the server on the user's behalf using `curl`. Save all responses a
 
 | Operation | Method | Path | Body |
 |---|---|---|---|
-| Log in | POST | `/login` | `{ username, password }` → `{ token }` |
 | List entity types | GET | `/entity-types` | |
 | List entities | GET | `/entities/:entityType?limit&offset` | |
 | Create entity | POST | `/entities/:entityType` | `{ businessKey?, body, traits? }` (`traits.state`: a named initial state) |
@@ -16,11 +15,11 @@ Interact with the server on the user's behalf using `curl`. Save all responses a
 | Transition | POST | `/entities/:entityType/:businessKey/transitions/:transition` | |
 | Search | POST | `/entity-search/:entityType` | `{ query?, filter?, sort?, offset?, limit? }` |
 
-See [entities-http](../../implementation/framework/entities-http/README.md), [entity-states-http](../../implementation/framework/entity-states-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [authorization-basic](../../implementation/framework/authorization-basic/README.md).
+See [entities-http](../../implementation/framework/entities-http/README.md), [entity-states-http](../../implementation/framework/entity-states-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [oauth](../../implementation/framework/oauth/README.md).
 
 ## Conventions
 
-- **Authentication**: log in first and send `Authorization: Bearer <token>` on every request. The admin account comes from the `users` app config (default `admin` / `admin`; overridable with `BPF__users__adminUsername` and `BPF__users__adminPassword`).
+- **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/framework/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The user is created on first use.
 - **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT` requires `If-Match` with the current revision; `DELETE` and transitions accept it.
 - **Records**: `data.body` is the business data; other keys of `data` are traits (`data.state`). An update sends the full `body`, not just changed fields; traits change only through their commands (transitions).
 - **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.

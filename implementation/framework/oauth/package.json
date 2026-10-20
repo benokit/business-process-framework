@@ -1,10 +1,10 @@
 {
-  "name": "@business-framework/authorization-basic",
+  "name": "@business-framework/oauth",
   "version": "0.1.0",
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./src/jwt.js"
+    ".": "./src/tokens.js"
   },
   "scripts": {
     "test": "mocha --exit"
@@ -13,6 +13,7 @@
     "@business-framework/core": "*",
     "@business-framework/http-server": "*",
     "@business-framework/security": "*",
-    "@business-framework/users": "*"
+    "@business-framework/users": "*",
+    "jose": "^6.2.13"
   }
 }

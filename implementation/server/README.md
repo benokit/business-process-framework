@@ -10,7 +10,7 @@ node bootstrap.js ../../demo        # npm run start-demo
 2. `start`: run the `start` hooks in start order: databases, brokers and search engines first; entry points (HTTP server, endpoints, consumers) and `on-startup` elements last.
 3. `SIGTERM` / `SIGINT`: `stop` in reverse order, then exit.
 
-Configuration comes from `app-config` elements and `BPF__<section>__<key>` environment variables, e.g. `BPF__http__port=8080`, `BPF__postgresql__url=…`, `BPF__users__adminPassword=…`, `BPF__authorization__jwtSecret=…`.
+Configuration comes from `app-config` elements and `BPF__<section>__<key>` environment variables, e.g. `BPF__http__port=8080`, `BPF__postgresql__url=…`, `BPF__oauth__issuer=…`.
 
 ## on-startup
 

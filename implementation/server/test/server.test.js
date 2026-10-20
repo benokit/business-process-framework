@@ -4,6 +4,7 @@ import { invoke, validate } from '@business-framework/core';
 import { installedPackages, startServer } from '@business-framework/server';
 import { skipWithoutPostgres } from '../../infrastructure/postgresql/test/helpers.js';
 import { skipWithoutMeilisearch } from '../../infrastructure/meilisearch/test/helpers.js';
+import { skipWithoutIdentityProvider, tokenFor } from '../../framework/oauth/test/helpers.js';
 
 const DEMO = fileURLToPath(new URL('../../../demo', import.meta.url));
 const run = Date.now();
@@ -24,6 +25,7 @@ describe('server with the demo', function () {
     before(async function () {
         await skipWithoutPostgres(this);
         await skipWithoutMeilisearch(this);
+        await skipWithoutIdentityProvider(this);
         stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { http: { port: 0 } } }] });
     });
 
@@ -37,8 +39,8 @@ describe('server with the demo', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('logs in as admin and runs a contract through its lifecycle', async () => {
-        const { body: { token } } = await call('POST', '/login', { username: 'admin', password: 'admin' });
+    it('runs a contract through its lifecycle with a token of the identity provider', async () => {
+        const token = await tokenFor(`clerk-${run}`);
         const party = await call('POST', '/entities/party', { businessKey: `p-${run}`, body: { partyType: 'person', name: 'Ada' } }, token);
         expect(party.status).to.equal(201);
         const contract = await call('POST', '/entities/construction', {

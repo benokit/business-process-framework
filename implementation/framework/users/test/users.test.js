@@ -3,17 +3,13 @@ import { boot, invoke, packageElements, start, stop, validate } from '@business-
 import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
 
 const run = Date.now();
-const ADMIN = `admin-${run}`;
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-states', 'security', 'users'];
+const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-states', 'users'];
 
 describe('users', function () {
     before(async function () {
         await skipWithoutPostgres(this);
-        await boot({
-            paths: packages.map(name => packageElements(`@business-framework/${name}`)),
-            elements: [{ kind: 'app-config', data: { users: { adminUsername: ADMIN, adminPassword: 'secret', adminEmail: 'admin@test' } } }]
-        });
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)) });
         await start();
     });
 
@@ -23,19 +19,10 @@ describe('users', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('creates the admin account on start, with a hashed password', async () => {
-        const admin = await invoke('user', 'read', { businessKey: ADMIN });
-        expect(admin.data.body).to.include({ username: ADMIN, email: 'admin@test' });
-        expect(admin.data.body.roles).to.deep.equal(['admin']);
-        expect(await invoke('password', 'verify', { password: 'secret', hash: admin.data.body.passwordHash })).to.equal(true);
-        expect(await invoke('password', 'verify', { password: 'wrong', hash: admin.data.body.passwordHash })).to.equal(false);
-    });
-
-    it('keys users by username and sets passwords', async () => {
-        const created = await invoke('user', 'create', { body: { username: `ada-${run}`, email: 'ada@test' } });
-        expect(created.businessKey).to.equal(`ada-${run}`);
-        const updated = await invoke('user', 'set-password', { businessKey: created.businessKey, password: 'pw' });
-        expect(updated.revision).to.equal(2);
-        expect(updated.data.body.passwordHash).to.match(/^[0-9a-f]+:[0-9a-f]+$/);
+    it('identifies users by subject, creating them on first sight', async () => {
+        const subject = `ada-${run}`;
+        const created = await invoke('user', 'identify', { subject, username: 'ada', email: 'ada@test' });
+        expect([created.businessKey, created.revision, created.data]).to.deep.equal([subject, 1, { body: { subject, username: 'ada', email: 'ada@test' }, state: { status: 'active' } }]);
+        expect(await invoke('user', 'identify', { subject, username: 'other' })).to.deep.equal(created);
     });
 });

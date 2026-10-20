@@ -1,49 +1,28 @@
 [
     {
-        "kind": "app-config",
-        "data": { "users": { "adminUsername": "admin", "adminPassword": "admin", "adminEmail": "admin@localhost" } }
-    },
-    {
-        "id": "password-hasher",
-        "kind": "kind",
-        "data": {
-            "operations": {
-                "hash": {
-                    "input": "string",
-                    "output": "string",
-                    "implementation": { "low": { "module": "@business-framework/users", "functionName": "hashPassword" } }
-                },
-                "verify": {
-                    "input": { "!password": "string", "hash": "string" },
-                    "output": "boolean",
-                    "implementation": { "low": { "module": "@business-framework/users", "functionName": "verifyPassword" } }
-                }
-            }
-        }
-    },
-    {
-        "id": "password",
-        "kind": "password-hasher",
-        "data": {}
-    },
-    {
         "id": "user-account",
         "kind": "kind",
         "data": {
             "extends": "entity-type",
             "operations": {
-                "set-password": {
-                    "input": { "!businessKey": "string", "!password": "string" },
+                "identify": {
+                    "input": { "!subject": "string", "username": "string", "email": "string" },
                     "output": "@entity-record",
-                    "implementation": [
-                        { "outputKey": "user", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        { "outputKey": "hash", "inputMap": "#.input.password", "invoke": "password", "operation": "hash" },
-                        {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.user.revision", "body": { "$merge": ["#.user.data.body", { "passwordHash": "#.hash" }] } },
-                            "invoke": "#.self.id",
-                            "operation": "update"
+                    "implementation": {
+                        "try": { "inputMap": { "businessKey": "#.input.subject" }, "invoke": "#.self.id", "operation": "read" },
+                        "catch": {
+                            "if": { "$neq": ["#.error.code", "not-found"] },
+                            "then": { "throw": "#.error" },
+                            "else": {
+                                "try": { "inputMap": { "body": "#.input" }, "invoke": "#.self.id", "operation": "create" },
+                                "catch": {
+                                    "if": { "$neq": ["#.error.code", "conflict"] },
+                                    "then": { "throw": "#.error" },
+                                    "else": { "inputMap": { "businessKey": "#.input.subject" }, "invoke": "#.self.id", "operation": "read" }
+                                }
+                            }
                         }
-                    ]
+                    }
                 }
             }
         }
@@ -52,7 +31,7 @@
         "id": "user",
         "kind": "user-account",
         "data": {
-            "bodySchema": { "!username": "string", "!email": "string", "roles[]": "string", "passwordHash": "string" }
+            "bodySchema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" }
         }
     },
     {
@@ -75,39 +54,8 @@
         }
     },
     {
-        "id": "username-is-business-key",
+        "id": "subject-is-business-key",
         "kind": "slot-fill",
-        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.body.username" } }
-    },
-    {
-        "id": "admin-account",
-        "kind": "kind",
-        "data": {
-            "lifecycle": {
-                "start": {
-                    "asSystem": [
-                        { "outputKey": "config", "set": { "$func/app-config-section": "users" } },
-                        {
-                            "outputKey": "exists",
-                            "try": [{ "inputMap": { "businessKey": "#.config.adminUsername" }, "invoke": "user", "operation": "read" }, { "set": true }],
-                            "catch": { "if": { "$eq": ["#.error.code", "not-found"] }, "then": { "set": false }, "else": { "throw": "#.error" } }
-                        },
-                        {
-                            "if": { "$negate": "#.exists" },
-                            "then": [
-                                { "inputMap": { "body": { "username": "#.config.adminUsername", "email": "#.config.adminEmail", "roles": ["admin"] } }, "invoke": "user", "operation": "create" },
-                                { "inputMap": { "businessKey": "#.config.adminUsername", "password": "#.config.adminPassword" }, "invoke": "user", "operation": "set-password" }
-                            ]
-                        }
-                    ]
-                },
-                "startAfter": ["database"]
-            }
-        }
-    },
-    {
-        "id": "ensure-admin-account",
-        "kind": "admin-account",
-        "data": {}
+        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.body.subject" } }
     }
 ]

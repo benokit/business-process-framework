@@ -14,5 +14,5 @@
 | [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
 | [entity-search-http](entity-search-http/README.md) | `POST /entity-search/:entityType` |
 | [security](security/README.md) | The principal as context: `user-scope`, `asSystem` |
-| [users](users/README.md) | The `user` entity type, passwords, the admin account |
-| [authorization-basic](authorization-basic/README.md) | JWT login and the `authenticated` request middleware |
+| [users](users/README.md) | The `user` entity type: users of an external identity provider |
+| [oauth](oauth/README.md) | OAuth 2.0 bearer tokens: the `authenticated` request middleware |
