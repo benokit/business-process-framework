@@ -28,13 +28,17 @@ export const publish = async ({ input: { url, channel, envelope } }) => {
     return { messageId: envelope.messageId };
 };
 
-const options = (channel, name) => {
+const sharedConsumer = (opts, durable) => {
+    opts.durable(durable);
+    opts.queue(durable);
+};
+
+const options = (channel, name, broadcast) => {
     const opts = consumerOpts();
-    opts.durable(channel.topology === 'queue' ? channel.name : name);
     opts.deliverNew();
     opts.ackExplicit();
     opts.deliverTo(createInbox());
-    if (channel.topology === 'queue') opts.queue(channel.name);
+    if (!broadcast) sharedConsumer(opts, channel.topology === 'queue' ? channel.name : name);
     return opts;
 };
 
@@ -56,10 +60,10 @@ const dispatch = async (subscription, consumer, retry) => {
     }
 };
 
-export const subscribe = async ({ input: { url, channel, consumer, name } }) => {
+export const subscribe = async ({ input: { url, channel, consumer, name, broadcast } }) => {
     const { js, jsm } = await connectionTo(url);
     await ensureStream(url, jsm, channel.name);
-    const subscription = await js.subscribe(channel.name, options(channel, name));
+    const subscription = await js.subscribe(channel.name, options(channel, name, broadcast));
     subscriptions.set(consumer, subscription);
     dispatch(subscription, consumer, channel.consumer?.retry ?? {});
     return null;

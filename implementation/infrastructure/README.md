@@ -7,7 +7,7 @@
 | [postgresql](postgresql/README.md) | Connection pool owned by the `postgresql` element's lifecycle; `execute` |
 | [sequence-generator](sequence-generator/README.md) | Named PostgreSQL sequences; `nextFromSequence` keyword |
 | [transaction](transaction/README.md) | Transactions as scoped context; `inTransaction` wrapper |
-| [http-server](http-server/README.md) | Express server; `http-endpoint` kind with request context and request middleware |
+| [http-server](http-server/README.md) | Express server; `http-endpoint` kind with request middleware |
 | [messaging-nats](messaging-nats/README.md) | NATS JetStream broker |
 | [transactional-outbox](transactional-outbox/README.md) | At-least-once delivery committed with the business transaction |
 | [meilisearch](meilisearch/README.md) | Meilisearch search engine |

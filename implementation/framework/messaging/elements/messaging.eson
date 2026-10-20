@@ -20,7 +20,7 @@
         "data": {
             "operations": {
                 "publish": { "input": { "!channel": "object", "!envelope": "@message-envelope" }, "output": { "!messageId": "string" } },
-                "subscribe": { "input": { "!channel": "object", "!consumer": "string", "!name": "string" } },
+                "subscribe": { "input": { "!channel": "object", "!consumer": "string", "!name": "string", "broadcast": "boolean" } },
                 "unsubscribe": { "input": { "!consumer": "string" } }
             },
             "lifecycle": { "startPosition": "first" }
@@ -73,9 +73,9 @@
                     }
                 },
                 "subscribe": {
-                    "input": { "!consumer": "string", "!name": "string" },
+                    "input": { "!consumer": "string", "!name": "string", "broadcast": "boolean" },
                     "implementation": {
-                        "inputMap": { "channel": { "$merge": ["#.self.data", { "id": "#.self.id" }] }, "consumer": "#.input.consumer", "name": "#.input.name" },
+                        "inputMap": { "$merge": ["#.input", { "channel": { "$merge": ["#.self.data", { "id": "#.self.id" }] } }] },
                         "invoke": "#.self.data.broker",
                         "operation": "subscribe"
                     }
@@ -93,7 +93,7 @@
         "data": {
             "extends": "entry-point",
             "context": { "manages": { "message": "@message-context" } },
-            "shape": { "!channel": "string", "name": "string", "!handler": "@method" },
+            "shape": { "!channel": "string", "name": "string", "broadcast": "boolean", "!handler": "@method" },
             "operations": {
                 "handle": {
                     "input": "@message-envelope",
@@ -108,7 +108,7 @@
             },
             "lifecycle": {
                 "start": {
-                    "inputMap": { "consumer": "#.self.id", "name": { "$coalesce": ["#.self.data.name", "#.self.id"] } },
+                    "inputMap": { "consumer": "#.self.id", "name": { "$coalesce": ["#.self.data.name", "#.self.id"] }, "broadcast": "#.self.data.broadcast" },
                     "invoke": "#.self.data.channel",
                     "operation": "subscribe"
                 },

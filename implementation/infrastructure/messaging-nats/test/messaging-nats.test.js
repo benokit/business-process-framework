@@ -17,11 +17,23 @@ export const record = ({ input, _ctx }) => {
 
 const RECORDER = import.meta.url;
 
+const consumer = (id, data = {}) => ({
+    id,
+    kind: 'message-consumer',
+    data: { channel: 'orders', handler: { inputMap: { $merge: ['#.input', { by: `\\${id}` }] }, low: { module: RECORDER, functionName: 'record' } }, ...data }
+});
+
 const elements = [
     { kind: 'app-config', data: { nats: { url: NATS_URL } } },
     { id: 'orders', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
-    { id: 'order-recorder', kind: 'message-consumer', data: { channel: 'orders', handler: { low: { module: RECORDER, functionName: 'record' } } } }
+    consumer('order-recorder'),
+    consumer('indexer-1', { name: 'indexer' }),
+    consumer('indexer-2', { name: 'indexer' }),
+    consumer('cache-1', { broadcast: true }),
+    consumer('cache-2', { broadcast: true })
 ];
+
+const receivers = id => received.filter(entry => entry.input.id === id && !entry.failed).map(entry => entry.input.by).sort();
 
 const eventually = async (check, timeout = 3000) => {
     const deadline = Date.now() + timeout;
@@ -45,7 +57,12 @@ describe('messaging-nats', function () {
         await start();
     });
 
-    after(stop);
+    after(async () => {
+        await stop();
+        const connection = await connect({ servers: NATS_URL });
+        await (await connection.jetstreamManager()).streams.delete(STREAM);
+        await connection.close();
+    });
 
     it('validates', () => {
         expect(validate()).to.deep.equal([]);
@@ -61,5 +78,14 @@ describe('messaging-nats', function () {
     it('retries a failing handler', async () => {
         await invoke('orders', 'publish', { message: { id: 'o-2', failFirst: true } });
         await eventually(() => received.some(entry => entry.input.id === 'o-2' && !entry.failed));
+    });
+
+    it('delivers a message once per consumer name, shared by its instances, and to every broadcast subscription', async () => {
+        await invoke('orders', 'publish', { message: { id: 'o-3' } });
+        await eventually(() => receivers('o-3').length >= 4);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const indexers = receivers('o-3').filter(by => by.startsWith('indexer'));
+        expect(receivers('o-3').filter(by => !by.startsWith('indexer'))).to.deep.equal(['cache-1', 'cache-2', 'order-recorder']);
+        expect(indexers).to.have.length(1);
     });
 });

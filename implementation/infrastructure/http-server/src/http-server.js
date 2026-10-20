@@ -27,10 +27,7 @@ export const registerRoute = ({ input: { method, path, endpoint } }) => {
     return null;
 };
 
-export const requestContext = ({ input: headers }) => ({
-    correlation: headers['x-correlation-id'] ?? randomUUID(),
-    receivedAt: new Date().toISOString()
-});
+export const correlationOf = ({ input: headers }) => headers['x-correlation-id'] ?? randomUUID();
 
 export const listen = ({ input: { port } }) => new Promise((resolve, reject) => {
     server = app.listen(Number(port), () => resolve(null)).on('error', reject);

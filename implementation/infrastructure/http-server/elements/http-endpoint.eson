@@ -10,16 +10,10 @@
         "data": { "status": "number", "headers": "object", "body": "@any" }
     },
     {
-        "id": "request-context",
-        "kind": "schema",
-        "data": { "!correlation": "string", "!receivedAt": "string" }
-    },
-    {
         "id": "http-endpoint",
         "kind": "kind",
         "data": {
             "extends": "entry-point",
-            "context": { "manages": { "request": "@request-context" } },
             "shape": {
                 "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
                 "!path": "string",
@@ -36,12 +30,12 @@
                     "output": "@http-response",
                     "implementation": [
                         {
-                            "outputKey": "requestContext",
+                            "outputKey": "correlation",
                             "inputMap": "#.input.headers",
-                            "low": { "module": "@business-framework/http-server", "functionName": "requestContext" }
+                            "low": { "module": "@business-framework/http-server", "functionName": "correlationOf" }
                         },
                         {
-                            "withContext": { "request": "#.requestContext", "trace": { "correlation": "#.requestContext.correlation" } },
+                            "withContext": { "trace": { "correlation": "#.correlation" } },
                             "do": {
                                 "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
                                 "action": [
