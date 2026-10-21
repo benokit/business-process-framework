@@ -12,27 +12,27 @@
                 "create": {
                     "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": { "!body": "object" } },
                     "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "create" } }
+                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "create" } }
                 },
                 "read": {
                     "input": "@entity-key",
                     "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "read" } }
+                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "read" } }
                 },
                 "update": {
                     "input": { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!trait": "string", "!value": "@any" },
                     "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "update" } }
+                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "update" } }
                 },
                 "delete": {
                     "input": "@entity-key",
                     "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "delete" } }
+                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "delete" } }
                 },
                 "list": {
                     "input": { "!entityType": "string", "limit": "number", "offset": "number" },
                     "output": { "!items[]": "@entity-record", "!total": "number" },
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "functionName": "list" } }
+                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "list" } }
                 }
             }
         }

@@ -6,7 +6,7 @@
             "operations": {
                 "add": {
                     "input": { "!id": "string", "!schema": "@schema" },
-                    "implementation": { "low": { "module": "@business-framework/core/schemas", "functionName": "add" } }
+                    "implementation": { "low": { "module": "@business-framework/core/schemas", "export": "add" } }
                 },
                 "assert": {
                     "input": { "!schemaId": "string", "value": "@any" },
@@ -32,7 +32,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!schemaId": "string", "value": "@any" }, "output": { "!isValid": "boolean", "errors[]": "object" } },
-            "implementation": { "module": "@business-framework/core/schemas", "export": "validateValue" }
+            "module": "@business-framework/core/schemas",
+            "export": "validateValue"
         }
     },
     {
@@ -40,7 +41,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!id": "string", "!schema": "@schema" }, "output": "object" },
-            "implementation": { "module": "@business-framework/core/schemas", "export": "toJsonSchema" }
+            "module": "@business-framework/core/schemas",
+            "export": "toJsonSchema"
         }
     },
     {

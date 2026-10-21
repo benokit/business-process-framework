@@ -25,21 +25,21 @@
                     "output": "@cache-lookup",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key" },
-                        "low": { "module": "@business-framework/cache", "functionName": "cacheGet" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheGet" }
                     }
                 },
                 "set": {
                     "input": "@cache-entry",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl" },
-                        "low": { "module": "@business-framework/cache", "functionName": "cacheSet" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheSet" }
                     }
                 },
                 "evict": {
                     "input": "@cache-key",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key" },
-                        "low": { "module": "@business-framework/cache", "functionName": "cacheEvict" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheEvict" }
                     }
                 }
             }

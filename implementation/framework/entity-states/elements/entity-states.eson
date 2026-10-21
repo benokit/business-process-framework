@@ -13,7 +13,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!model": "object", "!state": "object", "!transition": "string" }, "output": "@any" },
-            "implementation": { "module": "@business-framework/entity-states/states", "export": "applyTransition" }
+            "module": "@business-framework/entity-states/states",
+            "export": "applyTransition"
         }
     },
     {
@@ -21,7 +22,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!model": "object", "name": "string" }, "output": "@any" },
-            "implementation": { "module": "@business-framework/entity-states/states", "export": "initialState" }
+            "module": "@business-framework/entity-states/states",
+            "export": "initialState"
         }
     },
     {
@@ -29,7 +31,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "[string]" },
-            "implementation": { "module": "@business-framework/entity-states/states", "export": "statesModelProblems" }
+            "module": "@business-framework/entity-states/states",
+            "export": "statesModelProblems"
         }
     },
     {

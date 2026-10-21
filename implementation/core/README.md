@@ -45,7 +45,8 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 - `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
 - `return` ends the current method: an operation, hook, middleware method, `execute` target, template implementation, or the pipeline a wrapper's `next` runs.
-- `low` receives `{ input, _ctx }`, with `_ctx` frozen.
+- `low` names a JS function as `{ module, export }` (the schema `js-export`) and calls it with `{ input, _ctx }`, `_ctx` frozen.
+- A `pure-function` is `$func/<id>`: either a JS function (`module`, `export`) or a LambdaJSON `mapping`, beside its `signature`.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
 
 ## Validation

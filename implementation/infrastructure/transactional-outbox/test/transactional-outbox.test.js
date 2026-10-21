@@ -7,7 +7,7 @@ const BROKER = new URL('./flaky-broker.js', import.meta.url).href;
 const CHANNEL = `outbox-test-${Date.now()}`;
 const run = Date.now();
 
-const low = functionName => ({ low: { module: BROKER, functionName } });
+const low = name => ({ low: { module: BROKER, export: name } });
 
 const elements = [
     {

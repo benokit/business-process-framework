@@ -7,7 +7,7 @@
                 "now": {
                     "input": "@any",
                     "output": "string",
-                    "implementation": { "low": { "module": "@business-framework/core/clock", "functionName": "now" } }
+                    "implementation": { "low": { "module": "@business-framework/core/clock", "export": "now" } }
                 }
             }
         }

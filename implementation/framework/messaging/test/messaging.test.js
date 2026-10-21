@@ -6,7 +6,7 @@ import { received } from './fixtures/recorder.js';
 const BROKER = new URL('./fixtures/memory-broker.js', import.meta.url).href;
 const RECORDER = new URL('./fixtures/recorder.js', import.meta.url).href;
 
-const lowOf = (module, functionName) => ({ low: { module, functionName } });
+const lowOf = (module, name) => ({ low: { module, export: name } });
 
 const elements = [
     {

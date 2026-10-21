@@ -2,7 +2,19 @@
     {
         "id": "pure-function",
         "kind": "kind",
-        "data": { "shape": { "signature": { "!input": "@schema", "!output": "@schema" }, "!implementation": "@any" } }
+        "data": {
+            "shape": {
+                "$data#&": [
+                    { "signature": { "!input": "@schema", "!output": "@schema" } },
+                    { "$data#1": ["@js-export", { "!mapping": "@mapping" }] }
+                ]
+            }
+        }
+    },
+    {
+        "id": "js-export",
+        "kind": "schema",
+        "data": { "!module": "string", "!export": "string" }
     },
     {
         "id": "execution-node-template",
@@ -19,7 +31,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!mapping": "@any", "input": "@any" }, "output": "@any" },
-            "implementation": { "module": "@business-framework/core/mappings", "export": "applyMapping" }
+            "module": "@business-framework/core/mappings",
+            "export": "applyMapping"
         }
     },
     {
@@ -27,7 +40,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!element": "string", "!kind": "string" }, "output": "boolean" },
-            "implementation": { "module": "@business-framework/core/kinds", "export": "isInstanceOf" }
+            "module": "@business-framework/core/kinds",
+            "export": "isInstanceOf"
         }
     },
     {
@@ -35,7 +49,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "[object]" },
-            "implementation": { "module": "@business-framework/core/kinds", "export": "selvesOf" }
+            "module": "@business-framework/core/kinds",
+            "export": "selvesOf"
         }
     }
 ]

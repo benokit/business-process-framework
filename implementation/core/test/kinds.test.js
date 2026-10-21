@@ -59,4 +59,15 @@ describe('kinds', () => {
             element('nameless', 'named', {}));
         expect(validate().map(p => p.code)).to.deep.equal(['invalid-element']);
     });
+
+    it('takes a pure function as either a JS export or a mapping', async () => {
+        const signature = { input: 'number', output: 'number' };
+        await bootWith(
+            element('double', 'pure-function', { signature, mapping: { $multiply: ['#', 2] } }),
+            element('both', 'pure-function', { signature, mapping: '#', module: 'lodash-es', export: 'identity' }),
+            kind('calculator', { operations: { double: operation({ set: { '$func/double': '#.input' } }) } }),
+            element('calculator-1', 'calculator', {}));
+        expect(await invoke('calculator-1', 'double', 4)).to.equal(8);
+        expect(validate().map(p => [p.code, p.data.element])).to.deep.equal([['invalid-element', 'both']]);
+    });
 });

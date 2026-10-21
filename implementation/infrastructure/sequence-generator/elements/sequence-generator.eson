@@ -7,7 +7,7 @@
                 "next": {
                     "input": { "!sequence": "string:^[a-zA-Z0-9_-]+$" },
                     "output": { "!value": "number" },
-                    "implementation": { "low": { "module": "@business-framework/sequence-generator", "functionName": "next" } }
+                    "implementation": { "low": { "module": "@business-framework/sequence-generator", "export": "next" } }
                 }
             }
         }

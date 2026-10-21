@@ -22,11 +22,9 @@ export const compileMapping = tree => {
 
 export const applyMapping = ({ mapping, input }) => compileMapping(mapping)(input);
 
-const isNative = implementation => 'module' in implementation && 'export' in implementation;
-
-const implementationOf = async ({ data: { implementation } }) => isNative(implementation)
-    ? (await import(implementation.module))[implementation.export]
-    : input => compileMapping(implementation)(input);
+const implementationOf = async ({ data }) => 'mapping' in data
+    ? input => compileMapping(data.mapping)(input)
+    : (await import(data.module))[data.export];
 
 export const preparePureFunctions = async () => {
     const functions = await Promise.all(instancesOf('pure-function')

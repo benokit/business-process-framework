@@ -10,23 +10,23 @@
             "extends": "search-engine",
             "operations": {
                 "configureIndex": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "configureIndex" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "configureIndex" } }
                 },
                 "deleteIndex": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "deleteIndex" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "deleteIndex" } }
                 },
                 "insertDocument": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "insertDocument" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "insertDocument" } }
                 },
                 "removeDocument": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "removeDocument" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "removeDocument" } }
                 },
                 "search": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "functionName": "search" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "search" } }
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "functionName": "connect" } }
+                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "export": "connect" } }
             }
         }
     },

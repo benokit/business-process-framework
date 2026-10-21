@@ -15,16 +15,16 @@
                     "output": "@transaction-session",
                     "implementation": {
                         "inputMap": { "isolation": "#.self.data.isolation" },
-                        "low": { "module": "@business-framework/transaction", "functionName": "beginTransaction" }
+                        "low": { "module": "@business-framework/transaction", "export": "beginTransaction" }
                     }
                 },
                 "commit": {
                     "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "functionName": "commitTransaction" } }
+                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "commitTransaction" } }
                 },
                 "rollback": {
                     "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "functionName": "rollbackTransaction" } }
+                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "rollbackTransaction" } }
                 }
             }
         }

@@ -20,7 +20,7 @@ const RECORDER = import.meta.url;
 const consumer = (id, data = {}) => ({
     id,
     kind: 'message-consumer',
-    data: { channel: 'orders', handler: { inputMap: { $merge: ['#.input', { by: `\\${id}` }] }, low: { module: RECORDER, functionName: 'record' } }, ...data }
+    data: { channel: 'orders', handler: { inputMap: { $merge: ['#.input', { by: `\\${id}` }] }, low: { module: RECORDER, export: 'record' } }, ...data }
 });
 
 const elements = [

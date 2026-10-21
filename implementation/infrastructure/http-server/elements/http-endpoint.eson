@@ -32,7 +32,7 @@
                         {
                             "outputKey": "correlation",
                             "inputMap": "#.input.headers",
-                            "low": { "module": "@business-framework/http-server", "functionName": "correlationOf" }
+                            "low": { "module": "@business-framework/http-server", "export": "correlationOf" }
                         },
                         {
                             "withContext": { "trace": { "correlation": "#.correlation" } },

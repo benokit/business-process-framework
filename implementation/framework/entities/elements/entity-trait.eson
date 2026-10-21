@@ -26,7 +26,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "object" },
-            "implementation": { "module": "@business-framework/entities/traits", "export": "traitsOf" }
+            "module": "@business-framework/entities/traits",
+            "export": "traitsOf"
         }
     },
     {
@@ -34,7 +35,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "[string]" },
-            "implementation": { "module": "@business-framework/entities/traits", "export": "traitProblems" }
+            "module": "@business-framework/entities/traits",
+            "export": "traitProblems"
         }
     }
 ]

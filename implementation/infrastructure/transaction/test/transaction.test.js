@@ -23,7 +23,7 @@ const operations = {
     ],
     insert: {
         inTransaction: [
-            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, values: ['#.input.name'] }, low: { module: ROWS, functionName: 'insert' } },
+            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, values: ['#.input.name'] }, low: { module: ROWS, export: 'insert' } },
             { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
         ]
     }

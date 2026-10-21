@@ -9,7 +9,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "object" },
-            "implementation": { "module": "@business-framework/core/app-config", "export": "getAppConfigSection" }
+            "module": "@business-framework/core/app-config",
+            "export": "getAppConfigSection"
         }
     }
 ]

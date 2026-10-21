@@ -8,12 +8,12 @@
             "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000 },
             "operations": {
                 "put": {
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "put" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "put" } }
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": "#.self.data", "low": { "module": "@business-framework/transactional-outbox", "functionName": "startProcessor" } },
-                "stop": { "low": { "module": "@business-framework/transactional-outbox", "functionName": "stopProcessor" } },
+                "start": { "inputMap": "#.self.data", "low": { "module": "@business-framework/transactional-outbox", "export": "startProcessor" } },
+                "stop": { "low": { "module": "@business-framework/transactional-outbox", "export": "stopProcessor" } },
                 "startAfter": ["database", "message-broker"]
             }
         }

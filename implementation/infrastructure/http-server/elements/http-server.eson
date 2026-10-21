@@ -11,20 +11,20 @@
             "operations": {
                 "registerRoute": {
                     "input": { "!method": "string", "!path": "string", "!endpoint": "string" },
-                    "implementation": { "low": { "module": "@business-framework/http-server", "functionName": "registerRoute" } }
+                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "registerRoute" } }
                 },
                 "address": {
                     "input": "@any",
                     "output": { "!port": "number" },
-                    "implementation": { "low": { "module": "@business-framework/http-server", "functionName": "address" } }
+                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "address" } }
                 }
             },
             "lifecycle": {
                 "start": {
                     "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "_object": { "$func/app-config-section": "http" }, "_path": "port" } }] } },
-                    "low": { "module": "@business-framework/http-server", "functionName": "listen" }
+                    "low": { "module": "@business-framework/http-server", "export": "listen" }
                 },
-                "stop": { "low": { "module": "@business-framework/http-server", "functionName": "close" } },
+                "stop": { "low": { "module": "@business-framework/http-server", "export": "close" } },
                 "startPosition": "last"
             }
         }

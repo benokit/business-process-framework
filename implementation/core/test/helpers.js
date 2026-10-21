@@ -3,7 +3,7 @@ import { calls } from './fixtures/effects.js';
 
 export const EFFECTS = new URL('./fixtures/effects.js', import.meta.url).href;
 
-export const low = functionName => ({ low: { module: EFFECTS, functionName } });
+export const low = name => ({ low: { module: EFFECTS, export: name } });
 
 export const bootWith = async (...elements) => {
     calls.length = 0;

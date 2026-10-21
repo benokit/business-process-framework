@@ -34,7 +34,8 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!element": "string", "!slot": "string" }, "output": "@any" },
-            "implementation": { "module": "@business-framework/core/slots", "export": "slotValues" }
+            "module": "@business-framework/core/slots",
+            "export": "slotValues"
         }
     }
 ]

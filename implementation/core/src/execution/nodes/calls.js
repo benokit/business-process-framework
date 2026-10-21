@@ -1,7 +1,7 @@
 import { evaluate, methodScope, runMethod } from '../pipeline.js';
 import { invoke } from '../invoke.js';
 
-const lowFunction = async ({ module, functionName }) => (await import(module))[functionName];
+const lowFunction = async ({ module, export: name }) => (await import(module))[name];
 
 export const calls = {
     invoke: (node, scope, input) => invoke(
