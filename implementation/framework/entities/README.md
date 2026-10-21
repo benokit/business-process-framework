@@ -45,7 +45,7 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 | `traits` | many | `{ trait, configuration }` | see [Traits](#traits) |
 | `businessKey` | one | method: create input → key | on `create` without `businessKey`; the most specific fill wins |
 | `guards` | many | method: change → (throws to refuse) | before the transaction |
-| `interceptors` | many | middleware around the store write: `#.input` is the store input, `next` writes | inside the transaction |
+| `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored | inside the transaction |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back |
 
 A change is `{ operation: create | update | trait | delete, trait?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `update` and `trait` the written `trait` and its `value` (`update` writes `body`), `trait` also the `command`.

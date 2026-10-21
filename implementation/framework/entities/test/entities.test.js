@@ -21,10 +21,11 @@ const elements = [
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
     fill('stamp-note', ORDER, 'interceptors', {
-        if: '#.input.data',
-        then: { inputMap: { $merge: ['#.input', { data: { body: { note: '\\stamped' } } }] }, next: true },
+        if: { $eq: ['#.input.operation', '\\create'] },
+        then: { inputMap: { $merge: ['#.input', { input: { data: { body: { note: '\\stamped' } } } }] }, next: true },
         else: { next: true }
     }),
+    fill('change-operation', ORDER, 'interceptors', { inputMap: { $merge: ['#.input', { operation: '\\delete' }] }, next: true }, { position: 'last' }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }

@@ -68,9 +68,9 @@
                                 { "outputKey": "storeOperation", "set": "#.input.storeOperation" },
                                 {
                                     "outputKey": "record",
-                                    "inputMap": { "$merge": ["#.input.storeInput", { "entityType": "#.self.id" }] },
+                                    "inputMap": { "operation": "#.storeOperation", "input": { "$merge": ["#.input.storeInput", { "entityType": "#.self.id" }] } },
                                     "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
-                                    "action": { "invoke": "entity-database", "operation": "#.storeOperation" }
+                                    "action": { "inputMap": "#.input.input", "invoke": "entity-database", "operation": "#.storeOperation" }
                                 },
                                 {
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
