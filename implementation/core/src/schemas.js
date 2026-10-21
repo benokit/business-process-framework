@@ -33,7 +33,25 @@ export const validateValue = ({ schemaId, value }) => {
     return { isValid: validate(value), errors: validate.errors ?? [] };
 };
 
-export const toJsonSchema = ({ id, schema }) => compactToStandard({ $id: id, $data: schema });
+const CODE = new Set([uri('method'), uri('mapping')]);
+
+const storedSchema = ref => ajv.getSchema(ref)?.schema;
+
+const codeAt = (schema, value) => {
+    if (!isPlainObject(schema) || value === undefined) return [];
+    if (schema.$ref !== undefined) return CODE.has(schema.$ref) ? [value] : codeAt(storedSchema(schema.$ref), value);
+    const alternatives = [...schema.allOf ?? [], ...schema.anyOf ?? [], ...schema.oneOf ?? []];
+    const properties = schema.properties ?? {};
+    return [
+        ...alternatives.flatMap(alternative => codeAt(alternative, value)),
+        ...Array.isArray(value) && schema.items !== undefined ? value.flatMap(item => codeAt(schema.items, item)) : [],
+        ...isPlainObject(value) ? Object.entries(value).flatMap(([key, item]) => codeAt(properties[key] ?? schema.additionalProperties, item)) : []
+    ];
+};
+
+export const codeIn = ({ schemaId, value }) => [...new Set(codeAt(storedSchema(uri(schemaId)), value))];
+
+export const toJsonSchema =({ id, schema }) => compactToStandard({ $id: id, $data: schema });
 
 export const enableChecks = () => {
     checking = true;

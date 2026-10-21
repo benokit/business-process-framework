@@ -73,6 +73,19 @@ describe('interfaces', () => {
         expect(codes()).to.deep.equal([]);
     });
 
+    it('accepts a reference without instances in code outside kinds, and reports one in data', async () => {
+        await bootWith(store,
+            kind('job', { shape: { run: '@method', target: '@element-ref' }, slots: { steps: { cardinality: 'many', value: '@method' } } }),
+            element('nightly', 'job', { run: { invoke: { instanceOf: 'store' }, operation: 'put' }, target: { instanceOf: 'store' } }),
+            { kind: 'slot-fill', data: { target: 'job', slot: 'steps', value: { invoke: { instanceOf: 'store' }, operation: 'put' } } });
+        expect(validate().map(({ code, data }) => [code, data.abstraction])).to.deep.equal([['no-instance', 'store']]);
+    });
+
+    it('reports a reference in code to an element that is not a kind', async () => {
+        await bootWith(kind('user', { operations: { save: operation({ invoke: { instanceOf: 'stor' }, operation: 'put' }) } }));
+        expect(codes()).to.deep.equal(['unknown-kind']);
+    });
+
     it('reports a binding to an element that is not an instance of the abstraction', async () => {
         await bootWith(store, element('memory', 'memory-store'), kind('other', {}), element('stranger', 'other'), binding('store', 'stranger'));
         expect(codes()).to.deep.equal(['invalid-binding']);

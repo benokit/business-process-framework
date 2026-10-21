@@ -51,7 +51,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 
 ## Validation
 
-`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf-validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. It doesn't inspect pipelines or pure function signatures.
+`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf-validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value. It doesn't inspect pipelines or pure function signatures.
 
 A kind adds its own checks with `lifecycle.validate`: a mapping from `#.self` to a list of problem messages, run for each identified instance, subkinds included. Any message is reported as `invalid-element`.
 
@@ -77,7 +77,7 @@ Where an element is expected (`invoke`, and data fields typed `@element-ref`), a
 { "kind": "binding", "data": { "abstraction": "message-broker", "instance": "nats" } }
 ```
 
-Packages reference kinds and don't write bindings; the application binds, or names an instance where it means a specific one (a channel to an external system on another transport). `validate()` checks every reference in data and bindings (the bound element is an instance of the abstraction, one binding per abstraction). In the code of a kind, a reference to a kind without instances is accepted: that path may never run.
+Packages reference kinds and don't write bindings; the application binds, or names an instance where it means a specific one (a channel to an external system on another transport). `validate()` checks every reference in data and bindings (the bound element is an instance of the abstraction, one binding per abstraction). A reference in code only has to name a kind, because that path may never run; a kind whose configuration selects such a path checks for the instance in its `validate` hook (a channel with `publisher.transactionalOutbox` needs a `message-outbox`).
 
 ## Data composition
 

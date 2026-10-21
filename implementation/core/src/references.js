@@ -18,8 +18,12 @@ const onlyInstanceOf = abstraction => {
     return ids[0];
 };
 
-const instanceFor = memo(abstraction => {
+export const checkAbstraction = ({ instanceOf: abstraction }) => {
     if (findElement(abstraction)?.kind !== 'kind') fail('unknown-kind', `instanceOf names '${abstraction}', which is not a kind`, { abstraction });
+};
+
+const instanceFor = memo(abstraction => {
+    checkAbstraction({ instanceOf: abstraction });
     return bindingOf(abstraction) ?? onlyInstanceOf(abstraction);
 });
 

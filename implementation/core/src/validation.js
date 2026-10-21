@@ -1,10 +1,10 @@
 import { allElements, findElement, kindOf } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
-import { validateValue } from './schemas.js';
+import { codeIn, validateValue } from './schemas.js';
 import { applyMapping } from './mappings.js';
 import { fillsOf, orderFills } from './slots.js';
 import { elementsInStartOrder } from './lifecycle.js';
-import { checkBinding, isKindReference, resolveReference } from './references.js';
+import { checkAbstraction, checkBinding, isKindReference, resolveReference } from './references.js';
 import { fail, problemsOf } from './errors.js';
 
 const kinds = () => instancesOf('kind');
@@ -70,13 +70,22 @@ const kindReferences = value => {
     return Object.values(value).flatMap(kindReferences);
 };
 
-const isUnusedInCode = (element, { instanceOf }) => element.kind === 'kind'
-    && findElement(instanceOf)?.kind === 'kind'
-    && instancesOf(instanceOf).length === 0;
+const fillCode = ({ data: { target, slot, value } }) => {
+    const declaration = findElement(target) && targetKind(target).slots[slot];
+    return declaration ? codeIn({ schemaId: `${declaration.owner}/slots/${slot}`, value }) : [];
+};
 
-const referenceProblems = element => kindReferences(element.data)
-    .filter(reference => !isUnusedInCode(element, reference))
-    .map(reference => () => resolveReference(reference));
+const codeOf = element => [
+    ...resolveKind(kindOf(element)).chain
+        .filter(kind => kind.data.shape !== undefined)
+        .flatMap(kind => codeIn({ schemaId: kind.id, value: element.data })),
+    ...element.kind === 'slot-fill' ? fillCode(element) : []
+];
+
+const referenceProblems = element => {
+    const inCode = new Set(codeOf(element).flatMap(kindReferences));
+    return kindReferences(element.data).map(reference => () => inCode.has(reference) ? checkAbstraction(reference) : resolveReference(reference));
+};
 
 const hookProblems = element => resolveKind(kindOf(element)).chain
     .filter(kind => kind.data.lifecycle?.validate !== undefined)

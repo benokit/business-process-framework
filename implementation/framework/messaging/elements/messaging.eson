@@ -84,6 +84,15 @@
                     "input": { "!consumer": "string" },
                     "implementation": { "invoke": "#.self.data.broker", "operation": "unsubscribe" }
                 }
+            },
+            "lifecycle": {
+                "validate": {
+                    "$conditional": {
+                        "_if": { "$conditional": { "_if": "#.self.data.publisher.transactionalOutbox", "_then": { "$head": { "$func/instances-of": "message-outbox" } }, "_else": true } },
+                        "_then": [],
+                        "_else": ["publisher.transactionalOutbox needs a message-outbox instance"]
+                    }
+                }
             }
         }
     },

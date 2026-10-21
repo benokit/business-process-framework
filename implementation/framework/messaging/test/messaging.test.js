@@ -51,6 +51,13 @@ describe('messaging', () => {
         expect(validate()).to.deep.equal([]);
     });
 
+    it('reports a channel publishing through a transactional outbox when there is none', async () => {
+        await stop();
+        const payments = { id: 'payments', kind: 'message-channel', data: { broker: 'memory', topology: 'queue', name: 'payments', publisher: { transactionalOutbox: true } } };
+        await boot({ paths: [packageElements('@business-framework/messaging')], elements: [...elements, payments] });
+        expect(validate().map(({ code, data }) => [code, data.element])).to.deep.equal([['invalid-element', 'payments']]);
+    });
+
     it('publishes an envelope with id, time, group and a new correlation', async () => {
         await invoke('shop', 'place', { orderId: 'o-1' });
         const [{ channel, envelope }] = published;
