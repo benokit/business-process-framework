@@ -31,12 +31,12 @@ describe('pipelines', () => {
         ])).to.equal(1);
     });
 
-    it('runs if, switch and forEach', async () => {
+    it('runs if, switch and forEach, whose body sees the item and the outer input', async () => {
         expect(await run([
             { outputKey: 'kind', if: { $gt: ['#.input', 0] }, then: { set: '\\positive' }, else: { set: '\\other' } },
             { outputKey: 'label', switch: { value: '#.kind', cases: { positive: { set: '\\+' }, default: { set: '\\?' } } } },
-            { inputMap: ['#.label', '#.label'], forEach: { set: { $join: { _strings: ['#.input', '#.input'] } } } }
-        ], 5)).to.deep.equal(['++', '++']);
+            { inputMap: ['#.label', '#.label'], forEach: { set: { $join: { _strings: ['#.item', '#.input'] } } } }
+        ], 5)).to.deep.equal(['+5', '+5']);
     });
 
     it('ends the method with return', async () => {

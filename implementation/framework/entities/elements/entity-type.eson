@@ -3,30 +3,30 @@
         "id": "apply-entity-change",
         "kind": "executable",
         "data": [
-            { "outputKey": "args", "set": "#.input" },
             {
                 "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
-                "forEach": { "inputMap": "#.args.change", "execute": "#.input" }
+                "forEach": { "inputMap": "#.input.change", "execute": "#.item" }
             },
             {
                 "inTransaction": [
+                    { "outputKey": "storeOperation", "set": "#.input.storeOperation" },
                     {
                         "outputKey": "record",
-                        "inputMap": "#.args.storeInput",
+                        "inputMap": "#.input.storeInput",
                         "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
-                        "action": { "invoke": "entity-database", "operation": "#.args.storeOperation" }
+                        "action": { "invoke": "entity-database", "operation": "#.storeOperation" }
                     },
                     {
                         "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                         "forEach": {
                             "inputMap": {
                                 "$conditional": {
-                                    "_if": { "$eq": ["#.args.change.operation", "delete"] },
-                                    "_then": "#.args.change",
-                                    "_else": { "$merge": ["#.args.change", { "after": "#.record" }] }
+                                    "_if": { "$eq": ["#.input.change.operation", "delete"] },
+                                    "_then": "#.input.change",
+                                    "_else": { "$merge": ["#.input.change", { "after": "#.record" }] }
                                 }
                             },
-                            "execute": "#.input"
+                            "execute": "#.item"
                         }
                     },
                     { "return": "#.record" }

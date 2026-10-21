@@ -41,8 +41,7 @@
         "id": "initial-trait-values",
         "kind": "executable",
         "data": [
-            { "outputKey": "args", "set": "#.input" },
-            { "outputKey": "traits", "set": { "$func/entity-traits": "#.args.entityType" } },
+            { "outputKey": "traits", "set": { "$func/entity-traits": "#.input.entityType" } },
             {
                 "outputKey": "values",
                 "inputMap": { "$keys": "#.traits" },
@@ -50,14 +49,14 @@
                     {
                         "outputKey": "value",
                         "inputMap": {
-                            "entityType": "#.args.entityType",
-                            "configuration": { "$get": { "_object": "#.traits", "_path": "#.input" } },
-                            "input": { "$get": { "_object": "#.args.input", "_path": "#.input" } }
+                            "entityType": "#.input.entityType",
+                            "configuration": { "$get": { "_object": "#.traits", "_path": "#.item" } },
+                            "input": { "$get": { "_object": "#.input.input", "_path": "#.item" } }
                         },
-                        "invoke": "#.input",
+                        "invoke": "#.item",
                         "operation": "initialize"
                     },
-                    { "set": { "trait": "#.input", "value": "#.value" } }
+                    { "set": { "trait": "#.item", "value": "#.value" } }
                 ]
             },
             { "set": { "$mapValues": { "_of": { "$toDictionary": { "_by": "#.trait", "_collection": "#.values" } }, "_fn": "#.value" } } }

@@ -34,7 +34,7 @@ export const control = {
         return runOptional(cases[evaluate(value, scope)] ?? cases.default, { ...scope, input });
     },
 
-    forEach: (node, scope, input) => mapSequentially(input ?? [], item => runPipeline(node.forEach, { ...scope, input: item })),
+    forEach: (node, scope, input) => mapSequentially(input ?? [], item => runPipeline(node.forEach, { ...scope, item })),
 
     try: runTry,
 

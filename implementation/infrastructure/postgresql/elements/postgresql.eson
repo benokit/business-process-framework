@@ -21,7 +21,7 @@
                     { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "functionName": "connect" } },
                     {
                         "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "models" } },
-                        "forEach": { "invoke": "#.self.id", "operation": "execute" }
+                        "forEach": { "inputMap": "#.item", "invoke": "#.self.id", "operation": "execute" }
                     }
                 ],
                 "stop": { "low": { "module": "@business-framework/postgresql", "functionName": "disconnect" } }

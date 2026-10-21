@@ -13,11 +13,10 @@
         "id": "index-entity-record",
         "kind": "executable",
         "data": [
-            { "outputKey": "args", "set": "#.input" },
-            { "outputKey": "document", "inputMap": "#.args.record", "execute": "#.args.index.mapping" },
+            { "outputKey": "document", "inputMap": "#.input.record", "execute": "#.input.index.mapping" },
             {
-                "inputMap": { "indexName": "#.args.index.indexName", "document": { "$merge": ["#.document", { "id": "#.args.record.id" }] } },
-                "invoke": "#.args.index.searchEngine",
+                "inputMap": { "indexName": "#.input.index.indexName", "document": { "$merge": ["#.document", { "id": "#.input.record.id" }] } },
+                "invoke": "#.input.index.searchEngine",
                 "operation": "insertDocument"
             }
         ]
@@ -66,7 +65,7 @@
                         { "inputMap": "#.input.entityType", "call": "configure-entity-search-index" },
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
                         { "outputKey": "records", "inputMap": { "limit": 200 }, "invoke": "#.input.entityType", "operation": "list" },
-                        { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.input" }, "call": "index-entity-record" } },
+                        { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.item" }, "call": "index-entity-record" } },
                         { "set": null }
                     ]
                 },
@@ -94,7 +93,7 @@
             "lifecycle": {
                 "start": {
                     "inputMap": { "$map": { "_over": { "$func/instances-of": "entity-type" }, "_fn": "#.id" } },
-                    "forEach": { "call": "configure-entity-search-index" }
+                    "forEach": { "inputMap": "#.item", "call": "configure-entity-search-index" }
                 },
                 "startAfter": ["search-engine"]
             }

@@ -43,8 +43,8 @@
                         "inputMap": { "$keys": { "$coalesce": ["#.self.data.slots", {}] } },
                         "forEach": {
                             "inputMap": {
-                                "id": { "$join": { "_strings": ["#.self.id", "/slots/", "#.input"] } },
-                                "schema": { "$get": { "_object": "#.self.data.slots", "_path": { "$join": { "_strings": ["#.input", ".value"] } } } }
+                                "id": { "$join": { "_strings": ["#.self.id", "/slots/", "#.item"] } },
+                                "schema": { "$get": { "_object": "#.self.data.slots", "_path": { "$join": { "_strings": ["#.item", ".value"] } } } }
                             },
                             "invoke": "ajv", "operation": "add"
                         }
@@ -70,12 +70,11 @@
         "id": "add-contracts",
         "kind": "executable",
         "data": [
-            { "outputKey": "args", "set": "#.input" },
             {
-                "inputMap": { "$keys": { "$coalesce": ["#.args.contracts", {}] } },
+                "inputMap": { "$keys": { "$coalesce": ["#.input.contracts", {}] } },
                 "forEach": [
-                    { "outputKey": "contract", "set": { "$get": { "_object": "#.args.contracts", "_path": "#.input" } } },
-                    { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.args.owner", "/", "#.input", "/"] } } },
+                    { "outputKey": "contract", "set": { "$get": { "_object": "#.input.contracts", "_path": "#.item" } } },
+                    { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.input.owner", "/", "#.item", "/"] } } },
                     {
                         "if": "#.contract.input",
                         "then": {

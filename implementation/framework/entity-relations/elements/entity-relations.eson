@@ -49,7 +49,7 @@
                     {
                         "outputKey": "results",
                         "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "relations" } },
-                        "forEach": { "inputMap": "#.record", "execute": "#.input" }
+                        "forEach": { "inputMap": "#.record", "execute": "#.item" }
                     },
                     {
                         "inputMap": {
