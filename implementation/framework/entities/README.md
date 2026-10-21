@@ -19,6 +19,8 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 | `update` | `businessKey`, `revision`, `body` | record |
 | `writeTrait` | `businessKey`, `revision?`, `trait`, `command`, `value` | record |
 | `delete` | `businessKey`, `revision?` | the deleted record |
+| `applyChange` | `change`, `storeOperation`, `storeInput` (the store input without `entityType`) | record; the write path of every write operation: guards, then in one transaction the store write through the interceptors and the reactions |
+| `initialTraitValues` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
 
 Record: `{ id, entityType, businessKey, revision, data, timestampUtc }`, where `data` maps each trait to its value: `body` is the business data, checked against `<id>/bodySchema` (added on load). Errors: `invalid` (body, missing business key, undeclared trait), `not-found`, `conflict` (duplicate key, revision mismatch).
 

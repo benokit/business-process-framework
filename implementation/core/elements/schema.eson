@@ -7,6 +7,17 @@
                 "add": {
                     "input": { "!id": "string", "!schema": "@schema" },
                     "implementation": { "low": { "module": "@business-framework/core/schemas", "functionName": "add" } }
+                },
+                "assert": {
+                    "input": { "!schemaId": "string", "value": "@any" },
+                    "implementation": [
+                        { "outputKey": "result", "set": { "$func/schema-validate": { "schemaId": "#.input.schemaId", "value": "#.input.value" } } },
+                        {
+                            "if": { "$negate": "#.result.isValid" },
+                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["\\value doesn't match ", "#.input.schemaId"] } }, "data": { "errors": "#.result.errors" } } }
+                        },
+                        { "set": "#.input.value" }
+                    ]
                 }
             }
         }

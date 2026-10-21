@@ -36,30 +36,5 @@
             "signature": { "input": "string", "output": "[string]" },
             "implementation": { "module": "@business-framework/entities/traits", "export": "traitProblems" }
         }
-    },
-    {
-        "id": "initial-trait-values",
-        "kind": "executable",
-        "data": [
-            { "outputKey": "traits", "set": { "$func/entity-traits": "#.input.entityType" } },
-            {
-                "outputKey": "values",
-                "inputMap": { "$keys": "#.traits" },
-                "forEach": [
-                    {
-                        "outputKey": "value",
-                        "inputMap": {
-                            "entityType": "#.input.entityType",
-                            "configuration": { "$get": { "_object": "#.traits", "_path": "#.item" } },
-                            "input": { "$get": { "_object": "#.input.input", "_path": "#.item" } }
-                        },
-                        "invoke": "#.item",
-                        "operation": "initialize"
-                    },
-                    { "set": { "trait": "#.item", "value": "#.value" } }
-                ]
-            },
-            { "set": { "$mapValues": { "_of": { "$toDictionary": { "_by": "#.trait", "_collection": "#.values" } }, "_fn": "#.value" } } }
-        ]
     }
 ]

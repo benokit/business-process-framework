@@ -1,40 +1,5 @@
 [
     {
-        "id": "apply-entity-change",
-        "kind": "executable",
-        "data": [
-            {
-                "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
-                "forEach": { "inputMap": "#.input.change", "execute": "#.item" }
-            },
-            {
-                "inTransaction": [
-                    { "outputKey": "storeOperation", "set": "#.input.storeOperation" },
-                    {
-                        "outputKey": "record",
-                        "inputMap": "#.input.storeInput",
-                        "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
-                        "action": { "invoke": "entity-database", "operation": "#.storeOperation" }
-                    },
-                    {
-                        "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
-                        "forEach": {
-                            "inputMap": {
-                                "$conditional": {
-                                    "_if": { "$eq": ["#.input.change.operation", "delete"] },
-                                    "_then": "#.input.change",
-                                    "_else": { "$merge": ["#.input.change", { "after": "#.record" }] }
-                                }
-                            },
-                            "execute": "#.item"
-                        }
-                    },
-                    { "return": "#.record" }
-                ]
-            }
-        ]
-    },
-    {
         "id": "entity-type",
         "kind": "kind",
         "data": {
@@ -65,11 +30,71 @@
                         "operation": "list"
                     }
                 },
+                "initialTraitValues": {
+                    "input": { "!traits": "object" },
+                    "output": "object",
+                    "implementation": [
+                        { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
+                        {
+                            "outputKey": "values",
+                            "inputMap": { "$keys": "#.traits" },
+                            "forEach": [
+                                {
+                                    "outputKey": "value",
+                                    "inputMap": {
+                                        "entityType": "#.self.id",
+                                        "configuration": { "$get": { "_object": "#.traits", "_path": "#.item" } },
+                                        "input": { "$get": { "_object": "#.input.traits", "_path": "#.item" } }
+                                    },
+                                    "invoke": "#.item",
+                                    "operation": "initialize"
+                                },
+                                { "set": { "trait": "#.item", "value": "#.value" } }
+                            ]
+                        },
+                        { "set": { "$mapValues": { "_of": { "$toDictionary": { "_by": "#.trait", "_collection": "#.values" } }, "_fn": "#.value" } } }
+                    ]
+                },
+                "applyChange": {
+                    "input": { "!change": "@entity-change", "!storeOperation=1": ["create", "update", "delete"], "!storeInput": "object" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
+                            "forEach": { "inputMap": "#.input.change", "execute": "#.item" }
+                        },
+                        {
+                            "inTransaction": [
+                                { "outputKey": "storeOperation", "set": "#.input.storeOperation" },
+                                {
+                                    "outputKey": "record",
+                                    "inputMap": { "$merge": ["#.input.storeInput", { "entityType": "#.self.id" }] },
+                                    "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
+                                    "action": { "invoke": "entity-database", "operation": "#.storeOperation" }
+                                },
+                                {
+                                    "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
+                                    "forEach": {
+                                        "inputMap": {
+                                            "$conditional": {
+                                                "_if": { "$eq": ["#.input.change.operation", "delete"] },
+                                                "_then": "#.input.change",
+                                                "_else": { "$merge": ["#.input.change", { "after": "#.record" }] }
+                                            }
+                                        },
+                                        "execute": "#.item"
+                                    }
+                                },
+                                { "return": "#.record" }
+                            ]
+                        }
+                    ]
+                },
                 "create": {
                     "input": { "businessKey": "string", "!body": "object", "traits": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "call": "assert-valid" },
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
                         { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
                         {
                             "outputKey": "businessKey",
@@ -83,17 +108,19 @@
                         },
                         {
                             "outputKey": "traits",
-                            "inputMap": { "entityType": "#.self.id", "input": { "$coalesce": ["#.input.traits", {}] } },
-                            "call": "initial-trait-values"
+                            "inputMap": { "traits": { "$coalesce": ["#.input.traits", {}] } },
+                            "invoke": "#.self.id",
+                            "operation": "initialTraitValues"
                         },
                         { "outputKey": "data", "set": { "$merge": ["#.traits", { "body": "#.input.body" }] } },
                         {
                             "inputMap": {
                                 "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.data" } },
                                 "storeOperation": "create",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.businessKey", "data": "#.data" }
+                                "storeInput": { "businessKey": "#.businessKey", "data": "#.data" }
                             },
-                            "call": "apply-entity-change"
+                            "invoke": "#.self.id",
+                            "operation": "applyChange"
                         }
                     ]
                 },
@@ -101,15 +128,16 @@
                     "input": { "!businessKey": "string", "!revision": "number", "!body": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "call": "assert-valid" },
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
                             "inputMap": {
                                 "change": { "operation": "update", "trait": "body", "value": "#.input.body", "before": "#.before" },
                                 "storeOperation": "update",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "body", "value": "#.input.body" }
+                                "storeInput": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "body", "value": "#.input.body" }
                             },
-                            "call": "apply-entity-change"
+                            "invoke": "#.self.id",
+                            "operation": "applyChange"
                         }
                     ]
                 },
@@ -127,14 +155,14 @@
                                 "change": { "operation": "trait", "trait": "#.input.trait", "command": "#.input.command", "value": "#.input.value", "before": "#.before" },
                                 "storeOperation": "update",
                                 "storeInput": {
-                                    "entityType": "#.self.id",
                                     "businessKey": "#.input.businessKey",
                                     "revision": { "$coalesce": ["#.input.revision", "#.before.revision"] },
                                     "trait": "#.input.trait",
                                     "value": "#.input.value"
                                 }
                             },
-                            "call": "apply-entity-change"
+                            "invoke": "#.self.id",
+                            "operation": "applyChange"
                         }
                     ]
                 },
@@ -147,9 +175,10 @@
                             "inputMap": {
                                 "change": { "operation": "delete", "before": "#.before" },
                                 "storeOperation": "delete",
-                                "storeInput": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision" }
+                                "storeInput": { "businessKey": "#.input.businessKey", "revision": "#.input.revision" }
                             },
-                            "call": "apply-entity-change"
+                            "invoke": "#.self.id",
+                            "operation": "applyChange"
                         }
                     ]
                 }

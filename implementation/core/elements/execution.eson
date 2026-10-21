@@ -1,10 +1,5 @@
 [
     {
-        "id": "executable",
-        "kind": "kind",
-        "data": { "shape": "@method" }
-    },
-    {
         "id": "pure-function",
         "kind": "kind",
         "data": { "shape": { "signature": { "!input": "@schema", "!output": "@schema" }, "!implementation": "@any" } }
@@ -42,17 +37,5 @@
             "signature": { "input": "string", "output": "[object]" },
             "implementation": { "module": "@business-framework/core/kinds", "export": "selvesOf" }
         }
-    },
-    {
-        "id": "assert-valid",
-        "kind": "executable",
-        "data": [
-            { "outputKey": "result", "set": { "$func/schema-validate": { "schemaId": "#.input.schemaId", "value": "#.input.value" } } },
-            {
-                "if": { "$negate": "#.result.isValid" },
-                "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["\\value doesn't match ", "#.input.schemaId"] } }, "data": { "errors": "#.result.errors" } } }
-            },
-            { "set": "#.input.value" }
-        ]
     }
 ]

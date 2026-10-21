@@ -31,7 +31,27 @@
                         "if": "#.self.data.shape",
                         "then": { "inputMap": { "id": "#.self.id", "schema": "#.self.data.shape" }, "invoke": "ajv", "operation": "add" }
                     },
-                    { "inputMap": { "owner": "#.self.id", "contracts": "#.self.data.operations" }, "call": "add-contracts" },
+                    {
+                        "inputMap": { "$keys": { "$coalesce": ["#.self.data.operations", {}] } },
+                        "forEach": [
+                            { "outputKey": "contract", "set": { "$get": { "_object": "#.self.data.operations", "_path": "#.item" } } },
+                            { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.self.id", "/", "#.item", "/"] } } },
+                            {
+                                "if": "#.contract.input",
+                                "then": {
+                                    "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
+                                    "invoke": "ajv", "operation": "add"
+                                }
+                            },
+                            {
+                                "if": "#.contract.output",
+                                "then": {
+                                    "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "output"] } }, "schema": "#.contract.output" },
+                                    "invoke": "ajv", "operation": "add"
+                                }
+                            }
+                        ]
+                    },
                     {
                         "if": "#.self.data.context.manages",
                         "then": {
@@ -65,33 +85,6 @@
             "signature": { "input": "@any", "output": "[string]" },
             "implementation": { "module": "@business-framework/core/kinds", "export": "checkKind" }
         }
-    },
-    {
-        "id": "add-contracts",
-        "kind": "executable",
-        "data": [
-            {
-                "inputMap": { "$keys": { "$coalesce": ["#.input.contracts", {}] } },
-                "forEach": [
-                    { "outputKey": "contract", "set": { "$get": { "_object": "#.input.contracts", "_path": "#.item" } } },
-                    { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.input.owner", "/", "#.item", "/"] } } },
-                    {
-                        "if": "#.contract.input",
-                        "then": {
-                            "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
-                            "invoke": "ajv", "operation": "add"
-                        }
-                    },
-                    {
-                        "if": "#.contract.output",
-                        "then": {
-                            "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "output"] } }, "schema": "#.contract.output" },
-                            "invoke": "ajv", "operation": "add"
-                        }
-                    }
-                ]
-            }
-        ]
     },
     {
         "id": "operation",

@@ -36,7 +36,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 
 ## Core elements
 
-Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), and the executable `assert-valid` (`{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `instances-of` (the `{ id, kind, data }` of every identified instance of a kind). The schema registry `ajv` adds schemas (`add`) and checks values (`assert`, `{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
 
 ## Pipeline rules
 
@@ -44,7 +44,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 - `forEach` runs its body once per item of its input, with the item as `#.item`; the body keeps the scope it is written in, `#.input` included.
 - `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
-- `return` ends the current method: an operation, hook, middleware method, `call`/`execute` target, template implementation, or the pipeline a wrapper's `next` runs.
+- `return` ends the current method: an operation, hook, middleware method, `execute` target, template implementation, or the pipeline a wrapper's `next` runs.
 - `low` receives `{ input, _ctx }`, with `_ctx` frozen.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
 

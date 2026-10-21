@@ -1,4 +1,3 @@
-import { getElement } from '../../registry.js';
 import { evaluate, methodScope, runMethod } from '../pipeline.js';
 import { invoke } from '../invoke.js';
 
@@ -10,8 +9,6 @@ export const calls = {
         evaluate(node.operation, scope),
         input,
         scope._ctx),
-
-    call: (node, scope, input) => runMethod(getElement(node.call).data, methodScope(scope, input)),
 
     execute: (node, scope, input) => runMethod(evaluate(node.execute, scope), methodScope(scope, input)),
 

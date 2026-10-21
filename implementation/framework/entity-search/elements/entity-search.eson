@@ -10,33 +10,31 @@
         "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index" }
     },
     {
-        "id": "index-entity-record",
-        "kind": "executable",
-        "data": [
-            { "outputKey": "document", "inputMap": "#.input.record", "execute": "#.input.index.mapping" },
-            {
-                "inputMap": { "indexName": "#.input.index.indexName", "document": { "$merge": ["#.document", { "id": "#.input.record.id" }] } },
-                "invoke": "#.input.index.searchEngine",
-                "operation": "insertDocument"
-            }
-        ]
-    },
-    {
-        "id": "configure-entity-search-index",
-        "kind": "executable",
-        "data": [
-            { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input", "slot": "searchIndex" } } },
-            {
-                "if": "#.index",
-                "then": { "inputMap": { "indexName": "#.index.indexName", "settings": "#.index.settings" }, "invoke": "#.index.searchEngine", "operation": "configureIndex" }
-            }
-        ]
-    },
-    {
         "id": "entity-search-service",
         "kind": "kind",
         "data": {
             "operations": {
+                "configureIndex": {
+                    "input": { "!entityType": "string" },
+                    "implementation": [
+                        { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
+                        {
+                            "if": "#.index",
+                            "then": { "inputMap": { "indexName": "#.index.indexName", "settings": "#.index.settings" }, "invoke": "#.index.searchEngine", "operation": "configureIndex" }
+                        }
+                    ]
+                },
+                "indexRecord": {
+                    "input": { "!index": "@entity-search-index", "!record": "@entity-record" },
+                    "implementation": [
+                        { "outputKey": "document", "inputMap": "#.input.record", "execute": "#.input.index.mapping" },
+                        {
+                            "inputMap": { "indexName": "#.input.index.indexName", "document": { "$merge": ["#.document", { "id": "#.input.record.id" }] } },
+                            "invoke": "#.input.index.searchEngine",
+                            "operation": "insertDocument"
+                        }
+                    ]
+                },
                 "index": {
                     "input": "@entity-event",
                     "implementation": [
@@ -53,7 +51,7 @@
                                         "try": { "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
                                         "catch": { "if": { "$eq": ["#.error.code", "not-found"] }, "then": { "set": null }, "else": { "throw": "#.error" } }
                                     },
-                                    { "if": "#.record", "then": { "inputMap": { "index": "#.index", "record": "#.record" }, "call": "index-entity-record" } }
+                                    { "if": "#.record", "then": { "inputMap": { "index": "#.index", "record": "#.record" }, "invoke": "#.self.id", "operation": "indexRecord" } }
                                 ]
                             }
                         }
@@ -62,10 +60,10 @@
                 "reindex": {
                     "input": { "!entityType": "string" },
                     "implementation": [
-                        { "inputMap": "#.input.entityType", "call": "configure-entity-search-index" },
+                        { "inputMap": { "entityType": "#.input.entityType" }, "invoke": "#.self.id", "operation": "configureIndex" },
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
                         { "outputKey": "records", "inputMap": { "limit": 200 }, "invoke": "#.input.entityType", "operation": "list" },
-                        { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.item" }, "call": "index-entity-record" } },
+                        { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.item" }, "invoke": "#.self.id", "operation": "indexRecord" } },
                         { "set": null }
                     ]
                 },
@@ -93,7 +91,7 @@
             "lifecycle": {
                 "start": {
                     "inputMap": { "$map": { "_over": { "$func/instances-of": "entity-type" }, "_fn": "#.id" } },
-                    "forEach": { "inputMap": "#.item", "call": "configure-entity-search-index" }
+                    "forEach": { "inputMap": { "entityType": "#.item" }, "invoke": "#.self.id", "operation": "configureIndex" }
                 },
                 "startAfter": ["search-engine"]
             }
