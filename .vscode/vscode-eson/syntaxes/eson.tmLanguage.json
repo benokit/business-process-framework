@@ -49,21 +49,49 @@
             "comment": "Patterns for strings that are followed by a colon — they are object keys. Order: most specific first.",
             "patterns": [
                 { "include": "#key-execution-node" },
+                { "include": "#key-execution-node-template" },
+                { "include": "#key-node-modifier" },
+                { "include": "#key-schema" },
                 { "include": "#key-lambda-primitive" },
+                { "include": "#key-composition" },
                 { "include": "#key-plain" }
             ]
         },
 
         "key-execution-node": {
-            "comment": "Pipeline node keywords used as object keys: set, if, forEach, etc.",
+            "comment": "Native node keywords of the core (core/src/execution/nodes) and their branch keys",
             "name": "keyword.control.execution-node.eson",
-            "match": "\"(set|return|service|method|getElement|getElementsOfKind|low|execute|if|then|else|switch|forEach|try|catch|finally|throw|validateSchema|publish|inTransaction|getRandom|call|nextFromSequence)\"(?=\\s*:)"
+            "match": "\"(set|if|then|else|switch|forEach|try|catch|finally|throw|return|invoke|execute|low|withContext|do|middleware|action|next)\"(?=\\s*:)"
+        },
+
+        "key-execution-node-template": {
+            "comment": "Node keywords declared by execution-node-template elements in the packages; add new ones here",
+            "name": "keyword.control.execution-node.eson",
+            "match": "\"(publish|inTransaction|withCache|asSystem|authenticated|nextFromSequence|log)\"(?=\\s*:)"
+        },
+
+        "key-node-modifier": {
+            "comment": "Keys allowed beside a node keyword",
+            "name": "keyword.other.node-modifier.eson",
+            "match": "\"(inputMap|outputKey)\"(?=\\s*:)"
+        },
+
+        "key-schema": {
+            "comment": "CJSL schema wrapper keys: $data, $data# (any-of), $data#1 (one-of), $data#& (all-of), $id, $locals",
+            "name": "keyword.other.schema.eson",
+            "match": "\"\\$(data(#1|#&|#)?|id|locals)\"(?=\\s*:)"
+        },
+
+        "key-composition": {
+            "comment": "Data composition keys, evaluated once at boot",
+            "name": "keyword.other.composition.eson",
+            "match": "\"/(data|ref|merge|literal)\"(?=\\s*:)"
         },
 
         "key-lambda-primitive": {
-            "comment": "LambdaJSON $primitive as object key (expression object like {\"$map\": ...})",
+            "comment": "LambdaJSON $primitive or $func/<pure-function id> as object key",
             "name": "support.function.lambda.eson",
-            "match": "\"\\$[a-zA-Z][a-zA-Z0-9_]*\"(?=\\s*:)"
+            "match": "\"\\$(func/[a-zA-Z0-9_-]+|[a-zA-Z][a-zA-Z0-9_]*)\"(?=\\s*:)"
         },
 
         "key-plain": {
@@ -104,7 +132,7 @@
         "value-lambda-primitive": {
             "comment": "LambdaJSON $primitive used as a plain string value (uncommon but valid)",
             "name": "support.function.lambda.eson",
-            "match": "\"\\$[a-zA-Z][a-zA-Z0-9_]*\""
+            "match": "\"\\$(func/[a-zA-Z0-9_-]+|[a-zA-Z][a-zA-Z0-9_]*)\""
         },
 
         "value-string-plain": {
