@@ -20,7 +20,7 @@ See [entities-http](../../implementation/framework/entities-http/README.md), [en
 ## Conventions
 
 - **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/framework/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The user is created on first use.
-- **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT` requires `If-Match` with the current revision; `DELETE` and transitions accept it.
+- **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT`, `DELETE` and transitions require `If-Match` with the current revision.
 - **Records**: `data.body` is the business data; other keys of `data` are traits (`data.state`). An update sends the full `body`, not just changed fields; traits change only through their commands (transitions).
 - **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.
 - **Available transitions** come from the entity type's `traits.state` (`GET /entity-types`) and the record's `data.state`.

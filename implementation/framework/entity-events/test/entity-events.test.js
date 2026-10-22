@@ -41,8 +41,8 @@ describe('entity-events', function () {
     it('publishes create, update, trait and delete events in order', async () => {
         await invoke(ORDER, 'create', { businessKey: 'e-1', body: { amount: 1 } });
         await invoke(ORDER, 'update', { businessKey: 'e-1', revision: 1, body: { amount: 2 } });
-        await invoke('entity-states', 'transition', { entityType: ORDER, businessKey: 'e-1', transition: 'finish' });
-        await invoke(ORDER, 'delete', { businessKey: 'e-1' });
+        await invoke('entity-states', 'transition', { entityType: ORDER, businessKey: 'e-1', revision: 2, transition: 'finish' });
+        await invoke(ORDER, 'delete', { businessKey: 'e-1', revision: 3 });
         await eventually(() => received.length === 4);
         expect(received.map(event => [event.eventType, event.revision])).to.deep.equal([['create', 1], ['update', 2], ['trait', 3], ['delete', 3]]);
         expect([received[1].trait, received[2].trait, received[2].command]).to.deep.equal(['body', 'state', 'finish']);

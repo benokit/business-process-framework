@@ -46,7 +46,8 @@ describe('entities-http', function () {
         expect(stale.status).to.equal(409);
         const past = await call('GET', `/entities/${ORDER}/h-1?revision=1`);
         expect(past.body.data).to.deep.equal({ body: { amount: 1 } });
-        expect((await call('DELETE', `/entities/${ORDER}/h-1`)).status).to.equal(200);
+        expect((await call('DELETE', `/entities/${ORDER}/h-1`)).status).to.equal(400);
+        expect((await call('DELETE', `/entities/${ORDER}/h-1`, { headers: { 'if-match': updated.etag } })).status).to.equal(200);
         expect((await call('GET', `/entities/${ORDER}/h-1`)).status).to.equal(404);
     });
 

@@ -68,7 +68,7 @@
         "data": {
             "operations": {
                 "transition": {
-                    "input": { "!entityType": "string", "!businessKey": "string", "revision": "number", "!transition": "string" },
+                    "input": { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!transition": "string" },
                     "output": "@entity-record",
                     "implementation": [
                         {

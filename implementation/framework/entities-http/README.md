@@ -9,7 +9,7 @@ REST endpoints for [entities](../entities/README.md). Every route targets `entit
 | `POST` | `/entities/:entityType` | `create` (body `{ businessKey?, body, traits? }`) | 201 | yes |
 | `GET` | `/entities/:entityType/:businessKey?revision` | `read` | 200 | yes |
 | `PUT` | `/entities/:entityType/:businessKey` | `update` (body `{ body }`, `If-Match` required) | 200 | yes |
-| `DELETE` | `/entities/:entityType/:businessKey` | `delete` (`If-Match` optional) | 200 | |
+| `DELETE` | `/entities/:entityType/:businessKey` | `delete` (`If-Match` required) | 200 | |
 
 The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../infrastructure/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409.
 

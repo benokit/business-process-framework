@@ -26,6 +26,13 @@ const elements = [
         else: { next: true }
     }),
     fill('change-operation', ORDER, 'interceptors', { inputMap: { $merge: ['#.input', { operation: '\\delete' }] }, next: true }, { position: 'last' }),
+    fill('change-concurrently', ORDER, 'guards', {
+        if: { $eq: ['#.input.before.businessKey', '\\o-raced'] },
+        then: {
+            if: { $eq: ['#.input.operation', '\\delete'] },
+            then: { inputMap: { businessKey: '\\o-raced', revision: '#.input.before.revision', body: { amount: 2 } }, invoke: ORDER, operation: 'update' }
+        }
+    }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
@@ -97,16 +104,24 @@ describe('entities', function () {
 
     it('writes a declared trait only, keeping the body', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-5', body: { amount: 1 } });
-        const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', trait: NOTE, command: 'rewrite', value: 'changed' });
+        const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 1, trait: NOTE, command: 'rewrite', value: 'changed' });
         expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 1, 'changed']);
-        const undeclared = await Promise.all(['body', 'other'].map(trait => errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', trait, command: 'x', value: {} }))));
+        const undeclared = await Promise.all(['body', 'other'].map(trait => errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 2, trait, command: 'x', value: {} }))));
         expect(undeclared.map(error => error.code)).to.deep.equal(['invalid', 'invalid']);
     });
 
-    it('deletes', async () => {
+    it('deletes only at a given revision', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-6', body: { amount: 1 } });
-        expect((await invoke(ORDER, 'delete', { businessKey: 'o-6' })).businessKey).to.equal('o-6');
+        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-6' }))).code).to.equal('invalid');
+        expect((await invoke(ORDER, 'delete', { businessKey: 'o-6', revision: 1 })).businessKey).to.equal('o-6');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-6' }))).code).to.equal('not-found');
+    });
+
+    it('refuses a write when the record changed after it was read', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-raced', body: { amount: 1 } });
+        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-raced', revision: 1 }))).code).to.equal('conflict');
+        const raced = await invoke(ORDER, 'read', { businessKey: 'o-raced' });
+        expect([raced.revision, raced.data.body.amount]).to.deep.equal([2, 2]);
     });
 
     it('lists', async () => {

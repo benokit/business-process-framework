@@ -1,6 +1,6 @@
 import jsonPatch from 'fast-json-patch';
 import { CoreError } from '@business-framework/core';
-import { queryable, inSession } from '@business-framework/transaction';
+import { queryable } from '@business-framework/transaction';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -17,19 +17,39 @@ const toRecord = row => ({
 
 const notFound = (entityType, businessKey) => new CoreError('not-found', `${entityType} '${businessKey}' doesn't exist`, { entityType, businessKey });
 
-const revisionMismatch = (entityType, businessKey, revision) =>
-    new CoreError('conflict', `${entityType} '${businessKey}' is not at revision ${revision}`, { entityType, businessKey, revision });
+const changedSince = ({ entityType, businessKey, revision }) =>
+    new CoreError('conflict', `${entityType} '${businessKey}' is no longer at revision ${revision}`, { entityType, businessKey, revision });
 
-const currentRow = async (db, entityType, businessKey, lock = '') => {
-    const { rows: [row] } = await db.query(`SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2 ${lock}`, [entityType, businessKey]);
+const currentRow = async (db, entityType, businessKey) => {
+    const { rows: [row] } = await db.query('SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2', [entityType, businessKey]);
     if (!row) throw notFound(entityType, businessKey);
     return row;
 };
 
-const lockedAt = async (db, entityType, businessKey, revision) => {
-    const row = await currentRow(db, entityType, businessKey, 'FOR UPDATE');
-    if (revision !== undefined && row.revision !== revision) throw revisionMismatch(entityType, businessKey, revision);
-    return row;
+const UPDATE_AT_REVISION = `
+    WITH updated AS (
+        UPDATE entities SET data = $1, revision = revision + 1, timestamp_utc = NOW()
+        WHERE id = $2 AND revision = $3
+        RETURNING *
+    ), history AS (
+        INSERT INTO entity_history (id, entity_type, revision, data_patch, timestamp_utc)
+        SELECT id, entity_type, $3, $4, $5 FROM updated
+    )
+    SELECT * FROM updated`;
+
+const DELETE_AT_REVISION = `
+    WITH deleted AS (
+        DELETE FROM entities WHERE id = $1 AND revision = $2
+        RETURNING *
+    ), history AS (
+        DELETE FROM entity_history WHERE id IN (SELECT id FROM deleted)
+    )
+    SELECT * FROM deleted`;
+
+const atRevision = async (_ctx, before, statement, values) => {
+    const { rows: [row] } = await queryable(_ctx).query(statement, values);
+    if (!row) throw changedSince(before);
+    return toRecord(row);
 };
 
 export const create = async ({ input: { entityType, businessKey, data }, _ctx }) => {
@@ -62,24 +82,13 @@ export const read = async ({ input: { entityType, businessKey, revision }, _ctx 
     return rewind(row, await historyAfter(db, row, revision), revision);
 };
 
-export const update = ({ input: { entityType, businessKey, revision, trait, value }, _ctx }) => inSession(_ctx, async db => {
-    const row = await lockedAt(db, entityType, businessKey, revision);
-    const data = { ...row.data, [trait]: value };
-    await db.query(
-        'INSERT INTO entity_history (id, entity_type, revision, data_patch, timestamp_utc) VALUES ($1, $2, $3, $4, $5)',
-        [row.id, row.entity_type, row.revision, JSON.stringify(jsonPatch.compare(data, row.data)), row.timestamp_utc]);
-    const { rows: [updated] } = await db.query(
-        'UPDATE entities SET data = $1, revision = revision + 1, timestamp_utc = NOW() WHERE id = $2 RETURNING *',
-        [JSON.stringify(data), row.id]);
-    return toRecord(updated);
-});
+export const update = ({ input: { before, trait, value }, _ctx }) => {
+    const data = { ...before.data, [trait]: value };
+    return atRevision(_ctx, before, UPDATE_AT_REVISION,
+        [JSON.stringify(data), before.id, before.revision, JSON.stringify(jsonPatch.compare(data, before.data)), before.timestampUtc]);
+};
 
-const remove = ({ input: { entityType, businessKey, revision }, _ctx }) => inSession(_ctx, async db => {
-    const row = await lockedAt(db, entityType, businessKey, revision);
-    await db.query('DELETE FROM entity_history WHERE id = $1', [row.id]);
-    await db.query('DELETE FROM entities WHERE id = $1', [row.id]);
-    return toRecord(row);
-});
+const remove = ({ input: { before }, _ctx }) => atRevision(_ctx, before, DELETE_AT_REVISION, [before.id, before.revision]);
 
 export { remove as delete };
 

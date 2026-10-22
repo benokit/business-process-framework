@@ -50,7 +50,7 @@ describe('entity-search', function () {
         await invoke(PROJECT, 'create', { businessKey: 'p-1', body: { name: 'golden bridge' } });
         await invoke(PROJECT, 'create', { businessKey: 'p-2', body: { name: 'golden tunnel' } });
         await eventually(async () => (await keysFor('golden')).length === 2);
-        await invoke(PROJECT, 'delete', { businessKey: 'p-1' });
+        await invoke(PROJECT, 'delete', { businessKey: 'p-1', revision: 1 });
         await eventually(async () => JSON.stringify(await keysFor('golden')) === JSON.stringify(['p-2']));
     });
 

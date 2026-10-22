@@ -56,7 +56,7 @@ describe('oauth', function () {
         expect(await whoami()).to.equal(undefined);
         expect(await whoami(`${token.slice(0, -2)}xx`)).to.equal(undefined);
         await whoami(token);
-        await invoke('entity-states', 'transition', { entityType: 'user', businessKey: `bob-${run}`, transition: 'suspend' });
+        await invoke('entity-states', 'transition', { entityType: 'user', businessKey: `bob-${run}`, revision: 1, transition: 'suspend' });
         await eventually(async () => (await whoami(token)) === undefined);
     });
 });

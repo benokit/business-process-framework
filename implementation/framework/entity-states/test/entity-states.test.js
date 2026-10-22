@@ -25,7 +25,7 @@ const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-s
 
 const errorOf = promise => promise.then(() => null, error => error);
 
-const transition = (businessKey, name, entityType = ORDER) => invoke('entity-states', 'transition', { entityType, businessKey, transition: name });
+const transition = (businessKey, name, revision, entityType = ORDER) => invoke('entity-states', 'transition', { entityType, businessKey, revision, transition: name });
 
 describe('entity-states', function () {
     before(async function () {
@@ -48,16 +48,17 @@ describe('entity-states', function () {
 
     it('transitions along the states model, keeping the body', async () => {
         await invoke(ORDER, 'create', { businessKey: 's-4', body: { amount: 7 } });
-        const confirmed = await transition('s-4', 'confirm');
+        expect((await errorOf(transition('s-4', 'confirm'))).code).to.equal('invalid');
+        const confirmed = await transition('s-4', 'confirm', 1);
         expect([confirmed.revision, confirmed.data]).to.deep.equal([2, { body: { amount: 7 }, state: { status: 'confirmed' } }]);
-        expect((await errorOf(transition('s-4', 'confirm'))).code).to.equal('conflict');
-        expect((await errorOf(transition('s-4', 'ship'))).code).to.equal('invalid');
+        expect((await errorOf(transition('s-4', 'confirm', 2))).code).to.equal('conflict');
+        expect((await errorOf(transition('s-4', 'ship', 2))).code).to.equal('invalid');
     });
 
     it('leaves entity types without a states model stateless', async () => {
         expect((await invoke(NOTE, 'create', { businessKey: 'n-1', body: { text: 'hi' } })).data).to.deep.equal({ body: { text: 'hi' } });
-        expect((await errorOf(transition('n-1', 'confirm', NOTE))).code).to.equal('invalid');
-        expect((await errorOf(transition('n-1', 'confirm', 'entity-states'))).code).to.equal('not-found');
+        expect((await errorOf(transition('n-1', 'confirm', 1, NOTE))).code).to.equal('invalid');
+        expect((await errorOf(transition('n-1', 'confirm', 1, 'entity-states'))).code).to.equal('not-found');
     });
 
     it('reports a states model with undeclared states in validate()', async () => {

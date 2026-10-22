@@ -17,10 +17,12 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 | `list` | `limit?` (≤ 200), `offset?` | `{ items, total }` |
 | `create` | `businessKey?`, `body`, `traits?` (input per trait) | record |
 | `update` | `businessKey`, `revision`, `body` | record |
-| `writeTrait` | `businessKey`, `revision?`, `trait`, `command`, `value` | record |
-| `delete` | `businessKey`, `revision?` | the deleted record |
-| `applyChange` | `change`, `storeOperation`, `storeInput` (the store input without `entityType`) | record; the write path of every write operation: guards, then in one transaction the store write through the interceptors and the reactions |
+| `writeTrait` | `businessKey`, `revision`, `trait`, `command`, `value` | record |
+| `delete` | `businessKey`, `revision` | the deleted record |
+| `applyChange` | `change`, `revision?` | record; the write path of every write operation: guards, then in one transaction the store write the change implies (`create` writes `after`; `update` and `trait` set `trait` to `value` on `before`; `delete` removes `before`) through the interceptors, and the reactions |
 | `initialTraitValues` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
+
+Writes are optimistic, and every write that changes a record names the `revision` it applies to. `update`, `writeTrait` and `delete` read the record (`before`) outside the transaction; the given `revision` must be `before.revision`, guards decide on `before`, and the store writes only if the record is still at that revision. Otherwise the write fails with `conflict`, so it never applies to a version the caller or the guards didn't see.
 
 Record: `{ id, entityType, businessKey, revision, data, timestampUtc }`, where `data` maps each trait to its value: `body` is the business data, checked against `<id>/bodySchema` (added on load). Errors: `invalid` (body, missing business key, undeclared trait), `not-found`, `conflict` (duplicate key, revision mismatch).
 
@@ -52,4 +54,4 @@ A change is `{ operation: create | update | trait | delete, trait?, command?, va
 
 ## Storage
 
-`entity-database` (kind `entity-store`) writes PostgreSQL tables `entities` (`data` as one JSONB column) and `entity_history` (reverse JSON patches of `data` per revision), created as [models](../database/README.md#models). An update replaces one trait. It writes in the bound `transaction`, or in its own.
+`entity-database` (kind `entity-store`) writes PostgreSQL tables `entities` (`data` as one JSONB column) and `entity_history` (reverse JSON patches of `data` per revision), created as [models](../database/README.md#models). `update({ before, trait, value })` replaces one trait and `delete({ before })` removes the record with its history, each in one statement that applies only at `before.revision`. The store writes in the bound `transaction`, if any.

@@ -41,7 +41,8 @@ describe('entity-states-http', function () {
         expect((await post(`/entities/${ORDER}/t-1/transitions/finish`, { 'if-match': '"5"' })).status).to.equal(409);
         const finished = await post(`/entities/${ORDER}/t-1/transitions/finish`, { 'if-match': '"1"' });
         expect([finished.status, finished.etag, finished.body.data.state]).to.deep.equal([200, '"2"', { status: 'done' }]);
-        expect((await post(`/entities/${ORDER}/t-1/transitions/finish`)).status).to.equal(409);
-        expect((await post('/entities/postgresql/x/transitions/finish')).status).to.equal(404);
+        expect((await post(`/entities/${ORDER}/t-1/transitions/finish`)).status).to.equal(400);
+        expect((await post(`/entities/${ORDER}/t-1/transitions/finish`, { 'if-match': finished.etag })).status).to.equal(409);
+        expect((await post('/entities/postgresql/x/transitions/finish', { 'if-match': '"1"' })).status).to.equal(404);
     });
 });

@@ -20,12 +20,12 @@
                     "implementation": { "low": { "module": "@business-framework/entities/store", "export": "read" } }
                 },
                 "update": {
-                    "input": { "!entityType": "string", "!businessKey": "string", "!revision": "number", "!trait": "string", "!value": "@any" },
+                    "input": { "!before": "@entity-record", "!trait": "string", "!value": "@any" },
                     "output": "@entity-record",
                     "implementation": { "low": { "module": "@business-framework/entities/store", "export": "update" } }
                 },
                 "delete": {
-                    "input": "@entity-key",
+                    "input": { "!before": "@entity-record" },
                     "output": "@entity-record",
                     "implementation": { "low": { "module": "@business-framework/entities/store", "export": "delete" } }
                 },
@@ -59,6 +59,16 @@
             "slot": "models",
             "after": ["entities-table"],
             "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
+        }
+    },
+    {
+        "id": "entities-recent-index",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["entities-table"],
+            "value": { "command": "CREATE INDEX IF NOT EXISTS entities_recent ON entities (entity_type, timestamp_utc DESC)" }
         }
     }
 ]

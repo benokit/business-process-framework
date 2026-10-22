@@ -48,7 +48,7 @@ describe('server with the demo', function () {
         }, token);
         expect([contract.status, contract.body.businessKey]).to.satisfy(([status, key]) => status === 201 && /^CON-\d{4}-\d{4,}$/.test(key));
         const key = contract.body.businessKey;
-        const issued = await call('POST', `/entities/construction/${key}/transitions/issue`, null, token);
+        const issued = await call('POST', `/entities/construction/${key}/transitions/issue`, null, token, { 'if-match': `"${contract.body.revision}"` });
         expect(issued.body.data.state.status).to.equal('issued');
         const late = await call('PUT', `/entities/construction/${key}`, { body: contract.body.data.body }, token, { 'if-match': `"${issued.body.revision}"` });
         expect([late.status, late.body.error.message]).to.deep.equal([409, 'insurance contracts can only be updated in draft']);
