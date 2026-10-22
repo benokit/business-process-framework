@@ -1,5 +1,5 @@
-import { connect, consumerOpts, createInbox, JSONCodec } from 'nats';
-import { invoke } from '@business-framework/core';
+import { connect, consumerOpts, createInbox, JSONCodec, RetentionPolicy } from 'nats';
+import { CoreError, invoke } from '@business-framework/core';
 
 const codec = JSONCodec();
 const connections = new Map();
@@ -13,9 +13,16 @@ const connectionTo = async url => {
     return connections.get(url);
 };
 
+const checkRetention = ({ config: { name, retention } }) => {
+    if (retention !== RetentionPolicy.Interest) {
+        throw new CoreError('stream-retention', `stream ${name} has ${retention} retention, not interest; recreate it`, { stream: name, retention });
+    }
+};
+
 const ensureStream = async (url, jsm, name) => {
     if (streams.has(`${url}:${name}`)) return;
-    await jsm.streams.info(name).catch(() => jsm.streams.add({ name, subjects: [name] }));
+    const stream = await jsm.streams.info(name).catch(() => jsm.streams.add({ name, subjects: [name], retention: RetentionPolicy.Interest }));
+    checkRetention(stream);
     streams.add(`${url}:${name}`);
 };
 

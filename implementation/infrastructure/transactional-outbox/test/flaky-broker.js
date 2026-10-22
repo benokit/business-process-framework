@@ -6,7 +6,7 @@ export const publish = ({ input: { envelope } }) => {
         failures.remaining -= 1;
         throw new Error('broker unavailable');
     }
-    delivered.push(envelope.message);
+    delivered.push({ ...envelope.message, messageId: envelope.messageId });
     return { messageId: envelope.messageId };
 };
 

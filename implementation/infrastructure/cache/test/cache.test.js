@@ -20,7 +20,8 @@ const elements = [
     service,
     { id: 'the-lookups', kind: 'lookups', data: {} },
     { id: 'lasting', kind: 'in-memory-cache', data: {} },
-    { id: 'brief', kind: 'in-memory-cache', data: { ttl: 50 } }
+    { id: 'brief', kind: 'in-memory-cache', data: { ttl: 50 } },
+    { id: 'small', kind: 'in-memory-cache', data: { maxEntries: 2 } }
 ];
 
 describe('cache', () => {
@@ -54,5 +55,14 @@ describe('cache', () => {
         expect(await invoke('the-lookups', 'brief', { key: 'k4', value: 'second' })).to.deep.equal({ value: 'first' });
         await new Promise(resolve => setTimeout(resolve, 60));
         expect(await invoke('the-lookups', 'brief', { key: 'k4', value: 'third' })).to.deep.equal({ value: 'third' });
+    });
+
+    it('removes the least recently used entry beyond maxEntries', async () => {
+        const found = async key => (await invoke('small', 'get', { key })).found;
+        await invoke('small', 'set', { key: 'a', value: 1 });
+        await invoke('small', 'set', { key: 'b', value: 2 });
+        await found('a');
+        await invoke('small', 'set', { key: 'c', value: 3 });
+        expect([await found('a'), await found('b'), await found('c')]).to.deep.equal([true, false, true]);
     });
 });

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { getPool } from '@business-framework/postgresql';
 import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
 import { delivered, failures } from './flaky-broker.js';
 
@@ -48,11 +49,13 @@ const packages = ['database', 'postgresql', 'transaction', 'messaging', 'transac
 
 const eventually = async (check, timeout = 8000) => {
     const deadline = Date.now() + timeout;
-    while (!check() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
-    expect(check()).to.equal(true);
+    while (!(await check()) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
+    expect(await check()).to.equal(true);
 };
 
 const place = (id, extra = {}) => invoke('the-orders', 'place', { message: { id: `${run}-${id}` }, group: `${run}-${extra.group ?? id}`, ...extra });
+
+const statusOf = async messageId => (await getPool().query('SELECT status FROM transactional_outbox WHERE message_id = $1', [messageId])).rows[0]?.status;
 
 const deliveredIds = () => delivered.map(message => message.id.slice(String(run).length + 1));
 
@@ -95,5 +98,17 @@ describe('transactional-outbox', function () {
         await place('second', { group: 'ordered' });
         await eventually(() => deliveredIds().includes('second'));
         expect(deliveredIds().filter(id => ['first', 'second'].includes(id))).to.deep.equal(['first', 'second']);
+    });
+
+    it('keeps delivered messages for replay until they are purged', async () => {
+        await place('kept');
+        await eventually(() => deliveredIds().includes('kept'));
+        const { messageId } = delivered.find(message => message.id.endsWith('-kept'));
+        expect(await invoke('outbox', 'replay', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
+        await eventually(() => deliveredIds().filter(id => id === 'kept').length === 2);
+        await eventually(async () => (await statusOf(messageId)) === 1);
+        await invoke('outbox', 'purge', { deliveredBefore: new Date(Date.now() + 1000).toISOString() });
+        expect(await statusOf(messageId)).to.equal(undefined);
+        expect((await invoke('outbox', 'replay', {}).catch(error => error)).code).to.equal('invalid');
     });
 });

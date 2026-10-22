@@ -18,7 +18,8 @@
         "id": "in-memory-cache",
         "kind": "kind",
         "data": {
-            "shape": { "ttl": "number" },
+            "shape": { "ttl": "number", "maxEntries": "number" },
+            "defaults": { "maxEntries": 10000 },
             "operations": {
                 "get": {
                     "input": "@cache-key",
@@ -31,7 +32,7 @@
                 "set": {
                     "input": "@cache-entry",
                     "implementation": {
-                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl" },
+                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl", "maxEntries": "#.self.data.maxEntries" },
                         "low": { "module": "@business-framework/cache", "export": "cacheSet" }
                     }
                 },

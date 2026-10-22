@@ -1,4 +1,4 @@
-import { findElement, invoke } from '@business-framework/core';
+import { CoreError, findElement, invoke } from '@business-framework/core';
 import { getPool } from '@business-framework/postgresql';
 import { queryable } from '@business-framework/transaction';
 
@@ -46,6 +46,29 @@ const markFailedAttempt = ({ id, channel, retry_count: retries }) => {
     return retries < attempts
         ? getPool().query('UPDATE transactional_outbox SET process_after_timestamp_utc = $1, retry_count = retry_count + 1 WHERE id = $2', [later(backoff * 2 ** retries), id])
         : getPool().query(`UPDATE transactional_outbox SET status = ${FAILED} WHERE id = $1`, [id]);
+};
+
+const REPLAY_FILTERS = {
+    messageIds: parameter => `message_id = ANY(${parameter})`,
+    channel: parameter => `channel = ${parameter}`,
+    from: parameter => `message_timestamp_utc >= ${parameter}`,
+    to: parameter => `message_timestamp_utc < ${parameter}`
+};
+
+export const replay = async ({ input }) => {
+    if (input.messageIds === undefined && input.channel === undefined) throw new CoreError('invalid', 'replay needs messageIds or a channel', {});
+    const filters = Object.entries(REPLAY_FILTERS).filter(([key]) => input[key] !== undefined);
+    const { rowCount } = await getPool().query(
+        `UPDATE transactional_outbox SET status = ${PENDING}, retry_count = 0, process_after_timestamp_utc = $1
+         WHERE status IN (${DELIVERED}, ${FAILED}) AND ${filters.map(([, condition], index) => condition(`$${index + 2}`)).join(' AND ')}`,
+        [new Date().toISOString(), ...filters.map(([key]) => input[key])]);
+    return { count: rowCount };
+};
+
+export const purge = async ({ input: { deliveredBefore } }) => {
+    const { rowCount } = await getPool().query(
+        `DELETE FROM transactional_outbox WHERE status = ${DELIVERED} AND processed_at < $1`, [deliveredBefore]);
+    return { count: rowCount };
 };
 
 const deliver = async item => {

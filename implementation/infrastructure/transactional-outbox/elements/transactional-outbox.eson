@@ -9,6 +9,16 @@
             "operations": {
                 "put": {
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "put" } }
+                },
+                "replay": {
+                    "input": { "messageIds[]": "string", "channel": "string", "from": "string", "to": "string" },
+                    "output": { "!count": "number" },
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "replay" } }
+                },
+                "purge": {
+                    "input": { "!deliveredBefore": "string" },
+                    "output": { "!count": "number" },
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "purge" } }
                 }
             },
             "lifecycle": {
@@ -35,23 +45,23 @@
         }
     },
     {
-        "id": "transactional-outbox-status-index",
+        "id": "transactional-outbox-pending-index",
         "kind": "slot-fill",
         "data": {
             "target": "postgresql-database",
             "slot": "models",
             "after": ["transactional-outbox-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_status_process ON transactional_outbox (status, process_after_timestamp_utc)" }
+            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_pending ON transactional_outbox (process_after_timestamp_utc) WHERE status = 0" }
         }
     },
     {
-        "id": "transactional-outbox-group-index",
+        "id": "transactional-outbox-pending-group-index",
         "kind": "slot-fill",
         "data": {
             "target": "postgresql-database",
             "slot": "models",
             "after": ["transactional-outbox-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_group_ts ON transactional_outbox (message_group, message_timestamp_utc)" }
+            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_pending_group ON transactional_outbox (message_group, message_timestamp_utc) WHERE status = 0" }
         }
     }
 ]
