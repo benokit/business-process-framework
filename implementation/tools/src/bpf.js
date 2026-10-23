@@ -30,7 +30,7 @@ const commands = {
     },
     vocabulary: async paths => {
         await bootApplication({ paths });
-        return output(await vocabulary(), renderVocabulary);
+        return output(vocabulary(), renderVocabulary);
     }
 };
 

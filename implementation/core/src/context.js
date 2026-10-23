@@ -23,7 +23,7 @@ export const recordAuthors = element => {
 
 export const authorOf = node => authors.get(node);
 
-const managedBy = author => author === undefined
+export const managedBy = author => author === undefined
     ? {}
     : resolveKind(author.kind === 'kind' ? author.id : kindOf(author)).manages;
 

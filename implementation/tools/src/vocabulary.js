@@ -1,8 +1,6 @@
 import path from 'path';
 import { extendsKind } from '@business-framework/core/kinds';
-import { instancesOf, NODE_KEYS, nodeForms, sourceOf } from '@business-framework/core/introspection';
-
-const PRIMITIVES = new URL('./primitives.js', import.meta.resolve('lambdajson-js'));
+import { instancesOf, NODE_KEYS, nodeForms, primitives, sourceOf } from '@business-framework/core/introspection';
 
 const argumentOf = part => {
     const [name, fallback] = part.split('=').map(text => text.trim());
@@ -15,7 +13,7 @@ const argumentsOf = definition => {
     return named ? `{ ${named[1].split(',').map(argumentOf).join(', ')} }` : 'expression';
 };
 
-const primitivesOf = async () => Object.entries((await import(PRIMITIVES)).primitives)
+const primitivesOf = () => Object.entries(primitives)
     .map(([name, definition]) => ({ name, arguments: argumentsOf(definition) }));
 
 const templatesOf = () => instancesOf('execution-node-template').map(template => ({
@@ -28,11 +26,11 @@ const templatesOf = () => instancesOf('execution-node-template').map(template =>
 const pureFunctionsOf = () => instancesOf('pure-function').map(({ id, data: { signature } }) =>
     ({ name: `$func/${id}`, input: signature?.input, output: signature?.output }));
 
-export const vocabulary = async () => ({
+export const vocabulary = () => ({
     nodeKeys: NODE_KEYS,
     nodeForms: Object.entries(nodeForms).map(([keyword, companions]) => ({ keyword, companions })),
     templates: templatesOf(),
-    primitives: await primitivesOf(),
+    primitives: primitivesOf(),
     pureFunctions: pureFunctionsOf()
 });
 

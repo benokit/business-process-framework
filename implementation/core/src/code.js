@@ -1,0 +1,170 @@
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { isPlainObject } from 'lodash-es';
+import { findElement, kindOf } from './registry.js';
+import { extendsKind, resolveKind } from './kinds.js';
+import { codeIn } from './schemas.js';
+import { managedBy } from './context.js';
+import { findTemplate } from './execution/templates.js';
+import { NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
+import { isKindReference } from './references.js';
+import { primitives } from './primitives.js';
+import { fail } from './errors.js';
+
+export const targetKind = target => {
+    const element = findElement(target) ?? fail('unknown-target', `slot fill target '${target}' doesn't exist`, { target });
+    return resolveKind(element.kind === 'kind' ? element.id : kindOf(element));
+};
+
+const fillCode = ({ data: { target, slot, value } }) => {
+    const declaration = findElement(target) && targetKind(target).slots[slot];
+    return declaration ? codeIn({ schemaId: `${declaration.owner}/slots/${slot}`, value, path: 'value' }) : [];
+};
+
+export const codeOf = element => [
+    ...resolveKind(kindOf(element)).chain
+        .filter(kind => kind.data.shape !== undefined)
+        .flatMap(kind => codeIn({ schemaId: kind.id, value: element.data })),
+    ...element.kind === 'slot-fill' ? fillCode(element) : []
+];
+
+const problem = (at, path, code, message, data = {}) => () =>
+    fail(code, `${at.author.id ?? `a ${at.author.kind}`} ${path}: ${message}`, { element: at.author.id, path, ...data });
+
+const isNative = key => Object.hasOwn(nodeForms, key);
+
+const isLiteral = value => typeof value === 'string' && !value.startsWith('#') && !value.startsWith('@');
+
+const literalOf = value => value.startsWith('\\') ? value.slice(1) : value;
+
+const isWrapper = template => extendsKind(template.kind, 'execution-node-wrapper');
+
+const kindOfTarget = target => {
+    if (isKindReference(target)) return findElement(target.instanceOf) && resolveKind(target.instanceOf);
+    if (!isLiteral(target)) return undefined;
+    const element = findElement(literalOf(target));
+    return element && resolveKind(kindOf(element));
+};
+
+const selfKindOf = author => {
+    if (author.kind === 'kind') return resolveKind(author.id);
+    if (author.kind === 'slot-fill') return targetKind(author.data.target);
+    return resolveKind(kindOf(author));
+};
+
+const invokeProblems = (node, at, path) => {
+    if (isLiteral(node.invoke) && !findElement(literalOf(node.invoke))) {
+        return [problem(at, path, 'unknown-element', `invokes unknown element '${literalOf(node.invoke)}'`)];
+    }
+    const kind = kindOfTarget(node.invoke);
+    const operation = isLiteral(node.operation) ? literalOf(node.operation) : undefined;
+    return kind && operation !== undefined && !kind.operations[operation]
+        ? [problem(at, path, 'unknown-operation', `${kind.id} has no operation '${operation}'`)]
+        : [];
+};
+
+const moduleExists = specifier => {
+    try {
+        const url = import.meta.resolve(specifier);
+        return !url.startsWith('file:') || existsSync(fileURLToPath(url));
+    } catch {
+        return false;
+    }
+};
+
+const lowProblems = (node, at, path) => typeof node.low?.module === 'string' && !moduleExists(node.low.module)
+    ? [problem(at, path, 'unknown-module', `low module '${node.low.module}' doesn't resolve`)]
+    : [];
+
+const bindingProblems = (node, at, path) => {
+    if (!isPlainObject(node.withContext) || Object.keys(node.withContext).some(key => key.startsWith('$'))) return [];
+    const manages = managedBy(at.author);
+    return Object.keys(node.withContext).filter(key => !manages[key]).map(key =>
+        problem(at, path, 'context-right', `may not bind context '${key}': ${at.author.id ?? 'it'} doesn't manage it`, { key }));
+};
+
+const NODE_CHECKS = { invoke: invokeProblems, low: lowProblems, withContext: bindingProblems };
+
+const pipelinesOf = (node, keyword, template) => {
+    if (template) return isWrapper(template) ? [[keyword, node[keyword]]] : [];
+    if (keyword === 'switch') return Object.entries(node.switch?.cases ?? {}).map(([name, pipeline]) => [`switch.cases.${name}`, pipeline]);
+    return [keyword, ...nodeForms[keyword] ?? []].filter(key => PIPELINE_KEYS.includes(key) && key in node).map(key => [key, node[key]]);
+};
+
+const structureProblems = (node, keys, keyword, at, path) => [
+    ...keyword === undefined && keys.length > 0 ? [problem(at, path, 'unknown-keyword', `no node keyword among '${keys.join("', '")}'`)] : [],
+    ...isNative(keyword) ? keys.filter(key => key !== keyword && !nodeForms[keyword].includes(key))
+        .map(key => problem(at, path, 'unknown-node-key', `'${key}' is not a key of '${keyword}' nodes`)) : [],
+    ...node.outputKey === '_ctx' ? [problem(at, path, 'context-write', "outputKey '_ctx' is not allowed: bind context with withContext")] : [],
+    ...keyword === 'next' && !at.allowsNext ? [problem(at, path, 'next-outside-middleware', "'next' where no middleware runs")] : []
+];
+
+const nodeProblems = (node, at, path) => {
+    if (!isPlainObject(node)) return [problem(at, path, 'invalid-node', 'a node is an object')];
+    const keys = Object.keys(node).filter(key => !NODE_KEYS.includes(key));
+    const keywords = keys.filter(key => isNative(key) || findTemplate(key));
+    if (keywords.length > 1) return [problem(at, path, 'ambiguous-node', `several node keywords: '${keywords.join("', '")}'`)];
+    const [keyword] = keywords;
+    const template = keyword === undefined || isNative(keyword) ? undefined : findTemplate(keyword);
+    return [
+        ...structureProblems(node, keys, keyword, at, path),
+        ...NODE_CHECKS[keyword]?.(node, at, path) ?? [],
+        ...pipelinesOf(node, keyword, template).flatMap(([key, pipeline]) => pipelineProblems(pipeline, at, `${path}.${key}`))
+    ];
+};
+
+const pipelineProblems = (pipeline, at, path) => Array.isArray(pipeline)
+    ? pipeline.flatMap((node, index) => nodeProblems(node, at, `${path}[${index}]`))
+    : nodeProblems(pipeline, at, path);
+
+const declaredFunctions = tree => {
+    if (Array.isArray(tree)) return tree.flatMap(declaredFunctions);
+    if (!isPlainObject(tree) || '$literal' in tree) return [];
+    return [
+        ...Object.keys(tree.$let ?? {}).filter(key => key.startsWith('$')),
+        ...Object.values(tree).flatMap(declaredFunctions)
+    ];
+};
+
+const slotValuesProblems = (argument, at, path) => {
+    if (!isPlainObject(argument) || !isLiteral(argument.slot)) return [];
+    const kind = argument.element === '#.self.id' ? selfKindOf(at.author) : kindOfTarget(argument.element);
+    const slot = literalOf(argument.slot);
+    return kind && !kind.slots[slot] ? [problem(at, path, 'unknown-slot', `${kind.id} has no slot '${slot}'`)] : [];
+};
+
+const functionProblems = (key, value, at, path, declared) => {
+    if (key === '$func/slot-values') return slotValuesProblems(value, at, path);
+    if (key.startsWith('$func/')) {
+        return findElement(key.slice(6))?.kind === 'pure-function' ? [] : [problem(at, path, 'unknown-function', `unknown pure function '${key}'`)];
+    }
+    return Object.hasOwn(primitives, key) || declared.includes(key) ? [] : [problem(at, path, 'unknown-function', `unknown primitive '${key}'`)];
+};
+
+const isCall = tree => {
+    const keys = Object.keys(tree);
+    return keys.length > 0 && keys.length <= 2 && keys.every(key => key.startsWith('$'));
+};
+
+const expressionProblems = (tree, at, path, declared) => {
+    if (Array.isArray(tree)) return tree.flatMap((item, index) => expressionProblems(item, at, `${path}[${index}]`, declared));
+    if (!isPlainObject(tree) || '$literal' in tree) return [];
+    return Object.entries(tree).flatMap(([key, value]) => [
+        ...isCall(tree) ? functionProblems(key, value, at, path, declared) : [],
+        ...expressionProblems(value, at, `${path}.${key}`, declared)
+    ]);
+};
+
+const FORBIDS_NEXT = /^(operations\.[^.]+\.implementation|lifecycle\.(load|start|stop))$/;
+
+const allowsNext = (author, path) => author.kind === 'kind'
+    ? !FORBIDS_NEXT.test(path)
+    : !(extendsKind(kindOf(author), 'execution-node-template') && !isWrapper(author) && path === 'implementation');
+
+export const codeProblems = author => codeOf(author).flatMap(({ type, code, path }) => {
+    const at = { author, allowsNext: allowsNext(author, path) };
+    return [
+        ...type === 'method' ? pipelineProblems(code, at, path) : [],
+        ...expressionProblems(code, at, path, declaredFunctions(code))
+    ];
+});

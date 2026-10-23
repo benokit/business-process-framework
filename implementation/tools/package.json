@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@business-framework/core": "*",
-    "@business-framework/server": "*",
-    "lambdajson-js": "^1.1.8"
+    "@business-framework/server": "*"
   }
 }

@@ -33,6 +33,8 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (`validate` hooks run in [validation.js](src/validation.js)) |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
+| [code.js](src/code.js) | finding code in elements, the checks of code in `validate()` |
+| [primitives.js](src/primitives.js) | the LambdaJSON primitives, read from `lambdajson-js` |
 | [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)) |
 | [elements/](elements) | the bootstrap kinds, in data |
 
@@ -54,7 +56,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 
 ## Validation
 
-`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value. It doesn't inspect pipelines or pure function signatures.
+`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings, and the code. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value; a problem in it names the element and the path to the node. In methods: each node has one keyword ([forms.js](src/execution/nodes/forms.js) or a node template) and only that keyword's keys; no `outputKey: "_ctx"`; no `next` in an operation, a `load`/`start`/`stop` hook or a plain template's implementation, where no middleware runs; literal `invoke` targets and operations exist; `low` modules resolve; `withContext` binds only keys the author's kind manages. In methods and mappings: every `$` function is a LambdaJSON primitive, a function its `$let` declares, or a `$func/<id>` of a `pure-function`; a literal slot of `$func/slot-values` is declared (for `#.self.id`, on the kind the code runs for). Computed values (`"invoke": "#.self.data.broker"`) are checked at run time only, and so are `low` exports, pure function signatures and the data flowing between nodes.
 
 A kind adds its own checks with `lifecycle.validate`: a mapping from `#.self` to a list of problem messages, run for each identified instance, subkinds included. Any message is reported as `invalid-element`.
 

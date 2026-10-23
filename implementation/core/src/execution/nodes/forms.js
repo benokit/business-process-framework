@@ -15,3 +15,5 @@ export const nodeForms = {
     middleware: ['action'],
     next: []
 };
+
+export const PIPELINE_KEYS = ['then', 'else', 'forEach', 'try', 'catch', 'finally', 'do', 'action'];

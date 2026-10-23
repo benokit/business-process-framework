@@ -27,8 +27,8 @@ describe('discovery', () => {
         expect(explain('nats').operations.find(op => op.name === 'publish').implementedBy).to.equal('nats-broker');
     });
 
-    it('lists node forms, templates, primitives and pure functions', async () => {
-        const { nodeForms, templates, primitives, pureFunctions } = await vocabulary();
+    it('lists node forms, templates, primitives and pure functions', () => {
+        const { nodeForms, templates, primitives, pureFunctions } = vocabulary();
         expect(nodeForms).to.deep.include({ keyword: 'if', companions: ['then', 'else'] });
         expect(templates.map(template => template.keyword)).to.include('publish');
         expect(primitives).to.deep.include({ name: '$join', arguments: '{ _separator?, _strings=# }' });

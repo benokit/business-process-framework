@@ -1,11 +1,12 @@
 import { allElements, findElement, kindOf } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
-import { codeIn, validateValue } from './schemas.js';
+import { validateValue } from './schemas.js';
 import { applyMapping } from './mappings.js';
 import { fillsOf, orderFills } from './slots.js';
 import { elementsInStartOrder } from './lifecycle.js';
 import { checkAbstraction, checkBinding, isKindReference, resolveReference } from './references.js';
 import { fail, problemsOf } from './errors.js';
+import { codeOf, codeProblems, targetKind } from './code.js';
 
 const kinds = () => instancesOf('kind');
 
@@ -30,11 +31,6 @@ const shapeProblems = element => resolveKind(kindOf(element)).chain
         const { isValid, errors } = validateValue({ schemaId: kind.id, value: selfOf(element).data });
         if (!isValid) fail('invalid-element', `${element.id ?? 'an element'} doesn't match the shape of ${kind.id}`, { element: element.id, kind: kind.id, errors });
     });
-
-const targetKind = target => {
-    const element = findElement(target) ?? fail('unknown-target', `slot fill target '${target}' doesn't exist`, { target });
-    return resolveKind(element.kind === 'kind' ? element.id : kindOf(element));
-};
 
 const fillProblem = fill => () => {
     const { target, slot, value, position } = fill.data;
@@ -70,20 +66,8 @@ const kindReferences = value => {
     return Object.values(value).flatMap(kindReferences);
 };
 
-const fillCode = ({ data: { target, slot, value } }) => {
-    const declaration = findElement(target) && targetKind(target).slots[slot];
-    return declaration ? codeIn({ schemaId: `${declaration.owner}/slots/${slot}`, value }) : [];
-};
-
-const codeOf = element => [
-    ...resolveKind(kindOf(element)).chain
-        .filter(kind => kind.data.shape !== undefined)
-        .flatMap(kind => codeIn({ schemaId: kind.id, value: element.data })),
-    ...element.kind === 'slot-fill' ? fillCode(element) : []
-];
-
 const referenceProblems = element => {
-    const inCode = new Set(codeOf(element).flatMap(kindReferences));
+    const inCode = new Set(codeOf(element).flatMap(({ code }) => kindReferences(code)));
     return kindReferences(element.data).map(reference => () => inCode.has(reference) ? checkAbstraction(reference) : resolveReference(reference));
 };
 
@@ -104,6 +88,7 @@ const checks = () => [
     ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),
     ...instancesOf('binding').map(binding => () => checkBinding(binding)),
     ...allElements().flatMap(referenceProblems),
+    ...allElements().flatMap(codeProblems),
     ...allElements().filter(element => element.id !== undefined).flatMap(hookProblems),
     elementsInStartOrder
 ];
