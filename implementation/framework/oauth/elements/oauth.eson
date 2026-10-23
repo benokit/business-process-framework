@@ -8,6 +8,7 @@
         "kind": "principal-execution-node-wrapper",
         "data": {
             "keyword": "authenticated",
+            "node": { "!authenticated": "@method" },
             "implementation": [
                 { "outputKey": "config", "set": { "$func/app-config-section": "oauth" } },
                 {

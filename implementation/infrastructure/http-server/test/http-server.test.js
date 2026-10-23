@@ -91,3 +91,17 @@ describe('http-server', () => {
         expect((await call('/unknown')).status).to.equal(404);
     });
 });
+
+describe('http-endpoint validation', () => {
+    it('reports a target that is not an element or lacks the operation', async () => {
+        await boot({
+            paths: [packageElements('@business-framework/http-server')],
+            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} }, endpoint('typo', 'GET', '/typo', 'ecco'),
+                { id: 'missing', kind: 'http-endpoint', data: { method: 'GET', path: '/missing', target: { element: 'nobody', operation: 'echo' } } }]
+        });
+        expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
+            ['unknown-element', "missing target.element: refers to unknown element 'nobody'"],
+            ['invalid-element', 'typo: target the-echo has no operation ecco']
+        ]);
+    });
+});

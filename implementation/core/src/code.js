@@ -1,9 +1,9 @@
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { isPlainObject } from 'lodash-es';
+import { isPlainObject, omit } from 'lodash-es';
 import { findElement, kindOf } from './registry.js';
 import { extendsKind, resolveKind } from './kinds.js';
-import { codeIn } from './schemas.js';
+import { positionsIn, propertiesOf, validateValue } from './schemas.js';
 import { managedBy } from './context.js';
 import { findTemplate } from './execution/templates.js';
 import { NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
@@ -12,21 +12,23 @@ import { primitives } from './primitives.js';
 import { fail } from './errors.js';
 
 export const targetKind = target => {
-    const element = findElement(target) ?? fail('unknown-target', `slot fill target '${target}' doesn't exist`, { target });
-    return resolveKind(element.kind === 'kind' ? element.id : kindOf(element));
+    const element = findElement(target);
+    return element && resolveKind(element.kind === 'kind' ? element.id : kindOf(element));
 };
 
-const fillCode = ({ data: { target, slot, value } }) => {
+const fillPositions = ({ data: { target, slot, value } }) => {
     const declaration = findElement(target) && targetKind(target).slots[slot];
-    return declaration ? codeIn({ schemaId: `${declaration.owner}/slots/${slot}`, value, path: 'value' }) : [];
+    return declaration ? positionsIn({ schemaId: `${declaration.owner}/slots/${slot}`, value, path: 'value' }) : [];
 };
 
-export const codeOf = element => [
+const positionsOf = element => [
     ...resolveKind(kindOf(element)).chain
         .filter(kind => kind.data.shape !== undefined)
-        .flatMap(kind => codeIn({ schemaId: kind.id, value: element.data })),
-    ...element.kind === 'slot-fill' ? fillCode(element) : []
+        .flatMap(kind => positionsIn({ schemaId: kind.id, value: element.data })),
+    ...element.kind === 'slot-fill' ? fillPositions(element) : []
 ];
+
+export const codeOf = element => positionsOf(element).filter(({ type }) => type !== 'ref');
 
 const problem = (at, path, code, message, data = {}) => () =>
     fail(code, `${at.author.id ?? `a ${at.author.kind}`} ${path}: ${message}`, { element: at.author.id, path, ...data });
@@ -85,8 +87,37 @@ const bindingProblems = (node, at, path) => {
 
 const NODE_CHECKS = { invoke: invokeProblems, low: lowProblems, withContext: bindingProblems };
 
+const isReferenced = (code, element, kind, extending) => {
+    if (kind === undefined) return true;
+    if (isKindReference(code)) return element.kind === 'kind' && extendsKind(element.id, kind);
+    return extendsKind(kindOf(element), kind) && (extending === undefined || extendsKind(element.id, extending));
+};
+
+const referenceProblems = ({ kind, extending, code, path }, at) => {
+    const named = isKindReference(code) ? code.instanceOf : code;
+    const element = typeof named === 'string' ? findElement(named) : undefined;
+    if (element === undefined) return [problem(at, path, 'unknown-element', `refers to unknown element '${named}'`)];
+    return isReferenced(code, element, kind, extending) ? [] : [problem(at, path, 'invalid-reference', `'${named}' is not a ${extending ?? kind}`)];
+};
+
+const errorsOf = errors => errors.map(error => `${error.instancePath || '/'} ${error.message}`).join('; ');
+
+const templateProblems = (node, template, at, path) => {
+    const schemaId = `${template.id}/node`;
+    const { isValid, errors } = validateValue({ schemaId, value: omit(node, NODE_KEYS) });
+    const known = propertiesOf(schemaId);
+    return [
+        ...isValid ? [] : [problem(at, path, 'invalid-node', `not a '${template.data.keyword}' node: ${errorsOf(errors)}`)],
+        ...Object.keys(omit(node, NODE_KEYS)).filter(key => !known.includes(key))
+            .map(key => problem(at, path, 'unknown-node-key', `'${key}' is not a key of '${template.data.keyword}' nodes`)),
+        ...positionsIn({ schemaId, value: node, path }).flatMap(position => position.type === 'method'
+            ? pipelineProblems(position.code, at, position.path)
+            : position.type === 'ref' ? referenceProblems(position, at) : [])
+    ];
+};
+
 const pipelinesOf = (node, keyword, template) => {
-    if (template) return isWrapper(template) ? [[keyword, node[keyword]]] : [];
+    if (template) return isWrapper(template) && !template.data.node ? [[keyword, node[keyword]]] : [];
     if (keyword === 'switch') return Object.entries(node.switch?.cases ?? {}).map(([name, pipeline]) => [`switch.cases.${name}`, pipeline]);
     return [keyword, ...nodeForms[keyword] ?? []].filter(key => PIPELINE_KEYS.includes(key) && key in node).map(key => [key, node[key]]);
 };
@@ -109,6 +140,7 @@ const nodeProblems = (node, at, path) => {
     return [
         ...structureProblems(node, keys, keyword, at, path),
         ...NODE_CHECKS[keyword]?.(node, at, path) ?? [],
+        ...template?.data.node ? templateProblems(node, template, at, path) : [],
         ...pipelinesOf(node, keyword, template).flatMap(([key, pipeline]) => pipelineProblems(pipeline, at, `${path}.${key}`))
     ];
 };
@@ -161,10 +193,14 @@ const allowsNext = (author, path) => author.kind === 'kind'
     ? !FORBIDS_NEXT.test(path)
     : !(extendsKind(kindOf(author), 'execution-node-template') && !isWrapper(author) && path === 'implementation');
 
-export const codeProblems = author => codeOf(author).flatMap(({ type, code, path }) => {
+const positionProblems = author => position => {
+    const { type, code, path } = position;
     const at = { author, allowsNext: allowsNext(author, path) };
+    if (type === 'ref') return referenceProblems(position, at);
     return [
         ...type === 'method' ? pipelineProblems(code, at, path) : [],
         ...expressionProblems(code, at, path, declaredFunctions(code))
     ];
-});
+};
+
+export const codeProblems = author => positionsOf(author).flatMap(positionProblems(author));

@@ -68,4 +68,53 @@ describe('code checks', () => {
             ['context-right', 'step', 'tenant']
         ]);
     });
+
+    it('checks template nodes against their node shape, with the code and references in them', async () => {
+        await bootWith(
+            runner([
+                { notify: 'the-runner', level: 'loud' },
+                { notify: 'nobody', tone: 'x' },
+                { notify: 'the-runner', then: { if: true, thn: 1 } }
+            ]),
+            element('notify-template', 'execution-node-template', {
+                keyword: 'notify',
+                node: { '!notify': '@ref/runner', 'level=1': ['quiet', 'normal'], then: '@method' },
+                implementation: { set: '#.node.notify' }
+            }));
+        expect(validate().map(({ code, data }) => [code, data.path])).to.deep.equal([
+            ['invalid-node', `${PATH}[0]`],
+            ['unknown-node-key', `${PATH}[1]`],
+            ['unknown-element', `${PATH}[1].notify`],
+            ['unknown-node-key', `${PATH}[2].then`]
+        ]);
+    });
+
+    it('reports a reference in element data that names no instance of the expected kind', async () => {
+        await bootWith(
+            kind('channel', {}),
+            element('orders', 'channel'),
+            kind('listener', { shape: { '!channel': '@ref/channel' } }),
+            element('good', 'listener', { channel: 'orders' }),
+            element('typo', 'listener', { channel: 'order' }),
+            element('wrong', 'listener', { channel: 'good' }));
+        expect(validate().map(({ code, data }) => [code, data.element])).to.deep.equal([
+            ['unknown-element', 'typo'],
+            ['invalid-reference', 'wrong']
+        ]);
+    });
+
+    it('checks references to any element, to a kind and to a kind extending another', async () => {
+        await bootWith(
+            kind('channel', {}),
+            kind('fast-channel', { extends: 'channel' }),
+            element('orders', 'channel'),
+            kind('wiring', { shape: { '!anything': '@ref', '!kindOf': '@ref/kind', '!channelKind': '@ref/kind/channel' } }),
+            element('good', 'wiring', { anything: 'orders', kindOf: 'channel', channelKind: 'fast-channel' }),
+            element('bad', 'wiring', { anything: 'nothing', kindOf: 'orders', channelKind: 'wiring' }));
+        expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([
+            ['unknown-element', 'bad', 'anything'],
+            ['invalid-reference', 'bad', 'kindOf'],
+            ['invalid-reference', 'bad', 'channelKind']
+        ]);
+    });
 });

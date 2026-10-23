@@ -3,8 +3,13 @@
         "id": "binding",
         "kind": "kind",
         "data": {
-            "shape": { "!abstraction": "string", "!instance": "string" }
+            "shape": { "!abstraction": "@ref/kind", "!instance": "@ref" }
         }
+    },
+    {
+        "id": "ref",
+        "kind": "schema",
+        "data": "@element-ref"
     },
     {
         "id": "element-ref",

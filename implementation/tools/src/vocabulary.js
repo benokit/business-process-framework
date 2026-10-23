@@ -20,6 +20,7 @@ const templatesOf = () => instancesOf('execution-node-template').map(template =>
     keyword: template.data.keyword,
     id: template.id,
     wrapper: extendsKind(template.kind, 'execution-node-wrapper'),
+    node: template.data.node,
     source: path.relative(process.cwd(), sourceOf(template) ?? '')
 }));
 
@@ -39,8 +40,9 @@ const json = value => JSON.stringify(value);
 export const renderVocabulary = ({ nodeKeys, nodeForms, templates, primitives, pureFunctions }) => [
     `nodes: one keyword plus ${nodeKeys.join(', ')}`,
     ...nodeForms.map(({ keyword, companions }) => `  ${[keyword, ...companions].join(' ')}`),
-    'node templates (keyword: element, reads #.node):',
-    ...templates.map(({ keyword, id, wrapper, source }) => `  ${keyword}: ${id}${wrapper ? ' (wrapper, next)' : ''}  ${source}`.trimEnd()),
+    'node templates (keyword: node shape, element):',
+    ...templates.map(({ keyword, id, wrapper, node, source }) =>
+        `  ${keyword}: ${node ? json(node) : '?'}  ${id}${wrapper ? ' (wrapper, next)' : ''}  ${source}`.trimEnd()),
     'primitives (=# defaults to the input, ? optional):',
     ...primitives.map(({ name, arguments: args }) => `  ${name} ${args}`),
     'pure functions:',

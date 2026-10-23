@@ -17,6 +17,7 @@
         "kind": "principal-execution-node-wrapper",
         "data": {
             "keyword": "asSystem",
+            "node": { "!asSystem": "@method" },
             "implementation": { "withContext": { "user": { "userId": "system", "roles": ["system"] } }, "do": { "next": true } }
         }
     }

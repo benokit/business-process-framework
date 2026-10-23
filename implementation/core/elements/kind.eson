@@ -4,7 +4,7 @@
         "kind": "kind",
         "data": {
             "shape": {
-                "extends": "string",
+                "extends": "@ref/kind",
                 "shape": "@schema",
                 "defaults": "object",
                 "operations{}": "@operation",
@@ -15,8 +15,8 @@
                     "start": "@method",
                     "stop": "@method",
                     "validate": "@mapping",
-                    "startAfter[]": "string",
-                    "startBefore[]": "string",
+                    "startAfter[]": "@ref/kind",
+                    "startBefore[]": "@ref/kind",
                     "startPosition=1": ["first", "last"]
                 }
             },
@@ -27,6 +27,8 @@
                         "if": { "$head": "#.problems" },
                         "then": { "throw": { "$join": { "_strings": ["kind ", "#.self.id", ": ", { "$join": { "_strings": "#.problems", "_separator": "; " } }] } } }
                     },
+                    { "inputMap": { "id": { "$join": { "_strings": ["ref/", "#.self.id"] } }, "schema": "\\@element-ref" }, "invoke": "ajv", "operation": "add" },
+                    { "inputMap": { "id": { "$join": { "_strings": ["ref/kind/", "#.self.id"] } }, "schema": "\\string" }, "invoke": "ajv", "operation": "add" },
                     {
                         "if": "#.self.data.shape",
                         "then": { "inputMap": { "id": "#.self.id", "schema": "#.self.data.shape" }, "invoke": "ajv", "operation": "add" }

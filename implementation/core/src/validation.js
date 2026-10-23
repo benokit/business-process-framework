@@ -34,6 +34,7 @@ const shapeProblems = element => resolveKind(kindOf(element)).chain
 
 const fillProblem = fill => () => {
     const { target, slot, value, position } = fill.data;
+    if (!findElement(target)) return;
     const declaration = targetKind(target).slots[slot]
         ?? fail('unknown-slot', `${target} has no slot '${slot}'`, { target, slot });
     if (declaration.cardinality === 'one' && position !== undefined) {
@@ -49,11 +50,6 @@ const orderProblems = element => Object.entries(resolveKind(kindOf(element)).slo
         const { fills, targets } = fillsOf(selfOf(element), slot);
         orderFills(fills, targets, slot);
     });
-
-const startOrderNames = () => kinds().flatMap(kind => ['startAfter', 'startBefore']
-    .flatMap(property => (kind.data.lifecycle?.[property] ?? []).map(name => () => {
-        if (findElement(name)?.kind !== 'kind') fail('unknown-kind', `${kind.id}: ${property} names '${name}', which is not a kind`, { kind: kind.id, name });
-    })));
 
 const unimplementedOperations = element => Object.entries(resolveKind(kindOf(element)).operations)
     .filter(([, operation]) => operation.implementation === undefined)
@@ -84,7 +80,6 @@ const checks = () => [
     ...allElements().flatMap(shapeProblems),
     ...instancesOf('slot-fill').map(fillProblem),
     ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems),
-    ...startOrderNames(),
     ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),
     ...instancesOf('binding').map(binding => () => checkBinding(binding)),
     ...allElements().flatMap(referenceProblems),

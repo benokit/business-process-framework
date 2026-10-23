@@ -47,6 +47,7 @@
         "kind": "transaction-execution-node-wrapper",
         "data": {
             "keyword": "inTransaction",
+            "node": { "!inTransaction": "@method" },
             "implementation": {
                 "if": "#._ctx.transaction",
                 "then": { "next": true },
@@ -72,6 +73,7 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "afterCommit",
+            "node": { "!afterCommit": "@method" },
             "implementation": {
                 "inputMap": { "method": "#.node.afterCommit", "input": "#.input", "self": "#.self" },
                 "low": { "module": "@business-framework/transaction", "export": "afterCommit" }

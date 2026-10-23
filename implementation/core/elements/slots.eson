@@ -3,7 +3,7 @@
         "id": "slot-declaration",
         "kind": "kind",
         "data": {
-            "shape": { "!target": "string", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema" },
+            "shape": { "!target": "@ref", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema" },
             "lifecycle": {
                 "load": {
                     "inputMap": {
@@ -20,7 +20,7 @@
         "kind": "kind",
         "data": {
             "shape": {
-                "!target": "string",
+                "!target": "@ref",
                 "!slot": "string",
                 "!value": "@any",
                 "position=1": ["first", "last"],

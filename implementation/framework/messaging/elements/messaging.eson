@@ -40,7 +40,7 @@
         "kind": "kind",
         "data": {
             "shape": {
-                "!broker": "@element-ref",
+                "!broker": "@ref/message-broker",
                 "!topology=1": ["queue", "topic"],
                 "!name": "string",
                 "publisher": { "transactionalOutbox": "boolean", "retry": { "attempts": "number", "backoff": "number" } },
@@ -102,7 +102,7 @@
         "data": {
             "extends": "entry-point",
             "context": { "manages": { "message": "@message-context" } },
-            "shape": { "!channel": "string", "name": "string", "broadcast": "boolean", "filter[]": "string", "!handler": "@method" },
+            "shape": { "!channel": "@ref/message-channel", "name": "string", "broadcast": "boolean", "filter[]": "string", "!handler": "@method" },
             "operations": {
                 "handle": {
                     "input": "@message-envelope",
@@ -134,6 +134,7 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "publish",
+            "node": { "!publish": "@ref/message-channel" },
             "implementation": { "invoke": "#.node.publish", "operation": "publish" }
         }
     }

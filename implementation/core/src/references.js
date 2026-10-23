@@ -34,7 +34,7 @@ export const resolveReference = reference => {
 };
 
 export const checkBinding = ({ data: { abstraction, instance } }) => {
-    if (findElement(abstraction)?.kind !== 'kind') fail('unknown-kind', `a binding names '${abstraction}', which is not a kind`, { abstraction });
+    if (findElement(abstraction)?.kind !== 'kind' || !findElement(instance)) return;
     if (!isInstanceOf({ element: instance, kind: abstraction })) {
         fail('invalid-binding', `${instance} bound to ${abstraction} is not an instance of it`, { abstraction, instance });
     }

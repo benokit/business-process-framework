@@ -26,8 +26,13 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "log",
+            "node": { "!log": "@mapping", "level=1": ["trace", "debug", "info", "warn", "error", "fatal"], "context": "@mapping" },
             "implementation": {
-                "inputMap": { "message": "#.node.log", "level": { "$coalesce": ["#.node.level", "\\info"] }, "context": { "$coalesce": ["#.node.context", {}] } },
+                "inputMap": {
+                    "message": { "$func/apply-mapping": { "mapping": "#.node.log", "input": "#" } },
+                    "level": { "$coalesce": ["#.node.level", "\\info"] },
+                    "context": { "$coalesce": [{ "$func/apply-mapping": { "mapping": "#.node.context", "input": "#" } }, {}] }
+                },
                 "invoke": "logging",
                 "operation": "log"
             }

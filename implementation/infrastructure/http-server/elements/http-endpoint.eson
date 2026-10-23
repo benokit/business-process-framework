@@ -17,7 +17,7 @@
             "shape": {
                 "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
                 "!path": "string",
-                "!target": { "!element": "string", "!operation": "string" },
+                "!target": { "!element": "@ref", "!operation": "string" },
                 "request": "@mapping",
                 "response": "@mapping"
             },
@@ -60,6 +60,13 @@
                 }
             },
             "lifecycle": {
+                "validate": {
+                    "$conditional": {
+                        "_if": { "$func/has-operation": "#.self.data.target" },
+                        "_then": [],
+                        "_else": [{ "$join": { "_strings": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] } }]
+                    }
+                },
                 "start": {
                     "inputMap": { "method": "#.self.data.method", "path": "#.self.data.path", "endpoint": "#.self.id" },
                     "invoke": "http-server",

@@ -73,4 +73,9 @@ export const isInstanceOf = ({ element, kind }) => {
     return found !== undefined && extendsKind(kindOf(found), kind);
 };
 
+export const hasOperation = ({ element, operation }) => {
+    const found = findElement(element);
+    return found === undefined || operation in resolveKind(kindOf(found)).operations;
+};
+
 export const checkKind = self => problemsOf(() => resolveKind(self.id)).map(problem => problem.message);

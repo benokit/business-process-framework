@@ -19,7 +19,15 @@
     {
         "id": "execution-node-template",
         "kind": "kind",
-        "data": { "shape": { "!keyword": "string", "!implementation": "@method" } }
+        "data": {
+            "shape": { "!keyword": "string", "node": "@schema", "!implementation": "@method" },
+            "lifecycle": {
+                "load": {
+                    "if": "#.self.data.node",
+                    "then": { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/node"] } }, "schema": "#.self.data.node" }, "invoke": "ajv", "operation": "add" }
+                }
+            }
+        }
     },
     {
         "id": "execution-node-wrapper",
@@ -42,6 +50,15 @@
             "signature": { "input": { "!element": "string", "!kind": "string" }, "output": "boolean" },
             "module": "@business-framework/core/kinds",
             "export": "isInstanceOf"
+        }
+    },
+    {
+        "id": "has-operation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!operation": "string" }, "output": "boolean" },
+            "module": "@business-framework/core/kinds",
+            "export": "hasOperation"
         }
     },
     {

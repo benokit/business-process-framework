@@ -49,6 +49,11 @@ describe('logging', () => {
         expect(lastEntry('stdout')).to.include({ orderId: 7, level: 'warn', message: 'x' });
     });
 
+    it('computes message and context from the node input', async () => {
+        await run({ inputMap: { id: '\\o-1' }, log: { $join: { _strings: ['order ', '#.input.id'] } }, context: { orderId: '#.input.id' } });
+        expect(lastEntry('stdout')).to.include({ message: 'order o-1', orderId: 'o-1' });
+    });
+
     it('writes error and fatal to stderr', async () => {
         await run([{ log: 'bad', level: 'error' }, { log: 'worse', level: 'fatal' }]);
         expect(captured.stdout).to.have.length(0);

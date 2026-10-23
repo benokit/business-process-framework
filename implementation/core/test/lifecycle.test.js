@@ -65,7 +65,7 @@ describe('start order', () => {
         await bootWith(
             recorder('x', { startAfter: ['y', 'nothing'] }), recorder('y', { startAfter: ['x'] }),
             element('the-x', 'x'), element('the-y', 'y'));
-        expect(validate().map(p => p.code)).to.have.members(['unknown-kind', 'order-cycle']);
+        expect(validate().map(p => p.code)).to.have.members(['unknown-element', 'order-cycle']);
     });
 });
 

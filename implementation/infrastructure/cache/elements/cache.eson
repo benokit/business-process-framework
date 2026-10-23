@@ -51,6 +51,7 @@
         "kind": "execution-node-wrapper",
         "data": {
             "keyword": "withCache",
+            "node": { "!withCache": "@method", "!cache": "@ref/in-memory-cache", "!key": "@mapping" },
             "implementation": [
                 { "outputKey": "key", "set": { "$func/apply-mapping": { "mapping": "#.node.key", "input": "#" } } },
                 { "outputKey": "hit", "inputMap": { "key": "#.key" }, "invoke": "#.node.cache", "operation": "get" },

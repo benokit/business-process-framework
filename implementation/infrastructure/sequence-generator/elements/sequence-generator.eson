@@ -22,6 +22,7 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "nextFromSequence",
+            "node": { "!nextFromSequence": "string" },
             "implementation": [
                 { "outputKey": "next", "inputMap": { "sequence": "#.node.nextFromSequence" }, "invoke": "sequences", "operation": "next" },
                 { "set": "#.next.value" }
