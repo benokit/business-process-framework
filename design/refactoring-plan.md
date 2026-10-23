@@ -33,7 +33,7 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R4.11 | CI: install, lint, every package's tests and `bpf-validate` on the demo, with PostgreSQL, NATS and Meilisearch as services | Q18 | A push runs the checks and reports failures | draft |
+| R4.11 | CI: install, lint, every package's tests and `bpf validate` on the demo, with PostgreSQL, NATS and Meilisearch as services | Q18 | A push runs the checks and reports failures | draft |
 | R4.13 | Decide how to split pipelines: orchestration as data, computation as mappings or pure functions | F9, Q1 | A decision is recorded in the critique | draft |
 | R4.14 | Database independence: `transaction`, `transactional-outbox` and `sequence-generator` reach the database through its operations instead of the PostgreSQL pool | Q19 | No package but `postgresql` imports `@business-framework/postgresql` | draft |
 

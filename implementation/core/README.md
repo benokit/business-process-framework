@@ -33,6 +33,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (`validate` hooks run in [validation.js](src/validation.js)) |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
+| [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)) |
 | [elements/](elements) | the bootstrap kinds, in data |
 
 ## Core elements
@@ -53,7 +54,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 
 ## Validation
 
-`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf-validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value. It doesn't inspect pipelines or pure function signatures.
+`validate()` runs over the loaded elements, on demand (tests, CI, [`bpf validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value. It doesn't inspect pipelines or pure function signatures.
 
 A kind adds its own checks with `lifecycle.validate`: a mapping from `#.self` to a list of problem messages, run for each identified instance, subkinds included. Any message is reported as `invalid-element`.
 

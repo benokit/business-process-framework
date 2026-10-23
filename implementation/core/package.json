@@ -9,7 +9,8 @@
     "./slots": "./src/slots.js",
     "./mappings": "./src/mappings.js",
     "./app-config": "./src/app-config.js",
-    "./clock": "./src/effects/clock.js"
+    "./clock": "./src/effects/clock.js",
+    "./introspection": "./src/introspection.js"
   },
   "scripts": {
     "test": "mocha"

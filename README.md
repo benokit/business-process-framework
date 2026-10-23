@@ -28,5 +28,5 @@ Everything is an **element**: `{ id, kind, data }`. The **kind** is the abstract
 | [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, NATS, transactional outbox, Meilisearch, cache, logging |
 | [Framework](implementation/framework/README.md) | Databases, messaging, entities and their traits, events, relations, search, security, users, OAuth authentication |
 | [Server](implementation/server/README.md) | Starts an application |
-| [Tools](implementation/tools/README.md) | `bpf-validate` |
+| [Tools](implementation/tools/README.md) | `bpf`: validation and discovery of an application |
 | [Demo](demo/README.md) | An insurance application |

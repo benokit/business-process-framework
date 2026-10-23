@@ -4,16 +4,17 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./src/validate.js"
+    ".": "./src/index.js"
   },
   "bin": {
-    "bpf-validate": "./src/cli.js"
+    "bpf": "./src/bpf.js"
   },
   "scripts": {
     "test": "mocha --exit"
   },
   "dependencies": {
     "@business-framework/core": "*",
-    "@business-framework/server": "*"
+    "@business-framework/server": "*",
+    "lambdajson-js": "^1.1.8"
   }
 }

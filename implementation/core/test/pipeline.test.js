@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import { invoke } from '../src/index.js';
+import { executors } from '../src/execution/nodes/index.js';
+import { nodeForms } from '../src/execution/nodes/forms.js';
 import { bootWith, runner } from './helpers.js';
 
 const run = async (implementation, input = null) => {
@@ -69,5 +71,9 @@ describe('pipelines', () => {
     it("forbids outputKey '_ctx'", async () => {
         const error = await run([{ outputKey: '_ctx', set: {} }]).catch(e => e);
         expect(error.code).to.equal('context-write');
+    });
+
+    it('declares the form of every node keyword', () => {
+        expect(Object.keys(nodeForms)).to.have.members(Object.keys(executors));
     });
 });

@@ -19,6 +19,10 @@ validate();                        // on demand, never on start
 
 See [core/README.md](implementation/core/README.md) for pipeline rules, context, lifecycle and data composition. The design rationale lives in [design/](design/).
 
+## Discovery
+
+Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. See [tools](implementation/tools/README.md).
+
 ## Schema syntax (CJSL)
 
 `"!field"` = required, `"field"` = optional, `"!field="` = fixed value, `"field=1": [...]` = enum, `"@schemaId"` = reference, `"field[]"` = array, `"field{}"` = map, `"$data#": [...]` = any-of, `"$data#1": [...]` = one-of, `"$data#&": [...]` = all-of. A property whose value is `false` is silently dropped.
@@ -31,7 +35,7 @@ implementation/
   infrastructure/  # See infrastructure/README.md for the index
   framework/       # See framework/README.md for the index
   server/          # Starts an application; on-startup
-  tools/           # bpf-validate
+  tools/           # bpf: validate, explain, vocabulary
 demo/              # Insurance example application
 ```
 

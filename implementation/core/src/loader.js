@@ -9,7 +9,15 @@ const filesIn = async directory => (await readdir(directory, { recursive: true, 
     .map(entry => path.join(entry.parentPath, entry.name))
     .sort();
 
-const elementsIn = async file => [JSON.parse(await readFile(file, 'utf8'))].flat();
+const sources = new WeakMap();
+
+export const sourceOf = element => sources.get(element);
+
+const elementsIn = async file => {
+    const elements = [JSON.parse(await readFile(file, 'utf8'))].flat();
+    elements.forEach(element => sources.set(element, file));
+    return elements;
+};
 
 export const readElements = async directories => {
     const files = (await Promise.all(directories.map(filesIn))).flat();
