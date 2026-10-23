@@ -1,7 +1,7 @@
 [
     {
         "kind": "app-config",
-        "data": { "outbox": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000, "retry": { "attempts": 3, "backoff": 1000 } } }
+        "data": { "outbox": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000, "maxBackoffInMilliseconds": 60000, "batchSize": 10, "retry": { "attempts": 3, "backoff": 1000 } } }
     },
     {
         "id": "transactional-outbox",
@@ -26,7 +26,7 @@
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "markDelivered" } }
                 },
                 "recordFailure": {
-                    "input": { "!messageId": "string" },
+                    "input": { "!messageId": "string", "error": "object" },
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "recordFailure" } }
                 },
                 "deliverNow": {
@@ -40,7 +40,7 @@
                                     { "inputMap": "#.claim.envelope", "invoke": "#.claim.channel", "operation": "deliver" },
                                     { "invoke": "#.self.id", "operation": "markDelivered" }
                                 ],
-                                "catch": { "invoke": "#.self.id", "operation": "recordFailure" }
+                                "catch": { "inputMap": { "messageId": "#.input.messageId", "error": "#.error" }, "invoke": "#.self.id", "operation": "recordFailure" }
                             }
                         }
                     ]
@@ -49,6 +49,11 @@
                     "input": { "messageIds[]": "string", "channel": "string", "from": "string", "to": "string" },
                     "output": { "!count": "number" },
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "replay" } }
+                },
+                "skip": {
+                    "input": { "!messageIds[]": "string" },
+                    "output": { "!count": "number" },
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "skip" } }
                 },
                 "purge": {
                     "input": { "!deliveredBefore": "string" },
@@ -90,13 +95,13 @@
         }
     },
     {
-        "id": "transactional-outbox-pending-group-index",
+        "id": "transactional-outbox-group-head-index",
         "kind": "slot-fill",
         "data": {
             "target": "postgresql-database",
             "slot": "models",
             "after": ["transactional-outbox-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_pending_group ON transactional_outbox (message_group, position) WHERE status = 0" }
+            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_group_head ON transactional_outbox (message_group, position) WHERE status IN (0, 2)" }
         }
     }
 ]

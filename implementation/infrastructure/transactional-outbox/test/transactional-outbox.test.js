@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { getPool } from '@business-framework/postgresql';
 import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
-import { delivered, failures } from './flaky-broker.js';
+import { delivered, failures, outage } from './flaky-broker.js';
 
 const BROKER = new URL('./flaky-broker.js', import.meta.url).href;
 const CHANNEL = `outbox-test-${Date.now()}`;
@@ -53,9 +53,13 @@ const eventually = async (check, timeout = 8000) => {
     expect(await check()).to.equal(true);
 };
 
-const place = (id, extra = {}) => invoke('the-orders', 'place', { message: { id: `${run}-${id}` }, group: `${run}-${extra.group ?? id}`, ...extra });
+const place = (id, extra = {}) => invoke('the-orders', 'place', { message: { id: `${run}-${id}` }, ...extra, group: `${run}-${extra.group ?? id}` });
 
 const statusOf = async messageId => (await getPool().query('SELECT status FROM transactional_outbox WHERE message_id = $1', [messageId])).rows[0]?.status;
+
+const messageIdOf = async id => (await getPool().query("SELECT message_id FROM transactional_outbox WHERE envelope->'message'->>'id' = $1", [`${run}-${id}`])).rows[0].message_id;
+
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const deliveredIds = () => delivered.map(message => message.id.slice(String(run).length + 1));
 
@@ -103,6 +107,31 @@ describe('transactional-outbox', function () {
         expect(deliveredIds()).to.not.include('second');
         await eventually(() => deliveredIds().includes('second'));
         expect(deliveredIds().filter(id => ['first', 'second'].includes(id))).to.deep.equal(['first', 'second']);
+    });
+
+    it('keeps messages pending through a broker outage and delivers them in order once it ends', async () => {
+        outage.on = true;
+        await place('outage-1', { group: 'outage' });
+        await place('outage-2', { group: 'outage' });
+        await place('outage-3');
+        await pause(300);
+        expect(await Promise.all(['outage-1', 'outage-2', 'outage-3'].map(async id => statusOf(await messageIdOf(id))))).to.deep.equal([0, 0, 0]);
+        outage.on = false;
+        await eventually(() => ['outage-1', 'outage-2', 'outage-3'].every(id => deliveredIds().includes(id)));
+        expect(deliveredIds().filter(id => id.startsWith('outage-') && id !== 'outage-3')).to.deep.equal(['outage-1', 'outage-2']);
+    });
+
+    it('holds back the group of a failed message until it is skipped', async () => {
+        failures.remaining = 4;
+        await place('rejected', { group: 'held' });
+        await place('held-back', { group: 'held' });
+        const messageId = await messageIdOf('rejected');
+        await eventually(async () => (await statusOf(messageId)) === 2);
+        await pause(200);
+        expect(deliveredIds()).to.not.include('held-back');
+        expect(await invoke('outbox', 'skip', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
+        await eventually(() => deliveredIds().includes('held-back'));
+        expect(deliveredIds()).to.not.include('rejected');
     });
 
     it('keeps delivered messages for replay until they are purged', async () => {

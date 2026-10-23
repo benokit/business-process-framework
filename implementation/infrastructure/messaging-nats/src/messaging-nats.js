@@ -1,4 +1,4 @@
-import { connect, consumerOpts, createInbox, JSONCodec, RetentionPolicy } from 'nats';
+import { connect, consumerOpts, createInbox, ErrorCode, JSONCodec, RetentionPolicy } from 'nats';
 import { CoreError, invoke } from '@business-framework/core';
 
 const codec = JSONCodec();
@@ -6,12 +6,32 @@ const connections = new Map();
 const subscriptions = new Map();
 const streams = new Set();
 
-const connectionTo = async url => {
+const UNREACHABLE = new Set([
+    ErrorCode.ConnectionClosed, ErrorCode.ConnectionDraining, ErrorCode.ConnectionRefused, ErrorCode.ConnectionTimeout,
+    ErrorCode.Disconnect, ErrorCode.Timeout, ErrorCode.NoResponders, ErrorCode.JetStream408RequestTimeout
+]);
+
+const forgetOnClose = (url, nc) => nc.closed().then(() => connections.delete(url));
+
+const opened = async url => {
+    const nc = await connect({ servers: url, maxReconnectAttempts: -1 });
+    forgetOnClose(url, nc);
+    return { nc, js: nc.jetstream(), jsm: await nc.jetstreamManager() };
+};
+
+const connectionTo = url => {
     if (!connections.has(url)) {
-        connections.set(url, connect({ servers: url }).then(async nc => ({ nc, js: nc.jetstream(), jsm: await nc.jetstreamManager() })));
+        connections.set(url, opened(url).catch(error => {
+            connections.delete(url);
+            throw error;
+        }));
     }
     return connections.get(url);
 };
+
+const brokerError = error => UNREACHABLE.has(error?.code)
+    ? new CoreError('unavailable', `NATS is unavailable: ${error.message}`, { code: error.code })
+    : error;
 
 const checkRetention = ({ config: { name, retention } }) => {
     if (retention !== RetentionPolicy.Interest) {
@@ -28,10 +48,14 @@ const ensureStream = async (url, jsm, name) => {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-export const publish = async ({ input: { url, channel, envelope } }) => {
+const send = async (url, channel, envelope) => {
     const { js, jsm } = await connectionTo(url);
     await ensureStream(url, jsm, channel.name);
     await js.publish(channel.name, codec.encode(envelope));
+};
+
+export const publish = async ({ input: { url, channel, envelope } }) => {
+    await send(url, channel, envelope).catch(error => { throw brokerError(error); });
     return { messageId: envelope.messageId };
 };
 

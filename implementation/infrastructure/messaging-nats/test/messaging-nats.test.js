@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { connect } from 'nats';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { publish } from '../src/messaging-nats.js';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const STREAM = `test-orders-${Date.now()}`;
@@ -102,6 +103,11 @@ describe('messaging-nats', function () {
         await invoke('orders', 'publish', { message: { id: 'o-4' } });
         await eventually(() => receivers('o-4').length >= 4);
         await eventually(() => withManager(async jsm => (await jsm.streams.info(STREAM)).state.messages === 0));
+    });
+
+    it('reports an unreachable server as unavailable', async () => {
+        const error = await publish({ input: { url: 'nats://localhost:1', channel: { name: STREAM }, envelope: { messageId: 'u-1' } } }).catch(e => e);
+        expect(error.code).to.equal('unavailable');
     });
 
     it('refuses a stream whose retention is not interest', async () => {
