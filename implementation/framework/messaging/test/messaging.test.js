@@ -29,7 +29,7 @@ const elements = [
         kind: 'kind',
         data: {
             operations: {
-                place: { input: '@any', implementation: { inputMap: { message: { orderId: '#.input.orderId' }, group: '#.input.orderId' }, publish: 'orders' } }
+                place: { input: '@any', implementation: { inputMap: { message: { orderId: '#.input.orderId' }, group: '#.input.orderId', subject: '\\placed' }, publish: 'orders' } }
             }
         }
     },
@@ -58,11 +58,11 @@ describe('messaging', () => {
         expect(validate().map(({ code, data }) => [code, data.element])).to.deep.equal([['invalid-element', 'payments']]);
     });
 
-    it('publishes an envelope with id, time, group and a new correlation', async () => {
+    it('publishes an envelope with id, time, group, subject and a new correlation', async () => {
         await invoke('shop', 'place', { orderId: 'o-1' });
         const [{ channel, envelope }] = published;
         expect(channel).to.equal('orders');
-        expect(envelope).to.include({ group: 'o-1' }).and.to.have.all.keys('messageId', 'timestampUTC', 'group', 'correlation', 'message');
+        expect(envelope).to.include({ group: 'o-1' }).and.to.have.all.keys('messageId', 'timestampUTC', 'group', 'subject', 'correlation', 'message');
         expect(envelope.message).to.deep.equal({ orderId: 'o-1' });
     });
 
@@ -72,7 +72,7 @@ describe('messaging', () => {
         await deliverAll();
         const [{ input, _ctx }] = received;
         expect(input).to.deep.equal({ orderId: 'o-2' });
-        expect(_ctx.message).to.deep.equal({ channel: 'orders', messageId: envelope.messageId, group: 'o-2', timestampUTC: envelope.timestampUTC });
+        expect(_ctx.message).to.deep.equal({ channel: 'orders', messageId: envelope.messageId, group: 'o-2', subject: 'placed', timestampUTC: envelope.timestampUTC });
         expect(_ctx.trace).to.deep.equal({ correlation: envelope.correlation });
     });
 

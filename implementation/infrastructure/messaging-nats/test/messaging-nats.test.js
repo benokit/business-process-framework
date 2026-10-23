@@ -6,6 +6,7 @@ import { publish } from '../src/messaging-nats.js';
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
 const STREAM = `test-orders-${Date.now()}`;
 const LIMITS_STREAM = `${STREAM}-limits`;
+const SHIPMENTS = `${STREAM}-shipments`;
 const received = [];
 
 export const record = ({ input, _ctx }) => {
@@ -13,7 +14,7 @@ export const record = ({ input, _ctx }) => {
         received.push({ input, failed: true });
         throw new Error('first attempt fails');
     }
-    received.push({ input, correlation: _ctx.trace?.correlation });
+    received.push({ input, correlation: _ctx.trace?.correlation, subject: _ctx.message.subject });
     return null;
 };
 
@@ -22,7 +23,7 @@ const RECORDER = import.meta.url;
 const consumer = (id, data = {}) => ({
     id,
     kind: 'message-consumer',
-    data: { channel: 'orders', handler: { inputMap: { $merge: ['#.input', { by: `\\${id}` }] }, low: { module: RECORDER, export: 'record' } }, ...data }
+    data: { channel: 'orders', ...data, handler: { inputMap: { $merge: ['#.input', { by: `\\${id}` }] }, low: { module: RECORDER, export: 'record' } } }
 });
 
 const elements = [
@@ -33,7 +34,11 @@ const elements = [
     consumer('indexer-1', { name: 'indexer' }),
     consumer('indexer-2', { name: 'indexer' }),
     consumer('cache-1', { broadcast: true }),
-    consumer('cache-2', { broadcast: true })
+    consumer('cache-2', { broadcast: true }),
+    { id: 'shipments', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: SHIPMENTS } },
+    consumer('all-shipments', { channel: 'shipments', name: 'legacy' }),
+    consumer('express-shipments', { channel: 'shipments', filter: ['express', 'urgent'] }),
+    consumer('express-cache', { channel: 'shipments', broadcast: true, filter: ['express'] })
 ];
 
 const receivers = id => received.filter(entry => entry.input.id === id && !entry.failed).map(entry => entry.input.by).sort();
@@ -65,13 +70,17 @@ const skipWithoutNats = async context => {
 describe('messaging-nats', function () {
     before(async function () {
         await skipWithoutNats(this);
+        await withManager(async jsm => {
+            await jsm.streams.add({ name: SHIPMENTS, subjects: [SHIPMENTS], retention: 'interest' });
+            await jsm.consumers.add(SHIPMENTS, { durable_name: 'legacy', deliver_group: 'legacy', deliver_subject: `legacy-${STREAM}`, filter_subject: SHIPMENTS, ack_policy: 'explicit' });
+        });
         await boot({ paths: ['@business-framework/messaging', '@business-framework/messaging-nats'].map(packageElements), elements });
         await start();
     });
 
     after(async () => {
         await stop();
-        await withManager(jsm => Promise.all([STREAM, LIMITS_STREAM].map(name => jsm.streams.delete(name).catch(() => null))));
+        await withManager(jsm => Promise.all([STREAM, LIMITS_STREAM, SHIPMENTS].map(name => jsm.streams.delete(name).catch(() => null))));
     });
 
     it('validates', () => {
@@ -103,6 +112,19 @@ describe('messaging-nats', function () {
         await invoke('orders', 'publish', { message: { id: 'o-4' } });
         await eventually(() => receivers('o-4').length >= 4);
         await eventually(() => withManager(async jsm => (await jsm.streams.info(STREAM)).state.messages === 0));
+    });
+
+    it('delivers a message with a subject only to consumers whose filter has it, and to every unfiltered consumer', async () => {
+        await Promise.all(['express', 'standard'].map(subject => invoke('shipments', 'publish', { message: { id: `s-${subject}` }, subject })));
+        await eventually(() => receivers('s-express').length >= 3 && receivers('s-standard').length >= 1);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        expect(receivers('s-express')).to.deep.equal(['all-shipments', 'express-cache', 'express-shipments']);
+        expect(receivers('s-standard')).to.deep.equal(['all-shipments']);
+        expect(received.find(entry => entry.input.id === 's-express').subject).to.equal('express');
+    });
+
+    it('refuses a subject that is not a NATS subject token', async () => {
+        expect((await invoke('orders', 'publish', { message: { id: 'o-5' }, subject: 'a.b' }).catch(error => error)).code).to.equal('invalid');
     });
 
     it('reports an unreachable server as unavailable', async () => {

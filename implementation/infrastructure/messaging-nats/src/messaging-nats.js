@@ -39,10 +39,24 @@ const checkRetention = ({ config: { name, retention } }) => {
     }
 };
 
+const SUBJECT_TOKEN = /^[^\s.*>]+$/;
+
+const subjectOf = (name, subject) => {
+    if (subject === undefined) return name;
+    if (!SUBJECT_TOKEN.test(subject)) throw new CoreError('invalid', `'${subject}' is not a NATS subject token`, { subject });
+    return `${name}.${subject}`;
+};
+
+const streamSubjects = name => [name, `${name}.>`];
+
+const filtersOf = (name, filter) => filter?.length ? filter.map(subject => subjectOf(name, subject)) : streamSubjects(name);
+
 const ensureStream = async (url, jsm, name) => {
     if (streams.has(`${url}:${name}`)) return;
-    const stream = await jsm.streams.info(name).catch(() => jsm.streams.add({ name, subjects: [name], retention: RetentionPolicy.Interest }));
+    const subjects = streamSubjects(name);
+    const stream = await jsm.streams.info(name).catch(() => jsm.streams.add({ name, subjects, retention: RetentionPolicy.Interest }));
     checkRetention(stream);
+    if (!subjects.every(subject => stream.config.subjects.includes(subject))) await jsm.streams.update(name, { ...stream.config, subjects });
     streams.add(`${url}:${name}`);
 };
 
@@ -51,7 +65,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const send = async (url, channel, envelope) => {
     const { js, jsm } = await connectionTo(url);
     await ensureStream(url, jsm, channel.name);
-    await js.publish(channel.name, codec.encode(envelope));
+    await js.publish(subjectOf(channel.name, envelope.subject), codec.encode(envelope));
 };
 
 export const publish = async ({ input: { url, channel, envelope } }) => {
@@ -64,13 +78,28 @@ const sharedConsumer = (opts, durable) => {
     opts.queue(durable);
 };
 
-const options = (channel, name, broadcast) => {
+const durableOf = (channel, name, broadcast) => broadcast ? undefined : channel.topology === 'queue' ? channel.name : name;
+
+const options = (stream, durable, filters) => {
     const opts = consumerOpts();
+    opts.bindStream(stream);
+    filters.forEach(filter => opts.filterSubject(filter));
     opts.deliverNew();
     opts.ackExplicit();
     opts.deliverTo(createInbox());
-    if (!broadcast) sharedConsumer(opts, channel.topology === 'queue' ? channel.name : name);
+    if (durable) sharedConsumer(opts, durable);
     return opts;
+};
+
+const filtersOfConsumer = ({ config }) => [config.filter_subject, ...(config.filter_subjects ?? [])].filter(Boolean);
+
+const sameFilters = (current, filters) => current.length === filters.length && filters.every(filter => current.includes(filter));
+
+const alignFilters = async (jsm, stream, durable, filters) => {
+    const info = durable && await jsm.consumers.info(stream, durable).catch(() => null);
+    if (info && !sameFilters(filtersOfConsumer(info), filters)) {
+        await jsm.consumers.update(stream, durable, { filter_subject: undefined, filter_subjects: filters });
+    }
 };
 
 const handleWithRetry = async (consumer, envelope, { attempts = 3, backoff = 1000 }, attempt = 0) => {
@@ -91,10 +120,13 @@ const dispatch = async (subscription, consumer, retry) => {
     }
 };
 
-export const subscribe = async ({ input: { url, channel, consumer, name, broadcast } }) => {
+export const subscribe = async ({ input: { url, channel, consumer, name, broadcast, filter } }) => {
     const { js, jsm } = await connectionTo(url);
     await ensureStream(url, jsm, channel.name);
-    const subscription = await js.subscribe(channel.name, options(channel, name, broadcast));
+    const durable = durableOf(channel, name, broadcast);
+    const filters = filtersOf(channel.name, filter);
+    await alignFilters(jsm, channel.name, durable, filters);
+    const subscription = await js.subscribe(filters[0], options(channel.name, durable, filters));
     subscriptions.set(consumer, subscription);
     dispatch(subscription, consumer, channel.consumer?.retry ?? {});
     return null;

@@ -2,17 +2,17 @@
     {
         "id": "message-envelope",
         "kind": "schema",
-        "data": { "!messageId": "string", "!timestampUTC": "string", "!group": "string", "!correlation": "string", "!message": "object" }
+        "data": { "!messageId": "string", "!timestampUTC": "string", "!group": "string", "subject": "string", "!correlation": "string", "!message": "object" }
     },
     {
         "id": "message-context",
         "kind": "schema",
-        "data": { "!channel": "string", "!messageId": "string", "!group": "string", "!timestampUTC": "string" }
+        "data": { "!channel": "string", "!messageId": "string", "!group": "string", "subject": "string", "!timestampUTC": "string" }
     },
     {
         "id": "outgoing-message",
         "kind": "schema",
-        "data": { "!message": "object", "group": "string", "messageId": "string", "timestampUTC": "string" }
+        "data": { "!message": "object", "group": "string", "subject": "string", "messageId": "string", "timestampUTC": "string" }
     },
     {
         "id": "message-broker",
@@ -20,7 +20,7 @@
         "data": {
             "operations": {
                 "publish": { "input": { "!channel": "object", "!envelope": "@message-envelope" }, "output": { "!messageId": "string" } },
-                "subscribe": { "input": { "!channel": "object", "!consumer": "string", "!name": "string", "broadcast": "boolean" } },
+                "subscribe": { "input": { "!channel": "object", "!consumer": "string", "!name": "string", "broadcast": "boolean", "filter[]": "string" } },
                 "unsubscribe": { "input": { "!consumer": "string" } }
             },
             "lifecycle": { "startPosition": "first" }
@@ -73,7 +73,7 @@
                     }
                 },
                 "subscribe": {
-                    "input": { "!consumer": "string", "!name": "string", "broadcast": "boolean" },
+                    "input": { "!consumer": "string", "!name": "string", "broadcast": "boolean", "filter[]": "string" },
                     "implementation": {
                         "inputMap": { "$merge": ["#.input", { "channel": { "$merge": ["#.self.data", { "id": "#.self.id" }] } }] },
                         "invoke": "#.self.data.broker",
@@ -102,13 +102,13 @@
         "data": {
             "extends": "entry-point",
             "context": { "manages": { "message": "@message-context" } },
-            "shape": { "!channel": "string", "name": "string", "broadcast": "boolean", "!handler": "@method" },
+            "shape": { "!channel": "string", "name": "string", "broadcast": "boolean", "filter[]": "string", "!handler": "@method" },
             "operations": {
                 "handle": {
                     "input": "@message-envelope",
                     "implementation": {
                         "withContext": {
-                            "message": { "channel": "#.self.data.channel", "messageId": "#.input.messageId", "group": "#.input.group", "timestampUTC": "#.input.timestampUTC" },
+                            "message": { "channel": "#.self.data.channel", "messageId": "#.input.messageId", "group": "#.input.group", "subject": "#.input.subject", "timestampUTC": "#.input.timestampUTC" },
                             "trace": { "correlation": "#.input.correlation" }
                         },
                         "do": { "inputMap": "#.input.message", "execute": "#.self.data.handler" }
@@ -117,7 +117,7 @@
             },
             "lifecycle": {
                 "start": {
-                    "inputMap": { "consumer": "#.self.id", "name": { "$coalesce": ["#.self.data.name", "#.self.id"] }, "broadcast": "#.self.data.broadcast" },
+                    "inputMap": { "consumer": "#.self.id", "name": { "$coalesce": ["#.self.data.name", "#.self.id"] }, "broadcast": "#.self.data.broadcast", "filter": "#.self.data.filter" },
                     "invoke": "#.self.data.channel",
                     "operation": "subscribe"
                 },

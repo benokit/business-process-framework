@@ -57,10 +57,8 @@
         "data": {
             "channel": "entity-events",
             "broadcast": true,
-            "handler": {
-                "if": { "$eq": ["#.input.entityType", "user"] },
-                "then": { "inputMap": { "key": "#.input.businessKey" }, "invoke": "user-cache", "operation": "evict" }
-            }
+            "filter": ["user"],
+            "handler": { "inputMap": { "key": "#.input.businessKey" }, "invoke": "user-cache", "operation": "evict" }
         }
     },
     {
