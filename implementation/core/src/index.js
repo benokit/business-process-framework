@@ -8,6 +8,7 @@ import { enableChecks } from './schemas.js';
 import { runLifecycle } from './lifecycle.js';
 
 export { invoke } from './execution/invoke.js';
+export { execute } from './execution/pipeline.js';
 export { validate } from './validation.js';
 export { CoreError } from './errors.js';
 export { findElement, getElement } from './registry.js';

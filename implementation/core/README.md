@@ -12,6 +12,7 @@ await start();                                         // 'start' hooks
 await invoke('hello', 'greet', 'Ada');                 // an operation of the element's kind chain
 validate();                                            // on demand: a list of problems, [] when valid
 packageElements('@business-framework/logging');       // the elements directory of an installed package
+execute({ method, input, self, _ctx });               // runs a method value from native code, as the execute node does
 ```
 
 Errors are `CoreError` with `code`, `message` and `data`.
@@ -48,6 +49,7 @@ Besides the bootstrap kinds: `binding` and the schema `element-ref` (see [Interf
 - `low` names a JS function as `{ module, export }` (the schema `js-export`) and calls it with `{ input, _ctx }`, `_ctx` frozen.
 - A `pure-function` is `$func/<id>`: either a JS function (`module`, `export`) or a LambdaJSON `mapping`, beside its `signature`.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
+- `invoke` checks the input and output against the operation's contract. A compiled check costs well under a microsecond, even for a full entity record, so contracts are not a performance concern.
 
 ## Validation
 

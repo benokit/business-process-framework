@@ -52,3 +52,5 @@ export const runMethod = async (pipeline, scope) => {
 };
 
 export const methodScope = ({ self, _ctx }, input) => ({ input, self, _ctx });
+
+export const execute = ({ method, input, self, _ctx }) => runMethod(method, { input, self, _ctx });

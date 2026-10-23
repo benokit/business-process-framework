@@ -23,6 +23,20 @@
         }
     },
     {
+        "id": "entity-event-group-slot",
+        "kind": "slot-declaration",
+        "data": { "target": "entity-type", "slot": "eventGroup", "cardinality": "one", "value": "@mapping" }
+    },
+    {
+        "id": "entity-event-group",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "eventGroup",
+            "value": { "$join": { "_strings": ["#.entityType", "#.businessKey"], "_separator": "/" } }
+        }
+    },
+    {
         "id": "publish-entity-events",
         "kind": "slot-fill",
         "data": {
@@ -42,8 +56,7 @@
                             "command": "#.input.command"
                         },
                         "messageId": { "$join": { "_strings": ["#.record.id", "#.record.revision", "#.input.operation"], "_separator": "-" } },
-                        "group": "#.record.businessKey",
-                        "timestampUTC": "#.record.timestampUtc"
+                        "group": { "$func/apply-mapping": { "mapping": { "$func/slot-values": { "element": "#.self.id", "slot": "eventGroup" } }, "input": "#.record" } }
                     },
                     "publish": "entity-events"
                 }

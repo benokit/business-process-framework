@@ -64,19 +64,23 @@ describe('transactional-outbox', function () {
 
     before(async function () {
         await skipWithoutPostgres(this);
+        process.env.BPF__outbox__idleIntervalInMilliseconds = '100';
         await boot({ paths: packages, elements });
         await start();
     });
 
-    after(stop);
+    after(async () => {
+        await stop();
+        delete process.env.BPF__outbox__idleIntervalInMilliseconds;
+    });
 
     it('validates', () => {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('delivers a message after its transaction commits', async () => {
+    it('delivers a message right after its transaction commits', async () => {
         await place('committed');
-        await eventually(() => deliveredIds().includes('committed'));
+        expect(deliveredIds()).to.include('committed');
     });
 
     it('never delivers a message whose transaction rolled back', async () => {
@@ -96,6 +100,7 @@ describe('transactional-outbox', function () {
         failures.remaining = 1;
         await place('first', { group: 'ordered' });
         await place('second', { group: 'ordered' });
+        expect(deliveredIds()).to.not.include('second');
         await eventually(() => deliveredIds().includes('second'));
         expect(deliveredIds().filter(id => ['first', 'second'].includes(id))).to.deep.equal(['first', 'second']);
     });

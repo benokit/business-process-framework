@@ -11,7 +11,7 @@ const LOCK_NEXT = `
         SELECT DISTINCT ON (message_group) *
         FROM transactional_outbox
         WHERE status = ${PENDING}
-        ORDER BY message_group, message_timestamp_utc ASC
+        ORDER BY message_group, position
     ),
     candidate AS (
         SELECT id FROM group_earliest
@@ -20,10 +20,26 @@ const LOCK_NEXT = `
         LIMIT 1
     )
     UPDATE transactional_outbox SET process_after_timestamp_utc = $2
-    WHERE id = (SELECT id FROM candidate)
+    WHERE id = (SELECT id FROM candidate) AND status = ${PENDING} AND process_after_timestamp_utc <= $1
     RETURNING *`;
 
+const CLAIM = `
+    UPDATE transactional_outbox claimed SET process_after_timestamp_utc = $3
+    WHERE message_id = $1 AND status = ${PENDING} AND process_after_timestamp_utc <= $2
+      AND NOT EXISTS (
+          SELECT 1 FROM transactional_outbox earlier
+          WHERE earlier.message_group = claimed.message_group AND earlier.status = ${PENDING}
+            AND earlier.position < claimed.position)
+    RETURNING channel, envelope`;
+
 let processor = null;
+let settings = null;
+
+const settingsOf = ({ lockIntervalInMilliseconds, idleIntervalInMilliseconds, retry }) => ({
+    lockInterval: Number(lockIntervalInMilliseconds),
+    idleInterval: Number(idleIntervalInMilliseconds),
+    retry: { attempts: Number(retry.attempts), backoff: Number(retry.backoff) }
+});
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -31,18 +47,35 @@ const later = ms => new Date(Date.now() + ms).toISOString();
 
 export const put = async ({ input: { channel, envelope }, _ctx }) => {
     await queryable(_ctx).query(
-        `INSERT INTO transactional_outbox (channel, message_id, message_group, message_timestamp_utc, envelope, process_after_timestamp_utc)
-         VALUES ($1, $2, $3, $4, $5, $4)`,
-        [channel, envelope.messageId, envelope.group, envelope.timestampUTC, JSON.stringify(envelope)]);
+        `INSERT INTO transactional_outbox (channel, message_id, message_group, envelope, process_after_timestamp_utc)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [channel, envelope.messageId, envelope.group, JSON.stringify(envelope), new Date().toISOString()]);
     return { messageId: envelope.messageId };
 };
 
-const lockNext = async lockInterval => (await getPool().query(LOCK_NEXT, [new Date().toISOString(), later(lockInterval)])).rows[0];
+export const claim = async ({ input: { messageId } }) => {
+    const { rows: [row] } = await getPool().query(CLAIM, [messageId, new Date().toISOString(), later(settings.lockInterval)]);
+    return row ? { claimed: true, channel: row.channel, envelope: row.envelope } : { claimed: false };
+};
 
-const retryOf = channel => findElement(channel)?.data.publisher?.retry ?? {};
+export const markDelivered = async ({ input: { messageId } }) => {
+    await getPool().query(
+        `UPDATE transactional_outbox SET status = ${DELIVERED}, processed_at = $1 WHERE message_id = $2`, [new Date().toISOString(), messageId]);
+    return null;
+};
+
+export const recordFailure = async ({ input: { messageId } }) => {
+    const { rows: [item] } = await getPool().query('SELECT id, channel, retry_count FROM transactional_outbox WHERE message_id = $1', [messageId]);
+    await markFailedAttempt(item);
+    return null;
+};
+
+const lockNext = async () => (await getPool().query(LOCK_NEXT, [new Date().toISOString(), later(settings.lockInterval)])).rows[0];
+
+const retryOf = channel => ({ ...settings.retry, ...findElement(channel)?.data.publisher?.retry });
 
 const markFailedAttempt = ({ id, channel, retry_count: retries }) => {
-    const { attempts = 3, backoff = 1000 } = retryOf(channel);
+    const { attempts, backoff } = retryOf(channel);
     return retries < attempts
         ? getPool().query('UPDATE transactional_outbox SET process_after_timestamp_utc = $1, retry_count = retry_count + 1 WHERE id = $2', [later(backoff * 2 ** retries), id])
         : getPool().query(`UPDATE transactional_outbox SET status = ${FAILED} WHERE id = $1`, [id]);
@@ -51,8 +84,8 @@ const markFailedAttempt = ({ id, channel, retry_count: retries }) => {
 const REPLAY_FILTERS = {
     messageIds: parameter => `message_id = ANY(${parameter})`,
     channel: parameter => `channel = ${parameter}`,
-    from: parameter => `message_timestamp_utc >= ${parameter}`,
-    to: parameter => `message_timestamp_utc < ${parameter}`
+    from: parameter => `created_at >= ${parameter}`,
+    to: parameter => `created_at < ${parameter}`
 };
 
 export const replay = async ({ input }) => {
@@ -74,22 +107,23 @@ export const purge = async ({ input: { deliveredBefore } }) => {
 const deliver = async item => {
     try {
         await invoke(item.channel, 'deliver', item.envelope);
-        await getPool().query(`UPDATE transactional_outbox SET status = ${DELIVERED}, processed_at = $1 WHERE id = $2`, [new Date().toISOString(), item.id]);
+        await markDelivered({ input: { messageId: item.message_id } });
     } catch {
         await markFailedAttempt(item);
     }
 };
 
-const loop = async (state, { lockIntervalInMilliseconds, idleIntervalInMilliseconds }) => {
+const loop = async state => {
     while (!state.stopped) {
-        const item = await lockNext(lockIntervalInMilliseconds).catch(() => null);
-        await (item ? deliver(item) : sleep(idleIntervalInMilliseconds)).catch(() => sleep(idleIntervalInMilliseconds));
+        const item = await lockNext().catch(() => null);
+        await (item ? deliver(item) : sleep(settings.idleInterval)).catch(() => sleep(settings.idleInterval));
     }
 };
 
 export const startProcessor = async ({ input }) => {
     const state = { stopped: false };
-    processor = { state, done: loop(state, input) };
+    settings = settingsOf(input);
+    processor = { state, done: loop(state) };
     return null;
 };
 

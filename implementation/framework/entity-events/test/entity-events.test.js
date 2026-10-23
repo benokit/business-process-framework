@@ -4,15 +4,18 @@ import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/hel
 
 const run = Date.now();
 const ORDER = `order-events-${run}`;
+const NOTE = `note-events-${run}`;
 const received = [];
 
 export const record = ({ input, _ctx }) => {
-    if (input.entityType === ORDER) received.push({ ...input, correlation: _ctx.trace.correlation });
+    if ([ORDER, NOTE].includes(input.entityType)) received.push({ ...input, group: _ctx.message.group, correlation: _ctx.trace.correlation });
     return null;
 };
 
 const elements = [
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: NOTE, kind: 'entity-type', data: { bodySchema: { '!text': 'string' } } },
+    { id: `${ORDER}-group`, kind: 'slot-fill', data: { target: ORDER, slot: 'eventGroup', value: '\\all-orders' } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: ['draft', 'done'] }, transitions: { finish: { from: { status: ['draft'] }, to: { status: 'done' } } }, initialStates: { default: { status: 'draft' } } } } } },
     { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record' } } } }
 ];
@@ -54,5 +57,12 @@ describe('entity-events', function () {
         await invoke(ORDER, 'create', { businessKey: 'e-3', body: { amount: 3 } });
         await eventually(() => received.some(event => event.businessKey === 'e-3'));
         expect(received.slice(before).map(event => event.businessKey)).to.deep.equal(['e-3']);
+    });
+
+    it('groups events by the eventGroup mapping of the entity type, by entity type and business key unless overridden', async () => {
+        await invoke(NOTE, 'create', { businessKey: 'n-1', body: { text: 'hi' } });
+        await eventually(() => received.some(event => event.entityType === NOTE));
+        const groupsOf = type => [...new Set(received.filter(event => event.entityType === type).map(event => event.group))];
+        expect([groupsOf(ORDER), groupsOf(NOTE)]).to.deep.equal([['all-orders'], [`${NOTE}/n-1`]]);
     });
 });

@@ -26,6 +26,15 @@ const operations = {
             { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, values: ['#.input.name'] }, low: { module: ROWS, export: 'insert' } },
             { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
         ]
+    },
+    note: { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'postgresql', operation: 'execute' },
+    noteNow: { afterCommit: { invoke: '#.self.id', operation: 'note' } },
+    noteAfterCommit: {
+        inTransaction: [
+            { inputMap: '#.input.name', afterCommit: { invoke: '#.self.id', operation: 'note' } },
+            { inputMap: { name: { $join: { _strings: ['#.input.name', '\\-nested'] } } }, inTransaction: { afterCommit: { invoke: '#.self.id', operation: 'note' }, inputMap: '#.input.name' } },
+            { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
+        ]
     }
 };
 
@@ -90,5 +99,14 @@ describe('transaction', function () {
 
     it('fails on an unknown session', async () => {
         expect((await invoke('transaction', 'commit', { sessionId: 999999 }).catch(e => e)).code).to.equal('unknown-session');
+    });
+
+    it('runs afterCommit pipelines when the outermost transaction commits, at once without a transaction', async () => {
+        await invoke('the-user', 'noteAfterCommit', { name: 'after-commit' });
+        await invoke('the-user', 'noteAfterCommit', { name: 'after-rollback', fail: true }).catch(() => null);
+        await invoke('the-user', 'noteNow', 'without-transaction');
+        const names = await rows();
+        expect(['after-commit', 'after-commit-nested', 'after-rollback', 'after-rollback-nested', 'without-transaction'].map(name => names.includes(name)))
+            .to.deep.equal([true, true, false, false, true]);
     });
 });

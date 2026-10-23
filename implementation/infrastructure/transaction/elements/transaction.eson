@@ -66,5 +66,16 @@
                 ]
             }
         }
+    },
+    {
+        "id": "after-commit",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "afterCommit",
+            "implementation": {
+                "inputMap": { "method": "#.node.afterCommit", "input": "#.input", "self": "#.self" },
+                "low": { "module": "@business-framework/transaction", "export": "afterCommit" }
+            }
+        }
     }
 ]
