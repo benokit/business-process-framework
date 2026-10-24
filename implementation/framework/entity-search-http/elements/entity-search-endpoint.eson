@@ -9,8 +9,6 @@
             "request": {
                 "entityType": "#.params.entityType",
                 "query": "#.body.query",
-                "filter": "#.body.filter",
-                "sort": "#.body.sort",
                 "offset": "#.body.offset",
                 "limit": "#.body.limit"
             }

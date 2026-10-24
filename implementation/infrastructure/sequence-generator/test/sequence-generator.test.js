@@ -23,6 +23,6 @@ describe('sequence-generator', () => {
     });
 
     it('rejects a sequence name with unsafe characters', async () => {
-        expect((await invoke('sequences', 'next', { sequence: "x'; drop" }).catch(e => e)).code).to.equal('invalid');
+        expect((await invoke('default-sequence-generator', 'next', { sequence: "x'; drop" }).catch(e => e)).code).to.equal('invalid');
     });
 });

@@ -9,3 +9,4 @@ description: Programming rules for this repository. Use before writing, changing
 - Avoid comments, if possible, the code should be self-explanatory.
 - Prefer declarative functional writing style
 - Name a subkind after what it specializes followed by its base kind's id (`postgresql-database`, `principal-execution-node-wrapper`), so the name says what the abstraction is. A shorter name is fine when it is just as unambiguous.
+- Name an instance after what it is followed by its kind's id (`party-search-index`, `parties-by-type-search-query`), unless a shorter name is just as unambiguous.

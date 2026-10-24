@@ -129,7 +129,7 @@ describe('transactional-outbox', function () {
         await eventually(async () => (await statusOf(messageId)) === 2);
         await pause(200);
         expect(deliveredIds()).to.not.include('held-back');
-        expect(await invoke('outbox', 'skip', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
+        expect(await invoke('default-transactional-outbox', 'skip', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
         await eventually(() => deliveredIds().includes('held-back'));
         expect(deliveredIds()).to.not.include('rejected');
     });
@@ -138,11 +138,11 @@ describe('transactional-outbox', function () {
         await place('kept');
         await eventually(() => deliveredIds().includes('kept'));
         const { messageId } = delivered.find(message => message.id.endsWith('-kept'));
-        expect(await invoke('outbox', 'replay', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
+        expect(await invoke('default-transactional-outbox', 'replay', { messageIds: [messageId] })).to.deep.equal({ count: 1 });
         await eventually(() => deliveredIds().filter(id => id === 'kept').length === 2);
         await eventually(async () => (await statusOf(messageId)) === 1);
-        await invoke('outbox', 'purge', { deliveredBefore: new Date(Date.now() + 1000).toISOString() });
+        await invoke('default-transactional-outbox', 'purge', { deliveredBefore: new Date(Date.now() + 1000).toISOString() });
         expect(await statusOf(messageId)).to.equal(undefined);
-        expect((await invoke('outbox', 'replay', {}).catch(error => error)).code).to.equal('invalid');
+        expect((await invoke('default-transactional-outbox', 'replay', {}).catch(error => error)).code).to.equal('invalid');
     });
 });

@@ -31,7 +31,7 @@
         }
     },
     {
-        "id": "nats",
+        "id": "default-nats-broker",
         "kind": "nats-broker",
         "data": {}
     }

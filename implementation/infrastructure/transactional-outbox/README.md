@@ -1,6 +1,6 @@
 # transactional-outbox
 
-At-least-once delivery for channels with `publisher.transactionalOutbox`. Kind `transactional-outbox` (a [`message-outbox`](../../framework/messaging/README.md)), instance `outbox`.
+At-least-once delivery for channels with `publisher.transactionalOutbox`. Kind `transactional-outbox` (a [`message-outbox`](../../framework/messaging/README.md)), instance `default-transactional-outbox`.
 
 Its time scales are the app config section `outbox` (`BPF__outbox__<key>`, `BPF__outbox__retry__<key>`):
 

@@ -43,7 +43,7 @@
     {
         "id": "contract-events",
         "kind": "message-channel",
-        "data": { "broker": "nats", "topology": "topic", "name": "contract-events", "publisher": { "transactionalOutbox": true } }
+        "data": { "broker": "default-nats-broker", "topology": "topic", "name": "contract-events", "publisher": { "transactionalOutbox": true } }
     },
     {
         "id": "contract-activation-events",

@@ -14,7 +14,25 @@ const elements = [
         data: {
             target: PROJECT,
             slot: 'searchIndex',
-            value: { searchEngine: 'meilisearch', indexName: INDEX, settings: { searchableAttributes: ['name'] }, mapping: { set: { name: '#.input.data.body.name', key: '#.input.businessKey' } } }
+            value: { index: INDEX, mapping: { set: { name: '#.input.data.body.name', key: '#.input.businessKey' } } }
+        }
+    },
+    { id: INDEX, kind: 'search-index', data: {} },
+    { kind: 'slot-fill', data: { target: INDEX, slot: 'implementations', value: { provider: 'meilisearch-engine', settings: { searchableAttributes: ['name'], filterableAttributes: ['key'] } } } },
+    { id: `${PROJECT}-by-key`, kind: 'search-query', data: { input: { '!key': 'string', generalSearch: 'string' } } },
+    {
+        kind: 'slot-fill',
+        data: {
+            target: `${PROJECT}-by-key`,
+            slot: 'implementations',
+            value: {
+                provider: 'meilisearch-engine',
+                implementation: {
+                    inputMap: { query: '#.input.generalSearch', filter: { $join: { _strings: ['\\key = ', { '$func/meilisearch-string': '#.input.key' }] } } },
+                    invoke: INDEX,
+                    operation: 'search'
+                }
+            }
         }
     }
 ];
@@ -38,7 +56,7 @@ describe('entity-search', function () {
     });
 
     after(async () => {
-        await invoke('meilisearch', 'deleteIndex', { indexName: INDEX }).catch(() => null);
+        await invoke('default-meilisearch-engine', 'deleteIndex', { indexName: INDEX }).catch(() => null);
         await stop();
     });
 
@@ -54,8 +72,15 @@ describe('entity-search', function () {
         await eventually(async () => JSON.stringify(await keysFor('golden')) === JSON.stringify(['p-2']));
     });
 
+    it('runs a logical search query in the engine\'s own filter language', async () => {
+        await eventually(async () => (await keysFor('golden')).length > 0);
+        const { hits } = await invoke(`${PROJECT}-by-key`, 'run', { key: 'p-2', generalSearch: 'golden' });
+        expect(hits.map(hit => hit.key)).to.deep.equal(['p-2']);
+        expect((await invoke(`${PROJECT}-by-key`, 'run', { key: 'p-2" OR key = "p-1' })).hits).to.deep.equal([]);
+    });
+
     it('reindexes existing entities', async () => {
-        await invoke('meilisearch', 'deleteIndex', { indexName: INDEX });
+        await invoke('default-meilisearch-engine', 'deleteIndex', { indexName: INDEX });
         await invoke('entity-search', 'reindex', { entityType: PROJECT });
         expect(await keysFor('tunnel')).to.deep.equal(['p-2']);
     });

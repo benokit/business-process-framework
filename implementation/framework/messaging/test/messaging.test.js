@@ -76,6 +76,11 @@ describe('messaging', () => {
         expect(_ctx.trace).to.deep.equal({ correlation: envelope.correlation });
     });
 
+    it('refuses a subject that not every broker can carry', async () => {
+        const error = await invoke('orders', 'publish', { message: {}, subject: 'orders.placed' }).catch(e => e);
+        expect(error.code).to.equal('invalid');
+    });
+
     it('propagates the correlation of a consumed message to the messages it publishes', async () => {
         await invoke('orders', 'publish', { message: { relay: true } });
         const { correlation } = published[0].envelope;

@@ -22,11 +22,11 @@ const operations = {
     ],
     insert: {
         inTransaction: [
-            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input.name'] }, invoke: 'postgresql', operation: 'execute' },
+            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input.name'] }, invoke: 'default-postgresql-database', operation: 'execute' },
             { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
         ]
     },
-    note: { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'postgresql', operation: 'execute' },
+    note: { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'default-postgresql-database', operation: 'execute' },
     noteNow: { afterCommit: { invoke: '#.self.id', operation: 'note' } },
     noteAfterCommit: {
         inTransaction: [
@@ -48,7 +48,7 @@ const fixtures = [
     { id: 'the-user', kind: 'tx-user', data: {} }
 ];
 
-const rows = () => invoke('postgresql', 'execute', { command: `SELECT name FROM ${TABLE} ORDER BY name` }).then(result => result.rows.map(row => row.name));
+const rows = () => invoke('default-postgresql-database', 'execute', { command: `SELECT name FROM ${TABLE} ORDER BY name` }).then(result => result.rows.map(row => row.name));
 
 describe('transaction', function () {
     before(async function () {
@@ -58,11 +58,11 @@ describe('transaction', function () {
             elements: fixtures
         });
         await start();
-        await invoke('postgresql', 'execute', { command: `CREATE TABLE ${TABLE} (name TEXT)` });
+        await invoke('default-postgresql-database', 'execute', { command: `CREATE TABLE ${TABLE} (name TEXT)` });
     });
 
     after(async () => {
-        await invoke('postgresql', 'execute', { command: `DROP TABLE IF EXISTS ${TABLE}` }).catch(() => null);
+        await invoke('default-postgresql-database', 'execute', { command: `DROP TABLE IF EXISTS ${TABLE}` }).catch(() => null);
         await stop();
     });
 

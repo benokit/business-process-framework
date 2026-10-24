@@ -23,14 +23,14 @@ describe('discovery', () => {
     it('explains the effects of each operation of an instance, with a trace', () => {
         const effectsOf = (id, name) => explain(id).operations.find(op => op.name === name).effects;
         expect(Object.keys(effectsOf('entities', 'list'))).to.deep.equal(['read']);
-        expect(effectsOf('contract-events', 'publish').irreversible).to.match(/^outbox\.put > afterCommit > /);
+        expect(effectsOf('contract-events', 'publish').irreversible).to.match(/^default-transactional-outbox\.put > afterCommit > /);
     });
 
     it('explains a kind with its instances and the kinds that implement abstract operations', () => {
         const { instances, operations } = explain('message-broker');
-        expect(instances).to.deep.equal(['nats']);
+        expect(instances).to.deep.equal(['default-nats-broker']);
         expect(operations.find(op => op.name === 'publish').implementedBy).to.equal(undefined);
-        expect(explain('nats').operations.find(op => op.name === 'publish').implementedBy).to.equal('nats-broker');
+        expect(explain('default-nats-broker').operations.find(op => op.name === 'publish').implementedBy).to.equal('nats-broker');
     });
 
     it('lists node forms, templates, primitives and pure functions', () => {

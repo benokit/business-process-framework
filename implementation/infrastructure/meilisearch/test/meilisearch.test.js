@@ -4,12 +4,12 @@ import { skipWithoutMeilisearch } from './helpers.js';
 
 const INDEX = `test-index-${Date.now()}`;
 
-const engine = operation => input => invoke('meilisearch', operation, { indexName: INDEX, ...input });
+const engine = operation => input => invoke('default-meilisearch-engine', operation, { indexName: INDEX, ...input });
 
 describe('meilisearch', function () {
     before(async function () {
         await skipWithoutMeilisearch(this);
-        await boot({ paths: ['@business-framework/search', '@business-framework/meilisearch'].map(packageElements) });
+        await boot({ paths: ['@business-framework/integration', '@business-framework/search', '@business-framework/meilisearch'].map(packageElements) });
         await start();
         await engine('configureIndex')({ settings: { searchableAttributes: ['name'], filterableAttributes: ['type'] } });
     });

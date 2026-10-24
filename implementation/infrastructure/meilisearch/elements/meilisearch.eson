@@ -4,6 +4,15 @@
         "data": { "meilisearch": { "url": "http://localhost:7700", "apiKey": "" } }
     },
     {
+        "id": "meilisearch-string",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "string" },
+            "module": "@business-framework/meilisearch",
+            "export": "meilisearchString"
+        }
+    },
+    {
         "id": "meilisearch-engine",
         "kind": "kind",
         "data": {
@@ -31,7 +40,7 @@
         }
     },
     {
-        "id": "meilisearch",
+        "id": "default-meilisearch-engine",
         "kind": "meilisearch-engine",
         "data": {}
     }

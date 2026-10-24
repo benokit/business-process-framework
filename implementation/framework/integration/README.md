@@ -12,3 +12,5 @@ The kind `integration`: `provider` (a kind), `input` and `output` (schemas), `er
 No implementation for the provider fails with `unimplemented-integration`, and `validate()` reports every provider instance an integration has no implementation for: the list of what replacing a provider costs. The effects of `run` are inferred from all implementations.
 
 A subkind fixes the provider in its `defaults`, like [`query`](../database/README.md#queries).
+
+`$func/provider-implementation({ provider, implementations })` is the same choice for any implementations slot: the value for the most specific kind of the `provider` element (an id or `{ instanceOf }`), or `null`. A [`search-index`](../search/README.md) picks its engine settings with it.

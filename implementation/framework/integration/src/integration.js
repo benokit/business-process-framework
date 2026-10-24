@@ -1,5 +1,5 @@
-import { CoreError } from '@business-framework/core';
-import { kindChain, selvesOf } from '@business-framework/core/kinds';
+import { CoreError, findElement } from '@business-framework/core';
+import { kindChain, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { resolveReference } from '@business-framework/core/references';
 import { slotValues } from '@business-framework/core/slots';
 
@@ -15,6 +15,9 @@ export const integrationImplementation = ({ integration, provider, implementatio
     if (!found) throw new CoreError('unimplemented-integration', `${integration} has no implementation for ${kind} (${id})`, { integration, provider: id, kind });
     return found.implementation;
 };
+
+export const providerImplementation = ({ provider, implementations }) =>
+    implementationFor(implementations, selfOf(findElement(resolveReference(provider))).kind) ?? null;
 
 export const integrationProblems = integration => {
     const { data: { provider } } = instance('integration', integration);

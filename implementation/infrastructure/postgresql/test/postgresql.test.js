@@ -4,7 +4,7 @@ import { skipWithoutPostgres } from './helpers.js';
 
 const TABLE = `test_pg_${Date.now()}`;
 
-const sql = (command, parameters) => invoke('postgresql', 'execute', { command, ...(parameters && { parameters }) });
+const sql = (command, parameters) => invoke('default-postgresql-database', 'execute', { command, ...(parameters && { parameters }) });
 
 describe('postgresql', function () {
     before(async function () {
@@ -40,6 +40,6 @@ describe('postgresql', function () {
     });
 
     it('rejects a command without text', async () => {
-        expect((await invoke('postgresql', 'execute', {}).catch(e => e)).code).to.equal('invalid');
+        expect((await invoke('default-postgresql-database', 'execute', {}).catch(e => e)).code).to.equal('invalid');
     });
 });

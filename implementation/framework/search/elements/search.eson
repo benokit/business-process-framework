@@ -5,7 +5,7 @@
         "data": { "!hits[]": "object", "total": "number", "offset": "number", "limit": "number" }
     },
     {
-        "id": "search-query",
+        "id": "search-request",
         "kind": "schema",
         "data": { "!indexName": "string", "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" }
     },
@@ -18,9 +18,53 @@
                 "deleteIndex": { "input": { "!indexName": "string" } },
                 "insertDocument": { "input": { "!indexName": "string", "!document": { "!id": "string" } } },
                 "removeDocument": { "input": { "!indexName": "string", "!id": "string" } },
-                "search": { "input": "@search-query", "output": "@search-result" }
+                "search": { "input": "@search-request", "output": "@search-result" }
             },
             "lifecycle": { "startPosition": "first" }
         }
+    },
+    {
+        "id": "search-index",
+        "kind": "kind",
+        "data": {
+            "slots": {
+                "implementations": { "cardinality": "many", "value": { "!provider": "@ref/kind", "settings": "object" } }
+            },
+            "operations": {
+                "insertDocument": {
+                    "input": { "!document": { "!id": "string" } },
+                    "implementation": { "inputMap": { "indexName": "#.self.id", "document": "#.input.document" }, "invoke": { "instanceOf": "search-engine" }, "operation": "insertDocument" }
+                },
+                "removeDocument": {
+                    "input": { "!id": "string" },
+                    "implementation": { "inputMap": { "indexName": "#.self.id", "id": "#.input.id" }, "invoke": { "instanceOf": "search-engine" }, "operation": "removeDocument" }
+                },
+                "search": {
+                    "input": { "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" },
+                    "output": "@search-result",
+                    "implementation": { "inputMap": { "$merge": ["#.input", { "indexName": "#.self.id" }] }, "invoke": { "instanceOf": "search-engine" }, "operation": "search" }
+                }
+            },
+            "lifecycle": {
+                "start": [
+                    {
+                        "outputKey": "implementation",
+                        "set": {
+                            "$func/provider-implementation": {
+                                "provider": { "instanceOf": "search-engine" },
+                                "implementations": { "$func/slot-values": { "element": "#.self.id", "slot": "implementations" } }
+                            }
+                        }
+                    },
+                    { "inputMap": { "indexName": "#.self.id", "settings": "#.implementation.settings" }, "invoke": { "instanceOf": "search-engine" }, "operation": "configureIndex" }
+                ],
+                "startAfter": ["search-engine"]
+            }
+        }
+    },
+    {
+        "id": "search-query",
+        "kind": "kind",
+        "data": { "extends": "integration", "defaults": { "provider": "search-engine", "output": "@search-result" } }
     }
 ]

@@ -70,7 +70,7 @@
         }
     },
     {
-        "id": "outbox",
+        "id": "default-transactional-outbox",
         "kind": "transactional-outbox",
         "data": {}
     },

@@ -12,6 +12,8 @@ const done = async task => {
     return null;
 };
 
+export const meilisearchString = value => `"${value.replace(/["\\]/g, '\\$&')}"`;
+
 export const connect = ({ input: { url, apiKey } }) => {
     client = new MeiliSearch({ host: url, apiKey });
     return null;

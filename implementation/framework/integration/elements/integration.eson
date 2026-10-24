@@ -9,6 +9,15 @@
         }
     },
     {
+        "id": "provider-implementation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!provider": "@element-ref", "!implementations[]": "object" }, "output": "@any" },
+            "module": "@business-framework/integration/integration",
+            "export": "providerImplementation"
+        }
+    },
+    {
         "id": "integration-problems",
         "kind": "pure-function",
         "data": {

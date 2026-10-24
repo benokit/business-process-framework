@@ -22,8 +22,8 @@ describe('database', () => {
             ]
         });
         await start();
-        const { rows } = await invoke('postgresql', 'execute', { command: 'SELECT indexname FROM pg_indexes WHERE tablename = $1', parameters: [TABLE] });
-        await invoke('postgresql', 'execute', { command: `DROP TABLE ${TABLE}` });
+        const { rows } = await invoke('default-postgresql-database', 'execute', { command: 'SELECT indexname FROM pg_indexes WHERE tablename = $1', parameters: [TABLE] });
+        await invoke('default-postgresql-database', 'execute', { command: `DROP TABLE ${TABLE}` });
         await stop();
         expect(rows.map(row => row.indexname)).to.deep.equal([`${TABLE}_name`]);
     });

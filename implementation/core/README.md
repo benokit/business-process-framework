@@ -121,7 +121,7 @@ Where an element is expected (`invoke`, and data fields typed `@element-ref` or 
 
 ```json
 { "invoke": { "instanceOf": "message-outbox" }, "operation": "put" }
-{ "kind": "binding", "data": { "abstraction": "message-broker", "instance": "nats" } }
+{ "kind": "binding", "data": { "abstraction": "message-broker", "instance": "default-nats-broker" } }
 ```
 
 Packages reference kinds and don't write bindings; the application binds, or names an instance where it means a specific one (a channel to an external system on another transport). `validate()` checks every reference in data and bindings (the bound element is an instance of the abstraction, one binding per abstraction). A reference in code only has to name a kind, because that path may never run; a kind whose configuration selects such a path checks for the instance in its `validate` hook (a channel with `publisher.transactionalOutbox` needs a `message-outbox`).

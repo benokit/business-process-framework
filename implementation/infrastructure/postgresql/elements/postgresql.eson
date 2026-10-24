@@ -44,7 +44,7 @@
         }
     },
     {
-        "id": "postgresql",
+        "id": "default-postgresql-database",
         "kind": "postgresql-database",
         "data": {}
     }

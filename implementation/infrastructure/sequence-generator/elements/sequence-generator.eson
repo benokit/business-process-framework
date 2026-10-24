@@ -18,7 +18,7 @@
         "data": { "input": { "!sequence": "string:^[a-zA-Z0-9_-]+$" }, "output": { "!value": "number" } }
     },
     {
-        "id": "sequences",
+        "id": "default-sequence-generator",
         "kind": "sequence-generator",
         "data": {}
     },
@@ -29,7 +29,7 @@
             "keyword": "nextFromSequence",
             "node": { "!nextFromSequence": "string" },
             "implementation": [
-                { "outputKey": "next", "inputMap": { "sequence": "#.node.nextFromSequence" }, "invoke": "sequences", "operation": "next" },
+                { "outputKey": "next", "inputMap": { "sequence": "#.node.nextFromSequence" }, "invoke": "default-sequence-generator", "operation": "next" },
                 { "set": "#.next.value" }
             ]
         }

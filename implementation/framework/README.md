@@ -13,7 +13,7 @@
 | [entity-relations-postgresql](entity-relations-postgresql/README.md) | Relation queries in PostgreSQL |
 | [entities-http](entities-http/README.md) | REST endpoints for entities, through a checked gateway |
 | [entity-states-http](entity-states-http/README.md) | `POST /entities/:entityType/:businessKey/transitions/:transition` |
-| [search](search/README.md) | The abstract `search-engine` kind |
+| [search](search/README.md) | The abstract `search-engine` kind, search indexes and search queries |
 | [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
 | [entity-search-http](entity-search-http/README.md) | `POST /entity-search/:entityType` |
 | [security](security/README.md) | The principal as context: `principal-execution-node-wrapper`, `asSystem` |

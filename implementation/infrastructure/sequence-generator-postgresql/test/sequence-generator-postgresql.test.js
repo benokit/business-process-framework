@@ -27,14 +27,14 @@ describe('sequence-generator-postgresql', function () {
     });
 
     it('infers the effect of the statements', () => {
-        expect(effectsOf({ element: 'sequences', operation: 'next' })).to.deep.equal(['write', 'irreversible']);
+        expect(effectsOf({ element: 'default-sequence-generator', operation: 'next' })).to.deep.equal(['write', 'irreversible']);
     });
 
     it('counts from 1, independently per sequence', async () => {
         const values = [
-            await invoke('sequences', 'next', { sequence: SEQUENCE }),
-            await invoke('sequences', 'next', { sequence: SEQUENCE }),
-            await invoke('sequences', 'next', { sequence: `${SEQUENCE}-other` })
+            await invoke('default-sequence-generator', 'next', { sequence: SEQUENCE }),
+            await invoke('default-sequence-generator', 'next', { sequence: SEQUENCE }),
+            await invoke('default-sequence-generator', 'next', { sequence: `${SEQUENCE}-other` })
         ];
         expect(values).to.deep.equal([{ value: 1 }, { value: 2 }, { value: 1 }]);
     });
@@ -44,6 +44,6 @@ describe('sequence-generator-postgresql', function () {
     });
 
     it('rejects a sequence name with unsafe characters', async () => {
-        expect((await invoke('sequences', 'next', { sequence: "x'; drop" }).catch(e => e)).code).to.equal('invalid');
+        expect((await invoke('default-sequence-generator', 'next', { sequence: "x'; drop" }).catch(e => e)).code).to.equal('invalid');
     });
 });

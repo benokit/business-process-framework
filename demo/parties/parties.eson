@@ -35,20 +35,60 @@
         }
     },
     {
-        "id": "party-search-index",
+        "id": "party-searchable",
         "kind": "slot-fill",
         "data": {
             "target": "party",
             "slot": "searchIndex",
             "value": {
-                "searchEngine": { "instanceOf": "search-engine" },
-                "indexName": "parties",
-                "settings": {
-                    "searchableAttributes": ["name", "email", "partyType", "businessKey"],
-                    "filterableAttributes": ["partyType"]
-                },
+                "index": "party-search-index",
                 "mapping": { "set": { "businessKey": "#.input.businessKey", "partyType": "#.input.data.body.partyType", "name": "#.input.data.body.name", "email": "#.input.data.body.email" } }
             }
         }
+    },
+    {
+        "id": "party-search-index",
+        "kind": "search-index",
+        "data": {}
+    },
+    {
+        "id": "party-search-index-meilisearch",
+        "kind": "slot-fill",
+        "data": {
+            "target": "party-search-index",
+            "slot": "implementations",
+            "value": { "provider": "meilisearch-engine", "settings": { "searchableAttributes": ["name", "email", "partyType", "businessKey"], "filterableAttributes": ["partyType"] } }
+        }
+    },
+    {
+        "id": "parties-by-type-search-query",
+        "kind": "search-query",
+        "data": { "input": { "!partyType": "string", "generalSearch": "string", "offset": "number", "limit": "number" } }
+    },
+    {
+        "id": "parties-by-type-search-query-meilisearch",
+        "kind": "slot-fill",
+        "data": {
+            "target": "parties-by-type-search-query",
+            "slot": "implementations",
+            "value": {
+                "provider": "meilisearch-engine",
+                "implementation": {
+                    "inputMap": {
+                        "query": "#.input.generalSearch",
+                        "filter": { "$join": { "_strings": ["partyType = ", { "$func/meilisearch-string": "#.input.partyType" }] } },
+                        "offset": "#.input.offset",
+                        "limit": "#.input.limit"
+                    },
+                    "invoke": "party-search-index",
+                    "operation": "search"
+                }
+            }
+        }
+    },
+    {
+        "id": "parties-by-type-endpoint",
+        "kind": "http-endpoint",
+        "data": { "method": "POST", "path": "/parties/search-by-type", "target": { "element": "parties-by-type-search-query", "operation": "run" }, "request": "#.body" }
     }
 ]

@@ -28,14 +28,14 @@ const consumer = (id, data = {}) => ({
 
 const elements = [
     { kind: 'app-config', data: { nats: { url: NATS_URL } } },
-    { id: 'orders', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
-    { id: 'archive', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: LIMITS_STREAM } },
+    { id: 'orders', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
+    { id: 'archive', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: LIMITS_STREAM } },
     consumer('order-recorder'),
     consumer('indexer-1', { name: 'indexer' }),
     consumer('indexer-2', { name: 'indexer' }),
     consumer('cache-1', { broadcast: true }),
     consumer('cache-2', { broadcast: true }),
-    { id: 'shipments', kind: 'message-channel', data: { broker: 'nats', topology: 'topic', name: SHIPMENTS } },
+    { id: 'shipments', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: SHIPMENTS } },
     consumer('all-shipments', { channel: 'shipments', name: 'legacy' }),
     consumer('express-shipments', { channel: 'shipments', filter: ['express', 'urgent'] }),
     consumer('express-cache', { channel: 'shipments', broadcast: true, filter: ['express'] })

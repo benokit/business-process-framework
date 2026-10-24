@@ -28,7 +28,7 @@ const stubs = {
     'message-channel': {
         envelope: ({ input }) => ({ messageId: 'm-1', timestampUTC: '2026-01-01T00:00:00.000Z', group: 'g-1', correlation: 'c-1', ...input })
     },
-    outbox: { put: ({ input }) => { outbox.push(input); return { messageId: `m-${outbox.length}` }; } },
+    'default-transactional-outbox': { put: ({ input }) => { outbox.push(input); return { messageId: `m-${outbox.length}` }; } },
     logger: { log: ({ input }) => { logged.push(input.message); return null; } }
 };
 
@@ -53,7 +53,7 @@ describe('entity events, interpreted with stubbed effects', () => {
     });
 
     it('fails where a stubbed effect is reached without a stub', async () => {
-        interpret({ stubs: { ...stubs, outbox: {} }, effects: ['trace'] });
+        interpret({ stubs: { ...stubs, 'default-transactional-outbox': {} }, effects: ['trace'] });
         const error = await invoke(ORDER, 'create', { businessKey: 'o-3', body: { amount: 3 } }).catch(error => error);
         interpret({ stubs, effects: ['trace'] });
         expect([error.code, error.data.export]).to.deep.equal(['stubbed-effect', 'now']);
