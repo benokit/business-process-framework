@@ -111,7 +111,7 @@
     {
         "id": "update-entity-postgresql",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "update-entity",
             "slot": "implementations",
             "value": {
@@ -121,7 +121,7 @@
                     {
                         "outputKey": "rows",
                         "inputMap": { "data": "#.change.data", "patch": "#.change.patch", "before": "#.input.before" },
-                        "statement": "WITH updated AS (UPDATE entities SET data = $1, revision = revision + 1, timestamp_utc = NOW() WHERE id = $2 AND revision = $3 RETURNING *), history AS (INSERT INTO entity_history (id, entity_type, revision, data_patch, timestamp_utc) SELECT id, entity_type, $3, $4, $5 FROM updated) SELECT * FROM updated",
+                        "statement": { "/uri": "@business-framework/entities-postgresql/sql/update-at-revision.sql" },
                         "parameters": ["#.data", "#.before.id", "#.before.revision", "#.patch", "#.before.timestampUtc"],
                         "row": { "$func/entity-row-record": "#" }
                     },
@@ -143,7 +143,7 @@
     {
         "id": "delete-entity-postgresql",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "delete-entity",
             "slot": "implementations",
             "value": {
@@ -151,7 +151,7 @@
                 "implementation": [
                     {
                         "outputKey": "rows",
-                        "statement": "WITH deleted AS (DELETE FROM entities WHERE id = $1 AND revision = $2 RETURNING *), history AS (DELETE FROM entity_history WHERE id IN (SELECT id FROM deleted)) SELECT * FROM deleted",
+                        "statement": { "/uri": "@business-framework/entities-postgresql/sql/delete-at-revision.sql" },
                         "parameters": ["#.before.id", "#.before.revision"],
                         "row": { "$func/entity-row-record": "#" }
                     },
@@ -195,20 +195,20 @@
     {
         "id": "entities-table",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "postgresql-database",
             "slot": "models",
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entities (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), entity_type TEXT NOT NULL, business_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, data JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (entity_type, business_key))" }
+            "value": { "command": { "/uri": "@business-framework/entities-postgresql/sql/entities-table.sql" } }
         }
     },
     {
         "id": "entity-history-table",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "postgresql-database",
             "slot": "models",
             "after": ["entities-table"],
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
+            "value": { "command": { "/uri": "@business-framework/entities-postgresql/sql/entity-history-table.sql" } }
         }
     },
     {

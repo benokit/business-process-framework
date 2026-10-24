@@ -2,7 +2,7 @@
     {
         "id": "set-entity-relations-postgresql",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "set-entity-relations",
             "slot": "implementations",
             "value": {
@@ -10,20 +10,11 @@
                 "implementation": [
                     {
                         "outputKey": "missing",
-                        "statement": "SELECT w.\"targetEntityType\", w.\"targetEntityBusinessKey\" FROM jsonb_to_recordset($1::jsonb->'relations') AS w(\"targetEntityType\" text, \"targetEntityBusinessKey\" text) WHERE NOT EXISTS (SELECT 1 FROM entities e WHERE e.entity_type = w.\"targetEntityType\" AND e.business_key = w.\"targetEntityBusinessKey\") LIMIT 1",
+                        "statement": { "/uri": "@business-framework/entity-relations-postgresql/sql/missing-target.sql" },
                         "read": true,
-                        "parameters": [
-                            {
-                                "relations": "#.relations"
-                            }
-                        ]
+                        "parameters": [{ "relations": "#.relations" }]
                     },
-                    {
-                        "outputKey": "target",
-                        "set": {
-                            "$head": "#.missing"
-                        }
-                    },
+                    { "outputKey": "target", "set": { "$head": "#.missing" } },
                     {
                         "if": "#.target",
                         "then": {
@@ -31,13 +22,7 @@
                                 "code": "not-found",
                                 "message": {
                                     "$join": {
-                                        "_strings": [
-                                            "related ",
-                                            "#.target.targetEntityType",
-                                            " '",
-                                            "#.target.targetEntityBusinessKey",
-                                            "' doesn't exist"
-                                        ]
+                                        "_strings": ["related ", "#.target.targetEntityType", " '", "#.target.targetEntityBusinessKey", "' doesn't exist"]
                                     }
                                 },
                                 "data": "#.target"
@@ -45,17 +30,10 @@
                         }
                     },
                     {
-                        "statement": "WITH wanted AS (SELECT DISTINCT e.id AS target_entity_id, w.\"relationType\" AS relation_type FROM jsonb_to_recordset($2::jsonb->'relations') AS w(\"targetEntityType\" text, \"targetEntityBusinessKey\" text, \"relationType\" text) JOIN entities e ON e.entity_type = w.\"targetEntityType\" AND e.business_key = w.\"targetEntityBusinessKey\"), removed AS (DELETE FROM entity_relations r WHERE r.source_entity_id = $1::uuid AND NOT EXISTS (SELECT 1 FROM wanted w WHERE w.target_entity_id = r.target_entity_id AND w.relation_type = r.relation_type)) INSERT INTO entity_relations (source_entity_id, target_entity_id, relation_type) SELECT $1::uuid, target_entity_id, relation_type FROM wanted ON CONFLICT DO NOTHING",
-                        "parameters": [
-                            "#.sourceEntityId",
-                            {
-                                "relations": "#.relations"
-                            }
-                        ]
+                        "statement": { "/uri": "@business-framework/entity-relations-postgresql/sql/set-relations.sql" },
+                        "parameters": ["#.sourceEntityId", { "relations": "#.relations" }]
                     },
-                    {
-                        "set": null
-                    }
+                    { "set": null }
                 ]
             }
         }
@@ -71,9 +49,7 @@
                 "implementation": {
                     "statement": "SELECT target_entity_id AS \"targetEntityId\", relation_type AS \"relationType\" FROM entity_relations WHERE source_entity_id = $1",
                     "read": true,
-                    "parameters": [
-                        "#.sourceEntityId"
-                    ]
+                    "parameters": ["#.sourceEntityId"]
                 }
             }
         }
@@ -81,15 +57,11 @@
     {
         "id": "entity-relations-table",
         "kind": "slot-fill",
-        "data": {
+        "/data": {
             "target": "postgresql-database",
             "slot": "models",
-            "after": [
-                "entities-table"
-            ],
-            "value": {
-                "command": "CREATE TABLE IF NOT EXISTS entity_relations (source_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, target_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, relation_type TEXT NOT NULL, PRIMARY KEY (source_entity_id, target_entity_id, relation_type))"
-            }
+            "after": ["entities-table"],
+            "value": { "command": { "/uri": "@business-framework/entity-relations-postgresql/sql/entity-relations-table.sql" } }
         }
     }
 ]

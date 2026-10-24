@@ -10,6 +10,7 @@
 - **P4 — `low` node.** `low` calls a host-language (JS) implementation of a side effect. It can't mutate context keys.
 - **P5 — Complex pure functions.** Pure logic too complex for the expression language may be written in the host language. The implementer is responsible for its purity.
 - **P6 — Data composition.** The framework's data composition primitives are three keywords, defined by postulate: `/data`, `/ref`, `/merge`.
+  - We certainly need a mechanism to author complex queries separately. Introducing /file as a data composition tool is a good idea, but an url or uri should be more robust (no relative paths).
 - **P7 — Schemas.** Schema data has the shape of a compact schema. Validation is done by AJV, which also resolves `$ref`s; the framework doesn't. Schemas are registered with AJV in the load phase; AJV compiles each schema lazily, at most once, when a validation is first requested.
 - **P8 — Operations.** Operations are a primitive property of the kind. They are invoked through an instance.
 - **P9 — Instance data.** An instance's data is defined by the shape of its kind, and nothing more. No keys are reserved in it.

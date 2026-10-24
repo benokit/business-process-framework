@@ -30,6 +30,17 @@ describe('data composition', () => {
         expect(getElement('outer').data).to.deep.equal({ inner: { l: true, m: true } });
     });
 
+    it('reads /uri as text, from a package or a file URL', async () => {
+        const text = new URL('./fixtures/statement.sql', import.meta.url).href;
+        await bootWith(composed('statements', { fromPackage: { '/uri': '@business-framework/core/test/fixtures/statement.sql' }, fromFile: { '/uri': text } }));
+        expect(getElement('statements').data).to.deep.equal({ fromPackage: 'SELECT 1\n', fromFile: 'SELECT 1\n' });
+    });
+
+    it('fails on a /uri it can\'t read', async () => {
+        const error = await bootWith(composed('missing', { '/uri': '@business-framework/core/nothing.sql' })).catch(e => e);
+        expect(error.code).to.equal('unreadable-uri');
+    });
+
     it('fails on a reference cycle', async () => {
         const error = await bootWith(composed('a', { '/ref': 'b' }), composed('b', { '/ref': 'a' })).catch(e => e);
         expect(error.code).to.equal('data-cycle');

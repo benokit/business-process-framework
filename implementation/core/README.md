@@ -128,6 +128,6 @@ Packages reference kinds and don't write bindings; the application binds, or nam
 
 ## Data composition
 
-An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` deep merges its items (arrays by index, Q5), `{ "/literal": value }` is taken as written. Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
+An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` deep merges its items (arrays by index, Q5), `{ "/literal": value }` is taken as written, `{ "/uri": uri }` is the text of a file: `<package>/<path>` inside an installed package (`@business-framework/entities-postgresql/sql/entities-table.sql`), or a `file:` URL. A file that can't be read fails the boot (`unreadable-uri`). Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
 
 Code keeps the binding rights of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.

@@ -30,5 +30,11 @@ A `query` is an [integration](../integration/README.md) with provider `database`
 The keyword `statement` runs one command on the database and outputs its rows: `statement` and `parameters` are mappings of the node's input, `row` an optional mapping of each row; `read: true` runs it with `read`, `irreversible: true` with `executeIrreversible`, so the [inferred effect](../../core/README.md#effects) is the statement's.
 
 ```json
-{ "outputKey": "rows", "inputMap": "#.name", "statement": { "$join": { "_strings": ["SELECT nextval('", "#", "') AS value"] } }, "row": { "value": { "$parseInt": "#.value" } } }
+{ "outputKey": "rows", "inputMap": "#.name", "statement": { "$join": { "_strings": ["SELECT nextval('", "#", "') AS value"] } }, "irreversible": true, "row": { "value": { "$parseInt": "#.value" } } }
+```
+
+A long statement is best written in a `.sql` file of its package and composed in with [`/uri`](../../core/README.md#data-composition), in an element written with `/data`:
+
+```json
+{ "statement": { "/uri": "@business-framework/entities-postgresql/sql/update-at-revision.sql" }, "parameters": ["#.data", "#.before.id", "#.before.revision", "#.patch", "#.before.timestampUtc"] }
 ```
