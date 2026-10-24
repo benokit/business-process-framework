@@ -13,6 +13,7 @@ await invoke('hello', 'greet', 'Ada');                 // an operation of the el
 validate();                                            // on demand: a list of problems, [] when valid
 packageElements('@business-framework/logging');       // the elements directory of an installed package
 execute({ method, input, self, _ctx });               // runs a method value from native code, as the execute node does
+interpret({ stubs, effects });                         // replaces effects, see Interpreters; boot resets it to production
 ```
 
 Errors are `CoreError` with `code`, `message` and `data`.
@@ -29,7 +30,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [mappings.js](src/mappings.js) | compiled LambdaJSON mappings, `$func/<id>` from `pure-function` elements |
 | [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
 | [context.js](src/context.js) | code authors, binding rights |
-| [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke` |
+| [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke`, the interpreter |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (`validate` hooks run in [validation.js](src/validation.js)) |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
@@ -87,6 +88,19 @@ Bounds constrain what is inferred, they never declare it:
 - A kind checks more in its `validate` hook with `$func/changes-of` (`http-endpoint`: a `GET` target changes nothing).
 
 A bound that inference contradicts is an `effect-bound` problem with the trace. [`bpf explain`](../tools/README.md) shows the effects of every operation of an instance. Not seen: what a computed `execute` runs (other than slot fills read with `$func/slot-values`), and repeated visits of an operation in a cycle, which count once.
+
+## Interpreters
+
+The interpreter decides which effects run. Production runs all of them. `interpret({ stubs, effects })` sets another one, for tests:
+
+- `effects`: the effect classes a `low` node may have (default: all). A `low` node with another class, or with none declared, fails with `stubbed-effect`, naming the node and its element, so a test never reaches a database or broker it didn't stub.
+- `stubs`: `{ <element or kind id>: { <operation>: ({ input, _ctx }) => output } }`. `invoke` runs the stub instead of the operation, the element's own stub before its kind chain's, from the most specific kind. The contract still applies: the input and output of a stub are checked like the operation's.
+
+A stub replaces an operation, never a `low` node: it follows the operation's contract, not the input of a JS function. An effect is therefore stubbable only together with the operation it runs in, so a `low` node whose effect a test replaces is best the whole implementation of its operation (`clock.now`, `message-channel.envelope`). `boot` resets the interpreter to production.
+
+```js
+interpret({ effects: ['trace'], stubs: { transaction: { begin: () => ({ sessionId: 1 }), commit: () => null }, 'entity-database': { create: ({ input }) => ({ ...input, id, revision: 1, timestampUtc }) } } });
+```
 
 ## Lifecycle
 

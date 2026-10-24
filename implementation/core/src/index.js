@@ -6,9 +6,11 @@ import { recordAuthors } from './context.js';
 import { preparePureFunctions } from './mappings.js';
 import { enableChecks } from './schemas.js';
 import { runLifecycle } from './lifecycle.js';
+import { interpret } from './execution/interpreter.js';
 
 export { invoke } from './execution/invoke.js';
 export { execute } from './execution/pipeline.js';
+export { interpret } from './execution/interpreter.js';
 export { validate } from './validation.js';
 export { CoreError } from './errors.js';
 export { findElement, getElement } from './registry.js';
@@ -18,6 +20,7 @@ const CORE_ELEMENTS = fileURLToPath(new URL('../elements', import.meta.url));
 
 export const boot = async ({ paths = [], elements = [] } = {}) => {
     reset();
+    interpret();
     [...await readElements([CORE_ELEMENTS, ...paths]), ...elements].forEach(register);
     composeElements(allElements()).forEach(recordAuthors);
     await preparePureFunctions();

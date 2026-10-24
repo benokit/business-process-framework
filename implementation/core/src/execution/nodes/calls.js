@@ -1,5 +1,6 @@
 import { evaluate, methodScope, runMethod } from '../pipeline.js';
 import { invoke } from '../invoke.js';
+import { checkEffects } from '../interpreter.js';
 
 const lowFunction = async ({ module, export: name }) => (await import(module))[name];
 
@@ -12,5 +13,8 @@ export const calls = {
 
     execute: (node, scope, input) => runMethod(evaluate(node.execute, scope), methodScope(scope, input)),
 
-    low: async (node, scope, input) => (await lowFunction(node.low))({ input, _ctx: scope._ctx })
+    low: async (node, scope, input) => {
+        checkEffects(node.low, scope.self);
+        return (await lowFunction(node.low))({ input, _ctx: scope._ctx });
+    }
 };

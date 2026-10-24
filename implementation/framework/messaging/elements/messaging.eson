@@ -51,17 +51,21 @@
                     "input": "@outgoing-message",
                     "output": { "!messageId": "string" },
                     "implementation": [
-                        {
-                            "outputKey": "envelope",
-                            "inputMap": { "$merge": ["#.input", { "correlation": "#._ctx.trace.correlation" }] },
-                            "low": { "module": "@business-framework/messaging", "export": "createEnvelope", "effects": ["read"] }
-                        },
+                        { "outputKey": "envelope", "invoke": "#.self.id", "operation": "envelope" },
                         {
                             "if": "#.self.data.publisher.transactionalOutbox",
                             "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope" }, "invoke": { "instanceOf": "message-outbox" }, "operation": "put" },
                             "else": { "inputMap": "#.envelope", "invoke": "#.self.id", "operation": "deliver" }
                         }
                     ]
+                },
+                "envelope": {
+                    "input": "@outgoing-message",
+                    "output": "@message-envelope",
+                    "implementation": {
+                        "inputMap": { "$merge": ["#.input", { "correlation": "#._ctx.trace.correlation" }] },
+                        "low": { "module": "@business-framework/messaging", "export": "createEnvelope", "effects": ["read"] }
+                    }
                 },
                 "deliver": {
                     "input": "@message-envelope",

@@ -43,7 +43,7 @@ Tests use **Mocha + Chai** (`npm test` in `implementation/` runs every package).
 docker compose -f environments/docker-compose.yml up -d
 ```
 
-PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). OAuth identity provider (mock): `http://localhost:8080/default` (`OAUTH_ISSUER`). Tests that need them skip when unavailable. Lint with `npx eslint .`.
+PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). OAuth identity provider (mock): `http://localhost:8080/default` (`OAUTH_ISSUER`). Tests that need them skip when unavailable; a test with stubbed effects needs none ([interpreters](implementation/core/README.md#interpreters)). Lint with `npx eslint .`.
 
 ## Key conventions
 
