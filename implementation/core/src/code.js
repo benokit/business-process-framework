@@ -102,6 +102,8 @@ const referenceProblems = ({ kind, extending, code, path }, at) => {
 
 const errorsOf = errors => errors.map(error => `${error.instancePath || '/'} ${error.message}`).join('; ');
 
+const templatePositions = (node, template, path) => positionsIn({ schemaId: `${template.id}/node`, value: node, path });
+
 const templateProblems = (node, template, at, path) => {
     const schemaId = `${template.id}/node`;
     const { isValid, errors } = validateValue({ schemaId, value: omit(node, NODE_KEYS) });
@@ -110,9 +112,7 @@ const templateProblems = (node, template, at, path) => {
         ...isValid ? [] : [problem(at, path, 'invalid-node', `not a '${template.data.keyword}' node: ${errorsOf(errors)}`)],
         ...Object.keys(omit(node, NODE_KEYS)).filter(key => !known.includes(key))
             .map(key => problem(at, path, 'unknown-node-key', `'${key}' is not a key of '${template.data.keyword}' nodes`)),
-        ...positionsIn({ schemaId, value: node, path }).flatMap(position => position.type === 'method'
-            ? pipelineProblems(position.code, at, position.path)
-            : position.type === 'ref' ? referenceProblems(position, at) : [])
+        ...templatePositions(node, template, path).filter(({ type }) => type === 'ref').flatMap(position => referenceProblems(position, at))
     ];
 };
 
@@ -122,6 +122,23 @@ const pipelinesOf = (node, keyword, template) => {
     return [keyword, ...nodeForms[keyword] ?? []].filter(key => PIPELINE_KEYS.includes(key) && key in node).map(key => [key, node[key]]);
 };
 
+const childrenOf = ({ node, path, keyword, template }) => template?.data.node
+    ? templatePositions(node, template, path).filter(({ type }) => type === 'method').map(position => [position.path, position.code])
+    : pipelinesOf(node, keyword, template).map(([key, pipeline]) => [`${path}.${key}`, pipeline]);
+
+const nodeAt = (node, path) => {
+    if (!isPlainObject(node)) return [{ node, path, keywords: [] }];
+    const keywords = Object.keys(node).filter(key => !NODE_KEYS.includes(key) && (isNative(key) || findTemplate(key)));
+    const [keyword] = keywords;
+    const template = keyword === undefined || isNative(keyword) ? undefined : findTemplate(keyword);
+    const entry = { node, path, keywords, keyword, template };
+    return keywords.length > 1 ? [entry] : [entry, ...childrenOf(entry).flatMap(([at, pipeline]) => nodesIn(pipeline, at))];
+};
+
+const nodesIn = (pipeline, path) => Array.isArray(pipeline)
+    ? pipeline.flatMap((node, index) => nodeAt(node, `${path}[${index}]`))
+    : nodeAt(pipeline, path);
+
 const structureProblems = (node, keys, keyword, at, path) => [
     ...keyword === undefined && keys.length > 0 ? [problem(at, path, 'unknown-keyword', `no node keyword among '${keys.join("', '")}'`)] : [],
     ...isNative(keyword) ? keys.filter(key => key !== keyword && !nodeForms[keyword].includes(key))
@@ -130,24 +147,15 @@ const structureProblems = (node, keys, keyword, at, path) => [
     ...keyword === 'next' && !at.allowsNext ? [problem(at, path, 'next-outside-middleware', "'next' where no middleware runs")] : []
 ];
 
-const nodeProblems = (node, at, path) => {
+const nodeProblems = at => ({ node, path, keywords, keyword, template }) => {
     if (!isPlainObject(node)) return [problem(at, path, 'invalid-node', 'a node is an object')];
-    const keys = Object.keys(node).filter(key => !NODE_KEYS.includes(key));
-    const keywords = keys.filter(key => isNative(key) || findTemplate(key));
     if (keywords.length > 1) return [problem(at, path, 'ambiguous-node', `several node keywords: '${keywords.join("', '")}'`)];
-    const [keyword] = keywords;
-    const template = keyword === undefined || isNative(keyword) ? undefined : findTemplate(keyword);
     return [
-        ...structureProblems(node, keys, keyword, at, path),
+        ...structureProblems(node, Object.keys(node).filter(key => !NODE_KEYS.includes(key)), keyword, at, path),
         ...NODE_CHECKS[keyword]?.(node, at, path) ?? [],
-        ...template?.data.node ? templateProblems(node, template, at, path) : [],
-        ...pipelinesOf(node, keyword, template).flatMap(([key, pipeline]) => pipelineProblems(pipeline, at, `${path}.${key}`))
+        ...template?.data.node ? templateProblems(node, template, at, path) : []
     ];
 };
-
-const pipelineProblems = (pipeline, at, path) => Array.isArray(pipeline)
-    ? pipeline.flatMap((node, index) => nodeProblems(node, at, `${path}[${index}]`))
-    : nodeProblems(pipeline, at, path);
 
 const declaredFunctions = tree => {
     if (Array.isArray(tree)) return tree.flatMap(declaredFunctions);
@@ -178,12 +186,12 @@ const isCall = tree => {
     return keys.length > 0 && keys.length <= 2 && keys.every(key => key.startsWith('$'));
 };
 
-const expressionProblems = (tree, at, path, declared) => {
-    if (Array.isArray(tree)) return tree.flatMap((item, index) => expressionProblems(item, at, `${path}[${index}]`, declared));
+const callsIn = (tree, path) => {
+    if (Array.isArray(tree)) return tree.flatMap((item, index) => callsIn(item, `${path}[${index}]`));
     if (!isPlainObject(tree) || '$literal' in tree) return [];
     return Object.entries(tree).flatMap(([key, value]) => [
-        ...isCall(tree) ? functionProblems(key, value, at, path, declared) : [],
-        ...expressionProblems(value, at, `${path}.${key}`, declared)
+        ...isCall(tree) ? [{ key, value, path }] : [],
+        ...callsIn(value, `${path}.${key}`)
     ]);
 };
 
@@ -197,10 +205,34 @@ const positionProblems = author => position => {
     const { type, code, path } = position;
     const at = { author, allowsNext: allowsNext(author, path) };
     if (type === 'ref') return referenceProblems(position, at);
+    const declared = declaredFunctions(code);
     return [
-        ...type === 'method' ? pipelineProblems(code, at, path) : [],
-        ...expressionProblems(code, at, path, declaredFunctions(code))
+        ...type === 'method' ? nodesIn(code, path).flatMap(nodeProblems(at)) : [],
+        ...callsIn(code, path).flatMap(call => functionProblems(call.key, call.value, at, call.path, declared))
     ];
 };
 
 export const codeProblems = author => positionsOf(author).flatMap(positionProblems(author));
+
+const nameOf = code => isKindReference(code) ? code.instanceOf : isLiteral(code) ? literalOf(code) : undefined;
+
+const nodeReferences = ({ node, path, keyword, template }) => [
+    ...template ? [{ to: template.id, path, via: 'template' }] : [],
+    ...keyword === 'invoke' ? [{ to: nameOf(node.invoke), path: `${path}.invoke`, via: 'invoke' }] : [],
+    ...template?.data.node ? templatePositions(node, template, path).filter(({ type }) => type === 'ref')
+        .map(position => ({ to: nameOf(position.code), path: position.path, via: 'ref' })) : []
+];
+
+const callReferences = ({ key, value, path }) => [
+    ...key.startsWith('$func/') ? [{ to: key.slice(6), path, via: 'function' }] : [],
+    ...key === '$func/slot-values' && isPlainObject(value) ? [{ to: nameOf(value.element), path: `${path}.element`, via: 'slot' }] : []
+];
+
+const positionReferences = ({ type, code, path }) => type === 'ref'
+    ? [{ to: nameOf(code), path, via: 'ref' }]
+    : [...type === 'method' ? nodesIn(code, path).flatMap(nodeReferences) : [], ...callsIn(code, path).flatMap(callReferences)];
+
+export const referencesOf = element => [
+    { to: kindOf(element), path: 'kind', via: 'kind' },
+    ...positionsOf(element).flatMap(positionReferences)
+].filter(({ to }) => to !== undefined);

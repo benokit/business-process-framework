@@ -13,7 +13,7 @@ See [core/README.md](implementation/core/README.md) for pipeline rules, context,
 
 ## Discovery
 
-Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
+Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
 
 ## Schema syntax (CJSL)
 

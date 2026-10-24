@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
-import { bootApplication, explain, vocabulary } from '@business-framework/tools';
+import { bootApplication, explain, list, refs, vocabulary } from '@business-framework/tools';
 
 const DEMO = fileURLToPath(new URL('../../../demo', import.meta.url));
 const BPF = fileURLToPath(new URL('../src/bpf.js', import.meta.url));
@@ -33,6 +33,23 @@ describe('discovery', () => {
         expect(templates.map(template => template.keyword)).to.include('publish');
         expect(primitives).to.deep.include({ name: '$join', arguments: '{ _separator?, _strings=# }' });
         expect(pureFunctions.map(fn => fn.name)).to.include('$func/slot-values');
+    });
+
+    it('finds the references to an element in data, invocations, template nodes and function calls', () => {
+        const found = reference => refs(reference).map(({ element, path, via }) => `${element} ${path} ${via}`);
+        expect(found('user-cache')).to.deep.equal([
+            'authenticate implementation[2].else[0].cache ref',
+            'user-cache-eviction handler.invoke invoke'
+        ]);
+        expect(found('publish')).to.include('contract-activation-events value.then.then template');
+        expect(found('slot-values')).to.include('maintain-entity-relations value.then[1].inputMap function');
+        expect(found('insurance-contract-type')).to.include('construction kind kind');
+        expect(() => refs('nope')).to.throw('nope');
+    });
+
+    it('lists the instances of a kind and its subkinds', () => {
+        expect(list('message-channel').map(element => element.id)).to.have.members(['entity-events', 'contract-events']);
+        expect(list('entity-type').map(element => element.id)).to.include.members(['user', 'construction']);
     });
 
     it('prints an explanation from the command line', async () => {

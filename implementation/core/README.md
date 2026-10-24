@@ -35,7 +35,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [validation.js](src/validation.js) | `validate()` |
 | [code.js](src/code.js) | finding code in elements, the checks of code in `validate()` |
 | [primitives.js](src/primitives.js) | the LambdaJSON primitives, read from `lambdajson-js` |
-| [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)) |
+| [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)), the references of an element |
 | [elements/](elements) | the bootstrap kinds, in data |
 
 ## Core elements

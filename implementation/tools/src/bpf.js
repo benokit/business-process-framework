@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import path from 'path';
 import { validate } from '@business-framework/core';
-import { bootApplication, explain, renderExplanation, renderVocabulary, report, vocabulary } from './index.js';
+import { bootApplication, explain, list, refs, renderExplanation, renderList, renderRefs, renderVocabulary, report, vocabulary } from './index.js';
 
 const USAGE = `usage: bpf <command> [--json] [<elements-path> ...]
   validate             problems of the application, or 'valid'
   explain <id>         the resolved element: kind chain, data, operations, slots and their fills
+  refs <id>            the elements that reference an element, with the path and the kind of reference
+  list [<kind>]        the elements with an id, or the instances of a kind and its subkinds
   vocabulary           node forms and templates, LambdaJSON primitives, pure functions`;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -28,20 +30,38 @@ const commands = {
         await bootApplication({ paths });
         return output(explain(id), renderExplanation);
     },
+    refs: async ([id, ...paths]) => {
+        await bootApplication({ paths });
+        return output(refs(id), renderRefs);
+    },
+    list: async ([kind, ...paths]) => {
+        await bootApplication({ paths });
+        return output(list(kind), renderList);
+    },
     vocabulary: async paths => {
         await bootApplication({ paths });
         return output(vocabulary(), renderVocabulary);
     }
 };
 
+const WITH_ID = ['explain', 'refs'];
+
+const isPath = argument => argument.includes('/') || argument.startsWith('.');
+
+const argumentsOf = () => {
+    if (WITH_ID.includes(command)) return [positional[0], ...positional.slice(1).map(p => path.resolve(p))];
+    if (command === 'list') return isPath(positional[0] ?? '/') ? [undefined, ...positional.map(p => path.resolve(p))] : [positional[0], ...positional.slice(1).map(p => path.resolve(p))];
+    return positional.map(p => path.resolve(p));
+};
+
 const run = commands[command];
 
-if (run === undefined || (command === 'explain' && positional.length === 0)) {
+if (run === undefined || (WITH_ID.includes(command) && positional.length === 0)) {
     console.error(USAGE);
     process.exit(2);
 }
 
-run(command === 'explain' ? [positional[0], ...positional.slice(1).map(p => path.resolve(p))] : positional.map(p => path.resolve(p)))
+run(argumentsOf())
     .then(text => (process.exitCode ? console.error : console.log)(text))
     .catch(error => {
         console.error(`${error.code ?? 'error'}: ${error.message ?? error}`);
