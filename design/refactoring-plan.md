@@ -48,8 +48,6 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R6.1 | Records as a map of traits: `data.body`, no state columns; `entity-trait` kind, trait initialization on `create`, `trait` write operation; changes and events carry trait and command | F22 | Base entity types have no state; tests pass with `data.body` | in progress |
-| R6.2 | State as the first trait: `entity-states` (configuration slot `state`, `transition` command) and `entity-states-http` | F22 | The demo's lifecycles run through the trait; `entity-type` declares no state | in progress |
 | R6.3 | Versionable trait: versions with validity intervals in `data.versions` | F22 | A demo entity type keeps versions; no table changes | draft |
 | R6.4 | Reuse a states model through data composition in the demo | F22 | Two entity types share one states model element | draft |
 
