@@ -12,21 +12,21 @@
                 "publish": {
                     "implementation": [
                         { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
-                        { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "publish" } }
+                        { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "publish", "effects": ["irreversible"] } }
                     ]
                 },
                 "subscribe": {
                     "implementation": [
                         { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
-                        { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "subscribe" } }
+                        { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "subscribe", "effects": ["irreversible"] } }
                     ]
                 },
                 "unsubscribe": {
-                    "implementation": { "low": { "module": "@business-framework/messaging-nats", "export": "unsubscribe" } }
+                    "implementation": { "low": { "module": "@business-framework/messaging-nats", "export": "unsubscribe", "effects": ["irreversible"] } }
                 }
             },
             "lifecycle": {
-                "stop": { "low": { "module": "@business-framework/messaging-nats", "export": "disconnect" } }
+                "stop": { "low": { "module": "@business-framework/messaging-nats", "export": "disconnect", "effects": ["irreversible"] } }
             }
         }
     },

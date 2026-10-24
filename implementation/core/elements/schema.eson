@@ -6,7 +6,7 @@
             "operations": {
                 "add": {
                     "input": { "!id": "string", "!schema": "@schema" },
-                    "implementation": { "low": { "module": "@business-framework/core/schemas", "export": "add" } }
+                    "implementation": { "low": { "module": "@business-framework/core/schemas", "export": "add", "effects": ["irreversible"] } }
                 },
                 "assert": {
                     "input": { "!schemaId": "string", "value": "@any" },

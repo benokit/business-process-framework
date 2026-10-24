@@ -11,7 +11,7 @@
             "operations": {
                 "log": {
                     "input": "@log-entry",
-                    "implementation": { "low": { "module": "@business-framework/logging", "export": "log" } }
+                    "implementation": { "low": { "module": "@business-framework/logging", "export": "log", "effects": ["trace"] } }
                 }
             }
         }

@@ -10,23 +10,23 @@
             "extends": "search-engine",
             "operations": {
                 "configureIndex": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "configureIndex" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "configureIndex", "effects": ["irreversible"] } }
                 },
                 "deleteIndex": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "deleteIndex" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "deleteIndex", "effects": ["irreversible"] } }
                 },
                 "insertDocument": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "insertDocument" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "insertDocument", "effects": ["irreversible"] } }
                 },
                 "removeDocument": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "removeDocument" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "removeDocument", "effects": ["irreversible"] } }
                 },
                 "search": {
-                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "search" } }
+                    "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "search", "effects": ["read"] } }
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "export": "connect" } }
+                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "export": "connect", "effects": ["irreversible"] } }
             }
         }
     },

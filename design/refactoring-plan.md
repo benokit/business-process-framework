@@ -17,8 +17,7 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R2.5 | Execution tracing in a native execution object, beside `_ctx` | F21 | A run's path of nodes, operations and slot fills can be logged; `_ctx` holds no runtime internals | draft |
-| R2.7 | Effect declarations with contracts and an effect class (read / write / external / nondeterministic); `low` only as the implementation of a declared effect | F7 | `validate()` rejects any other use of `low` | agreed |
-| R2.8 | A test interpreter that runs pipelines with stubbed effects | F7 | At least one entity flow is tested with no database or broker | agreed |
+| R2.8 | A test interpreter that runs pipelines with stubbed effects | F37 | At least one entity flow is tested with no database or broker | agreed |
 
 ## Core: pure side
 

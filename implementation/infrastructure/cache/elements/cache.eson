@@ -26,21 +26,21 @@
                     "output": "@cache-lookup",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key" },
-                        "low": { "module": "@business-framework/cache", "export": "cacheGet" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheGet", "effects": ["read"] }
                     }
                 },
                 "set": {
                     "input": "@cache-entry",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl", "maxEntries": "#.self.data.maxEntries" },
-                        "low": { "module": "@business-framework/cache", "export": "cacheSet" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheSet", "effects": ["irreversible"] }
                     }
                 },
                 "evict": {
                     "input": "@cache-key",
                     "implementation": {
                         "inputMap": { "cache": "#.self.id", "key": "#.input.key" },
-                        "low": { "module": "@business-framework/cache", "export": "cacheEvict" }
+                        "low": { "module": "@business-framework/cache", "export": "cacheEvict", "effects": ["irreversible"] }
                     }
                 }
             }

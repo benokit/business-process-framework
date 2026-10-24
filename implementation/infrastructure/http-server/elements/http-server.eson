@@ -11,20 +11,20 @@
             "operations": {
                 "registerRoute": {
                     "input": { "!method": "string", "!path": "string", "!endpoint": "string" },
-                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "registerRoute" } }
+                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "registerRoute", "effects": ["irreversible"] } }
                 },
                 "address": {
                     "input": "@any",
                     "output": { "!port": "number" },
-                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "address" } }
+                    "implementation": { "low": { "module": "@business-framework/http-server", "export": "address", "effects": ["read"] } }
                 }
             },
             "lifecycle": {
                 "start": {
                     "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "_object": { "$func/app-config-section": "http" }, "_path": "port" } }] } },
-                    "low": { "module": "@business-framework/http-server", "export": "listen" }
+                    "low": { "module": "@business-framework/http-server", "export": "listen", "effects": ["irreversible"] }
                 },
-                "stop": { "low": { "module": "@business-framework/http-server", "export": "close" } },
+                "stop": { "low": { "module": "@business-framework/http-server", "export": "close", "effects": ["irreversible"] } },
                 "startPosition": "last"
             }
         }

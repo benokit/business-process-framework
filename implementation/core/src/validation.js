@@ -7,6 +7,7 @@ import { elementsInStartOrder } from './lifecycle.js';
 import { checkAbstraction, checkBinding, isKindReference, resolveReference } from './references.js';
 import { fail, problemsOf } from './errors.js';
 import { codeOf, codeProblems, targetKind } from './code.js';
+import { effectProblems } from './effect-inference.js';
 
 const kinds = () => instancesOf('kind');
 
@@ -88,4 +89,17 @@ const checks = () => [
     elementsInStartOrder
 ];
 
-export const validate = () => checks().flatMap(problemsOf);
+const inferredProblems = () => {
+    try {
+        return effectProblems().flatMap(problemsOf);
+    } catch (error) {
+        return problemsOf(() => { throw error; });
+    }
+};
+
+export const validate = () => {
+    const problems = checks().flatMap(problemsOf);
+    const inferred = inferredProblems();
+    const failed = inferred.some(({ code }) => code !== 'effect-bound');
+    return [...problems, ...problems.length > 0 && failed ? [] : inferred];
+};

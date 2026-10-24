@@ -20,7 +20,7 @@
         "id": "execution-node-template",
         "kind": "kind",
         "data": {
-            "shape": { "!keyword": "string", "node": "@schema", "!implementation": "@method" },
+            "shape": { "!keyword": "string", "node": "@schema", "effects": { "bound[]": "@effect", "defers": "boolean" }, "!implementation": "@method" },
             "lifecycle": {
                 "load": {
                     "if": "#.self.data.node",
@@ -59,6 +59,15 @@
             "signature": { "input": { "!element": "string", "!operation": "string" }, "output": "boolean" },
             "module": "@business-framework/core/kinds",
             "export": "hasOperation"
+        }
+    },
+    {
+        "id": "changes-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!operation": "string" }, "output": "[string]" },
+            "module": "@business-framework/core/effects",
+            "export": "changesOf"
         }
     },
     {

@@ -32,7 +32,7 @@
                         {
                             "outputKey": "correlation",
                             "inputMap": "#.input.headers",
-                            "low": { "module": "@business-framework/http-server", "export": "correlationOf" }
+                            "low": { "module": "@business-framework/http-server", "export": "correlationOf", "effects": ["read"] }
                         },
                         {
                             "withContext": { "trace": { "correlation": "#.correlation" } },
@@ -63,7 +63,13 @@
                 "validate": {
                     "$conditional": {
                         "_if": { "$func/has-operation": "#.self.data.target" },
-                        "_then": [],
+                        "_then": {
+                            "$conditional": {
+                                "_if": { "$eq": ["#.self.data.method", "GET"] },
+                                "_then": { "$map": { "_over": { "$func/changes-of": "#.self.data.target" }, "_fn": { "$join": { "_strings": ["\\a GET target changes state, ", "#"] } } } },
+                                "_else": []
+                            }
+                        },
                         "_else": [{ "$join": { "_strings": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] } }]
                     }
                 },

@@ -6,7 +6,7 @@ import { extendsKind, resolveKind } from './kinds.js';
 import { positionsIn, propertiesOf, validateValue } from './schemas.js';
 import { managedBy } from './context.js';
 import { findTemplate } from './execution/templates.js';
-import { NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
+import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
 import { isKindReference } from './references.js';
 import { primitives } from './primitives.js';
 import { fail } from './errors.js';
@@ -74,9 +74,13 @@ const moduleExists = specifier => {
     }
 };
 
-const lowProblems = (node, at, path) => typeof node.low?.module === 'string' && !moduleExists(node.low.module)
-    ? [problem(at, path, 'unknown-module', `low module '${node.low.module}' doesn't resolve`)]
-    : [];
+const declaresEffects = low => Array.isArray(low?.effects) && low.effects.every(effect => EFFECTS.includes(effect));
+
+const lowProblems = (node, at, path) => [
+    ...typeof node.low?.module === 'string' && !moduleExists(node.low.module)
+        ? [problem(at, path, 'unknown-module', `low module '${node.low.module}' doesn't resolve`)] : [],
+    ...declaresEffects(node.low) ? [] : [problem(at, path, 'undeclared-effects', `a low node declares its effects, a list of ${EFFECTS.join(', ')}`)]
+];
 
 const bindingProblems = (node, at, path) => {
     if (!isPlainObject(node.withContext) || Object.keys(node.withContext).some(key => key.startsWith('$'))) return [];
@@ -102,7 +106,7 @@ const referenceProblems = ({ kind, extending, code, path }, at) => {
 
 const errorsOf = errors => errors.map(error => `${error.instancePath || '/'} ${error.message}`).join('; ');
 
-const templatePositions = (node, template, path) => positionsIn({ schemaId: `${template.id}/node`, value: node, path });
+export const templatePositions = (node, template, path) => positionsIn({ schemaId: `${template.id}/node`, value: node, path });
 
 const templateProblems = (node, template, at, path) => {
     const schemaId = `${template.id}/node`;
@@ -116,7 +120,7 @@ const templateProblems = (node, template, at, path) => {
     ];
 };
 
-const pipelinesOf = (node, keyword, template) => {
+export const pipelinesOf = (node, keyword, template) => {
     if (template) return isWrapper(template) && !template.data.node ? [[keyword, node[keyword]]] : [];
     if (keyword === 'switch') return Object.entries(node.switch?.cases ?? {}).map(([name, pipeline]) => [`switch.cases.${name}`, pipeline]);
     return [keyword, ...nodeForms[keyword] ?? []].filter(key => PIPELINE_KEYS.includes(key) && key in node).map(key => [key, node[key]]);
@@ -126,13 +130,16 @@ const childrenOf = ({ node, path, keyword, template }) => template?.data.node
     ? templatePositions(node, template, path).filter(({ type }) => type === 'method').map(position => [position.path, position.code])
     : pipelinesOf(node, keyword, template).map(([key, pipeline]) => [`${path}.${key}`, pipeline]);
 
-const nodeAt = (node, path) => {
-    if (!isPlainObject(node)) return [{ node, path, keywords: [] }];
+export const formOf = node => {
     const keywords = Object.keys(node).filter(key => !NODE_KEYS.includes(key) && (isNative(key) || findTemplate(key)));
     const [keyword] = keywords;
-    const template = keyword === undefined || isNative(keyword) ? undefined : findTemplate(keyword);
-    const entry = { node, path, keywords, keyword, template };
-    return keywords.length > 1 ? [entry] : [entry, ...childrenOf(entry).flatMap(([at, pipeline]) => nodesIn(pipeline, at))];
+    return { keywords, keyword, template: keyword === undefined || isNative(keyword) ? undefined : findTemplate(keyword) };
+};
+
+const nodeAt = (node, path) => {
+    if (!isPlainObject(node)) return [{ node, path, keywords: [] }];
+    const entry = { node, path, ...formOf(node) };
+    return entry.keywords.length > 1 ? [entry] : [entry, ...childrenOf(entry).flatMap(([at, pipeline]) => nodesIn(pipeline, at))];
 };
 
 const nodesIn = (pipeline, path) => Array.isArray(pipeline)

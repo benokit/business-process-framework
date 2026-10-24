@@ -15,10 +15,9 @@
         "data": {
             "method": "GET",
             "path": "/entities/:entityType",
-            "target": { "element": "entities", "operation": "dispatch" },
+            "target": { "element": "entities", "operation": "list" },
             "request": {
                 "entityType": "#.params.entityType",
-                "operation": "list",
                 "request": { "limit": { "$parseInt": "#.query.limit" }, "offset": { "$parseInt": "#.query.offset" } }
             }
         }
@@ -29,10 +28,9 @@
         "data": {
             "method": "POST",
             "path": "/entities/:entityType",
-            "target": { "element": "entities", "operation": "dispatch" },
+            "target": { "element": "entities", "operation": "create" },
             "request": {
                 "entityType": "#.params.entityType",
-                "operation": "create",
                 "request": { "businessKey": "#.body.businessKey", "body": "#.body.body", "traits": "#.body.traits" }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
@@ -44,10 +42,9 @@
         "data": {
             "method": "GET",
             "path": "/entities/:entityType/:businessKey",
-            "target": { "element": "entities", "operation": "dispatch" },
+            "target": { "element": "entities", "operation": "read" },
             "request": {
                 "entityType": "#.params.entityType",
-                "operation": "read",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" } }
             },
             "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
@@ -59,10 +56,9 @@
         "data": {
             "method": "PUT",
             "path": "/entities/:entityType/:businessKey",
-            "target": { "element": "entities", "operation": "dispatch" },
+            "target": { "element": "entities", "operation": "update" },
             "request": {
                 "entityType": "#.params.entityType",
-                "operation": "update",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" }, "body": "#.body.body" }
             },
             "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
@@ -74,10 +70,9 @@
         "data": {
             "method": "DELETE",
             "path": "/entities/:entityType/:businessKey",
-            "target": { "element": "entities", "operation": "dispatch" },
+            "target": { "element": "entities", "operation": "delete" },
             "request": {
                 "entityType": "#.params.entityType",
-                "operation": "delete",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" } }
             }
         }

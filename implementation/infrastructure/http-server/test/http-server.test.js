@@ -104,4 +104,17 @@ describe('http-endpoint validation', () => {
             ['invalid-element', 'typo: target the-echo has no operation ecco']
         ]);
     });
+
+    it('reports a GET target that changes state', async () => {
+        const writer = { id: 'writer', kind: 'kind', data: { operations: { save: { input: '@any', implementation: { low: { module: '@business-framework/http-server', export: 'address', effects: ['write'] } } } } } };
+        await boot({
+            paths: [packageElements('@business-framework/http-server')],
+            elements: [writer, { id: 'the-writer', kind: 'writer', data: {} },
+                { id: 'unsafe', kind: 'http-endpoint', data: { method: 'GET', path: '/unsafe', target: { element: 'the-writer', operation: 'save' } } },
+                { id: 'safe', kind: 'http-endpoint', data: { method: 'POST', path: '/safe', target: { element: 'the-writer', operation: 'save' } } }]
+        });
+        expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
+            ['invalid-element', 'unsafe: a GET target changes state, write: low address']
+        ]);
+    });
 });

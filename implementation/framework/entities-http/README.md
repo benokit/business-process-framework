@@ -1,6 +1,6 @@
 # entities-http
 
-REST endpoints for [entities](../entities/README.md). Every route targets `entities.dispatch({ entityType, operation, request })`, which refuses an `entityType` that isn't an entity type (`not-found`), so a request can only reach these entity type operations: `create`, `read`, `update`, `delete`, `list`.
+REST endpoints for [entities](../entities/README.md). Every route targets the operation of the same name on `entities` (`create`, `read`, `update`, `delete`, `list`, each taking `{ entityType, request }`), which refuses an `entityType` that isn't an entity type (`not-found`) and invokes that operation of the entity type, so a request reaches no other operation, and each route's effects are known: the `GET` routes only read.
 
 | Method | Path | Operation | Status | ETag |
 |---|---|---|---|---|

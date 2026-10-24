@@ -34,13 +34,14 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [validation.js](src/validation.js) | `validate()` |
 | [code.js](src/code.js) | finding code in elements, the checks of code in `validate()` |
+| [effect-inference.js](src/effect-inference.js) | the effects of operations and slot fills, inferred from `low` nodes, and their bounds |
 | [primitives.js](src/primitives.js) | the LambdaJSON primitives, read from `lambdajson-js` |
-| [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)), the references of an element |
+| [introspection.js](src/introspection.js) | what tools read: elements and their source files, resolved kinds, slot fills, node forms ([forms.js](src/execution/nodes/forms.js)), the references of an element, the effects of an operation |
 | [elements/](elements) | the bootstrap kinds, in data |
 
 ## Core elements
 
-Besides the bootstrap kinds: `binding` and the schemas `element-ref` and `ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `has-operation` (`{ element, operation }`; true for an unknown element, which the reference check reports), `instances-of` (the `{ id, kind, data }` of every identified instance of a kind). The schema registry `ajv` adds schemas (`add`) and checks values (`assert`, `{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+Besides the bootstrap kinds: `binding`, the schema `effect`, and the schemas `element-ref` and `ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `has-operation` (`{ element, operation }`; true for an unknown element, which the reference check reports), `changes-of` (`{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"`, see [Effects](#effects)), `instances-of` (the `{ id, kind, data }` of every identified instance of a kind). The schema registry `ajv` adds schemas (`add`) and checks values (`assert`, `{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
 
 ## Pipeline rules
 
@@ -49,10 +50,10 @@ Besides the bootstrap kinds: `binding` and the schemas `element-ref` and `ref` (
 - `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
 - `return` ends the current method: an operation, hook, middleware method, `execute` target, template implementation, or the pipeline a wrapper's `next` runs.
-- `low` names a JS function as `{ module, export }` (the schema `js-export`) and calls it with `{ input, _ctx }`, `_ctx` frozen.
+- `low` names a JS function as `{ module, export }` (the schema `js-export`) with its `effects` (see [Effects](#effects)) and calls it with `{ input, _ctx }`, `_ctx` frozen.
 - A `pure-function` is `$func/<id>`: either a JS function (`module`, `export`) or a LambdaJSON `mapping`, beside its `signature`.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
-- A package adds a keyword with an `execution-node-template` (`{ keyword, node?, implementation }`): the implementation runs with the node as `#.node` and the node's input as `#.input`; an `execution-node-wrapper` also gets `next`, which runs the keyword's value as a pipeline. `node` is the CJSL shape of the node's keys besides `inputMap` and `outputKey`, typing code (`@method`, `@mapping`) and references (`@ref/<kind>`) in it, so that `validate()` checks the node, its code and its references.
+- A package adds a keyword with an `execution-node-template` (`{ keyword, node?, effects?, implementation }`): the implementation runs with the node as `#.node` and the node's input as `#.input`; an `execution-node-wrapper` also gets `next`, which runs the keyword's value as a pipeline. `node` is the CJSL shape of the node's keys besides `inputMap` and `outputKey`, typing code (`@method`, `@mapping`) and references (`@ref/<kind>`) in it, so that `validate()` checks the node, its code and its references.
 - `invoke` checks the input and output against the operation's contract. A compiled check costs well under a microsecond, even for a full entity record, so contracts are not a performance concern.
 
 ## Validation
@@ -60,6 +61,32 @@ Besides the bootstrap kinds: `binding` and the schemas `element-ref` and `ref` (
 `validate()` runs over the loaded elements, on demand (tests, CI, [`bpf validate`](../tools/README.md)), never on start. It checks kinds, context declarations, instance shapes, slot fills and their order, start order, abstract operations, element references and bindings, and the code. Code is what a shape types `@method` or `@mapping`, in an element's data or in a slot fill's value; a problem in it names the element and the path to the node. In methods: each node has one keyword ([forms.js](src/execution/nodes/forms.js) or a node template) and only that keyword's keys, matching the template's `node` shape, whose code and references are checked like the element's; no `outputKey: "_ctx"`; no `next` in an operation, a `load`/`start`/`stop` hook or a plain template's implementation, where no middleware runs; literal `invoke` targets and operations exist; `low` modules resolve; `withContext` binds only keys the author's kind manages. In methods and mappings: every `$` function is a LambdaJSON primitive, a function its `$let` declares, or a `$func/<id>` of a `pure-function`; a literal slot of `$func/slot-values` is declared (for `#.self.id`, on the kind the code runs for). Computed values (`"invoke": "#.self.data.broker"`) are checked at run time only, and so are `low` exports, pure function signatures and the data flowing between nodes.
 
 A kind adds its own checks with `lifecycle.validate`: a mapping from `#.self` to a list of problem messages, run for each identified instance, subkinds included. Any message is reported as `invalid-element`.
+
+`validate()` also checks [effects](#effects); where problems found by the other checks keep the effects from being inferred, it reports those problems only.
+
+## Effects
+
+Effects happen only in `low` nodes, so only a `low` node declares them: `"low": { "module": …, "export": …, "effects": [ … ] }`, a list of these classes (the schema `effect`); `validate()` reports a `low` node without it (`undeclared-effects`). The classes are what other parts of the system need to know about an effect:
+
+| Effect | Means | Examples | Matters to |
+|---|---|---|---|
+| `read` | observes state, or a value that varies between runs | entity store reads, cache get, search, the clock, generated ids | nothing: allowed everywhere |
+| `write` | changes state that the enclosing transaction undoes on rollback | entity store writes, the outbox insert | code that may change nothing (`guards`, `GET` targets) |
+| `irreversible` | changes state that no transaction undoes | broker publish, cache set, search index, a sequence number, a statement on its own connection | code inside a transaction, and code that may change nothing |
+| `trace` | diagnostic output nothing reads back | `log` | nothing: ignored by every bound |
+
+An empty list means the function changes and observes nothing outside its input (`afterCommit` only hands its pipeline over).
+
+Everything else is inferred, per instance after boot: an operation has the effects of everything it reaches: its `low` nodes, the operations it invokes, the implementations of its template nodes and the code they run, an `execute` of a method in `#.self`, and the fills of a method slot where it reads them with `$func/slot-values`. Targets and conditions on `#.self` or `#.node` are evaluated for the instance, so a channel with `publisher.transactionalOutbox` reaches the outbox, not the broker. A target `#.input.<field>` that the contract types `@ref/<kind>` stands for every instance of the kind; any other computed target counts as `read`, `write` and `irreversible`. Each effect carries a trace of how it is reached (`outbox.put > afterCommit > outbox.deliverNow > outbox.claim > low claim`).
+
+Bounds constrain what is inferred, they never declare it:
+
+- A template's `effects.bound` lists the effects its code may have (`inTransaction`: `read`, `write`, `trace`).
+- A template with `effects.defers` runs its code after the enclosing scope ends (`afterCommit`): its effects don't count against an enclosing bound, but they count for the operation.
+- A slot's `effects` lists the effects its fills may have (`guards`: `read`, `trace`).
+- A kind checks more in its `validate` hook with `$func/changes-of` (`http-endpoint`: a `GET` target changes nothing).
+
+A bound that inference contradicts is an `effect-bound` problem with the trace. [`bpf explain`](../tools/README.md) shows the effects of every operation of an instance. Not seen: what a computed `execute` runs (other than slot fills read with `$func/slot-values`), and repeated visits of an operation in a cycle, which count once.
 
 ## Lifecycle
 

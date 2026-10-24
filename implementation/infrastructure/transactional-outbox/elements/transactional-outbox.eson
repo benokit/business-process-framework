@@ -11,7 +11,7 @@
             "operations": {
                 "put": {
                     "implementation": [
-                        { "outputKey": "put", "low": { "module": "@business-framework/transactional-outbox", "export": "put" } },
+                        { "outputKey": "put", "low": { "module": "@business-framework/transactional-outbox", "export": "put", "effects": ["write"] } },
                         { "inputMap": { "messageId": "#.put.messageId" }, "afterCommit": { "invoke": "#.self.id", "operation": "deliverNow" } },
                         { "set": "#.put" }
                     ]
@@ -19,15 +19,15 @@
                 "claim": {
                     "input": { "!messageId": "string" },
                     "output": { "!claimed": "boolean", "channel": "string", "envelope": "@message-envelope" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "claim" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "claim", "effects": ["irreversible"] } }
                 },
                 "markDelivered": {
                     "input": { "!messageId": "string" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "markDelivered" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "markDelivered", "effects": ["irreversible"] } }
                 },
                 "recordFailure": {
                     "input": { "!messageId": "string", "error": "object" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "recordFailure" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "recordFailure", "effects": ["irreversible"] } }
                 },
                 "deliverNow": {
                     "input": { "!messageId": "string" },
@@ -48,22 +48,22 @@
                 "replay": {
                     "input": { "messageIds[]": "string", "channel": "string", "from": "string", "to": "string" },
                     "output": { "!count": "number" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "replay" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "replay", "effects": ["irreversible"] } }
                 },
                 "skip": {
                     "input": { "!messageIds[]": "string" },
                     "output": { "!count": "number" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "skip" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "skip", "effects": ["irreversible"] } }
                 },
                 "purge": {
                     "input": { "!deliveredBefore": "string" },
                     "output": { "!count": "number" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "purge" } }
+                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "purge", "effects": ["irreversible"] } }
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "outbox" }, "low": { "module": "@business-framework/transactional-outbox", "export": "startProcessor" } },
-                "stop": { "low": { "module": "@business-framework/transactional-outbox", "export": "stopProcessor" } },
+                "start": { "inputMap": { "$func/app-config-section": "outbox" }, "low": { "module": "@business-framework/transactional-outbox", "export": "startProcessor", "effects": ["irreversible"] } },
+                "stop": { "low": { "module": "@business-framework/transactional-outbox", "export": "stopProcessor", "effects": ["irreversible"] } },
                 "startAfter": ["database", "message-broker"]
             }
         }

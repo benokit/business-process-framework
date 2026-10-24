@@ -10,6 +10,8 @@ Each endpoint registers its route in its own `start` hook. Per request, the serv
 2. runs the `requestMiddleware` slot around the action;
 3. the action maps the request with `request` (default `#.body`), invokes the target, and maps `{ output, request }` with `response` (default `{ "body": "#.output" }`).
 
+The target's operation must exist, and a `GET` endpoint's target changes nothing: `validate()` reports one with `write` or `irreversible` [effects](../../core/README.md#effects), with the trace.
+
 ```json
 {
     "id": "read-item",

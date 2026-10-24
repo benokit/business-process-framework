@@ -46,7 +46,7 @@ describe('code checks', () => {
             { set: { $coalese: ['#', 1] } },
             { set: { '$func/nothing': '#' } },
             { set: { '$func/slot-values': { element: '#.self.id', slot: 'nothing' } } },
-            { low: { module: '@business-framework/nothing', export: 'x' } }
+            { low: { module: '@business-framework/nothing', export: 'x', effects: [] } }
         ])).to.deep.equal([
             ['unknown-element', `${PATH}[0]`],
             ['unknown-operation', `${PATH}[1]`],

@@ -7,7 +7,7 @@
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" },
                 "businessKey": { "cardinality": "one", "value": "@method" },
-                "guards": { "cardinality": "many", "value": "@method" },
+                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"] },
                 "interceptors": { "cardinality": "many", "value": "@method" },
                 "reactions": { "cardinality": "many", "value": "@method" }
             },

@@ -1,13 +1,15 @@
 import path from 'path';
 import { getElement } from '@business-framework/core';
-import { fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
+import { effectTracesOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
 
 const relative = file => file && path.relative(process.cwd(), file);
 
 const implementer = (chain, name) => chain.findLast(kind => kind.data.operations?.[name]?.implementation)?.id;
 
-const operationsOf = ({ chain, operations }) => Object.entries(operations).map(([name, { input, output, owner }]) =>
-    ({ name, input, output, declaredBy: owner, implementedBy: implementer(chain, name) }));
+const operationsOf = ({ chain, operations }, self) => Object.entries(operations).map(([name, { input, output, owner }]) => ({
+    name, input, output, declaredBy: owner, implementedBy: implementer(chain, name),
+    ...self && { effects: effectTracesOf({ element: self.id, operation: name }) }
+}));
 
 const isSetting = value => typeof value === 'string' || (Array.isArray(value) && value.every(item => typeof item === 'string'));
 
@@ -64,7 +66,7 @@ const kindDescription = element => {
 const instanceDescription = element => {
     const self = selfOf(element);
     const kind = resolveKind(self.kind);
-    return { chain: kind.ids, data: self.data, operations: operationsOf(kind), slots: slotsOf(self) };
+    return { chain: kind.ids, data: self.data, operations: operationsOf(kind, self), slots: slotsOf(self) };
 };
 
 export const explain = id => {
@@ -75,10 +77,12 @@ export const explain = id => {
 
 const json = value => JSON.stringify(value);
 
-const operationLine = ({ name, input, output, declaredBy, implementedBy }) => {
+const effectsLine = effects => effects === undefined ? '' : `  effects: ${Object.keys(effects).join(', ') || 'none'}`;
+
+const operationLine = ({ name, input, output, declaredBy, implementedBy, effects }) => {
     const origin = implementedBy === undefined ? `abstract, ${declaredBy}`
         : implementedBy === declaredBy ? declaredBy : `${declaredBy}, implemented by ${implementedBy}`;
-    return `  ${name}: ${json(input)} -> ${json(output ?? 'any')}  (${origin})`;
+    return `  ${name}: ${json(input)} -> ${json(output ?? 'any')}  (${origin})${effectsLine(effects)}`;
 };
 
 const slotLines = ({ name, cardinality, value, declaredBy, fills }) => [

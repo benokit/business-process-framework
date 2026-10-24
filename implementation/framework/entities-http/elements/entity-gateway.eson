@@ -1,21 +1,54 @@
 [
     {
+        "id": "entity-request",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!request": "object" }
+    },
+    {
         "id": "entity-gateway",
         "kind": "kind",
         "data": {
             "operations": {
-                "dispatch": {
-                    "input": {
-                        "!entityType": "string",
-                        "!operation=1": ["create", "read", "update", "delete", "list"],
-                        "!request": "object"
-                    },
+                "assertEntityType": {
+                    "input": "@entity-request",
+                    "implementation": {
+                        "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                        "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                    }
+                },
+                "create": {
+                    "input": "@entity-request",
                     "implementation": [
-                        {
-                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
-                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
-                        },
-                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "#.input.operation" }
+                        { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "create" }
+                    ]
+                },
+                "read": {
+                    "input": "@entity-request",
+                    "implementation": [
+                        { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "read" }
+                    ]
+                },
+                "update": {
+                    "input": "@entity-request",
+                    "implementation": [
+                        { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "update" }
+                    ]
+                },
+                "delete": {
+                    "input": "@entity-request",
+                    "implementation": [
+                        { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "delete" }
+                    ]
+                },
+                "list": {
+                    "input": "@entity-request",
+                    "implementation": [
+                        { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
+                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "list" }
                     ]
                 },
                 "types": {

@@ -46,9 +46,9 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 |---|---|---|---|
 | `traits` | many | `{ trait, configuration }` | see [Traits](#traits) |
 | `businessKey` | one | method: create input → key | on `create` without `businessKey`; the most specific fill wins |
-| `guards` | many | method: change → (throws to refuse) | before the transaction |
+| `guards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only | before the transaction |
 | `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored | inside the transaction |
-| `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back |
+| `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
 A change is `{ operation: create | update | trait | delete, trait?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `update` and `trait` the written `trait` and its `value` (`update` writes `body`), `trait` also the `command`.
 

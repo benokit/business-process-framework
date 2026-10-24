@@ -17,3 +17,5 @@ export const nodeForms = {
 };
 
 export const PIPELINE_KEYS = ['then', 'else', 'forEach', 'try', 'catch', 'finally', 'do', 'action'];
+
+export const EFFECTS = ['read', 'write', 'irreversible', 'trace'];

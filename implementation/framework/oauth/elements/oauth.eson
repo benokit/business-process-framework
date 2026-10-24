@@ -14,7 +14,7 @@
                 {
                     "outputKey": "claims",
                     "inputMap": { "header": "#.input.headers.authorization", "issuer": "#.config.issuer", "audience": "#.config.audience" },
-                    "low": { "module": "@business-framework/oauth", "export": "verifyToken" }
+                    "low": { "module": "@business-framework/oauth", "export": "verifyToken", "effects": ["read"] }
                 },
                 {
                     "if": { "$negate": "#.claims" },

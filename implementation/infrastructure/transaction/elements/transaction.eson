@@ -15,16 +15,16 @@
                     "output": "@transaction-session",
                     "implementation": {
                         "inputMap": { "isolation": "#.self.data.isolation" },
-                        "low": { "module": "@business-framework/transaction", "export": "beginTransaction" }
+                        "low": { "module": "@business-framework/transaction", "export": "beginTransaction", "effects": ["write"] }
                     }
                 },
                 "commit": {
                     "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "commitTransaction" } }
+                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "commitTransaction", "effects": ["write"] } }
                 },
                 "rollback": {
                     "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "rollbackTransaction" } }
+                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "rollbackTransaction", "effects": ["write"] } }
                 }
             }
         }
@@ -48,6 +48,7 @@
         "data": {
             "keyword": "inTransaction",
             "node": { "!inTransaction": "@method" },
+            "effects": { "bound": ["read", "write", "trace"] },
             "implementation": {
                 "if": "#._ctx.transaction",
                 "then": { "next": true },
@@ -74,9 +75,10 @@
         "data": {
             "keyword": "afterCommit",
             "node": { "!afterCommit": "@method" },
+            "effects": { "defers": true },
             "implementation": {
                 "inputMap": { "method": "#.node.afterCommit", "input": "#.input", "self": "#.self" },
-                "low": { "module": "@business-framework/transaction", "export": "afterCommit" }
+                "low": { "module": "@business-framework/transaction", "export": "afterCommit", "effects": [] }
             }
         }
     }

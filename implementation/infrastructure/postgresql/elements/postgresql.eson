@@ -11,20 +11,20 @@
             "operations": {
                 "execute": {
                     "implementation": [
-                        { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute" } },
+                        { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute", "effects": ["irreversible"] } },
                         { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }
                     ]
                 }
             },
             "lifecycle": {
                 "start": [
-                    { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "export": "connect" } },
+                    { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },
                     {
                         "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "models" } },
                         "forEach": { "inputMap": "#.item", "invoke": "#.self.id", "operation": "execute" }
                     }
                 ],
-                "stop": { "low": { "module": "@business-framework/postgresql", "export": "disconnect" } }
+                "stop": { "low": { "module": "@business-framework/postgresql", "export": "disconnect", "effects": ["irreversible"] } }
             }
         }
     },

@@ -4,7 +4,7 @@
 
 The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, the `context` it manages and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data.
 
-- Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS and can't change context.
+- Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS, declares its effects (`read`, `write`, `irreversible`, `trace`; everything else is inferred) and can't change context.
 - `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; any code sees every bound key.
 - Program against kinds: an abstract kind declares operation contracts, a subkind implements them; `{ "instanceOf": "<kind>" }` references the single or bound (`binding`) instance, a string names one element.
 - Slots are typed contribution points filled by `slot-fill` elements, ordered by `position`, `after`, `before`.
@@ -13,7 +13,7 @@ See [core/README.md](implementation/core/README.md) for pipeline rules, context,
 
 ## Discovery
 
-Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
+Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights, effect bounds) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
 
 ## Schema syntax (CJSL)
 

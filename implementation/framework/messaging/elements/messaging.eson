@@ -54,7 +54,7 @@
                         {
                             "outputKey": "envelope",
                             "inputMap": { "$merge": ["#.input", { "correlation": "#._ctx.trace.correlation" }] },
-                            "low": { "module": "@business-framework/messaging", "export": "createEnvelope" }
+                            "low": { "module": "@business-framework/messaging", "export": "createEnvelope", "effects": ["read"] }
                         },
                         {
                             "if": "#.self.data.publisher.transactionalOutbox",

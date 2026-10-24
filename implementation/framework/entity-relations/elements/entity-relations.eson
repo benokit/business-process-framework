@@ -21,12 +21,12 @@
             "operations": {
                 "setRelations": {
                     "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" },
-                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "setRelations" } }
+                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "setRelations", "effects": ["write"] } }
                 },
                 "relationsOf": {
                     "input": { "!sourceEntityId": "string" },
                     "output": "[object]",
-                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "relationsOf" } }
+                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "relationsOf", "effects": ["read"] } }
                 }
             }
         }

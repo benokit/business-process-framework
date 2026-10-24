@@ -97,7 +97,12 @@
     {
         "id": "slot",
         "kind": "schema",
-        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema" }
+        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema", "effects[]": "@effect" }
+    },
+    {
+        "id": "effect",
+        "kind": "schema",
+        "data": { "$data=1": ["read", "write", "irreversible", "trace"] }
     },
     {
         "id": "method",
