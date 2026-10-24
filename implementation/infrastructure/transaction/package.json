@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@business-framework/core": "*",
+    "@business-framework/database": "*"
+  },
+  "devDependencies": {
+    "@business-framework/integration": "*",
     "@business-framework/postgresql": "*"
   }
 }

@@ -1,6 +1,6 @@
 import jsonPatch from 'fast-json-patch';
 import { CoreError } from '@business-framework/core';
-import { queryable } from '@business-framework/transaction';
+import { queryable } from '@business-framework/postgresql';
 
 const UNIQUE_VIOLATION = '23505';
 

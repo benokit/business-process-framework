@@ -1,10 +1,5 @@
 [
     {
-        "id": "transaction-session",
-        "kind": "schema",
-        "data": { "!sessionId": "number" }
-    },
-    {
         "id": "transaction-manager",
         "kind": "kind",
         "data": {
@@ -12,19 +7,22 @@
             "operations": {
                 "begin": {
                     "input": "@any",
-                    "output": "@transaction-session",
-                    "implementation": {
-                        "inputMap": { "isolation": "#.self.data.isolation" },
-                        "low": { "module": "@business-framework/transaction", "export": "beginTransaction", "effects": ["write"] }
-                    }
+                    "output": "@database-session",
+                    "implementation": { "inputMap": { "isolation": "#.self.data.isolation" }, "invoke": { "instanceOf": "database" }, "operation": "begin" }
                 },
                 "commit": {
-                    "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "commitTransaction", "effects": ["write"] } }
+                    "input": "@database-session",
+                    "implementation": [
+                        { "invoke": { "instanceOf": "database" }, "operation": "commit" },
+                        { "low": { "module": "@business-framework/transaction", "export": "runAfterCommit", "effects": [] } }
+                    ]
                 },
                 "rollback": {
-                    "input": "@transaction-session",
-                    "implementation": { "low": { "module": "@business-framework/transaction", "export": "rollbackTransaction", "effects": ["write"] } }
+                    "input": "@database-session",
+                    "implementation": [
+                        { "low": { "module": "@business-framework/transaction", "export": "dropAfterCommit", "effects": [] } },
+                        { "invoke": { "instanceOf": "database" }, "operation": "rollback" }
+                    ]
                 }
             }
         }
@@ -33,14 +31,6 @@
         "id": "transaction",
         "kind": "transaction-manager",
         "data": { "isolation": "read committed" }
-    },
-    {
-        "id": "transaction-execution-node-wrapper",
-        "kind": "kind",
-        "data": {
-            "extends": "execution-node-wrapper",
-            "context": { "manages": { "transaction": "@transaction-session" } }
-        }
     },
     {
         "id": "in-transaction",

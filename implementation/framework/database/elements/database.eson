@@ -5,16 +5,38 @@
         "data": { "!command": "string", "parameters": { "$data#": ["[@any]", "object"] } }
     },
     {
+        "id": "sql-result",
+        "kind": "schema",
+        "data": { "!rows[]": "object", "rowCount": { "$data#": ["number", "null"] } }
+    },
+    {
+        "id": "database-session",
+        "kind": "schema",
+        "data": { "!sessionId": "number" }
+    },
+    {
         "id": "database",
         "kind": "kind",
         "data": {
             "operations": {
-                "execute": { "input": "@sql-command", "output": { "!rows[]": "object", "rowCount": { "$data#": ["number", "null"] } } }
+                "execute": { "input": "@sql-command", "output": "@sql-result" },
+                "executeIrreversible": { "input": "@sql-command", "output": "@sql-result" },
+                "begin": { "input": { "!isolation=1": ["read committed", "repeatable read", "serializable"] }, "output": "@database-session" },
+                "commit": { "input": "@database-session" },
+                "rollback": { "input": "@database-session" }
             },
             "slots": {
                 "models": { "cardinality": "many", "value": { "!command": "string" } }
             },
             "lifecycle": { "startPosition": "first" }
+        }
+    },
+    {
+        "id": "transaction-execution-node-wrapper",
+        "kind": "kind",
+        "data": {
+            "extends": "execution-node-wrapper",
+            "context": { "manages": { "transaction": "@database-session" } }
         }
     },
     {
@@ -27,16 +49,20 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "statement",
-            "node": { "!statement": "@mapping", "parameters": "@mapping", "row": "@mapping" },
+            "node": { "!statement": "@mapping", "parameters": "@mapping", "row": "@mapping", "irreversible": "boolean" },
             "implementation": [
                 {
-                    "outputKey": "result",
-                    "inputMap": {
+                    "outputKey": "command",
+                    "set": {
                         "command": { "$func/apply-mapping": { "mapping": "#.node.statement", "input": "#.input" } },
                         "parameters": { "$coalesce": [{ "$func/apply-mapping": { "mapping": "#.node.parameters", "input": "#.input" } }, []] }
-                    },
-                    "invoke": { "instanceOf": "database" },
-                    "operation": "execute"
+                    }
+                },
+                {
+                    "outputKey": "result",
+                    "if": "#.node.irreversible",
+                    "then": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "executeIrreversible" },
+                    "else": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "execute" }
                 },
                 {
                     "if": "#.node.row",

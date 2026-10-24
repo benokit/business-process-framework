@@ -3,7 +3,6 @@ import { boot, invoke, packageElements, start, stop, validate } from '@business-
 import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
 
 const TABLE = `test_tx_${Date.now()}`;
-const ROWS = new URL('./fixtures/rows.js', import.meta.url).href;
 
 const operations = {
     capture: { inTransaction: { set: '#._ctx.transaction' } },
@@ -23,7 +22,7 @@ const operations = {
     ],
     insert: {
         inTransaction: [
-            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, values: ['#.input.name'] }, low: { module: ROWS, export: 'insert', effects: ['write'] } },
+            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input.name'] }, invoke: 'postgresql', operation: 'execute' },
             { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
         ]
     },

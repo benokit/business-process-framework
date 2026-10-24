@@ -1,6 +1,5 @@
 import { CoreError, findElement, invoke } from '@business-framework/core';
-import { getPool } from '@business-framework/postgresql';
-import { queryable } from '@business-framework/transaction';
+import { getPool, queryable } from '@business-framework/postgresql';
 
 const PENDING = 0;
 const DELIVERED = 1;

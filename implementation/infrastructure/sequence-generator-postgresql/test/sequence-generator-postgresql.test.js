@@ -27,7 +27,7 @@ describe('sequence-generator-postgresql', function () {
     });
 
     it('infers the effect of the statements', () => {
-        expect(effectsOf({ element: 'sequences', operation: 'next' })).to.deep.equal(['irreversible']);
+        expect(effectsOf({ element: 'sequences', operation: 'next' })).to.deep.equal(['write', 'irreversible']);
     });
 
     it('counts from 1, independently per sequence', async () => {

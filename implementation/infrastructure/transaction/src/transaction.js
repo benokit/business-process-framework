@@ -1,31 +1,10 @@
-import { CoreError, execute } from '@business-framework/core';
-import { getPool } from '@business-framework/postgresql';
+import { execute } from '@business-framework/core';
 
-const clients = new Map();
 const afterCommitActions = new Map();
-let lastSessionId = 0;
 
-const clientOf = sessionId => clients.get(sessionId)
-    ?? (() => { throw new CoreError('unknown-session', `no transaction session ${sessionId}`, { sessionId }); })();
-
-export const beginTransaction = async ({ input: { isolation } }) => {
-    const client = await getPool().connect();
-    await client.query(`BEGIN ISOLATION LEVEL ${isolation}`);
-    lastSessionId += 1;
-    clients.set(lastSessionId, client);
-    return { sessionId: lastSessionId };
-};
-
-const end = async (sessionId, statement) => {
-    const client = clientOf(sessionId);
+const take = sessionId => {
     const actions = afterCommitActions.get(sessionId) ?? [];
     afterCommitActions.delete(sessionId);
-    try {
-        await client.query(statement);
-    } finally {
-        client.release();
-        clients.delete(sessionId);
-    }
     return actions;
 };
 
@@ -33,13 +12,13 @@ const withoutTransaction = _ctx => Object.freeze(Object.fromEntries(Object.entri
 
 const run = action => execute(action).catch(() => null);
 
-export const commitTransaction = async ({ input: { sessionId } }) => {
-    for (const action of await end(sessionId, 'COMMIT')) await run(action);
+export const runAfterCommit = async ({ input: { sessionId } }) => {
+    for (const action of take(sessionId)) await run(action);
     return null;
 };
 
-export const rollbackTransaction = async ({ input: { sessionId } }) => {
-    await end(sessionId, 'ROLLBACK');
+export const dropAfterCommit = ({ input: { sessionId } }) => {
+    take(sessionId);
     return null;
 };
 
@@ -53,22 +32,3 @@ export const afterCommit = async ({ input: { method, input, self }, _ctx }) => {
     afterCommitActions.set(sessionId, [...afterCommitActions.get(sessionId) ?? [], action]);
     return null;
 };
-
-export const queryable = _ctx => _ctx.transaction ? clientOf(_ctx.transaction.sessionId) : getPool();
-
-const inOwnSession = async work => {
-    const client = await getPool().connect();
-    try {
-        await client.query('BEGIN');
-        const result = await work(client);
-        await client.query('COMMIT');
-        return result;
-    } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-    } finally {
-        client.release();
-    }
-};
-
-export const inSession = (_ctx, work) => _ctx.transaction ? work(clientOf(_ctx.transaction.sessionId)) : inOwnSession(work);

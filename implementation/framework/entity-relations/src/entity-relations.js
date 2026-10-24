@@ -1,5 +1,5 @@
 import { CoreError } from '@business-framework/core';
-import { queryable } from '@business-framework/transaction';
+import { queryable } from '@business-framework/postgresql';
 
 const keyOf = ({ targetEntityId, relationType }) => `${targetEntityId}\0${relationType}`;
 

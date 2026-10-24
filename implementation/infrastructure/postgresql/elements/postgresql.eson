@@ -11,10 +11,19 @@
             "operations": {
                 "execute": {
                     "implementation": [
+                        { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute", "effects": ["write"] } },
+                        { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }
+                    ]
+                },
+                "executeIrreversible": {
+                    "implementation": [
                         { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute", "effects": ["irreversible"] } },
                         { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }
                     ]
-                }
+                },
+                "begin": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "begin", "effects": ["write"] } } },
+                "commit": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "commit", "effects": ["write"] } } },
+                "rollback": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollback", "effects": ["write"] } } }
             },
             "lifecycle": {
                 "start": [

@@ -37,8 +37,7 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R7.2 | Session operations of `database`; `transaction` built on them | F41 | `transaction` doesn't import the pool | draft |
-| R7.3 | `entities`, `entity-relations` and `transactional-outbox` move their SQL into PostgreSQL packages as query implementations; the database normalizes driver errors (`23505` to `unique-violation`) | F41 | No package but the PostgreSQL ones holds SQL or imports `@business-framework/postgresql` | draft |
+| R7.3 | `entities`, `entity-relations` and `transactional-outbox` move their SQL into PostgreSQL packages as query implementations, and stop importing `queryable` from `postgresql`; the database normalizes driver errors (`23505` to `unique-violation`) | F41 | No package but the PostgreSQL ones holds SQL or imports `@business-framework/postgresql` | draft |
 
 ## Entity traits
 
