@@ -21,7 +21,7 @@ const elements = [
     { id: NOTE, kind: 'entity-type', data: { bodySchema: { '!text': 'string' } } }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-states'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-states'];
 
 const errorOf = promise => promise.then(() => null, error => error);
 

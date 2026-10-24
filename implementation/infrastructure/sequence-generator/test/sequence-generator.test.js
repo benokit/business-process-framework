@@ -1,41 +1,25 @@
 import { expect } from 'chai';
-import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
-import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
-
-const SEQUENCE = `test-seq-${Date.now()}`;
+import { boot, interpret, invoke, packageElements, validate } from '@business-framework/core';
 
 const numbering = [
-    { id: 'numbering', kind: 'kind', data: { operations: { number: { input: '@any', implementation: { nextFromSequence: SEQUENCE } } } } },
+    { id: 'numbering', kind: 'kind', data: { operations: { number: { input: '@any', implementation: { nextFromSequence: 'invoice-number' } } } } },
     { id: 'invoices', kind: 'numbering', data: {} }
 ];
 
-describe('sequence-generator', function () {
-    before(async function () {
-        await skipWithoutPostgres(this);
-        await boot({
-            paths: ['@business-framework/database', '@business-framework/postgresql', '@business-framework/sequence-generator'].map(packageElements),
-            elements: numbering
-        });
-        await start();
+describe('sequence-generator', () => {
+    before(async () => {
+        await boot({ paths: ['integration', 'database', 'sequence-generator'].map(name => packageElements(`@business-framework/${name}`)), elements: numbering });
+        interpret({ effects: [], stubs: { 'next-sequence-value': { run: ({ input }) => ({ value: input.sequence.length }) } } });
     });
 
-    after(stop);
+    after(() => interpret());
 
     it('validates', () => {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('counts from 1, independently per sequence', async () => {
-        const values = [
-            await invoke('sequences', 'next', { sequence: SEQUENCE }),
-            await invoke('sequences', 'next', { sequence: SEQUENCE }),
-            await invoke('sequences', 'next', { sequence: `${SEQUENCE}-other` })
-        ];
-        expect(values).to.deep.equal([{ value: 1 }, { value: 2 }, { value: 1 }]);
-    });
-
     it('provides the nextFromSequence keyword', async () => {
-        expect(await invoke('invoices', 'number', null)).to.equal(3);
+        expect(await invoke('invoices', 'number', null)).to.equal('invoice-number'.length);
     });
 
     it('rejects a sequence name with unsafe characters', async () => {

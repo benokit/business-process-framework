@@ -16,5 +16,34 @@
             },
             "lifecycle": { "startPosition": "first" }
         }
+    },
+    {
+        "id": "query",
+        "kind": "kind",
+        "data": { "extends": "integration", "defaults": { "provider": "database" } }
+    },
+    {
+        "id": "statement",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "statement",
+            "node": { "!statement": "@mapping", "parameters": "@mapping", "row": "@mapping" },
+            "implementation": [
+                {
+                    "outputKey": "result",
+                    "inputMap": {
+                        "command": { "$func/apply-mapping": { "mapping": "#.node.statement", "input": "#.input" } },
+                        "parameters": { "$coalesce": [{ "$func/apply-mapping": { "mapping": "#.node.parameters", "input": "#.input" } }, []] }
+                    },
+                    "invoke": { "instanceOf": "database" },
+                    "operation": "execute"
+                },
+                {
+                    "if": "#.node.row",
+                    "then": { "inputMap": "#.result.rows", "forEach": { "set": { "$func/apply-mapping": { "mapping": "#.node.row", "input": "#.item" } } } },
+                    "else": { "set": "#.result.rows" }
+                }
+            ]
+        }
     }
 ]

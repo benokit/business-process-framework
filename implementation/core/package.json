@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.js",
     "./kinds": "./src/kinds.js",
+    "./references": "./src/references.js",
     "./schemas": "./src/schemas.js",
     "./slots": "./src/slots.js",
     "./mappings": "./src/mappings.js",

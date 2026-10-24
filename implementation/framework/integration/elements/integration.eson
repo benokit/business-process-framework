@@ -1,0 +1,73 @@
+[
+    {
+        "id": "integration-implementation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!integration": "string", "!provider": "string", "!implementations[]": "object" }, "output": "@any" },
+            "module": "@business-framework/integration/integration",
+            "export": "integrationImplementation"
+        }
+    },
+    {
+        "id": "integration-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/integration/integration",
+            "export": "integrationProblems"
+        }
+    },
+    {
+        "id": "integration",
+        "kind": "kind",
+        "data": {
+            "shape": { "!provider": "@ref/kind", "!input": "@schema", "!output": "@schema", "errors[]": "string" },
+            "slots": {
+                "implementations": { "cardinality": "many", "value": { "!provider": "@ref/kind", "!implementation": "@method" } }
+            },
+            "operations": {
+                "run": {
+                    "input": "@any",
+                    "output": "@any",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/input"] } }, "value": "#.input" }, "invoke": "ajv", "operation": "assert" },
+                        {
+                            "outputKey": "implementation",
+                            "set": {
+                                "$func/integration-implementation": {
+                                    "integration": "#.self.id",
+                                    "provider": "#.self.data.provider",
+                                    "implementations": { "$func/slot-values": { "element": "#.self.id", "slot": "implementations" } }
+                                }
+                            }
+                        },
+                        {
+                            "outputKey": "output",
+                            "try": { "execute": "#.implementation" },
+                            "catch": {
+                                "if": { "$includes": { "_collection": { "$coalesce": ["#.self.data.errors", []] }, "_value": "#.error.code" } },
+                                "then": { "throw": "#.error" },
+                                "else": {
+                                    "throw": {
+                                        "code": "undeclared-error",
+                                        "message": { "$join": { "_strings": ["#.self.id", " raised ", "#.error.code", ", which it doesn't declare: ", "#.error.message"] } },
+                                        "data": { "integration": "#.self.id", "error": { "code": "#.error.code", "message": "#.error.message", "data": "#.error.data" } }
+                                    }
+                                }
+                            }
+                        },
+                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/output"] } }, "value": "#.output" }, "invoke": "ajv", "operation": "assert" },
+                        { "set": "#.output" }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "load": [
+                    { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/input"] } }, "schema": "#.self.data.input" }, "invoke": "ajv", "operation": "add" },
+                    { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/output"] } }, "schema": "#.self.data.output" }, "invoke": "ajv", "operation": "add" }
+                ],
+                "validate": { "$func/integration-problems": "#.self.id" }
+            }
+        }
+    }
+]

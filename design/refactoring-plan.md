@@ -37,9 +37,8 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R7.1 | `integration` kind and `query` in `database`; `sequence-generator` runs through queries implemented by a PostgreSQL package | F41 | `sequence-generator` holds no SQL; `validate()` reports a query without an implementation | draft |
 | R7.2 | Session operations of `database`; `transaction` built on them | F41 | `transaction` doesn't import the pool | draft |
-| R7.3 | `entities`, `entity-relations` and `transactional-outbox` move their SQL into PostgreSQL packages as query implementations | F41 | No package but the PostgreSQL ones holds SQL or imports `@business-framework/postgresql` | draft |
+| R7.3 | `entities`, `entity-relations` and `transactional-outbox` move their SQL into PostgreSQL packages as query implementations; the database normalizes driver errors (`23505` to `unique-violation`) | F41 | No package but the PostgreSQL ones holds SQL or imports `@business-framework/postgresql` | draft |
 
 ## Entity traits
 

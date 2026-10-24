@@ -17,3 +17,13 @@ The slot `models` holds the commands that create database objects (`{ "command":
 ```
 
 Use `after`/`before` between fills when one command needs another (an index after its table).
+
+## Queries
+
+A `query` is an [integration](../integration/README.md) with provider `database`: a logical operation of the module that needs it, with its contract and no dialect, implemented for each database kind by a fill on the query (in a package of its own, e.g. [sequence-generator-postgresql](../../infrastructure/sequence-generator-postgresql/README.md)). How many statements an implementation runs is its own concern.
+
+The keyword `statement` runs one command on the database and outputs its rows: `statement` and `parameters` are mappings of the node's input, `row` an optional mapping of each row.
+
+```json
+{ "outputKey": "rows", "inputMap": "#.name", "statement": { "$join": { "_strings": ["SELECT nextval('", "#", "') AS value"] } }, "row": { "value": { "$parseInt": "#.value" } } }
+```

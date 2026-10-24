@@ -25,7 +25,7 @@ const elements = [
     }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-relations'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-relations'];
 
 const relationsOf = async contract => (await invoke('entity-relation-database', 'relationsOf', { sourceEntityId: contract.id })).map(relation => relation.relationType).sort();
 

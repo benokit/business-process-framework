@@ -15,7 +15,7 @@ const elements = [
     } } }
 ];
 
-const packages = ['logging', 'database', 'postgresql', 'transaction', 'entities', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events'];
+const packages = ['logging', 'integration', 'database', 'postgresql', 'transaction', 'entities', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events'];
 
 const outbox = [];
 const logged = [];

@@ -73,6 +73,14 @@ const slotCalls = tree => {
     ];
 };
 
+const methodsOf = (value, type) => {
+    if (type === '@method') return [{ code: value, path: 'value' }];
+    return Object.entries(isPlainObject(type) ? type : {})
+        .filter(([, field]) => field === '@method')
+        .map(([key]) => key.replace(/^!/, ''))
+        .map(field => ({ code: value?.[field] ?? [], path: `value.${field}` }));
+};
+
 const ownExpressions = (node, keyword, template) => template
     ? [node.inputMap]
     : ['inputMap', keyword, ...nodeForms[keyword] ?? []].filter(key => !PIPELINE_KEYS.includes(key)).map(key => node[key]);
@@ -94,14 +102,14 @@ const analysis = () => {
         return operations.get(key);
     };
 
-    const fillEffects = (self, fill) => traced(pipelineEffects(fill.data.value, { self, author: fill.id ?? `a fill of ${fill.data.slot}` }, 'value'), `fill ${fill.id ?? fill.data.slot}`);
+    const fillEffects = (self, fill) => traced(union(methodsOf(fill.data.value, resolveKind(self.kind).slots[fill.data.slot].value)
+        .map(({ code, path }) => pipelineEffects(code, { self, author: fill.id ?? `a fill of ${fill.data.slot}` }, path))), `fill ${fill.id ?? fill.data.slot}`);
 
     const slotEffects = ({ element, slot }, ctx) => {
         const self = element === '#.self.id' ? ctx.self : selvesNamed(element)?.[0];
         if (self === undefined || typeof slot !== 'string') return new Map();
         if (!resolveKind(self.kind).slots[slot]) return new Map();
-        const { declaration, fills } = fillsOf(self, slot);
-        return declaration.value === '@method' ? union(fills.map(fill => fillEffects(self, fill))) : new Map();
+        return union(fillsOf(self, slot).fills.map(fill => fillEffects(self, fill)));
     };
 
     const invokeEffects = (node, ctx) => {

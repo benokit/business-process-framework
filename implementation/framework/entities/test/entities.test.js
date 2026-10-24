@@ -45,7 +45,7 @@ const elements = [
     fill('construction-note', CONSTRUCTION, 'traits', { trait: NOTE, configuration: { prefix: 'construction: ' } })
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities'].map(name => `@business-framework/${name}`);
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities'].map(name => `@business-framework/${name}`);
 
 const errorOf = promise => promise.then(() => null, error => error);
 

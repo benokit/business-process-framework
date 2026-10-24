@@ -15,7 +15,7 @@ const elements = [
     }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'entity-states', 'http-server', 'entities-http', 'entity-states-http'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-states', 'http-server', 'entities-http', 'entity-states-http'];
 
 const post = async (path, headers = {}) => {
     const { port } = await invoke('http-server', 'address', null);

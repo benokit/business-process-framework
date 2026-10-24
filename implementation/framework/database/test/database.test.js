@@ -7,7 +7,7 @@ const fill = (id, command, order = {}) => ({ id, kind: 'slot-fill', data: { targ
 
 describe('database', () => {
     it('validates', async () => {
-        await boot({ paths: [packageElements('@business-framework/database')] });
+        await boot({ paths: ['@business-framework/integration', '@business-framework/database'].map(packageElements) });
         expect(validate()).to.deep.equal([]);
     });
 
@@ -15,7 +15,7 @@ describe('database', () => {
         const { skipWithoutPostgres } = await import('../../../infrastructure/postgresql/test/helpers.js');
         await skipWithoutPostgres(this);
         await boot({
-            paths: ['@business-framework/database', '@business-framework/postgresql'].map(packageElements),
+            paths: ['@business-framework/integration', '@business-framework/database', '@business-framework/postgresql'].map(packageElements),
             elements: [
                 fill('b-index', `CREATE INDEX ${TABLE}_name ON ${TABLE} (name)`, { after: ['z-table'] }),
                 fill('z-table', `CREATE TABLE ${TABLE} (name TEXT)`)

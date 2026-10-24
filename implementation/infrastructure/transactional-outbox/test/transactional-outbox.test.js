@@ -45,7 +45,7 @@ const elements = [
     { id: 'the-orders', kind: 'orders', data: {} }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'messaging', 'transactional-outbox'].map(name => packageElements(`@business-framework/${name}`));
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'messaging', 'transactional-outbox'].map(name => packageElements(`@business-framework/${name}`));
 
 const eventually = async (check, timeout = 8000) => {
     const deadline = Date.now() + timeout;

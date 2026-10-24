@@ -19,7 +19,7 @@ const elements = [
     }
 ];
 
-const packages = ['database', 'postgresql', 'transaction', 'entities', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events', 'search', 'meilisearch', 'entity-search'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events', 'search', 'meilisearch', 'entity-search'];
 
 const keysFor = async query => (await invoke('entity-search', 'search', { entityType: PROJECT, query })).hits.map(hit => hit.key).sort();
 

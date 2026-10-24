@@ -2,7 +2,8 @@
 
 | Package | Description |
 | --- | --- |
-| [database](database/README.md) | The abstract `database` kind and its `models` slot |
+| [integration](integration/README.md) | Contracts owned by a consumer, implemented per provider kind |
+| [database](database/README.md) | The abstract `database` kind, its `models` slot, queries and the `statement` keyword |
 | [messaging](messaging/README.md) | Brokers, channels, consumers; `publish` keyword |
 | [entities](entities/README.md) | Entity types, traits, their slots and the entity store |
 | [entity-states](entity-states/README.md) | The `state` trait: states models and transitions |
