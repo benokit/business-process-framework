@@ -11,4 +11,5 @@
 | [http-server](http-server/README.md) | Express server; `http-endpoint` kind with request middleware |
 | [messaging-nats](messaging-nats/README.md) | NATS JetStream broker |
 | [transactional-outbox](transactional-outbox/README.md) | At-least-once delivery committed with the business transaction |
+| [transactional-outbox-postgresql](transactional-outbox-postgresql/README.md) | Outbox queries in PostgreSQL |
 | [meilisearch](meilisearch/README.md) | Meilisearch search engine |

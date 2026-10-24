@@ -15,26 +15,19 @@
         "data": { "target": "entity-type", "slot": "relations", "cardinality": "many", "value": "@method" }
     },
     {
-        "id": "entity-relation-store",
-        "kind": "kind",
-        "data": {
-            "operations": {
-                "setRelations": {
-                    "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" },
-                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "setRelations", "effects": ["write"] } }
-                },
-                "relationsOf": {
-                    "input": { "!sourceEntityId": "string" },
-                    "output": "[object]",
-                    "implementation": { "low": { "module": "@business-framework/entity-relations", "export": "relationsOf", "effects": ["read"] } }
-                }
-            }
-        }
+        "id": "entity-relation-target",
+        "kind": "schema",
+        "data": { "!targetEntityId": "string", "!relationType": "string" }
     },
     {
-        "id": "entity-relation-database",
-        "kind": "entity-relation-store",
-        "data": {}
+        "id": "set-entity-relations",
+        "kind": "query",
+        "data": { "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" }, "output": "@any", "errors": ["not-found"] }
+    },
+    {
+        "id": "entity-relations-of",
+        "kind": "query",
+        "data": { "input": { "!sourceEntityId": "string" }, "output": "[@entity-relation-target]" }
     },
     {
         "id": "maintain-entity-relations",
@@ -56,21 +49,11 @@
                             "sourceEntityId": "#.record.id",
                             "relations": { "$concat": { "$map": { "_over": "#.results", "_fn": "#.relations" } } }
                         },
-                        "invoke": "entity-relation-database",
-                        "operation": "setRelations"
+                        "invoke": "set-entity-relations",
+                        "operation": "run"
                     }
                 ]
             }
-        }
-    },
-    {
-        "id": "entity-relations-table",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "after": ["entities-table"],
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_relations (source_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, target_entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE, relation_type TEXT NOT NULL, PRIMARY KEY (source_entity_id, target_entity_id, relation_type))" }
         }
     }
 ]

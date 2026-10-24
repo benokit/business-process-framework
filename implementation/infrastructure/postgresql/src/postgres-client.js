@@ -41,7 +41,22 @@ const clientOf = sessionId => sessions.get(sessionId)
 
 export const queryable = _ctx => _ctx.transaction ? clientOf(_ctx.transaction.sessionId) : getPool();
 
-export const execute = ({ input, _ctx }) => queryable(_ctx).query(queryOf(input));
+const ERRORS = { 23505: 'unique-violation' };
+
+const jsonValue = value => value instanceof Date ? value.toISOString() : value;
+
+const jsonRow = row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, jsonValue(value)]));
+
+const normalized = error => ERRORS[error.code] ? new CoreError(ERRORS[error.code], error.message, { constraint: error.constraint }) : error;
+
+export const execute = async ({ input, _ctx }) => {
+    try {
+        const { rows, rowCount } = await queryable(_ctx).query(queryOf(input));
+        return { rows: rows.map(jsonRow), rowCount };
+    } catch (error) {
+        throw normalized(error);
+    }
+};
 
 export const begin = async ({ input: { isolation } }) => {
     const client = await getPool().connect();

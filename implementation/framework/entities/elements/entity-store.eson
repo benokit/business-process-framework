@@ -5,35 +5,47 @@
         "data": { "!entityType": "string", "!businessKey": "string:^.+$", "revision": "number" }
     },
     {
+        "id": "create-entity",
+        "kind": "query",
+        "data": {
+            "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": { "!body": "object" } },
+            "output": "@entity-record",
+            "errors": ["conflict"]
+        }
+    },
+    {
+        "id": "read-entity",
+        "kind": "query",
+        "data": { "input": "@entity-key", "output": "@entity-record", "errors": ["not-found"] }
+    },
+    {
+        "id": "update-entity",
+        "kind": "query",
+        "data": { "input": { "!before": "@entity-record", "!trait": "string", "!value": "@any" }, "output": "@entity-record", "errors": ["conflict"] }
+    },
+    {
+        "id": "delete-entity",
+        "kind": "query",
+        "data": { "input": { "!before": "@entity-record" }, "output": "@entity-record", "errors": ["conflict"] }
+    },
+    {
+        "id": "list-entities",
+        "kind": "query",
+        "data": {
+            "input": { "!entityType": "string", "limit": "number", "offset": "number" },
+            "output": { "!items[]": "@entity-record", "!total": "number" }
+        }
+    },
+    {
         "id": "entity-store",
         "kind": "kind",
         "data": {
             "operations": {
-                "create": {
-                    "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": { "!body": "object" } },
-                    "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "create", "effects": ["write"] } }
-                },
-                "read": {
-                    "input": "@entity-key",
-                    "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "read", "effects": ["read"] } }
-                },
-                "update": {
-                    "input": { "!before": "@entity-record", "!trait": "string", "!value": "@any" },
-                    "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "update", "effects": ["write"] } }
-                },
-                "delete": {
-                    "input": { "!before": "@entity-record" },
-                    "output": "@entity-record",
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "delete", "effects": ["write"] } }
-                },
-                "list": {
-                    "input": { "!entityType": "string", "limit": "number", "offset": "number" },
-                    "output": { "!items[]": "@entity-record", "!total": "number" },
-                    "implementation": { "low": { "module": "@business-framework/entities/store", "export": "list", "effects": ["read"] } }
-                }
+                "create": { "input": "@any", "output": "@any", "implementation": { "invoke": "create-entity", "operation": "run" } },
+                "read": { "input": "@any", "output": "@any", "implementation": { "invoke": "read-entity", "operation": "run" } },
+                "update": { "input": "@any", "output": "@any", "implementation": { "invoke": "update-entity", "operation": "run" } },
+                "delete": { "input": "@any", "output": "@any", "implementation": { "invoke": "delete-entity", "operation": "run" } },
+                "list": { "input": "@any", "output": "@any", "implementation": { "invoke": "list-entities", "operation": "run" } }
             }
         }
     },
@@ -41,34 +53,5 @@
         "id": "entity-database",
         "kind": "entity-store",
         "data": {}
-    },
-    {
-        "id": "entities-table",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entities (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), entity_type TEXT NOT NULL, business_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, data JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (entity_type, business_key))" }
-        }
-    },
-    {
-        "id": "entity-history-table",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "after": ["entities-table"],
-            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
-        }
-    },
-    {
-        "id": "entities-recent-index",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "after": ["entities-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS entities_recent ON entities (entity_type, timestamp_utc DESC)" }
-        }
     }
 ]

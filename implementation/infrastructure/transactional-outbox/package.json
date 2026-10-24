@@ -13,7 +13,11 @@
     "@business-framework/core": "*",
     "@business-framework/database": "*",
     "@business-framework/messaging": "*",
-    "@business-framework/postgresql": "*",
     "@business-framework/transaction": "*"
+  },
+  "devDependencies": {
+    "@business-framework/integration": "*",
+    "@business-framework/postgresql": "*",
+    "@business-framework/transactional-outbox-postgresql": "*"
   }
 }

@@ -1,0 +1,224 @@
+[
+    {
+        "id": "entity-row-record",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "object", "output": "@entity-record" },
+            "mapping": { "id": "#.id", "entityType": "#.entity_type", "businessKey": "#.business_key", "revision": "#.revision", "data": "#.data", "timestampUtc": "#.timestamp_utc" }
+        }
+    },
+    {
+        "id": "entity-revision",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!before": "@entity-record", "!trait": "string", "!value": "@any" }, "output": { "!data": "string", "!patch": "string" } },
+            "module": "@business-framework/entities-postgresql/history",
+            "export": "entityRevision"
+        }
+    },
+    {
+        "id": "entity-rewind",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!record": "@entity-record", "!patches[]": "object", "!revision": "number" }, "output": "@entity-record" },
+            "module": "@business-framework/entities-postgresql/history",
+            "export": "entityRewind"
+        }
+    },
+    {
+        "id": "create-entity-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "create-entity",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    {
+                        "outputKey": "rows",
+                        "try": {
+                            "statement": "INSERT INTO entities (entity_type, business_key, data, timestamp_utc) VALUES ($1, $2, $3, NOW()) RETURNING *",
+                            "parameters": ["#.entityType", "#.businessKey", "#.data"],
+                            "row": { "$func/entity-row-record": "#" }
+                        },
+                        "catch": {
+                            "if": { "$eq": ["#.error.code", "unique-violation"] },
+                            "then": {
+                                "throw": {
+                                    "code": "conflict",
+                                    "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' already exists"] } },
+                                    "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" }
+                                }
+                            },
+                            "else": { "throw": "#.error" }
+                        }
+                    },
+                    { "set": { "$head": "#.rows" } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "read-entity-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "read-entity",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    {
+                        "outputKey": "rows",
+                        "statement": "SELECT * FROM entities WHERE entity_type = $1 AND business_key = $2",
+                        "read": true,
+                        "parameters": ["#.entityType", "#.businessKey"],
+                        "row": { "$func/entity-row-record": "#" }
+                    },
+                    { "outputKey": "record", "set": { "$head": "#.rows" } },
+                    {
+                        "if": { "$negate": "#.record" },
+                        "then": {
+                            "throw": {
+                                "code": "not-found",
+                                "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' doesn't exist"] } },
+                                "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" }
+                            }
+                        }
+                    },
+                    { "if": { "$eq": [{ "$coalesce": ["#.input.revision", "#.record.revision"] }, "#.record.revision"] }, "then": { "return": "#.record" } },
+                    {
+                        "if": { "$conditional": { "_if": { "$lt": ["#.input.revision", 1] }, "_then": true, "_else": { "$gt": ["#.input.revision", "#.record.revision"] } } },
+                        "then": {
+                            "throw": {
+                                "code": "not-found",
+                                "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' has no revision ", "#.input.revision"] } },
+                                "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey", "revision": "#.input.revision" }
+                            }
+                        }
+                    },
+                    {
+                        "outputKey": "patches",
+                        "inputMap": { "id": "#.record.id", "from": "#.input.revision", "to": "#.record.revision" },
+                        "statement": "SELECT data_patch, timestamp_utc FROM entity_history WHERE id = $1 AND revision >= $2 AND revision < $3 ORDER BY revision DESC",
+                        "read": true,
+                        "parameters": ["#.id", "#.from", "#.to"]
+                    },
+                    { "set": { "$func/entity-rewind": { "record": "#.record", "patches": "#.patches", "revision": "#.input.revision" } } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "update-entity-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "update-entity",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    { "outputKey": "change", "set": { "$func/entity-revision": "#.input" } },
+                    {
+                        "outputKey": "rows",
+                        "inputMap": { "data": "#.change.data", "patch": "#.change.patch", "before": "#.input.before" },
+                        "statement": "WITH updated AS (UPDATE entities SET data = $1, revision = revision + 1, timestamp_utc = NOW() WHERE id = $2 AND revision = $3 RETURNING *), history AS (INSERT INTO entity_history (id, entity_type, revision, data_patch, timestamp_utc) SELECT id, entity_type, $3, $4, $5 FROM updated) SELECT * FROM updated",
+                        "parameters": ["#.data", "#.before.id", "#.before.revision", "#.patch", "#.before.timestampUtc"],
+                        "row": { "$func/entity-row-record": "#" }
+                    },
+                    {
+                        "if": { "$negate": { "$head": "#.rows" } },
+                        "then": {
+                            "throw": {
+                                "code": "conflict",
+                                "message": { "$join": { "_strings": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] } },
+                                "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
+                            }
+                        }
+                    },
+                    { "set": { "$head": "#.rows" } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "delete-entity-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "delete-entity",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    {
+                        "outputKey": "rows",
+                        "statement": "WITH deleted AS (DELETE FROM entities WHERE id = $1 AND revision = $2 RETURNING *), history AS (DELETE FROM entity_history WHERE id IN (SELECT id FROM deleted)) SELECT * FROM deleted",
+                        "parameters": ["#.before.id", "#.before.revision"],
+                        "row": { "$func/entity-row-record": "#" }
+                    },
+                    {
+                        "if": { "$negate": { "$head": "#.rows" } },
+                        "then": {
+                            "throw": {
+                                "code": "conflict",
+                                "message": { "$join": { "_strings": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] } },
+                                "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
+                            }
+                        }
+                    },
+                    { "set": { "$head": "#.rows" } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "list-entities-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "list-entities",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    {
+                        "outputKey": "items",
+                        "statement": "SELECT * FROM entities WHERE entity_type = $1 ORDER BY timestamp_utc DESC LIMIT LEAST($2::int, 200) OFFSET $3",
+                        "read": true,
+                        "parameters": ["#.entityType", { "$coalesce": ["#.limit", 50] }, { "$coalesce": ["#.offset", 0] }],
+                        "row": { "$func/entity-row-record": "#" }
+                    },
+                    { "outputKey": "totals", "statement": "SELECT COUNT(*)::int AS total FROM entities WHERE entity_type = $1", "read": true, "parameters": ["#.entityType"], "row": "#.total" },
+                    { "set": { "items": "#.items", "total": { "$head": "#.totals" } } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "entities-table",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "value": { "command": "CREATE TABLE IF NOT EXISTS entities (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), entity_type TEXT NOT NULL, business_key TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, data JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (entity_type, business_key))" }
+        }
+    },
+    {
+        "id": "entity-history-table",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["entities-table"],
+            "value": { "command": "CREATE TABLE IF NOT EXISTS entity_history (id UUID NOT NULL, entity_type TEXT NOT NULL, revision INTEGER NOT NULL, data_patch JSONB NOT NULL, timestamp_utc TIMESTAMPTZ NOT NULL, PRIMARY KEY (id, revision))" }
+        }
+    },
+    {
+        "id": "entities-recent-index",
+        "kind": "slot-fill",
+        "data": {
+            "target": "postgresql-database",
+            "slot": "models",
+            "after": ["entities-table"],
+            "value": { "command": "CREATE INDEX IF NOT EXISTS entities_recent ON entities (entity_type, timestamp_utc DESC)" }
+        }
+    }
+]

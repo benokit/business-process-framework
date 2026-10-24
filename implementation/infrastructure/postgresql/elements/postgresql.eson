@@ -15,6 +15,12 @@
                         { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }
                     ]
                 },
+                "read": {
+                    "implementation": [
+                        { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute", "effects": ["read"] } },
+                        { "set": { "rows": "#.result.rows", "rowCount": "#.result.rowCount" } }
+                    ]
+                },
                 "executeIrreversible": {
                     "implementation": [
                         { "outputKey": "result", "low": { "module": "@business-framework/postgresql", "export": "execute", "effects": ["irreversible"] } },

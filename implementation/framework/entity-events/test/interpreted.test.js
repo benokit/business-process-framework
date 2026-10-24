@@ -56,6 +56,6 @@ describe('entity events, interpreted with stubbed effects', () => {
         interpret({ stubs: { ...stubs, outbox: {} }, effects: ['trace'] });
         const error = await invoke(ORDER, 'create', { businessKey: 'o-3', body: { amount: 3 } }).catch(error => error);
         interpret({ stubs, effects: ['trace'] });
-        expect([error.code, error.data.export]).to.deep.equal(['stubbed-effect', 'put']);
+        expect([error.code, error.data.export]).to.deep.equal(['stubbed-effect', 'now']);
     });
 });

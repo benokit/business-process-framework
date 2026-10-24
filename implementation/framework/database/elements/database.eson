@@ -19,6 +19,7 @@
         "kind": "kind",
         "data": {
             "operations": {
+                "read": { "input": "@sql-command", "output": "@sql-result" },
                 "execute": { "input": "@sql-command", "output": "@sql-result" },
                 "executeIrreversible": { "input": "@sql-command", "output": "@sql-result" },
                 "begin": { "input": { "!isolation=1": ["read committed", "repeatable read", "serializable"] }, "output": "@database-session" },
@@ -49,7 +50,7 @@
         "kind": "execution-node-template",
         "data": {
             "keyword": "statement",
-            "node": { "!statement": "@mapping", "parameters": "@mapping", "row": "@mapping", "irreversible": "boolean" },
+            "node": { "!statement": "@mapping", "parameters": "@mapping", "row": "@mapping", "read": "boolean", "irreversible": "boolean" },
             "implementation": [
                 {
                     "outputKey": "command",
@@ -60,9 +61,13 @@
                 },
                 {
                     "outputKey": "result",
-                    "if": "#.node.irreversible",
-                    "then": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "executeIrreversible" },
-                    "else": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "execute" }
+                    "if": "#.node.read",
+                    "then": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "read" },
+                    "else": {
+                        "if": "#.node.irreversible",
+                        "then": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "executeIrreversible" },
+                        "else": { "inputMap": "#.command", "invoke": { "instanceOf": "database" }, "operation": "execute" }
+                    }
                 },
                 {
                     "if": "#.node.row",

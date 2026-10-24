@@ -25,9 +25,9 @@ const elements = [
     }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-relations'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-relations', 'entity-relations-postgresql'];
 
-const relationsOf = async contract => (await invoke('entity-relation-database', 'relationsOf', { sourceEntityId: contract.id })).map(relation => relation.relationType).sort();
+const relationsOf = async contract => (await invoke('entity-relations-of', 'run', { sourceEntityId: contract.id })).map(relation => relation.relationType).sort();
 
 describe('entity-relations', function () {
     before(async function () {

@@ -1,0 +1,12 @@
+{
+  "name": "@business-framework/transactional-outbox-postgresql",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@business-framework/postgresql": "*",
+    "@business-framework/transactional-outbox": "*"
+  }
+}

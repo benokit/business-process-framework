@@ -10,7 +10,7 @@ const elements = [
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'http-server', 'entities-http'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'http-server', 'entities-http'];
 
 const call = async (method, path, { body, headers = {} } = {}) => {
     const { port } = await invoke('http-server', 'address', null);

@@ -1,0 +1,13 @@
+{
+  "name": "@business-framework/entity-relations-postgresql",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@business-framework/entities-postgresql": "*",
+    "@business-framework/entity-relations": "*",
+    "@business-framework/postgresql": "*"
+  }
+}

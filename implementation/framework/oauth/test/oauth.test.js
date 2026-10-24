@@ -13,7 +13,7 @@ const elements = [
     { id: 'whoami-endpoint', kind: 'http-endpoint', data: { method: 'GET', path: '/whoami', target: { element: 'whoami', operation: 'whoami' }, request: {} } }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events', 'cache', 'http-server', 'security', 'users', 'oauth'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'transactional-outbox-postgresql', 'entity-events', 'cache', 'http-server', 'security', 'users', 'oauth'];
 
 const whoami = async token => {
     const { port } = await invoke('http-server', 'address', null);

@@ -54,4 +54,4 @@ A change is `{ operation: create | update | trait | delete, trait?, command?, va
 
 ## Storage
 
-`entity-database` (kind `entity-store`) writes PostgreSQL tables `entities` (`data` as one JSONB column) and `entity_history` (reverse JSON patches of `data` per revision), created as [models](../database/README.md#models). `update({ before, trait, value })` replaces one trait and `delete({ before })` removes the record with its history, each in one statement that applies only at `before.revision`. The store writes in the bound `transaction`, if any.
+`entity-database` (kind `entity-store`) runs the store operations `create`, `read` (at an optional `revision`), `update({ before, trait, value })` (replaces one trait), `delete({ before })` and `list`, each through its [query](../database/README.md#queries) (`create-entity`, `read-entity`, `update-entity`, `delete-entity`, `list-entities`), which owns the contract. `update` and `delete` apply only at `before.revision` (`conflict` otherwise); the store writes in the bound `transaction`, if any. Implementation: [entities-postgresql](../entities-postgresql/README.md).

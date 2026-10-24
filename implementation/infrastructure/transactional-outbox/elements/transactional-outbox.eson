@@ -11,7 +11,8 @@
             "operations": {
                 "put": {
                     "implementation": [
-                        { "outputKey": "put", "low": { "module": "@business-framework/transactional-outbox", "export": "put", "effects": ["write"] } },
+                        { "outputKey": "now", "invoke": "clock", "operation": "now" },
+                        { "outputKey": "put", "inputMap": { "$merge": ["#.input", { "now": "#.now" }] }, "invoke": "outbox-insert", "operation": "run" },
                         { "inputMap": { "messageId": "#.put.messageId" }, "afterCommit": { "invoke": "#.self.id", "operation": "deliverNow" } },
                         { "set": "#.put" }
                     ]
@@ -53,12 +54,12 @@
                 "skip": {
                     "input": { "!messageIds[]": "string" },
                     "output": { "!count": "number" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "skip", "effects": ["irreversible"] } }
+                    "implementation": { "invoke": "outbox-skip-failed", "operation": "run" }
                 },
                 "purge": {
                     "input": { "!deliveredBefore": "string" },
                     "output": { "!count": "number" },
-                    "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "purge", "effects": ["irreversible"] } }
+                    "implementation": { "invoke": "outbox-purge", "operation": "run" }
                 }
             },
             "lifecycle": {
@@ -73,35 +74,16 @@
         "kind": "transactional-outbox",
         "data": {}
     },
-    {
-        "id": "transactional-outbox-table",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "value": {
-                "command": "CREATE TABLE IF NOT EXISTS transactional_outbox (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), channel TEXT NOT NULL, message_id TEXT NOT NULL UNIQUE, message_group TEXT NOT NULL, position BIGSERIAL, envelope JSONB NOT NULL, status INTEGER NOT NULL DEFAULT 0, retry_count INTEGER NOT NULL DEFAULT 0, process_after_timestamp_utc TEXT NOT NULL, processed_at TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
-            }
-        }
-    },
-    {
-        "id": "transactional-outbox-pending-index",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "after": ["transactional-outbox-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_pending ON transactional_outbox (process_after_timestamp_utc) WHERE status = 0" }
-        }
-    },
-    {
-        "id": "transactional-outbox-group-head-index",
-        "kind": "slot-fill",
-        "data": {
-            "target": "postgresql-database",
-            "slot": "models",
-            "after": ["transactional-outbox-table"],
-            "value": { "command": "CREATE INDEX IF NOT EXISTS outbox_group_head ON transactional_outbox (message_group, position) WHERE status IN (0, 2)" }
-        }
-    }
+    { "id": "outbox-item", "kind": "schema", "data": { "!id": "string", "!messageId": "string", "!channel": "string", "!envelope": "@message-envelope", "!retryCount": "number" } },
+    { "id": "outbox-insert", "kind": "query", "data": { "input": { "!channel": "string", "!envelope": "@message-envelope", "!now": "string" }, "output": { "!messageId": "string" } } },
+    { "id": "outbox-claim", "kind": "query", "data": { "input": { "!messageId": "string", "!now": "string", "!lockedUntil": "string", "!pausedChannels[]": "string" }, "output": { "!claimed": "boolean", "channel": "string", "envelope": "@message-envelope" } } },
+    { "id": "outbox-mark-delivered", "kind": "query", "data": { "input": { "!messageId": "string", "!processedAt": "string" }, "output": { "!channel": "string" } } },
+    { "id": "outbox-entry", "kind": "query", "data": { "input": { "!messageId": "string" }, "output": { "!id": "string", "!channel": "string", "!retryCount": "number" } } },
+    { "id": "outbox-retry-later", "kind": "query", "data": { "input": { "!id": "string", "!processAfter": "string" }, "output": "@any" } },
+    { "id": "outbox-mark-failed", "kind": "query", "data": { "input": { "!id": "string" }, "output": "@any" } },
+    { "id": "outbox-release", "kind": "query", "data": { "input": { "!id": "string", "!processAfter": "string" }, "output": "@any" } },
+    { "id": "outbox-lock-batch", "kind": "query", "data": { "input": { "!now": "string", "!lockedUntil": "string", "!pausedChannels[]": "string", "!batchSize": "number" }, "output": "[@outbox-item]" } },
+    { "id": "outbox-replay", "kind": "query", "data": { "input": { "messageIds[]": "string", "channel": "string", "from": "string", "to": "string", "!now": "string" }, "output": { "!count": "number" } } },
+    { "id": "outbox-skip-failed", "kind": "query", "data": { "input": { "!messageIds[]": "string" }, "output": { "!count": "number" } } },
+    { "id": "outbox-purge", "kind": "query", "data": { "input": { "!deliveredBefore": "string" }, "output": { "!count": "number" } } }
 ]

@@ -20,7 +20,7 @@ const elements = [
     { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record', effects: ['irreversible'] } } } }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'entity-events'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'transactional-outbox-postgresql', 'entity-events'];
 
 const eventually = async (check, timeout = 10000) => {
     const deadline = Date.now() + timeout;

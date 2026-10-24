@@ -4,7 +4,7 @@ import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/hel
 
 const run = Date.now();
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entity-states', 'users'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'users'];
 
 describe('users', function () {
     before(async function () {
