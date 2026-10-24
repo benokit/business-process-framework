@@ -50,10 +50,5 @@
                 "mapping": { "set": { "businessKey": "#.input.businessKey", "partyType": "#.input.data.body.partyType", "name": "#.input.data.body.name", "email": "#.input.data.body.email" } }
             }
         }
-    },
-    {
-        "id": "reindex-parties",
-        "kind": "on-startup",
-        "data": { "inputMap": { "entityType": "party" }, "invoke": "entity-search", "operation": "reindex" }
     }
 ]

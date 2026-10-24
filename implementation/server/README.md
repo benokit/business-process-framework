@@ -14,10 +14,10 @@ Configuration comes from `app-config` elements and `BPF__<section>__<key>` envir
 
 ## on-startup
 
-A kind whose instances are pipelines run once at start, in the last position, with an empty input. Use it for warm-up work that needs started resources, such as reindexing.
+A kind whose instances are pipelines run once at start, in the last position, with an empty input. Use it for work that needs started resources; it delays the start, so keep it short.
 
 ```json
-{ "kind": "on-startup", "data": { "inputMap": { "entityType": "party" }, "invoke": "entity-search", "operation": "reindex" } }
+{ "kind": "on-startup", "data": { "log": "\\application started" } }
 ```
 
 `startServer({ packages?, paths?, elements? })` (from `@business-framework/server`) does the same in a process of your own and returns `stop`.
