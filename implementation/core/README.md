@@ -87,7 +87,7 @@ Bounds constrain what is inferred, they never declare it:
 - A slot's `effects` lists the effects its fills may have (`guards`: `read`, `trace`).
 - A kind checks more in its `validate` hook with `$func/changes-of` (`http-endpoint`: a `GET` target changes nothing).
 
-A bound that inference contradicts is an `effect-bound` problem with the trace. [`bpf explain`](../tools/README.md) shows the effects of every operation of an instance. Not seen: what a computed `execute` runs (other than slot fills read with `$func/slot-values`), and repeated visits of an operation in a cycle, which count once.
+A bound that inference contradicts is an `effect-bound` problem with the trace. [`bpf explain`](../tools/README.md) shows the effects of every operation of an instance. Operations that reach each other in a cycle get the effects of the whole cycle. Not seen: what a computed `execute` runs (other than slot fills read with `$func/slot-values`).
 
 ## Interpreters
 

@@ -85,14 +85,14 @@ const ownExpressions = (node, keyword, template) => template
     ? [node.inputMap]
     : ['inputMap', keyword, ...nodeForms[keyword] ?? []].filter(key => !PIPELINE_KEYS.includes(key)).map(key => node[key]);
 
-const analysis = () => {
+const analysis = previous => {
     const operations = new Map();
     const problems = new Map();
 
     const operationEffects = (self, operation) => {
         const key = `${self.id} ${operation}`;
         if (!operations.has(key)) {
-            operations.set(key, new Map());
+            operations.set(key, previous.get(key) ?? new Map());
             const kind = resolveKind(self.kind);
             const owner = kind.chain.findLast(k => k.data.operations?.[operation]?.implementation);
             const code = owner?.data.operations[operation].implementation;
@@ -162,7 +162,15 @@ const analysis = () => {
         ? union(pipeline.map((node, index) => nodeEffects(node, ctx, `${path}[${index}]`)))
         : nodeEffects(pipeline, ctx, path);
 
-    return { operationEffects, fillEffects, problems };
+    return { operations, operationEffects, fillEffects, problems };
+};
+
+const grown = (operations, previous) => [...operations].some(([key, effects]) => [...effects.keys()].some(effect => !previous.get(key)?.has(effect)));
+
+const converged = (visit, previous = new Map()) => {
+    const run = analysis(previous);
+    visit(run);
+    return grown(run.operations, previous) ? converged(visit, run.operations) : run;
 };
 
 const instances = () => allElements().filter(element => element.id !== undefined && element.kind !== 'kind').map(selfOf);
@@ -176,12 +184,14 @@ const fillBoundProblems = ({ fillEffects }) => instances().flatMap(self =>
             ]))));
 
 export const effectProblems = () => {
-    const run = analysis();
-    instances().forEach(self => Object.keys(resolveKind(self.kind).operations).forEach(operation => run.operationEffects(self, operation)));
+    const run = converged(({ operationEffects }) => instances().forEach(self => Object.keys(resolveKind(self.kind).operations).forEach(operation => operationEffects(self, operation))));
     return [...new Map([...run.problems, ...fillBoundProblems(run)])].map(([message, data]) => () => fail('effect-bound', message, data));
 };
 
-const effectMapOf = ({ element, operation }) => analysis().operationEffects(selfOf(findElement(element)), operation);
+const effectMapOf = ({ element, operation }) => {
+    const self = selfOf(findElement(element));
+    return converged(({ operationEffects }) => operationEffects(self, operation)).operationEffects(self, operation);
+};
 
 export const effectsOf = request => classesOf(effectMapOf(request));
 

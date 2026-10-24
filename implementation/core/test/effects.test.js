@@ -79,4 +79,22 @@ describe('effects', () => {
         expect(effectsOf({ element: 'the-checked', operation: 'run' })).to.deep.equal(['read', 'write']);
         expect(problems()).to.deep.equal([['effect-bound', 'checks', 'write']]);
     });
+
+    it('counts the effects an operation reaches through a cycle entered elsewhere', async () => {
+        const cycle = [
+            kind('guarded', {
+                slots: { guards: { cardinality: 'many', value: '@method', effects: ['read'] } },
+                operations: {
+                    create: operation({ invoke: '#.self.id', operation: 'apply' }),
+                    update: operation({ invoke: '#.self.id', operation: 'apply' }),
+                    apply: operation([{ inputMap: { '$func/slot-values': { element: '#.self.id', slot: 'guards' } }, forEach: { execute: '#.item' } }, call('put')])
+                }
+            }),
+            element('the-guarded', 'guarded'),
+            { id: 'updating-guard', kind: 'slot-fill', data: { target: 'guarded', slot: 'guards', value: { invoke: 'the-guarded', operation: 'update' } } }
+        ];
+        await bootRunner({ set: null }, {}, cycle);
+        expect(effectsOf({ element: 'the-guarded', operation: 'update' })).to.deep.equal(['write']);
+        expect(problems()).to.deep.equal([['effect-bound', 'guards', 'write']]);
+    });
 });

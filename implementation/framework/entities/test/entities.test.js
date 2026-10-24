@@ -58,8 +58,8 @@ describe('entities', function () {
 
     after(stop);
 
-    it('validates', () => {
-        expect(validate()).to.deep.equal([]);
+    it('validates, apart from the guard that simulates a concurrent writer', () => {
+        expect(validate().map(({ code, data }) => [code, data.slot, data.effect])).to.deep.equal([['effect-bound', 'guards', 'write']]);
     });
 
     it('creates with the body and initial trait values, and reads back', async () => {
