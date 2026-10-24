@@ -33,6 +33,17 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | R4.11 | CI: install, lint, every package's tests and `bpf validate` on the demo, with PostgreSQL, NATS and Meilisearch as services | G6 | A push runs the checks and reports failures | draft |
 | R4.13 | Decide how to split pipelines: orchestration as data, computation as mappings or pure functions | F9, Q1 | A decision is recorded in the critique | draft |
 
+## Delivery
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R8.1 | The server loads the modules the application declares in its `package.json` (and what they depend on), resolved from the application's root | F43 | An application outside the monorepo starts with the packages it declares, and only those | draft |
+| R8.2 | `bpf start [--watch]`: start an application from its root; `--watch` reboots when an element file changes | F43 | The demo runs with `bpf start`, and an edited `.eson` file takes effect without a manual restart | draft |
+| R8.3 | Releases: every package at one version, internal dependencies pinned to it, published to GitHub Packages by a release workflow after CI passes | F43, R4.11 | Publishing a version tag makes every package installable from the registry at that version | draft |
+| R8.4 | Scaffold `create-business-framework`: `package.json` with the chosen adapters, `elements/`, compose services for them, a Dockerfile, agent instructions | F43 | A scaffolded application validates, starts against its compose services and builds an image | draft |
+| R8.5 | Migrations as a separate step: declared migrations, `bpf migrate`, a start that checks the database version | F44 | Tables change through migrations only; a start against an outdated database fails | draft |
+| R8.6 | Liveness and readiness endpoints | F43 | An orchestrator can tell a starting or stopping server from a ready one | draft |
+
 ## Entity traits
 
 | ID | Step | Refs | Done when | Status |
