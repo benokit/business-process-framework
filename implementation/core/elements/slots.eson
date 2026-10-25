@@ -7,7 +7,7 @@
             "lifecycle": {
                 "load": {
                     "inputMap": {
-                        "id": { "$join": { "_strings": ["#.self.data.target", "/slots/", "#.self.data.slot"] } },
+                        "id": { "$str": ["#.self.data.target", "/slots/", "#.self.data.slot"] },
                         "schema": "#.self.data.value"
                     },
                     "invoke": "ajv", "operation": "add"

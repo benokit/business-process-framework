@@ -4,8 +4,8 @@ import { bootWith, element, kind, operation } from './helpers.js';
 
 const store = [
     kind('store', { operations: { put: operation(undefined, { '!value': 'number' }, 'string') } }),
-    kind('memory-store', { extends: 'store', operations: { put: { implementation: { set: '\\memory' } } } }),
-    kind('disk-store', { extends: 'store', operations: { put: { implementation: { set: '\\disk' } } } })
+    kind('memory-store', { extends: 'store', operations: { put: { implementation: { set: 'memory' } } } }),
+    kind('disk-store', { extends: 'store', operations: { put: { implementation: { set: 'disk' } } } })
 ];
 
 const binding = (abstraction, instance) => ({ kind: 'binding', data: { abstraction, instance } });

@@ -13,7 +13,7 @@
                     "input": "@entity-request",
                     "implementation": {
                         "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
-                        "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                        "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
                     }
                 },
                 "create": {
@@ -58,8 +58,8 @@
                         "set": {
                             "items": {
                                 "$map": {
-                                    "_over": { "$func/instances-of": "entity-type" },
-                                    "_fn": { "id": "#.id", "kind": "#.kind", "bodySchema": "#.data.bodySchema", "traits": { "$func/entity-traits": "#.id" } }
+                                    "over": { "$func/instances-of": "entity-type" },
+                                    "fn": { "id": "#.id", "kind": "#.kind", "bodySchema": "#.data.bodySchema", "traits": { "$func/entity-traits": "#.id" } }
                                 }
                             }
                         }
@@ -78,7 +78,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "@any" },
-            "mapping": { "$parseInt": { "$replace": { "_regex": "\"", "_substitute": "", "_string": { "$coalesce": ["#", ""] }, "_global": true } } }
+            "mapping": { "$parseInt": { "$replace": { "regex": "\"", "substitute": "", "string": { "$coalesce": ["#", ""] }, "global": true } } }
         }
     },
     {
@@ -86,7 +86,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "number", "output": "string" },
-            "mapping": { "$join": { "_strings": ["\"", "#", "\""] } }
+            "mapping": { "$str": ["\"", "#", "\""] }
         }
     }
 ]

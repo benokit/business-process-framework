@@ -20,17 +20,17 @@ const elements = ({ binding = 'english', fills }) => [
 
 const bootWith = options => boot({ paths: [packageElements('@business-framework/integration')], elements: elements(options) });
 
-const greet = { set: { $join: { _strings: ['#.input.name', '\\!'] } } };
+const greet = { set: { $str: ['#.input.name', '!'] } };
 
 describe('integration', () => {
     it('runs the implementation for the most specific kind of the bound provider', async () => {
-        await bootWith({ fills: [implementation('greeter', greet), implementation('polite-greeter', { set: '\\polite' })] });
+        await bootWith({ fills: [implementation('greeter', greet), implementation('polite-greeter', { set: 'polite' })] });
         expect(await invoke('greeting', 'run', { name: 'Ann' })).to.equal('polite');
         expect(validate()).to.deep.equal([]);
     });
 
     it('falls back to an implementation for a more general kind', async () => {
-        await bootWith({ binding: 'pirate', fills: [implementation('greeter', greet), implementation('polite-greeter', { set: '\\polite' })] });
+        await bootWith({ binding: 'pirate', fills: [implementation('greeter', greet), implementation('polite-greeter', { set: 'polite' })] });
         expect(await invoke('greeting', 'run', { name: 'Ann' })).to.equal('Ann!');
     });
 
@@ -41,7 +41,7 @@ describe('integration', () => {
     });
 
     it('passes declared errors and refuses undeclared ones', async () => {
-        await bootWith({ fills: [implementation('greeter', { if: { $eq: ['#.input.name', '\\nobody'] }, then: { throw: { code: 'not-found', message: 'no one' } }, else: { throw: 'broken' } })] });
+        await bootWith({ fills: [implementation('greeter', { if: { $eq: ['#.input.name', 'nobody'] }, then: { throw: { code: 'not-found', message: 'no one' } }, else: { throw: 'broken' } })] });
         expect((await errorOf(invoke('greeting', 'run', { name: 'nobody' }))).code).to.equal('not-found');
         const error = await errorOf(invoke('greeting', 'run', { name: 'Ann' }));
         expect([error.code, error.data.error.code]).to.deep.equal(['undeclared-error', 'error']);

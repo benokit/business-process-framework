@@ -25,7 +25,7 @@ Ask the registry before reading element files (in `implementation/`, add `../dem
 
 ## LambdaJSON
 
-Key refs: `"#"` (input), `"#.field"` (lodash path), `"@name"` ($let var), `"\\literal"` (escape). Expression forms: primitive (≤2 keys, all registered), function call (≤2 keys, all `$`), plain object (everything else). `{ "$literal": … }` keeps a tree as data. Pure functions are `$func/<id>`.
+Key refs: `"#"` (input), `"#.field"` (lodash path), `"@name"` ($let var or lambda parameter), `"\\literal"` (escape, needed only before `#`, `@` or `\\`). Every object with a `$` key is a call (one call key, optionally beside `$let`); a plain object escapes its `$` keys (`"\\$id"`). Named arguments have no `_` prefix (`{ "$join": { "separator": "-", "strings": "#.parts" } }`); higher-order primitives name their lambda's parameters with `as` (`{ "$map": { "over": "#.lines", "as": "line", "fn": "@line.price" } }`). Conditions: `$if` `[test, then, else]`, `$cond` `[[test, value], …, ["else", value]]`, `$and`, `$or`, `$not`; strings: `$str` `[a, b, …]`. `{ "$literal": … }` keeps a tree as data. Pure functions are `$func/<id>`. `npx bpf vocabulary` lists the primitives with their arguments.
 
 ## Documentation rules
 

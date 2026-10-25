@@ -14,7 +14,7 @@
                         { "outputKey": "result", "set": { "$func/schema-validate": { "schemaId": "#.input.schemaId", "value": "#.input.value" } } },
                         {
                             "if": { "$negate": "#.result.isValid" },
-                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["\\value doesn't match ", "#.input.schemaId"] } }, "data": { "errors": "#.result.errors" } } }
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["value doesn't match ", "#.input.schemaId"] }, "data": { "errors": "#.result.errors" } } }
                         },
                         { "set": "#.input.value" }
                     ]

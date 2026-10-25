@@ -5,7 +5,7 @@ Kind `logger`, instance `logging`: `log({ message, level?, context? })` writes o
 Keyword `log` (an `execution-node-template`); its output is `null`:
 
 ```json
-{ "log": { "$join": { "_strings": ["payment failed: ", "#.input.reason"] } }, "level": "warn", "context": { "orderId": "#.input.orderId" } }
+{ "log": { "$str": ["payment failed: ", "#.input.reason"] }, "level": "warn", "context": { "orderId": "#.input.orderId" } }
 ```
 
 `log` and `context` are mappings over the node (`#.input` is the node's input), so a plain string is logged as written; `level` is one of the levels as written.

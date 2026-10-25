@@ -50,7 +50,7 @@ describe('logging', () => {
     });
 
     it('computes message and context from the node input', async () => {
-        await run({ inputMap: { id: '\\o-1' }, log: { $join: { _strings: ['order ', '#.input.id'] } }, context: { orderId: '#.input.id' } });
+        await run({ inputMap: { id: 'o-1' }, log: { $str: ['order ', '#.input.id'] }, context: { orderId: '#.input.id' } });
         expect(lastEntry('stdout')).to.include({ message: 'order o-1', orderId: 'o-1' });
     });
 

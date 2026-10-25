@@ -5,7 +5,7 @@ import { bootWith, element, kind, operation } from './helpers.js';
 describe('kinds', () => {
     it('invokes an operation inherited along extends, with #.self bound', async () => {
         await bootWith(
-            kind('greeter', { shape: { '!greeting': 'string' }, operations: { greet: operation({ set: { $join: { _strings: ['#.self.data.greeting', ' ', '#.input'] } } }) } }),
+            kind('greeter', { shape: { '!greeting': 'string' }, operations: { greet: operation({ set: { $str: ['#.self.data.greeting', ' ', '#.input'] } }) } }),
             kind('polite-greeter', { extends: 'greeter' }),
             element('hello', 'polite-greeter', { greeting: 'Hello' }));
         expect(await invoke('hello', 'greet', 'Ada')).to.equal('Hello Ada');
@@ -29,7 +29,7 @@ describe('kinds', () => {
 
     it('rejects output that violates the operation contract', async () => {
         await bootWith(
-            kind('liar', { operations: { answer: operation({ set: '\\text' }, '@any', 'number') } }),
+            kind('liar', { operations: { answer: operation({ set: 'text' }, '@any', 'number') } }),
             element('l', 'liar'));
         const error = await invoke('l', 'answer', null).catch(e => e);
         expect(error.code).to.equal('invalid');

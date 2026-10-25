@@ -30,7 +30,7 @@
             "implementation": {
                 "inputMap": {
                     "message": { "$func/apply-mapping": { "mapping": "#.node.log", "input": "#" } },
-                    "level": { "$coalesce": ["#.node.level", "\\info"] },
+                    "level": { "$coalesce": ["#.node.level", "info"] },
                     "context": { "$coalesce": [{ "$func/apply-mapping": { "mapping": "#.node.context", "input": "#" } }, {}] }
                 },
                 "invoke": "logging",

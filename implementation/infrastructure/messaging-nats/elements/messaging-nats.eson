@@ -11,13 +11,13 @@
             "operations": {
                 "publish": {
                     "implementation": [
-                        { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
+                        { "outputKey": "url", "set": { "$get": { "object": { "$func/app-config-section": "nats" }, "path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "publish", "effects": ["irreversible"] } }
                     ]
                 },
                 "subscribe": {
                     "implementation": [
-                        { "outputKey": "url", "set": { "$get": { "_object": { "$func/app-config-section": "nats" }, "_path": "url" } } },
+                        { "outputKey": "url", "set": { "$get": { "object": { "$func/app-config-section": "nats" }, "path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "subscribe", "effects": ["irreversible"] } }
                     ]
                 },

@@ -33,7 +33,7 @@
         "data": {
             "target": "entity-type",
             "slot": "eventGroup",
-            "value": { "$join": { "_strings": ["#.entityType", "#.businessKey"], "_separator": "/" } }
+            "value": { "$join": { "strings": ["#.entityType", "#.businessKey"], "separator": "/" } }
         }
     },
     {
@@ -56,7 +56,7 @@
                             "command": "#.input.command"
                         },
                         "subject": "#.record.entityType",
-                        "messageId": { "$join": { "_strings": ["#.record.id", "#.record.revision", "#.input.operation"], "_separator": "-" } },
+                        "messageId": { "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation"], "separator": "-" } },
                         "group": { "$func/apply-mapping": { "mapping": { "$func/slot-values": { "element": "#.self.id", "slot": "eventGroup" } }, "input": "#.record" } }
                     },
                     "publish": "entity-events"

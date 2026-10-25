@@ -9,8 +9,8 @@ const service = [
         slots: { around: { cardinality: 'many', value: '@method' } },
         operations: {
             run: operation({
-                middleware: { '$func/slot-values': { element: '#.self.id', slot: '\\around' } },
-                action: { set: { $concat: ['#.input', ['\\action']] } }
+                middleware: { '$func/slot-values': { element: '#.self.id', slot: 'around' } },
+                action: { set: { $concat: ['#.input', ['action']] } }
             })
         }
     }),
@@ -20,13 +20,13 @@ const service = [
 describe('middleware', () => {
     it('runs methods outside to inside around the action, before and after next', async () => {
         await bootWith(service,
-            fill('outer', [{ outputKey: 'result', inputMap: { $concat: ['#.input', ['\\outer']] }, next: true }, { set: { $concat: ['#.result', ['\\outer-after']] } }], { position: 'first' }),
-            fill('inner', { inputMap: { $concat: ['#.input', ['\\inner']] }, next: true }));
+            fill('outer', [{ outputKey: 'result', inputMap: { $concat: ['#.input', ['outer']] }, next: true }, { set: { $concat: ['#.result', ['outer-after']] } }], { position: 'first' }),
+            fill('inner', { inputMap: { $concat: ['#.input', ['inner']] }, next: true }));
         expect(await invoke('service', 'run', [])).to.deep.equal(['outer', 'inner', 'action', 'outer-after']);
     });
 
     it('lets a method short-circuit', async () => {
-        await bootWith(service, fill('guard', { set: '\\stopped' }));
+        await bootWith(service, fill('guard', { set: 'stopped' }));
         expect(await invoke('service', 'run', [])).to.equal('stopped');
     });
 

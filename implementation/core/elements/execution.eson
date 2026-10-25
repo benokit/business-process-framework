@@ -24,7 +24,7 @@
             "lifecycle": {
                 "load": {
                     "if": "#.self.data.node",
-                    "then": { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/node"] } }, "schema": "#.self.data.node" }, "invoke": "ajv", "operation": "add" }
+                    "then": { "inputMap": { "id": { "$str": ["#.self.id", "/node"] }, "schema": "#.self.data.node" }, "invoke": "ajv", "operation": "add" }
                 }
             }
         }

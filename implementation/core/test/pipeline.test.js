@@ -35,31 +35,31 @@ describe('pipelines', () => {
 
     it('runs if, switch and forEach, whose body sees the item and the outer input', async () => {
         expect(await run([
-            { outputKey: 'kind', if: { $gt: ['#.input', 0] }, then: { set: '\\positive' }, else: { set: '\\other' } },
-            { outputKey: 'label', switch: { value: '#.kind', cases: { positive: { set: '\\+' }, default: { set: '\\?' } } } },
-            { inputMap: ['#.label', '#.label'], forEach: { set: { $join: { _strings: ['#.item', '#.input'] } } } }
+            { outputKey: 'kind', if: { $gt: ['#.input', 0] }, then: { set: 'positive' }, else: { set: 'other' } },
+            { outputKey: 'label', switch: { value: '#.kind', cases: { positive: { set: '+' }, default: { set: '?' } } } },
+            { inputMap: ['#.label', '#.label'], forEach: { set: { $str: ['#.item', '#.input'] } } }
         ], 5)).to.deep.equal(['+5', '+5']);
     });
 
     it('ends the method with return', async () => {
         expect(await run([
-            { if: true, then: [{ return: '\\early' }] },
-            { set: '\\late' }
+            { if: true, then: [{ return: 'early' }] },
+            { set: 'late' }
         ])).to.equal('early');
     });
 
     it('catches thrown values and always runs finally', async () => {
         expect(await run([
             {
-                try: { throw: '\\boom' },
-                catch: { set: { $join: { _strings: ['\\caught ', '#.error.code', '\\ ', '#.error.message'] } } },
+                try: { throw: 'boom' },
+                catch: { set: { $str: ['caught ', '#.error.code', ' ', '#.error.message'] } },
                 finally: { set: 1 }
             }
         ])).to.equal('caught error boom');
     });
 
     it('throws typed errors from objects', async () => {
-        const error = await run({ throw: { code: '\\conflict', message: '\\taken', data: { key: 1 } } }).catch(e => e);
+        const error = await run({ throw: { code: 'conflict', message: 'taken', data: { key: 1 } } }).catch(e => e);
         expect([error.code, error.message, error.data]).to.deep.equal(['conflict', 'taken', { key: 1 }]);
     });
 

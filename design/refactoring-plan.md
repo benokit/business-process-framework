@@ -22,7 +22,6 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R3.1 | Add `$and` and `$or` to LambdaJSON | F12 | Both short-circuit; covered by tests | draft |
 | R3.2 | Checked pure functions: arguments and results checked against the `signature`; declared `examples` run in `validate()` | F11 | A wrong argument or result fails; a failing example is reported | draft |
 | R3.3 | Purity checks: frozen inputs, a lint configuration for pure modules, a determinism test | F11 | CI runs these checks for every pure function | draft |
 
@@ -31,7 +30,7 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R4.11 | CI: install, lint, every package's tests and `bpf validate` on the demo, with PostgreSQL, NATS and Meilisearch as services | G6 | A push runs the checks and reports failures | draft |
-| R4.13 | Decide how to split pipelines: orchestration as data, computation as mappings or pure functions | F9, Q1 | A decision is recorded in the critique | draft |
+| R4.13 | Decide how to split pipelines: orchestration as data, computation as mappings or pure functions | F9, G10 | A decision is recorded in the critique | draft |
 
 ## Delivery
 

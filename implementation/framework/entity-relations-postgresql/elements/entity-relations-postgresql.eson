@@ -21,9 +21,7 @@
                             "throw": {
                                 "code": "not-found",
                                 "message": {
-                                    "$join": {
-                                        "_strings": ["related ", "#.target.targetEntityType", " '", "#.target.targetEntityBusinessKey", "' doesn't exist"]
-                                    }
+                                    "$str": ["related ", "#.target.targetEntityType", " '", "#.target.targetEntityBusinessKey", "' doesn't exist"]
                                 },
                                 "data": "#.target"
                             }

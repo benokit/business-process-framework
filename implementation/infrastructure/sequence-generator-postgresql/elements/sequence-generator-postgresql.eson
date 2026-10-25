@@ -8,9 +8,9 @@
             "value": {
                 "provider": "postgresql-database",
                 "implementation": [
-                    { "outputKey": "name", "set": { "$join": { "_strings": ["seq_", { "$replace": { "_regex": "-", "_substitute": "_", "_string": "#.input.sequence", "_global": true } }] } } },
-                    { "inputMap": "#.name", "statement": { "$join": { "_strings": ["CREATE SEQUENCE IF NOT EXISTS ", "#", " START 1"] } } },
-                    { "outputKey": "rows", "inputMap": "#.name", "statement": { "$join": { "_strings": ["SELECT nextval('", "#", "') AS value"] } }, "irreversible": true, "row": { "value": { "$parseInt": "#.value" } } },
+                    { "outputKey": "name", "set": { "$str": ["seq_", { "$replace": { "regex": "-", "substitute": "_", "string": "#.input.sequence", "global": true } }] } },
+                    { "inputMap": "#.name", "statement": { "$str": ["CREATE SEQUENCE IF NOT EXISTS ", "#", " START 1"] } },
+                    { "outputKey": "rows", "inputMap": "#.name", "statement": { "$str": ["SELECT nextval('", "#", "') AS value"] }, "irreversible": true, "row": { "value": { "$parseInt": "#.value" } } },
                     { "set": { "$head": "#.rows" } }
                 ]
             }

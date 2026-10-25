@@ -69,9 +69,9 @@ describe('data composition', () => {
                 operations: { run: operation({ execute: '#.self.data.handler' }) }
             }),
             kind('snippet', { shape: '@method' }),
-            element('shared', 'snippet', { withContext: { user: { userId: '\\ada' } }, do: { set: '#._ctx.user.userId' } }),
+            element('shared', 'snippet', { withContext: { user: { userId: 'ada' } }, do: { set: '#._ctx.user.userId' } }),
             composed('borrowing', { handler: { '/ref': 'shared' } }, 'handler-kind'),
-            element('owning', 'handler-kind', { handler: { withContext: { user: { userId: '\\ada' } }, do: { set: '#._ctx.user.userId' } } }));
+            element('owning', 'handler-kind', { handler: { withContext: { user: { userId: 'ada' } }, do: { set: '#._ctx.user.userId' } } }));
         expect((await invoke('borrowing', 'run', null).catch(e => e)).code).to.equal('context-right');
         expect(await invoke('owning', 'run', null)).to.equal('ada');
     });

@@ -9,8 +9,8 @@ const service = {
     kind: 'kind',
     data: {
         operations: {
-            plain: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\computed' }, cached('lasting', { set: { value: '#.prefix' } })] },
-            other: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: '\\fresh' }, cached('lasting', { set: { value: '#.prefix' } })] },
+            plain: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: 'computed' }, cached('lasting', { set: { value: '#.prefix' } })] },
+            other: { input: { '!key': 'string' }, implementation: [{ outputKey: 'prefix', set: 'fresh' }, cached('lasting', { set: { value: '#.prefix' } })] },
             brief: { input: { '!key': 'string', '!value': 'string' }, implementation: cached('brief', { set: { value: '#.input.value' } }) }
         }
     }

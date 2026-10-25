@@ -2,15 +2,10 @@ import path from 'path';
 import { extendsKind } from '@business-framework/core/kinds';
 import { instancesOf, NODE_KEYS, nodeForms, primitives, sourceOf } from '@business-framework/core/introspection';
 
-const argumentOf = part => {
-    const [name, fallback] = part.split('=').map(text => text.trim());
-    return fallback === undefined ? name : fallback === 'input' ? `${name}=#` : `${name}?`;
-};
-
 const argumentsOf = definition => {
-    if (typeof definition !== 'function') return 'special form';
-    const named = definition.toString().match(/^\(\{([^}]*)\}\)/);
-    return named ? `{ ${named[1].split(',').map(argumentOf).join(', ')} }` : 'expression';
+    if (typeof definition === 'function') return 'expression';
+    if (definition.params) return `{ ${definition.params.join(', ')} }`;
+    return definition.description?.replace(/^\$\w+: /, '') ?? 'special form';
 };
 
 const primitivesOf = () => Object.entries(primitives)

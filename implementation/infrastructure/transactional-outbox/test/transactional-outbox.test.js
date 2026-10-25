@@ -35,7 +35,7 @@ const elements = [
                     implementation: {
                         inTransaction: [
                             { inputMap: { message: '#.input.message', group: '#.input.group' }, publish: CHANNEL },
-                            { if: '#.input.fail', then: { throw: '\\rolled back' } }
+                            { if: '#.input.fail', then: { throw: 'rolled back' } }
                         ]
                     }
                 }

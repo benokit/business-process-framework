@@ -96,11 +96,11 @@
             },
             "lifecycle": {
                 "validate": {
-                    "$conditional": {
-                        "_if": { "$conditional": { "_if": "#.self.data.publisher.transactionalOutbox", "_then": { "$head": { "$func/instances-of": "message-outbox" } }, "_else": true } },
-                        "_then": [],
-                        "_else": ["publisher.transactionalOutbox needs a message-outbox instance"]
-                    }
+                    "$if": [
+                        { "$and": ["#.self.data.publisher.transactionalOutbox", { "$not": { "$head": { "$func/instances-of": "message-outbox" } } }] },
+                        ["publisher.transactionalOutbox needs a message-outbox instance"],
+                        []
+                    ]
                 }
             }
         }

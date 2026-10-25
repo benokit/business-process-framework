@@ -13,7 +13,7 @@ Meilisearch [search engine](../../framework/search/README.md): kind `meilisearch
         "value": {
             "provider": "meilisearch-engine",
             "implementation": {
-                "inputMap": { "query": "#.input.generalSearch", "filter": { "$join": { "_strings": ["partyType = ", { "$func/meilisearch-string": "#.input.partyType" }] } } },
+                "inputMap": { "query": "#.input.generalSearch", "filter": { "$str": ["partyType = ", { "$func/meilisearch-string": "#.input.partyType" }] } },
                 "invoke": "party-search-index",
                 "operation": "search"
             }

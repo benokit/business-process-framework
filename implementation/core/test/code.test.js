@@ -15,7 +15,7 @@ describe('code checks', () => {
             { outputKey: 'a', set: { $let: { $twice: { $multiply: ['#', 2] } }, $twice: 3 } },
             { if: true, then: { set: { $literal: { $anything: 1 } } }, else: low('record') },
             { invoke: 'the-runner', operation: 'run', inputMap: '#.a' },
-            { set: { $id: '\\schema', $data: 'string', name: '#.a' } }
+            { set: { '\\$id': 'schema', '\\$data': 'string', name: '#.a' } }
         ])).to.deep.equal([]);
     });
 
@@ -51,18 +51,30 @@ describe('code checks', () => {
             ['unknown-element', `${PATH}[0]`],
             ['unknown-operation', `${PATH}[1]`],
             ['unknown-module', `${PATH}[5]`],
-            ['unknown-function', `${PATH}[2].set`],
-            ['unknown-function', `${PATH}[3].set`],
+            ['unknown-function', `${PATH}[2].set.$coalese`],
+            ['unknown-function', `${PATH}[3].set.$func/nothing`],
             ['unknown-slot', `${PATH}[4].set`]
+        ]);
+    });
+
+    it('reports malformed mappings: calls beside data, unknown parameters, needless escapes', async () => {
+        expect(await problemsOf([
+            { set: { $head: '#.a', name: 'x' } },
+            { set: { $join: { _strings: ['a', 'b'] } } },
+            { inputMap: { $str: ['\\plain', '#.a'] }, set: '#' }
+        ])).to.deep.equal([
+            ['mixed-call', `${PATH}[0].set`],
+            ['unknown-parameter', `${PATH}[1].set.$join._strings`],
+            ['needless-escape', `${PATH}[2].inputMap.$str[0]`]
         ]);
     });
 
     it('reports a binding of context the author does not manage, in code of slot fills too', async () => {
         await bootWith(
             kind('tenant-scope', { context: { manages: { tenant: 'string' } }, slots: { steps: { cardinality: 'many', value: '@method' } },
-                operations: { run: operation({ withContext: { tenant: '\\a', user: '\\b' }, do: { set: 1 } }) } }),
+                operations: { run: operation({ withContext: { tenant: 'a', user: 'b' }, do: { set: 1 } }) } }),
             element('scope', 'tenant-scope'),
-            element('step', 'slot-fill', { target: 'tenant-scope', slot: 'steps', value: { withContext: { tenant: '\\c' }, do: { set: 1 } } }));
+            element('step', 'slot-fill', { target: 'tenant-scope', slot: 'steps', value: { withContext: { tenant: 'c' }, do: { set: 1 } } }));
         expect(validate().map(({ code, data }) => [code, data.element, data.key])).to.deep.equal([
             ['context-right', 'tenant-scope', 'user'],
             ['context-right', 'step', 'tenant']

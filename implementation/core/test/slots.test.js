@@ -7,7 +7,7 @@ const fill = (id, target, value, order = {}) => ({ id, kind: 'slot-fill', data: 
 const pipelineKind = cardinality => [
     kind('pipeline-owner', {
         slots: { steps: { cardinality, value: 'string' } },
-        operations: { steps: operation({ set: { '$func/slot-values': { element: '#.self.id', slot: '\\steps' } } }) }
+        operations: { steps: operation({ set: { '$func/slot-values': { element: '#.self.id', slot: 'steps' } } }) }
     }),
     kind('special-owner', { extends: 'pipeline-owner' }),
     element('owner', 'special-owner')

@@ -9,7 +9,7 @@ const echo = {
             echo: { input: '@any', implementation: { set: '#.input' } },
             correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.trace.correlation' } } },
             strict: { input: { '!amount': 'number' }, implementation: { set: '#.input' } },
-            fail: { input: '@any', implementation: { throw: '\\broken' } }
+            fail: { input: '@any', implementation: { throw: 'broken' } }
         }
     }
 };
@@ -31,7 +31,7 @@ const elements = [
     endpoint('strict', 'POST', '/strict', 'strict'),
     endpoint('failing', 'GET', '/fail', 'fail'),
     fill('tag-request', { inputMap: { $merge: ['#.input', { body: { tagged: true } }] }, next: true }),
-    fill('block-forbidden', { if: { $eq: ['#.input.headers.x-block', '\\yes'] }, then: { set: { status: 403, body: { error: '\\blocked' } } }, else: { next: true } }, { position: 'first' })
+    fill('block-forbidden', { if: { $eq: ['#.input.headers.x-block', 'yes'] }, then: { set: { status: 403, body: { error: 'blocked' } } }, else: { next: true } }, { position: 'first' })
 ];
 
 const call = async (path, options = {}) => {

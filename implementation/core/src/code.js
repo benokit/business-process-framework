@@ -1,14 +1,14 @@
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { isPlainObject, omit } from 'lodash-es';
+import { lint } from 'lambdajson-js';
 import { findElement, kindOf } from './registry.js';
-import { extendsKind, resolveKind } from './kinds.js';
+import { extendsKind, instancesOf, resolveKind } from './kinds.js';
 import { positionsIn, propertiesOf, validateValue } from './schemas.js';
 import { managedBy } from './context.js';
 import { findTemplate } from './execution/templates.js';
 import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
 import { isKindReference } from './references.js';
-import { primitives } from './primitives.js';
 import { fail } from './errors.js';
 
 export const targetKind = target => {
@@ -164,15 +164,6 @@ const nodeProblems = at => ({ node, path, keywords, keyword, template }) => {
     ];
 };
 
-const declaredFunctions = tree => {
-    if (Array.isArray(tree)) return tree.flatMap(declaredFunctions);
-    if (!isPlainObject(tree) || '$literal' in tree) return [];
-    return [
-        ...Object.keys(tree.$let ?? {}).filter(key => key.startsWith('$')),
-        ...Object.values(tree).flatMap(declaredFunctions)
-    ];
-};
-
 const slotValuesProblems = (argument, at, path) => {
     if (!isPlainObject(argument) || !isLiteral(argument.slot)) return [];
     const kind = argument.element === '#.self.id' ? selfKindOf(at.author) : kindOfTarget(argument.element);
@@ -180,18 +171,7 @@ const slotValuesProblems = (argument, at, path) => {
     return kind && !kind.slots[slot] ? [problem(at, path, 'unknown-slot', `${kind.id} has no slot '${slot}'`)] : [];
 };
 
-const functionProblems = (key, value, at, path, declared) => {
-    if (key === '$func/slot-values') return slotValuesProblems(value, at, path);
-    if (key.startsWith('$func/')) {
-        return findElement(key.slice(6))?.kind === 'pure-function' ? [] : [problem(at, path, 'unknown-function', `unknown pure function '${key}'`)];
-    }
-    return Object.hasOwn(primitives, key) || declared.includes(key) ? [] : [problem(at, path, 'unknown-function', `unknown primitive '${key}'`)];
-};
-
-const isCall = tree => {
-    const keys = Object.keys(tree);
-    return keys.length > 0 && keys.length <= 2 && keys.every(key => key.startsWith('$'));
-};
+const isCall = tree => Object.keys(tree).some(key => key.startsWith('$'));
 
 const callsIn = (tree, path) => {
     if (Array.isArray(tree)) return tree.flatMap((item, index) => callsIn(item, `${path}[${index}]`));
@@ -208,18 +188,37 @@ const allowsNext = (author, path) => author.kind === 'kind'
     ? !FORBIDS_NEXT.test(path)
     : !(extendsKind(kindOf(author), 'execution-node-template') && !isWrapper(author) && path === 'implementation');
 
-const positionProblems = author => position => {
+const expressionKeys = keyword => ['inputMap', ...['low', 'switch'].includes(keyword) ? [] : [keyword], ...nodeForms[keyword] ?? []]
+    .filter(key => !PIPELINE_KEYS.includes(key));
+
+const expressionsOf = ({ node, path, keyword, template }) => isPlainObject(node) ? [
+    ...(template ? ['inputMap'] : expressionKeys(keyword)).filter(key => key in node).map(key => [`${path}.${key}`, node[key]]),
+    ...keyword === 'switch' && isPlainObject(node.switch) ? [[`${path}.switch.value`, node.switch.value]] : [],
+    ...template?.data.node ? templatePositions(node, template, path).filter(({ type }) => type === 'mapping').map(position => [position.path, position.code]) : []
+] : [];
+
+const pathOf = (path, pointer) => pointer.split('/').slice(1)
+    .map(step => step.replace(/~1/g, '/').replace(/~0/g, '~'))
+    .reduce((at, step) => /^\d+$/.test(step) ? `${at}[${step}]` : `${at}.${step}`, path);
+
+const lintProblems = (functions, at) => ([path, code]) => lint(code, functions).map(({ code: name, path: pointer, message }) =>
+    problem(at, pathOf(path, pointer), name, message.replace(/ \(at [^)]*\)$/, '')));
+
+const pureFunctions = () => Object.fromEntries(instancesOf('pure-function').map(({ id }) => [`$func/${id}`, argument => argument]));
+
+const positionProblems = (author, functions) => position => {
     const { type, code, path } = position;
     const at = { author, allowsNext: allowsNext(author, path) };
     if (type === 'ref') return referenceProblems(position, at);
-    const declared = declaredFunctions(code);
+    const nodes = type === 'method' ? nodesIn(code, path) : [];
     return [
-        ...type === 'method' ? nodesIn(code, path).flatMap(nodeProblems(at)) : [],
-        ...callsIn(code, path).flatMap(call => functionProblems(call.key, call.value, at, call.path, declared))
+        ...nodes.flatMap(nodeProblems(at)),
+        ...(type === 'method' ? nodes.flatMap(expressionsOf) : [[path, code]]).flatMap(lintProblems(functions, at)),
+        ...callsIn(code, path).filter(({ key }) => key === '$func/slot-values').flatMap(({ value, path }) => slotValuesProblems(value, at, path))
     ];
 };
 
-export const codeProblems = author => positionsOf(author).flatMap(positionProblems(author));
+export const codeProblems = author => positionsOf(author).flatMap(positionProblems(author, pureFunctions()));
 
 const nameOf = code => isKindReference(code) ? code.instanceOf : isLiteral(code) ? literalOf(code) : undefined;
 

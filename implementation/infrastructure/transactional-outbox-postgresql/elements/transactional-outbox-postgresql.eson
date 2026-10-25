@@ -34,13 +34,7 @@
                         "irreversible": true
                     },
                     {
-                        "set": {
-                            "$conditional": {
-                                "_if": { "$head": "#.rows" },
-                                "_then": { "$merge": [{ "claimed": true }, { "$head": "#.rows" }] },
-                                "_else": { "claimed": false }
-                            }
-                        }
+                        "set": { "$if": [{ "$head": "#.rows" }, { "$merge": [{ "claimed": true }, { "$head": "#.rows" }] }, { "claimed": false }] }
                     }
                 ]
             }

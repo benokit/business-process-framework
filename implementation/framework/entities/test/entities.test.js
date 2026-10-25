@@ -12,7 +12,7 @@ const fill = (id, target, slot, value, order = {}) => ({ id: `${id}-${run}`, kin
 const NOTE = `note-${run}`;
 
 const elements = [
-    { id: `${NOTE}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $join: { _strings: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', '\\new'] }] } } } } } } },
+    { id: `${NOTE}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }] } } } } } },
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number', note: 'string' } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
@@ -21,16 +21,16 @@ const elements = [
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
     fill('stamp-note', ORDER, 'interceptors', {
-        if: { $eq: ['#.input.operation', '\\create'] },
-        then: { inputMap: { $merge: ['#.input', { input: { data: { body: { note: '\\stamped' } } } }] }, next: true },
+        if: { $eq: ['#.input.operation', 'create'] },
+        then: { inputMap: { $merge: ['#.input', { input: { data: { body: { note: 'stamped' } } } }] }, next: true },
         else: { next: true }
     }),
-    fill('change-operation', ORDER, 'interceptors', { inputMap: { $merge: ['#.input', { operation: '\\delete' }] }, next: true }, { position: 'last' }),
+    fill('change-operation', ORDER, 'interceptors', { inputMap: { $merge: ['#.input', { operation: 'delete' }] }, next: true }, { position: 'last' }),
     fill('change-concurrently', ORDER, 'guards', {
-        if: { $eq: ['#.input.before.businessKey', '\\o-raced'] },
+        if: { $eq: ['#.input.before.businessKey', 'o-raced'] },
         then: {
-            if: { $eq: ['#.input.operation', '\\delete'] },
-            then: { inputMap: { businessKey: '\\o-raced', revision: '#.input.before.revision', body: { amount: 2 } }, invoke: ORDER, operation: 'update' }
+            if: { $eq: ['#.input.operation', 'delete'] },
+            then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', body: { amount: 2 } }, invoke: ORDER, operation: 'update' }
         }
     }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
@@ -39,8 +39,8 @@ const elements = [
     }),
     { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', defaults: { bodySchema: { '!holder': 'string' } } } },
     { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { bodySchema: { '!project': 'string' } } },
-    fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $join: { _strings: ['\\C-', '#.input.body.holder'] } } }),
-    fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $join: { _strings: ['\\CON-', '#.input.body.project'] } } }),
+    fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $str: ['C-', '#.input.body.holder'] } }),
+    fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $str: ['CON-', '#.input.body.project'] } }),
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),
     fill('construction-note', CONSTRUCTION, 'traits', { trait: NOTE, configuration: { prefix: 'construction: ' } })
 ];

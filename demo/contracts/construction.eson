@@ -24,8 +24,8 @@
                 {
                     "set": {
                         "$join": {
-                            "_strings": ["CON", { "$head": { "$split": { "_string": "#.now", "_separator": "-" } } }, { "$printf": { "_template": "%04d", "_args": ["#.seq"] } }],
-                            "_separator": "-"
+                            "strings": ["CON", { "$head": { "$split": { "string": "#.now", "separator": "-" } } }, { "$printf": { "template": "%04d", "args": ["#.seq"] } }],
+                            "separator": "-"
                         }
                     }
                 }

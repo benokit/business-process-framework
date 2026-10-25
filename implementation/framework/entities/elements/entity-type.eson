@@ -43,8 +43,8 @@
                                     "outputKey": "value",
                                     "inputMap": {
                                         "entityType": "#.self.id",
-                                        "configuration": { "$get": { "_object": "#.traits", "_path": "#.item" } },
-                                        "input": { "$get": { "_object": "#.input.traits", "_path": "#.item" } }
+                                        "configuration": { "$get": { "object": "#.traits", "path": "#.item" } },
+                                        "input": { "$get": { "object": "#.input.traits", "path": "#.item" } }
                                     },
                                     "invoke": "#.item",
                                     "operation": "initialize"
@@ -52,7 +52,7 @@
                                 { "set": { "trait": "#.item", "value": "#.value" } }
                             ]
                         },
-                        { "set": { "$mapValues": { "_of": { "$toDictionary": { "_by": "#.trait", "_collection": "#.values" } }, "_fn": "#.value" } } }
+                        { "set": { "$mapValues": { "of": { "$toDictionary": { "by": "#.trait", "collection": "#.values" } }, "fn": "#.value" } } }
                     ]
                 },
                 "applyChange": {
@@ -60,11 +60,11 @@
                     "output": "@entity-record",
                     "implementation": [
                         {
-                            "if": { "$conditional": { "_if": "#.input.revision", "_then": { "$neq": ["#.input.revision", "#.input.change.before.revision"] }, "_else": false } },
+                            "if": { "$and": ["#.input.revision", { "$neq": ["#.input.revision", "#.input.change.before.revision"] }] },
                             "then": {
                                 "throw": {
                                     "code": "conflict",
-                                    "message": { "$join": { "_strings": ["#.self.id", "\\ '", "#.input.change.before.businessKey", "\\' is not at revision ", "#.input.revision"] } }
+                                    "message": { "$str": ["#.self.id", " '", "#.input.change.before.businessKey", "' is not at revision ", "#.input.revision"] }
                                 }
                             }
                         },
@@ -75,17 +75,11 @@
                         {
                             "outputKey": "store",
                             "set": {
-                                "$conditional": {
-                                    "_if": { "$eq": ["#.input.change.operation", "create"] },
-                                    "_then": { "operation": "create", "input": { "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "data": "#.input.change.after.data" } },
-                                    "_else": {
-                                        "$conditional": {
-                                            "_if": { "$eq": ["#.input.change.operation", "delete"] },
-                                            "_then": { "operation": "delete", "input": { "before": "#.input.change.before" } },
-                                            "_else": { "operation": "update", "input": { "before": "#.input.change.before", "trait": "#.input.change.trait", "value": "#.input.change.value" } }
-                                        }
-                                    }
-                                }
+                                "$cond": [
+                                    [{ "$eq": ["#.input.change.operation", "create"] }, { "operation": "create", "input": { "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "data": "#.input.change.after.data" } }],
+                                    [{ "$eq": ["#.input.change.operation", "delete"] }, { "operation": "delete", "input": { "before": "#.input.change.before" } }],
+                                    ["else", { "operation": "update", "input": { "before": "#.input.change.before", "trait": "#.input.change.trait", "value": "#.input.change.value" } }]
+                                ]
                             }
                         },
                         {
@@ -100,11 +94,7 @@
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                                     "forEach": {
                                         "inputMap": {
-                                            "$conditional": {
-                                                "_if": { "$eq": ["#.input.change.operation", "delete"] },
-                                                "_then": "#.input.change",
-                                                "_else": { "$merge": ["#.input.change", { "after": "#.record" }] }
-                                            }
+                                            "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }]
                                         },
                                         "execute": "#.item"
                                     }
@@ -118,7 +108,7 @@
                     "input": { "businessKey": "string", "!body": "object", "traits": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.self.id", "/bodySchema"] }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
                         { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
                         {
                             "outputKey": "businessKey",
@@ -150,7 +140,7 @@
                     "input": { "!businessKey": "string", "!revision": "number", "!body": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.self.id", "/bodySchema"] }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
                             "inputMap": {
@@ -167,8 +157,8 @@
                     "output": "@entity-record",
                     "implementation": [
                         {
-                            "if": { "$negate": { "$get": { "_object": { "$func/entity-traits": "#.self.id" }, "_path": "#.input.trait" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$join": { "_strings": ["#.self.id", "\\ has no trait ", "#.input.trait"] } } } }
+                            "if": { "$negate": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.input.trait" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait"] } } }
                         },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
@@ -198,7 +188,7 @@
                 }
             },
             "lifecycle": {
-                "load": { "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/bodySchema"] } }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" },
+                "load": { "inputMap": { "id": { "$str": ["#.self.id", "/bodySchema"] }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" },
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
         }

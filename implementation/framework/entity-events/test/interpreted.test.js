@@ -10,7 +10,7 @@ const elements = [
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     } } },
     { id: 'audit-order', kind: 'slot-fill', data: { target: ORDER, slot: 'reactions', value: {
-        inputMap: { level: 'info', message: { $join: { _strings: ['\\created ', '#.input.after.businessKey'] } } },
+        inputMap: { level: 'info', message: { $str: ['created ', '#.input.after.businessKey'] } },
         invoke: 'logging', operation: 'log'
     } } }
 ];

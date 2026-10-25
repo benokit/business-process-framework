@@ -14,7 +14,7 @@
             },
             "lifecycle": {
                 "load": {
-                    "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/configuration"] } }, "schema": "#.self.data.configuration" },
+                    "inputMap": { "id": { "$str": ["#.self.id", "/configuration"] }, "schema": "#.self.data.configuration" },
                     "invoke": "ajv",
                     "operation": "add"
                 }

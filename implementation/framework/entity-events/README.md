@@ -10,6 +10,6 @@ Publishes an [`entity-event`](elements/entity-events.eson) for every write of ev
 The outbox delivers the messages of one group in order, one at a time, and a message being retried holds back the rest of its group. Which events share a group is the one-slot `eventGroup` on `entity-type`, declared by this package: a mapping from the record (`#`) to the group. The default fill on `entity-type` is `<entityType>/<businessKey>`: the events of one entity are ordered, and entities don't wait for each other. An entity type or entity class fills the slot to group differently, for example all contracts of one policyholder. A group should stay within one entity type, since some brokers order messages only within a subject:
 
 ```json
-{ "kind": "slot-fill", "data": { "target": "insurance-contract-type", "slot": "eventGroup", "value": { "$join": { "_strings": ["\\policyholder/", "#.data.body.policyholder"] } } } }
+{ "kind": "slot-fill", "data": { "target": "insurance-contract-type", "slot": "eventGroup", "value": { "$str": ["policyholder/", "#.data.body.policyholder"] } } }
 ```
 

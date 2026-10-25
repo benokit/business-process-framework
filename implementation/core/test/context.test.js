@@ -8,7 +8,7 @@ const principal = { kind: 'schema', id: 'principal', data: { '!userId': 'string'
 const userScope = kind('principal-execution-node-wrapper', { context: { manages: { user: '@principal' } } });
 
 const reader = kind('user-reader', {
-    operations: { whoami: operation({ set: { $coalesce: ['#._ctx.user.userId', '\\nobody'] } }) }
+    operations: { whoami: operation({ set: { $coalesce: ['#._ctx.user.userId', 'nobody'] } }) }
 });
 
 const viewer = kind('viewer', { operations: { look: operation({ set: '#._ctx' }) } });
@@ -18,7 +18,7 @@ const sessionKind = kind('session-kind', {
     operations: {
         as: operation({
             withContext: { user: { userId: '#.input' } },
-            do: [{ invoke: '\\the-reader', operation: '\\whoami' }]
+            do: [{ invoke: 'the-reader', operation: 'whoami' }]
         })
     }
 });
@@ -34,7 +34,7 @@ describe('scoped context', () => {
     });
 
     it('rejects a binding by a kind that does not manage the key', async () => {
-        await boot(kind('rogue', { operations: { grant: operation({ withContext: { user: { userId: '\\root' } }, do: { set: 1 } }) } }), element('the-rogue', 'rogue'));
+        await boot(kind('rogue', { operations: { grant: operation({ withContext: { user: { userId: 'root' } }, do: { set: 1 } }) } }), element('the-rogue', 'rogue'));
         expect((await invoke('the-rogue', 'grant', null).catch(e => e)).code).to.equal('context-right');
     });
 
@@ -46,13 +46,13 @@ describe('scoped context', () => {
     it('shows every bound key to any code', async () => {
         await boot(kind('carrier', {
             extends: 'principal-execution-node-wrapper',
-            operations: { carry: operation({ withContext: { user: { userId: '\\ada' } }, do: [{ outputKey: 'seen', invoke: '\\the-viewer', operation: '\\look' }, { outputKey: 'name', invoke: '\\the-reader', operation: '\\whoami' }, { set: ['#.seen', '#.name'] }] }) }
+            operations: { carry: operation({ withContext: { user: { userId: 'ada' } }, do: [{ outputKey: 'seen', invoke: 'the-viewer', operation: 'look' }, { outputKey: 'name', invoke: 'the-reader', operation: 'whoami' }, { set: ['#.seen', '#.name'] }] }) }
         }), element('the-carrier', 'carrier'));
         expect(await invoke('the-carrier', 'carry', null)).to.deep.equal([{ user: { userId: 'ada' } }, 'ada']);
     });
 
     it('gives low a frozen context', async () => {
-        await boot(kind('mutator', { extends: 'principal-execution-node-wrapper', operations: { go: operation({ withContext: { user: { userId: '\\ada' } }, do: low('tryToMutateContext') }) } }), element('the-mutator', 'mutator'));
+        await boot(kind('mutator', { extends: 'principal-execution-node-wrapper', operations: { go: operation({ withContext: { user: { userId: 'ada' } }, do: low('tryToMutateContext') }) } }), element('the-mutator', 'mutator'));
         expect(await invoke('the-mutator', 'go', null).catch(e => e)).to.be.instanceOf(TypeError);
     });
 
@@ -82,8 +82,8 @@ describe('execution node wrappers', () => {
         kind('repository', {
             operations: {
                 save: operation([
-                    { outputKey: 'prefix', set: '\\saved ' },
-                    { inTransaction: [{ inTransaction: { set: { $join: { _strings: ['#.prefix', '#.input', '\\ in ', '#._ctx.transaction.sessionId'] } } } }] }
+                    { outputKey: 'prefix', set: 'saved ' },
+                    { inTransaction: [{ inTransaction: { set: { $str: ['#.prefix', '#.input', ' in ', '#._ctx.transaction.sessionId'] } } }] }
                 ])
             }
         }),

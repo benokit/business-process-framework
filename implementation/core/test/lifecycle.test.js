@@ -5,8 +5,8 @@ import { bootWith, element, kind, low } from './helpers.js';
 
 const startable = kind('startable', {
     lifecycle: {
-        start: { inputMap: { $join: { _strings: ['\\start ', '#.self.id'] } }, ...low('record') },
-        stop: { inputMap: { $join: { _strings: ['\\stop ', '#.self.id'] } }, ...low('record') }
+        start: { inputMap: { $str: ['start ', '#.self.id'] }, ...low('record') },
+        stop: { inputMap: { $str: ['stop ', '#.self.id'] }, ...low('record') }
     }
 });
 
@@ -72,8 +72,8 @@ describe('start order', () => {
 describe('validate hooks', () => {
     it('reports the messages of every kind in the chain, on demand only', async () => {
         await bootWith(
-            kind('ranged', { shape: { '!min': 'number', '!max': 'number' }, lifecycle: { validate: { $conditional: { _if: { $gt: ['#.self.data.min', '#.self.data.max'] }, _then: ['\\min exceeds max'], _else: [] } } } }),
-            kind('tight-range', { extends: 'ranged', lifecycle: { validate: { $conditional: { _if: { $eq: ['#.self.data.min', '#.self.data.max'] }, _then: [], _else: ['\\not tight'] } } } }),
+            kind('ranged', { shape: { '!min': 'number', '!max': 'number' }, lifecycle: { validate: { $if: [{ $gt: ['#.self.data.min', '#.self.data.max'] }, ['min exceeds max'], []] } } }),
+            kind('tight-range', { extends: 'ranged', lifecycle: { validate: { $if: [{ $eq: ['#.self.data.min', '#.self.data.max'] }, [], ['not tight']] } } }),
             element('good', 'ranged', { min: 1, max: 2 }),
             element('bad', 'tight-range', { min: 3, max: 2 }));
         expect(validate().map(({ code, message }) => [code, message])).to.have.deep.members([

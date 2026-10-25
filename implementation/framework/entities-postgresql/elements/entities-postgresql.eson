@@ -46,7 +46,7 @@
                             "then": {
                                 "throw": {
                                     "code": "conflict",
-                                    "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' already exists"] } },
+                                    "message": { "$str": ["#.input.entityType", " '", "#.input.businessKey", "' already exists"] },
                                     "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" }
                                 }
                             },
@@ -80,18 +80,18 @@
                         "then": {
                             "throw": {
                                 "code": "not-found",
-                                "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' doesn't exist"] } },
+                                "message": { "$str": ["#.input.entityType", " '", "#.input.businessKey", "' doesn't exist"] },
                                 "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" }
                             }
                         }
                     },
                     { "if": { "$eq": [{ "$coalesce": ["#.input.revision", "#.record.revision"] }, "#.record.revision"] }, "then": { "return": "#.record" } },
                     {
-                        "if": { "$conditional": { "_if": { "$lt": ["#.input.revision", 1] }, "_then": true, "_else": { "$gt": ["#.input.revision", "#.record.revision"] } } },
+                        "if": { "$or": [{ "$lt": ["#.input.revision", 1] }, { "$gt": ["#.input.revision", "#.record.revision"] }] },
                         "then": {
                             "throw": {
                                 "code": "not-found",
-                                "message": { "$join": { "_strings": ["#.input.entityType", " '", "#.input.businessKey", "' has no revision ", "#.input.revision"] } },
+                                "message": { "$str": ["#.input.entityType", " '", "#.input.businessKey", "' has no revision ", "#.input.revision"] },
                                 "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey", "revision": "#.input.revision" }
                             }
                         }
@@ -130,7 +130,7 @@
                         "then": {
                             "throw": {
                                 "code": "conflict",
-                                "message": { "$join": { "_strings": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] } },
+                                "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] },
                                 "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
                             }
                         }
@@ -160,7 +160,7 @@
                         "then": {
                             "throw": {
                                 "code": "conflict",
-                                "message": { "$join": { "_strings": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] } },
+                                "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] },
                                 "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
                             }
                         }

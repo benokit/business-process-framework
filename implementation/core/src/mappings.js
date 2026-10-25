@@ -1,4 +1,5 @@
-import { compile } from 'lambdajson-js';
+import { compile, LambdaJSONError } from 'lambdajson-js';
+import { fail } from './errors.js';
 import { instancesOf } from './kinds.js';
 import { onReset } from './registry.js';
 
@@ -14,9 +15,18 @@ onReset(() => {
 
 const cacheFor = tree => tree !== null && typeof tree === 'object' ? objectCache : valueCache;
 
+const compiled = tree => {
+    try {
+        return compile(tree, primitives);
+    } catch (error) {
+        if (!(error instanceof LambdaJSONError)) throw error;
+        return fail(error.code, error.message, { path: error.path });
+    }
+};
+
 export const compileMapping = tree => {
     const cache = cacheFor(tree);
-    if (!cache.has(tree)) cache.set(tree, compile(tree, primitives));
+    if (!cache.has(tree)) cache.set(tree, compiled(tree));
     return cache.get(tree);
 };
 

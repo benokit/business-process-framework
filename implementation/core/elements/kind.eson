@@ -25,10 +25,10 @@
                     { "outputKey": "problems", "set": { "$func/check-kind": "#.self" } },
                     {
                         "if": { "$head": "#.problems" },
-                        "then": { "throw": { "$join": { "_strings": ["kind ", "#.self.id", ": ", { "$join": { "_strings": "#.problems", "_separator": "; " } }] } } }
+                        "then": { "throw": { "$str": ["kind ", "#.self.id", ": ", { "$join": { "strings": "#.problems", "separator": "; " } }] } }
                     },
-                    { "inputMap": { "id": { "$join": { "_strings": ["ref/", "#.self.id"] } }, "schema": "\\@element-ref" }, "invoke": "ajv", "operation": "add" },
-                    { "inputMap": { "id": { "$join": { "_strings": ["ref/kind/", "#.self.id"] } }, "schema": "\\string" }, "invoke": "ajv", "operation": "add" },
+                    { "inputMap": { "id": { "$str": ["ref/", "#.self.id"] }, "schema": "\\@element-ref" }, "invoke": "ajv", "operation": "add" },
+                    { "inputMap": { "id": { "$str": ["ref/kind/", "#.self.id"] }, "schema": "string" }, "invoke": "ajv", "operation": "add" },
                     {
                         "if": "#.self.data.shape",
                         "then": { "inputMap": { "id": "#.self.id", "schema": "#.self.data.shape" }, "invoke": "ajv", "operation": "add" }
@@ -36,19 +36,19 @@
                     {
                         "inputMap": { "$keys": { "$coalesce": ["#.self.data.operations", {}] } },
                         "forEach": [
-                            { "outputKey": "contract", "set": { "$get": { "_object": "#.self.data.operations", "_path": "#.item" } } },
-                            { "outputKey": "prefix", "set": { "$join": { "_strings": ["#.self.id", "/", "#.item", "/"] } } },
+                            { "outputKey": "contract", "set": { "$get": { "object": "#.self.data.operations", "path": "#.item" } } },
+                            { "outputKey": "prefix", "set": { "$str": ["#.self.id", "/", "#.item", "/"] } },
                             {
                                 "if": "#.contract.input",
                                 "then": {
-                                    "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "input"] } }, "schema": "#.contract.input" },
+                                    "inputMap": { "id": { "$str": ["#.prefix", "input"] }, "schema": "#.contract.input" },
                                     "invoke": "ajv", "operation": "add"
                                 }
                             },
                             {
                                 "if": "#.contract.output",
                                 "then": {
-                                    "inputMap": { "id": { "$join": { "_strings": ["#.prefix", "output"] } }, "schema": "#.contract.output" },
+                                    "inputMap": { "id": { "$str": ["#.prefix", "output"] }, "schema": "#.contract.output" },
                                     "invoke": "ajv", "operation": "add"
                                 }
                             }
@@ -57,7 +57,7 @@
                     {
                         "if": "#.self.data.context.manages",
                         "then": {
-                            "inputMap": { "id": { "$join": { "_strings": ["#.self.id", "/context/manages"] } }, "schema": "#.self.data.context.manages" },
+                            "inputMap": { "id": { "$str": ["#.self.id", "/context/manages"] }, "schema": "#.self.data.context.manages" },
                             "invoke": "ajv", "operation": "add"
                         }
                     },
@@ -65,8 +65,8 @@
                         "inputMap": { "$keys": { "$coalesce": ["#.self.data.slots", {}] } },
                         "forEach": {
                             "inputMap": {
-                                "id": { "$join": { "_strings": ["#.self.id", "/slots/", "#.item"] } },
-                                "schema": { "$get": { "_object": "#.self.data.slots", "_path": { "$join": { "_strings": ["#.item", ".value"] } } } }
+                                "id": { "$str": ["#.self.id", "/slots/", "#.item"] },
+                                "schema": { "$get": { "object": "#.self.data.slots", "path": { "$str": ["#.item", ".value"] } } }
                             },
                             "invoke": "ajv", "operation": "add"
                         }

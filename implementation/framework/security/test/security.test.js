@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { boot, invoke, packageElements, validate } from '@business-framework/core';
 
 const elements = [
-    { id: 'who', kind: 'kind', data: { operations: { system: { input: '@any', implementation: { asSystem: { set: '#._ctx.user' } } }, plain: { input: '@any', implementation: { set: { $coalesce: ['#._ctx.user', '\\nobody'] } } } } } },
+    { id: 'who', kind: 'kind', data: { operations: { system: { input: '@any', implementation: { asSystem: { set: '#._ctx.user' } } }, plain: { input: '@any', implementation: { set: { $coalesce: ['#._ctx.user', 'nobody'] } } } } } },
     { id: 'the-who', kind: 'who', data: {} },
-    { id: 'rogue', kind: 'kind', data: { operations: { grant: { input: '@any', implementation: { withContext: { user: { userId: '\\root' } }, do: { set: 1 } } } } } },
+    { id: 'rogue', kind: 'kind', data: { operations: { grant: { input: '@any', implementation: { withContext: { user: { userId: 'root' } }, do: { set: 1 } } } } } },
     { id: 'the-rogue', kind: 'rogue', data: {} }
 ];
 

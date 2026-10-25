@@ -21,7 +21,7 @@
             },
             "lifecycle": {
                 "start": {
-                    "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "_object": { "$func/app-config-section": "http" }, "_path": "port" } }] } },
+                    "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "object": { "$func/app-config-section": "http" }, "path": "port" } }] } },
                     "low": { "module": "@business-framework/http-server", "export": "listen", "effects": ["irreversible"] }
                 },
                 "stop": { "low": { "module": "@business-framework/http-server", "export": "close", "effects": ["irreversible"] } },

@@ -62,12 +62,12 @@
                     "implementation": [
                         {
                             "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
-                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["\\no entity type ", "#.input.entityType"] } } } }
+                            "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
                         },
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
                         {
                             "if": { "$negate": "#.index" },
-                            "then": { "throw": { "code": "not-found", "message": { "$join": { "_strings": ["#.input.entityType", "\\ has no search index"] } } } }
+                            "then": { "throw": { "code": "not-found", "message": { "$str": ["#.input.entityType", " has no search index"] } } }
                         },
                         {
                             "inputMap": { "query": "#.input.query", "offset": "#.input.offset", "limit": "#.input.limit" },

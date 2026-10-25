@@ -7,7 +7,7 @@ const TABLE = `test_tx_${Date.now()}`;
 const operations = {
     capture: { inTransaction: { set: '#._ctx.transaction' } },
     forward: { inputMap: '#.input.payload', inTransaction: { set: '#.input' } },
-    callerOutputs: [{ outputKey: 'prefix', set: '\\seen' }, { inTransaction: { set: '#.prefix' } }],
+    callerOutputs: [{ outputKey: 'prefix', set: 'seen' }, { inTransaction: { set: '#.prefix' } }],
     nested: {
         inTransaction: [
             { outputKey: 'outer', set: '#._ctx.transaction' },
@@ -22,17 +22,17 @@ const operations = {
     ],
     insert: {
         inTransaction: [
-            { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input.name'] }, invoke: 'default-postgresql-database', operation: 'execute' },
-            { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
+            { inputMap: { command: `INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input.name'] }, invoke: 'default-postgresql-database', operation: 'execute' },
+            { if: '#.input.fail', then: { throw: 'failed on purpose' } }
         ]
     },
-    note: { inputMap: { command: `\\INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'default-postgresql-database', operation: 'execute' },
+    note: { inputMap: { command: `INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'default-postgresql-database', operation: 'execute' },
     noteNow: { afterCommit: { invoke: '#.self.id', operation: 'note' } },
     noteAfterCommit: {
         inTransaction: [
             { inputMap: '#.input.name', afterCommit: { invoke: '#.self.id', operation: 'note' } },
-            { inputMap: { name: { $join: { _strings: ['#.input.name', '\\-nested'] } } }, inTransaction: { afterCommit: { invoke: '#.self.id', operation: 'note' }, inputMap: '#.input.name' } },
-            { if: '#.input.fail', then: { throw: '\\failed on purpose' } }
+            { inputMap: { name: { $str: ['#.input.name', '-nested'] } }, inTransaction: { afterCommit: { invoke: '#.self.id', operation: 'note' }, inputMap: '#.input.name' } },
+            { if: '#.input.fail', then: { throw: 'failed on purpose' } }
         ]
     }
 };

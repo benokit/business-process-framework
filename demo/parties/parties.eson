@@ -76,7 +76,7 @@
                 "implementation": {
                     "inputMap": {
                         "query": "#.input.generalSearch",
-                        "filter": { "$join": { "_strings": ["partyType = ", { "$func/meilisearch-string": "#.input.partyType" }] } },
+                        "filter": { "$str": ["partyType = ", { "$func/meilisearch-string": "#.input.partyType" }] },
                         "offset": "#.input.offset",
                         "limit": "#.input.limit"
                     },

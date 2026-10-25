@@ -28,7 +28,7 @@ const elements = [
             value: {
                 provider: 'meilisearch-engine',
                 implementation: {
-                    inputMap: { query: '#.input.generalSearch', filter: { $join: { _strings: ['\\key = ', { '$func/meilisearch-string': '#.input.key' }] } } },
+                    inputMap: { query: '#.input.generalSearch', filter: { $str: ['key = ', { '$func/meilisearch-string': '#.input.key' }] } },
                     invoke: INDEX,
                     operation: 'search'
                 }

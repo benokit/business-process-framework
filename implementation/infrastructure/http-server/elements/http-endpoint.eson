@@ -61,17 +61,11 @@
             },
             "lifecycle": {
                 "validate": {
-                    "$conditional": {
-                        "_if": { "$func/has-operation": "#.self.data.target" },
-                        "_then": {
-                            "$conditional": {
-                                "_if": { "$eq": ["#.self.data.method", "GET"] },
-                                "_then": { "$map": { "_over": { "$func/changes-of": "#.self.data.target" }, "_fn": { "$join": { "_strings": ["\\a GET target changes state, ", "#"] } } } },
-                                "_else": []
-                            }
-                        },
-                        "_else": [{ "$join": { "_strings": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] } }]
-                    }
+                    "$cond": [
+                        [{ "$not": { "$func/has-operation": "#.self.data.target" } }, [{ "$str": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] }]],
+                        [{ "$eq": ["#.self.data.method", "GET"] }, { "$map": { "over": { "$func/changes-of": "#.self.data.target" }, "as": "change", "fn": { "$str": ["a GET target changes state, ", "@change"] } } }],
+                        ["else", []]
+                    ]
                 },
                 "start": {
                     "inputMap": { "method": "#.self.data.method", "path": "#.self.data.path", "endpoint": "#.self.id" },

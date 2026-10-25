@@ -17,7 +17,7 @@ Configuration comes from `app-config` elements and `BPF__<section>__<key>` envir
 A kind whose instances are pipelines run once at start, in the last position, with an empty input. Use it for work that needs started resources; it delays the start, so keep it short.
 
 ```json
-{ "kind": "on-startup", "data": { "log": "\\application started" } }
+{ "kind": "on-startup", "data": { "log": "application started" } }
 ```
 
 `startServer({ packages?, paths?, elements? })` (from `@business-framework/server`) does the same in a process of your own and returns `stop`.

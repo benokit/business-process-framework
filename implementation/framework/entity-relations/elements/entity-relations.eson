@@ -47,7 +47,7 @@
                     {
                         "inputMap": {
                             "sourceEntityId": "#.record.id",
-                            "relations": { "$concat": { "$map": { "_over": "#.results", "_fn": "#.relations" } } }
+                            "relations": { "$concat": { "$map": { "over": "#.results", "fn": "#.relations" } } }
                         },
                         "invoke": "set-entity-relations",
                         "operation": "run"

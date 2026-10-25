@@ -29,7 +29,7 @@ const elements = [
         kind: 'kind',
         data: {
             operations: {
-                place: { input: '@any', implementation: { inputMap: { message: { orderId: '#.input.orderId' }, group: '#.input.orderId', subject: '\\placed' }, publish: 'orders' } }
+                place: { input: '@any', implementation: { inputMap: { message: { orderId: '#.input.orderId' }, group: '#.input.orderId', subject: 'placed' }, publish: 'orders' } }
             }
         }
     },
