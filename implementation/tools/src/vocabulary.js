@@ -2,10 +2,20 @@ import path from 'path';
 import { extendsKind } from '@business-framework/core/kinds';
 import { instancesOf, NODE_KEYS, nodeForms, primitives, sourceOf } from '@business-framework/core/introspection';
 
+const parameterOf = takes => spec => {
+    const type = takes?.[spec.replace(/(=#|\?)$/, '')];
+    return type ? `${spec}: ${type}` : spec;
+};
+
+const takesOf = ({ params, description, signature }, kind) => {
+    if (params) return `{ ${params.map(parameterOf(signature?.takes)).join(', ')} }`;
+    if (description) return description.replace(/^\$\w+: /, '');
+    return typeof signature?.takes === 'string' ? signature.takes : kind;
+};
+
 const argumentsOf = definition => {
-    if (typeof definition === 'function') return 'expression';
-    if (definition.params) return `{ ${definition.params.join(', ')} }`;
-    return definition.description?.replace(/^\$\w+: /, '') ?? 'special form';
+    const takes = takesOf(definition, typeof definition === 'function' ? 'expression' : 'special form');
+    return definition.signature?.returns ? `${takes} -> ${definition.signature.returns}` : takes;
 };
 
 const primitivesOf = () => Object.entries(primitives)

@@ -17,7 +17,7 @@ const elements = [
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number', note: 'string' } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
-        if: { $lte: ['#.input.after.data.body.amount', 0] },
+        if: { $and: [{ $eq: ['#.input.operation', 'create'] }, { $lte: ['#.input.after.data.body.amount', 0] }] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
     fill('stamp-note', ORDER, 'interceptors', {

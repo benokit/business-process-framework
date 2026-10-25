@@ -52,7 +52,7 @@ Besides the bootstrap kinds: `binding`, the schema `effect`, and the schemas `el
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.
 - `return` ends the current method: an operation, hook, middleware method, `execute` target, template implementation, or the pipeline a wrapper's `next` runs.
 - `low` names a JS function as `{ module, export }` (the schema `js-export`) with its `effects` (see [Effects](#effects)) and calls it with `{ input, _ctx }`, `_ctx` frozen.
-- A mapping that doesn't compile fails with a `CoreError` whose code is the lint code and whose `data.path` points into the mapping; `validate()` finds it before it runs.
+- A mapping that doesn't compile, or fails while it runs (`missing-operand`: arithmetic or ordering on a missing value), fails with a `CoreError` whose code is the language's and whose `data.path` points into the mapping; `validate()` finds a mapping that doesn't compile before it runs.
 - A `pure-function` is `$func/<id>`: either a JS function (`module`, `export`) or a LambdaJSON `mapping`, beside its `signature`.
 - `_ctx` changes only through `withContext`, by a kind that manages the key.
 - A package adds a keyword with an `execution-node-template` (`{ keyword, node?, effects?, implementation }`): the implementation runs with the node as `#.node` and the node's input as `#.input`; an `execution-node-wrapper` also gets `next`, which runs the keyword's value as a pipeline. `node` is the CJSL shape of the node's keys besides `inputMap` and `outputKey`, typing code (`@method`, `@mapping`) and references (`@ref/<kind>`) in it, so that `validate()` checks the node, its code and its references.

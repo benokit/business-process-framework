@@ -37,7 +37,7 @@ describe('discovery', () => {
         const { nodeForms, templates, primitives, pureFunctions } = vocabulary();
         expect(nodeForms).to.deep.include({ keyword: 'if', companions: ['then', 'else'] });
         expect(templates.map(template => template.keyword)).to.include('publish');
-        expect(primitives).to.deep.include({ name: '$join', arguments: '{ separator?, strings=# }' });
+        expect(primitives).to.deep.include({ name: '$join', arguments: '{ separator?: string, strings=#: array } -> string' });
         expect(pureFunctions.map(fn => fn.name)).to.include('$func/slot-values');
     });
 

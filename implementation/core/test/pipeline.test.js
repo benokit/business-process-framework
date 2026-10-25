@@ -63,6 +63,11 @@ describe('pipelines', () => {
         expect([error.code, error.message, error.data]).to.deep.equal(['conflict', 'taken', { key: 1 }]);
     });
 
+    it('fails with a CoreError naming the mapping path when an operand is missing', async () => {
+        const error = await run({ set: { $sum: [1, '#.missing'] } }).catch(e => e);
+        expect([error.constructor.name, error.code, error.data.path]).to.deep.equal(['CoreError', 'missing-operand', '/$sum']);
+    });
+
     it('fails on an unknown node keyword', async () => {
         const error = await run({ nonsense: true }).catch(e => e);
         expect(error.code).to.equal('unknown-keyword');

@@ -1,5 +1,5 @@
-import { compile, LambdaJSONError } from 'lambdajson-js';
-import { fail } from './errors.js';
+import { compile, LambdaJSONError, LambdaJSONRuntimeError } from 'lambdajson-js';
+import { CoreError } from './errors.js';
 import { instancesOf } from './kinds.js';
 import { onReset } from './registry.js';
 
@@ -15,14 +15,19 @@ onReset(() => {
 
 const cacheFor = tree => tree !== null && typeof tree === 'object' ? objectCache : valueCache;
 
-const compiled = tree => {
+const asCoreError = error => error instanceof LambdaJSONError || error instanceof LambdaJSONRuntimeError
+    ? new CoreError(error.code, error.message, { path: error.path })
+    : error;
+
+const guarded = run => (...args) => {
     try {
-        return compile(tree, primitives);
+        return run(...args);
     } catch (error) {
-        if (!(error instanceof LambdaJSONError)) throw error;
-        return fail(error.code, error.message, { path: error.path });
+        throw asCoreError(error);
     }
 };
+
+const compiled = tree => guarded(guarded(compile)(tree, primitives));
 
 export const compileMapping = tree => {
     const cache = cacheFor(tree);
