@@ -13,11 +13,11 @@ See [core/README.md](implementation/core/README.md) for pipeline rules, context,
 
 ## Discovery
 
-Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights, effect bounds) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
+Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights, effect bounds, and the data flow: the paths and types of every expression) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
 
 ## Schema syntax (CJSL)
 
-`"!field"` = required, `"field"` = optional, `"!field="` = fixed value, `"field=1": [...]` = enum, `"@schemaId"` = reference, `"field[]"` = array, `"field{}"` = map, `"$data#": [...]` = any-of, `"$data#1": [...]` = one-of, `"$data#&": [...]` = all-of. A property whose value is `false` is silently dropped.
+`"!field"` = required, `"field"` = optional, `"!field="` = fixed value, `"field=1": [...]` = enum, `"@schemaId"` = reference, `"field[]"` = array, `"field{}"` = map, `"$data#": [...]` = any-of, `"$data#1": [...]` = one-of, `"$data#&": [...]` = all-of, `"*": schema` = every key the object doesn't declare (`"*": "never"` closes it), `"integer"`, `"never"` = no value. A property whose value is `false` is dropped (a constant `"field=": false` is kept).
 
 ## Implementation layout
 

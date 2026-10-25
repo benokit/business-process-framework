@@ -6,10 +6,10 @@
             "shape": { "!bodySchema": "@schema" },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" },
-                "businessKey": { "cardinality": "one", "value": "@method" },
-                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"] },
-                "interceptors": { "cardinality": "many", "value": "@method" },
-                "reactions": { "cardinality": "many", "value": "@method" }
+                "businessKey": { "cardinality": "one", "value": "@method", "input": "@entity-type/create/input" },
+                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@entity-change" },
+                "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
+                "reactions": { "cardinality": "many", "value": "@method", "input": "@entity-change" }
             },
             "operations": {
                 "read": {
@@ -188,7 +188,10 @@
                 }
             },
             "lifecycle": {
-                "load": { "inputMap": { "id": { "$str": ["#.self.id", "/bodySchema"] }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" },
+                "load": {
+                    "if": "#.self.data.bodySchema",
+                    "then": { "inputMap": { "id": { "$str": ["#.self.id", "/bodySchema"] }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" }
+                },
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
         }

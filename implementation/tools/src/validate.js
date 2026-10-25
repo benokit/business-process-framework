@@ -9,4 +9,4 @@ export const validateApplication = async options => {
     return validate();
 };
 
-export const report = problems => problems.map(({ code, message }) => `${code}: ${message}`).join('\n');
+export const report = problems => problems.map(({ code, message, data }) => `${data?.severity === 'warning' ? 'warning ' : ''}${code}: ${message}`).join('\n');

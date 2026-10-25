@@ -65,6 +65,22 @@ describe('effects', () => {
         expect(effectsOf({ element: 'the-runner', operation: 'run' })).to.deep.equal(['read', 'write', 'irreversible']);
     });
 
+    it('resolves a target from its inferred type: a reference built into an output, or read from a slot value', async () => {
+        await bootRunner([
+            { outputKey: 'picked', set: { store: '#.input.target' } },
+            { invoke: '#.picked.store', operation: 'get' }
+        ]);
+        expect(effectsOf({ element: 'the-runner', operation: 'run' })).to.deep.equal(['read']);
+        await bootRunner([
+            { outputKey: 'targets', set: { '$func/slot-values': { element: '#.self.id', slot: 'targets' } } },
+            { inputMap: '#.targets', forEach: { invoke: '#.item.store', operation: 'get' } }
+        ], {}, [
+            element('runner-targets', 'slot-declaration', { target: 'runner', slot: 'targets', cardinality: 'many', value: { '!store': '@ref/store' } }),
+            element('a-target', 'slot-fill', { target: 'the-runner', slot: 'targets', value: { store: 'the-store' } })
+        ]);
+        expect(effectsOf({ element: 'the-runner', operation: 'run' })).to.deep.equal(['read']);
+    });
+
     it('counts slot fills where the slot is read and checks them against the slot bound', async () => {
         const slots = [
             kind('checked', {

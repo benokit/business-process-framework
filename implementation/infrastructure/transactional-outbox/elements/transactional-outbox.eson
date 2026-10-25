@@ -19,7 +19,7 @@
                 },
                 "claim": {
                     "input": { "!messageId": "string" },
-                    "output": { "!claimed": "boolean", "channel": "string", "envelope": "@message-envelope" },
+                    "output": { "!claimed": "boolean", "channel": "@ref/message-channel", "envelope": "@message-envelope" },
                     "implementation": { "low": { "module": "@business-framework/transactional-outbox", "export": "claim", "effects": ["irreversible"] } }
                 },
                 "markDelivered": {

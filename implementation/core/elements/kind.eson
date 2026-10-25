@@ -63,13 +63,14 @@
                     },
                     {
                         "inputMap": { "$keys": { "$coalesce": ["#.self.data.slots", {}] } },
-                        "forEach": {
-                            "inputMap": {
-                                "id": { "$str": ["#.self.id", "/slots/", "#.item"] },
-                                "schema": { "$get": { "object": "#.self.data.slots", "path": { "$str": ["#.item", ".value"] } } }
-                            },
-                            "invoke": "ajv", "operation": "add"
-                        }
+                        "forEach": [
+                            { "outputKey": "slot", "set": { "$get": { "object": "#.self.data.slots", "path": "#.item" } } },
+                            { "inputMap": { "id": { "$str": ["#.self.id", "/slots/", "#.item"] }, "schema": "#.slot.value" }, "invoke": "ajv", "operation": "add" },
+                            {
+                                "if": "#.slot.input",
+                                "then": { "inputMap": { "id": { "$str": ["#.self.id", "/slots/", "#.item", "/input"] }, "schema": "#.slot.input" }, "invoke": "ajv", "operation": "add" }
+                            }
+                        ]
                     }
                 ]
             }
@@ -97,7 +98,7 @@
     {
         "id": "slot",
         "kind": "schema",
-        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema", "effects[]": "@effect" }
+        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema", "effects[]": "@effect", "input": "@schema" }
     },
     {
         "id": "effect",

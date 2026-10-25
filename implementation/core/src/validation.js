@@ -8,6 +8,7 @@ import { checkAbstraction, checkBinding, isKindReference, resolveReference } fro
 import { fail, problemsOf } from './errors.js';
 import { codeOf, codeProblems, targetKind } from './code.js';
 import { effectProblems } from './effect-inference.js';
+import { flowProblems } from './data-flow.js';
 
 const kinds = () => instancesOf('kind');
 
@@ -85,6 +86,7 @@ const checks = () => [
     ...instancesOf('binding').map(binding => () => checkBinding(binding)),
     ...allElements().flatMap(referenceProblems),
     ...allElements().flatMap(codeProblems),
+    ...allElements().flatMap(flowProblems),
     ...allElements().filter(element => element.id !== undefined).flatMap(hookProblems),
     elementsInStartOrder
 ];
@@ -97,9 +99,12 @@ const inferredProblems = () => {
     }
 };
 
-export const validate = () => {
-    const problems = checks().flatMap(problemsOf);
+const isWarning = problem => problem.data?.severity === 'warning';
+
+export const validate = ({ warnings = false } = {}) => {
+    const all = checks().flatMap(problemsOf);
+    const problems = all.filter(problem => !isWarning(problem));
     const inferred = inferredProblems();
     const failed = inferred.some(({ code }) => code !== 'effect-bound');
-    return [...problems, ...problems.length > 0 && failed ? [] : inferred];
+    return [...problems, ...problems.length > 0 && failed ? [] : inferred, ...warnings ? all.filter(isWarning) : []];
 };

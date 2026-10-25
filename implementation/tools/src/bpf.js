@@ -19,12 +19,11 @@ const output = (value, render) => asJson ? JSON.stringify(value, null, 2) : rend
 const commands = {
     validate: async paths => {
         await bootApplication({ paths });
-        const problems = validate();
-        if (problems.length > 0) {
-            process.exitCode = 1;
-            return asJson ? JSON.stringify(problems, null, 2) : report(problems);
-        }
-        return asJson ? '[]' : 'valid';
+        const problems = validate({ warnings: true });
+        const failed = problems.some(problem => problem.data?.severity !== 'warning');
+        if (failed) process.exitCode = 1;
+        if (asJson) return JSON.stringify(problems, null, 2);
+        return [report(problems), failed ? '' : 'valid'].filter(Boolean).join('\n');
     },
     explain: async ([id, ...paths]) => {
         await bootApplication({ paths });

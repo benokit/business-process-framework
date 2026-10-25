@@ -6,6 +6,7 @@ import { isKindReference, resolveReference } from './references.js';
 import { formOf, pipelinesOf, templatePositions } from './code.js';
 import { EFFECTS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
 import { fail } from './errors.js';
+import { invokedNames } from './data-flow.js';
 
 const LATER = 'later:';
 
@@ -85,6 +86,11 @@ const ownExpressions = (node, keyword, template) => template
     ? [node.inputMap]
     : ['inputMap', keyword, ...nodeForms[keyword] ?? []].filter(key => !PIPELINE_KEYS.includes(key)).map(key => node[key]);
 
+const typedTargets = node => {
+    const elements = invokedNames(node)?.map(findElement);
+    return elements?.every(element => element !== undefined && element.kind !== 'kind') ? elements.map(selfOf) : undefined;
+};
+
 const analysis = previous => {
     const operations = new Map();
     const problems = new Map();
@@ -113,7 +119,7 @@ const analysis = previous => {
     };
 
     const invokeEffects = (node, ctx) => {
-        const targets = targetsOf(node.invoke, ctx);
+        const targets = targetsOf(node.invoke, ctx) ?? typedTargets(node);
         if (targets === undefined) return effectsFrom(UNKNOWN, `invoke ${JSON.stringify(node.invoke)}`);
         return union(targets.flatMap(self => operationsOf(node.operation, self, ctx)
             .map(operation => traced(operationEffects(self, operation), `${self.id}.${operation}`))));

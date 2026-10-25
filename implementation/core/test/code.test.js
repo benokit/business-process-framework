@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { validate } from '../src/index.js';
 import { bootWith, element, kind, low, operation, runner } from './helpers.js';
 
-const problemsOf = async implementation => {
+const problemsOf = async (implementation, options) => {
     await bootWith(runner(implementation));
-    return validate().map(({ code, data }) => [code, data.path]);
+    return validate(options).map(({ code, data }) => [code, data.path]);
 };
 
 const PATH = 'operations.run.implementation';
@@ -51,9 +51,9 @@ describe('code checks', () => {
             ['unknown-element', `${PATH}[0]`],
             ['unknown-operation', `${PATH}[1]`],
             ['unknown-module', `${PATH}[5]`],
+            ['unknown-slot', `${PATH}[4].set`],
             ['unknown-function', `${PATH}[2].set.$coalese`],
-            ['unknown-function', `${PATH}[3].set.$func/nothing`],
-            ['unknown-slot', `${PATH}[4].set`]
+            ['unknown-function', `${PATH}[3].set.$func/nothing`]
         ]);
     });
 
@@ -61,8 +61,8 @@ describe('code checks', () => {
         expect(await problemsOf([
             { set: { $head: '#.a', name: 'x' } },
             { set: { $join: { _strings: ['a', 'b'] } } },
-            { inputMap: { $str: ['\\plain', '#.a'] }, set: '#' }
-        ])).to.deep.equal([
+            { inputMap: { $str: ['\\plain', '#.input'] }, set: '#' }
+        ], { warnings: true })).to.deep.equal([
             ['mixed-call', `${PATH}[0].set`],
             ['unknown-parameter', `${PATH}[1].set.$join._strings`],
             ['needless-escape', `${PATH}[2].inputMap.$str[0]`]

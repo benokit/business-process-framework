@@ -19,9 +19,9 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@benokit/js-cjsl": "^0.3.0",
+    "@benokit/js-cjsl": "^1.0.0",
     "ajv": "^8.17.1",
-    "lambdajson-js": "^3.1.1",
+    "lambdajson-js": "^3.1.2",
     "lodash-es": "^4.17.21"
   }
 }

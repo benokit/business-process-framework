@@ -7,7 +7,7 @@
     {
         "id": "entity-search-index-slot",
         "kind": "slot-declaration",
-        "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index" }
+        "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index", "input": "@entity-record" }
     },
     {
         "id": "entity-search-service",
@@ -48,7 +48,7 @@
                     ]
                 },
                 "reindex": {
-                    "input": { "!entityType": "string" },
+                    "input": { "!entityType": "@ref/entity-type" },
                     "implementation": [
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
                         { "outputKey": "records", "inputMap": { "limit": 200 }, "invoke": "#.input.entityType", "operation": "list" },
@@ -57,7 +57,7 @@
                     ]
                 },
                 "search": {
-                    "input": { "!entityType": "string", "query": "string", "offset": "number", "limit": "number" },
+                    "input": { "!entityType": "@ref/entity-type", "query": "string", "offset": "number", "limit": "number" },
                     "output": "@search-result",
                     "implementation": [
                         {

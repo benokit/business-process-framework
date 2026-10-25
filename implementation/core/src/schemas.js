@@ -16,6 +16,8 @@ onReset(() => {
 
 const uri = id => `/${id}`;
 
+export const schemaRef = uri;
+
 const absoluteRefs = schema => Array.isArray(schema)
     ? schema.map(absoluteRefs)
     : isPlainObject(schema)
@@ -39,7 +41,7 @@ const REF = uri('ref');
 
 const KIND_REF = `${REF}/kind/`;
 
-const storedSchema = ref => ajv.getSchema(ref)?.schema;
+export const storedSchema = ref => ajv.getSchema(ref)?.schema;
 
 const keyPath = (path, key) => path ? `${path}.${key}` : key;
 
@@ -73,6 +75,8 @@ export const propertiesOf = schemaId => Object.keys(storedSchema(uri(schemaId))?
 export const codeIn = options => positionsIn(options).filter(({ type }) => type !== 'ref');
 
 export const toJsonSchema =({ id, schema }) => compactToStandard({ $id: id, $data: schema });
+
+export const standardOf = schema => absoluteRefs(compactToStandard({ $data: schema }));
 
 export const enableChecks = () => {
     checking = true;

@@ -3,15 +3,21 @@
         "id": "slot-declaration",
         "kind": "kind",
         "data": {
-            "shape": { "!target": "@ref", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema" },
+            "shape": { "!target": "@ref", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema", "input": "@schema" },
             "lifecycle": {
-                "load": {
-                    "inputMap": {
-                        "id": { "$str": ["#.self.data.target", "/slots/", "#.self.data.slot"] },
-                        "schema": "#.self.data.value"
+                "load": [
+                    {
+                        "inputMap": { "id": { "$str": ["#.self.data.target", "/slots/", "#.self.data.slot"] }, "schema": "#.self.data.value" },
+                        "invoke": "ajv", "operation": "add"
                     },
-                    "invoke": "ajv", "operation": "add"
-                }
+                    {
+                        "if": "#.self.data.input",
+                        "then": {
+                            "inputMap": { "id": { "$str": ["#.self.data.target", "/slots/", "#.self.data.slot", "/input"] }, "schema": "#.self.data.input" },
+                            "invoke": "ajv", "operation": "add"
+                        }
+                    }
+                ]
             }
         }
     },

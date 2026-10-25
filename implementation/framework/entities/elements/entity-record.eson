@@ -7,7 +7,7 @@
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "!data": { "!body": "object" },
+            "!data": { "!body": "object", "*": "@any" },
             "!timestampUtc": "string"
         }
     },

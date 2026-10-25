@@ -22,7 +22,7 @@
                 "response": "@mapping"
             },
             "slots": {
-                "requestMiddleware": { "cardinality": "many", "value": "@method" }
+                "requestMiddleware": { "cardinality": "many", "value": "@method", "input": "@http-request" }
             },
             "operations": {
                 "handle": {
