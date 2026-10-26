@@ -122,7 +122,24 @@ const insert = (at, paths, holder) => {
 
 const actorsOf = role => role.data.actors ?? [];
 
-const grantsOf = role => [...actorsOf(role).flatMap(actor => selfOf(getElement(actor)).data.grants), ...role.data.grants ?? []];
+const includedOf = id => findElement(id) ? selfOf(getElement(id)).data.roles ?? [] : [];
+
+const rolesWithin = (id, path = []) => path.includes(id) || !findElement(id)
+    ? []
+    : [...new Set([id, ...includedOf(id).flatMap(included => rolesWithin(included, [...path, id]))])];
+
+const cycleThrough = (start, id = start, path = []) => {
+    if (path.length > 0 && id === start) return [...path, id];
+    if (path.includes(id)) return undefined;
+    return includedOf(id).map(included => cycleThrough(start, included, [...path, id])).find(Boolean);
+};
+
+const cycleProblems = () => selvesOf('role').map(role => cycleThrough(role.id)).filter(Boolean)
+    .map(cycle => `${cycle[0]}: includes itself through ${cycle.join(' > ')}`);
+
+const ownGrantsOf = role => [...actorsOf(role).flatMap(actor => selfOf(getElement(actor)).data.grants), ...role.data.grants ?? []];
+
+const grantsOf = role => rolesWithin(role.id).flatMap(id => ownGrantsOf(selfOf(getElement(id))));
 
 const isAll = edges => edges.includes(WILDCARD);
 
@@ -188,6 +205,7 @@ export const authorizationProblems = authorization => {
         ...repeated(dimensions),
         ...endpoints.flatMap(({ problems }) => problems),
         ...[...selvesOf('actor'), ...selvesOf('role')].flatMap(holder => grantProblems(performed, holder)),
+        ...cycleProblems(),
         ...ungranted(authorization)
     ];
 };
@@ -207,9 +225,15 @@ const EXPLAINED = {
     'http-endpoint': endpointExplanation,
     actor: (authorization, actor) => ({
         endpoints: reachable(authorization, actorTrie(authorization), actor.id),
-        roles: selvesOf('role').filter(role => actorsOf(role).includes(actor.id)).map(role => role.id)
+        roles: selvesOf('role').filter(role => rolesWithin(role.id).some(id => actorsOf(selfOf(getElement(id))).includes(actor.id))).map(role => role.id)
     }),
-    role: (authorization, role) => ({ actors: actorsOf(role), grants: role.data.grants ?? [], endpoints: reachable(authorization, roleTrie(authorization), role.id) })
+    role: (authorization, role) => ({
+        actors: actorsOf(role),
+        grants: role.data.grants ?? [],
+        roles: includedOf(role.id),
+        includedBy: selvesOf('role').filter(other => other.id !== role.id && rolesWithin(other.id).includes(role.id)).map(other => other.id),
+        endpoints: reachable(authorization, roleTrie(authorization), role.id)
+    })
 };
 
 export const authorizationExplanation = ({ authorization, element }) => {

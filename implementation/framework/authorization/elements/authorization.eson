@@ -22,7 +22,7 @@
     {
         "id": "role",
         "kind": "kind",
-        "data": { "shape": { "actors[]": "@ref/actor", "grants[]": "@grant" } }
+        "data": { "shape": { "actors[]": "@ref/actor", "roles[]": "@ref/role", "grants[]": "@grant" } }
     },
     {
         "id": "authorization-problems",

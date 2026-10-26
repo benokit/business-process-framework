@@ -75,6 +75,18 @@ describe('authorization', () => {
         ]);
     });
 
+    it('reports a role that includes itself, and one including an unknown role', async () => {
+        expect(await problemsWith(
+            actor('clerk', [{ action: 'read' }]),
+            { id: 'a-role', kind: 'role', data: { roles: ['b-role'] } },
+            { id: 'b-role', kind: 'role', data: { roles: ['a-role', 'nobody'], actors: ['clerk'] } }
+        )).to.deep.equal([
+            'unknown-element',
+            'a-role: includes itself through a-role > b-role > a-role',
+            'b-role: includes itself through b-role > a-role > b-role'
+        ]);
+    });
+
     it('warns about an endpoint no actor grants', async () => {
         await boot({ paths: packages, elements: [...documents, readEndpoint, actEndpoint, actor('reader', [{ action: 'read' }])] });
         expect(validate({ warnings: true }).map(({ data }) => [data.severity, data.messages])).to.deep.equal([['warning', ['act-on-document: no actor grants its operation']]]);
@@ -85,16 +97,17 @@ describe('authorization', () => {
             paths: packages,
             elements: [...documents, readEndpoint, actEndpoint,
                 actor('clerk', [{ resource: 'contract-type', action: ['approve', 'reject'] }, { action: 'query' }]),
-                { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } }]
+                { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } },
+                { id: 'office-role', kind: 'role', data: { roles: ['clerk-role'] } }]
         });
         expect(explanationsOf('act-on-document').authorization).to.deep.equal({
             operation: { area: ['documents'], resource: ['note', 'offer'], action: ['approve', 'reject'] },
             actors: { clerk: 'some' },
-            roles: { 'clerk-role': 'some' }
+            roles: { 'clerk-role': 'some', 'office-role': 'some' }
         });
         expect([explanationsOf('clerk').authorization, explanationsOf('clerk-role').authorization]).to.deep.equal([
-            { endpoints: { 'read-document': 'all', 'act-on-document': 'some' }, roles: ['clerk-role'] },
-            { actors: ['clerk'], grants: [], endpoints: { 'read-document': 'all', 'act-on-document': 'some' } }
+            { endpoints: { 'read-document': 'all', 'act-on-document': 'some' }, roles: ['clerk-role', 'office-role'] },
+            { actors: ['clerk'], grants: [], roles: [], includedBy: ['office-role'], endpoints: { 'read-document': 'all', 'act-on-document': 'some' } }
         ]);
         expect(explanationsOf('documents')).to.deep.equal({});
     });
@@ -134,6 +147,8 @@ describe('authorization of requests', () => {
                 { id: 'auditor-role', kind: 'role', data: { actors: ['auditor'] } },
                 actor('note-keeper', [{ area: 'documents', except: [{ resource: 'contract-type' }, { resource: 'invoice' }] }]),
                 { id: 'offer-approver-role', kind: 'role', data: { grants: [{ area: 'documents', resource: 'offer', action: 'approve' }] } },
+                { id: 'office-role', kind: 'role', data: { roles: ['auditor-role', 'offer-approver-role'] } },
+                { id: 'head-office-role', kind: 'role', data: { roles: ['office-role'], grants: [{ area: 'documents', resource: 'offer', action: 'reject' }] } },
                 { id: 'note-keeper-role', kind: 'role', data: { actors: ['note-keeper'] } }
             ]
         });
@@ -168,6 +183,17 @@ describe('authorization of requests', () => {
             call('GET', '/read-document?type=offer', 'note-keeper-role'),
             call('POST', '/act-on-document', 'note-keeper-role', { type: 'offer', step: 'approve' })
         ])).to.deep.equal([200, 200, 403, 403]);
+    });
+
+    it('permits what the roles a role includes permit, through any depth', async () => {
+        expect(await Promise.all([
+            call('GET', '/read-document?type=note', 'office-role'),
+            call('POST', '/act-on-document', 'office-role', { type: 'offer', step: 'approve' }),
+            call('POST', '/act-on-document', 'office-role', { type: 'offer', step: 'reject' }),
+            call('GET', '/read-document?type=offer', 'head-office-role'),
+            call('POST', '/act-on-document', 'head-office-role', { type: 'offer', step: 'approve' }),
+            call('POST', '/act-on-document', 'head-office-role', { type: 'offer', step: 'reject' })
+        ])).to.deep.equal([200, 200, 403, 200, 200, 200]);
     });
 
     it('permits what a role grants directly, beside its actors', async () => {
