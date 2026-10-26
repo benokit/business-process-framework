@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
+import { headerPrincipal, ROLE_HEADER } from '../../authorization/test/principal.js';
 
 const run = Date.now();
 const ORDER = `order-states-http-${run}`;
@@ -12,14 +13,16 @@ const elements = [
         id: `${ORDER}-lifecycle`,
         kind: 'slot-fill',
         data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: ['draft', 'done'] }, transitions: { finish: { from: { status: ['draft'] }, to: { status: 'done' } } }, initialStates: { default: { status: 'draft' } } } } }
-    }
+    },
+    { id: 'lifecycle-role', kind: 'role', data: { actors: ['entity-lifecycle-actor'] } },
+    ...headerPrincipal
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'http-server', 'entities-http', 'entity-states-http'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'http-server', 'security', 'authorization', 'entities-http', 'entity-states-http'];
 
 const post = async (path, headers = {}) => {
     const { port } = await invoke('http-server', 'address', null);
-    const response = await fetch(`http://localhost:${port}${path}`, { method: 'POST', headers });
+    const response = await fetch(`http://localhost:${port}${path}`, { method: 'POST', headers: { [ROLE_HEADER]: 'lifecycle-role', ...headers } });
     return { status: response.status, etag: response.headers.get('etag'), body: await response.json() };
 };
 

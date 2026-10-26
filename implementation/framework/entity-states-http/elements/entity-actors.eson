@@ -1,0 +1,7 @@
+[
+    {
+        "id": "entity-lifecycle-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "states" }] }
+    }
+]

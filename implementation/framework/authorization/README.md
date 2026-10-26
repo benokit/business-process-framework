@@ -28,6 +28,15 @@ An operation is a point in a space of plain dimensions, the fills of the slot `d
 - A grant permits the cartesian product of its dimensions: a value, an array of values or `*`; a dimension it doesn't name is `*`; a value covers everything below it.
 - A module declares actors, never roles; the application declares roles, which only list actors. A user holds role names, which the [users](../users/README.md) guard checks against the `role` elements.
 
+## Enforcement
+
+`authorize-requests`, a `requestMiddleware` of every endpoint, first among them after `authenticate-requests` ([oauth](../oauth/README.md)): a `public` endpoint serves anyone; otherwise a request without a principal (`_ctx.user`) fails with `unauthorized` (401), and one whose user holds no role permitting the operation with `forbidden` (403, `data.operation`).
+
+- `$func/endpoint-operation({ endpoint, request })`: the request's operation, every dimension named (`null` where neither the endpoint nor a default names it).
+- `$func/permits({ operation, roles })`: whether a role permits it. At first use after boot, the grants of every role, through its actors, are put in a trie with one level per dimension, whose edges are the values an endpoint can have that a grant covers (a value covers itself and the values below it) and `*`, and whose leaves are role sets; a lookup follows, per level, the edge of the operation's value and `*`. A value no endpoint performs matches only `*`.
+
+Tests bind a principal without an identity provider with the header principal of [test/principal.js](test/principal.js) (`x-role`).
+
 ## Validation
 
 `validate()` reports, on `default-authorization`: an operation naming an unknown dimension, missing one without a default, reading an unknown path, or with a dimension that isn't a closed set; a grant naming an unknown dimension or a value that no endpoint's operation can have, nor is above one; a dimension declared twice. The reference check reports a role naming an unknown actor. [http-endpoint](../../infrastructure/http-server/README.md#http-endpoint) reports an endpoint with neither `operation` nor `public`.

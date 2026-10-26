@@ -1,0 +1,28 @@
+[
+    {
+        "id": "underwriter-actor",
+        "kind": "actor",
+        "data": {
+            "grants": [
+                { "area": "entities", "resource": "insurance-contract-type" },
+                { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue", "cancel"] },
+                { "area": "entities", "resource": "party", "action": ["query", "create", "update"] }
+            ]
+        }
+    },
+    {
+        "id": "underwriter-role",
+        "kind": "role",
+        "data": { "actors": ["underwriter-actor", "entity-reader-actor"] }
+    },
+    {
+        "id": "viewer-role",
+        "kind": "role",
+        "data": { "actors": ["entity-reader-actor"] }
+    },
+    {
+        "id": "administrator-role",
+        "kind": "role",
+        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor"] }
+    }
+]

@@ -1,6 +1,9 @@
-import { selvesOf } from '@business-framework/core/kinds';
+import { getElement } from '@business-framework/core';
+import { selfOf, selvesOf } from '@business-framework/core/kinds';
 import { slotValues } from '@business-framework/core/slots';
 import { applyMapping } from '@business-framework/core/mappings';
+import { resolveReference } from '@business-framework/core/references';
+import { memo } from '@business-framework/core/registry';
 import { mappingType, operationInputType } from '@business-framework/core/data-flow';
 
 const OPEN = { type: 'object' };
@@ -44,7 +47,7 @@ const endpointSpace = (dimensions, endpoint) => {
         .map(name => `${endpoint.id}: the operation names an unknown dimension ${name}`);
     const typedDimensions = dimensions.map(dimension => ({ dimension, ...dimensionType(endpoint, dimension, operation, scope) }));
     return {
-        values: typedDimensions.map(({ dimension, type }) => [dimension.name, type && valuesOf(type)]),
+        values: Object.fromEntries(typedDimensions.map(({ dimension, type }) => [dimension.name, (type && valuesOf(type)) ?? []])),
         problems: [
             ...operation.problems.map(message => `${endpoint.id}: ${message}`),
             ...unknown,
@@ -63,18 +66,27 @@ const ancestors = (dimension, value, seen = new Set()) => {
         .flatMap(parent => [parent, ...ancestors(dimension, parent, seen.add(parent))]);
 };
 
-export const dimensionsOf = authorization => slotValues({ element: authorization, slot: 'dimensions' });
+const dimensionsOf = authorization => slotValues({ element: authorization, slot: 'dimensions' });
 
 const operationEndpoints = () => selvesOf('http-endpoint').filter(endpoint => endpoint.data.operation !== undefined);
 
-const spaceOf = (dimensions, spaces) => Object.fromEntries(dimensions.map(dimension => {
-    const values = spaces.flatMap(({ values }) => values.find(([name]) => name === dimension.name)[1] ?? []);
-    return [dimension.name, new Set(values.flatMap(value => [value, ...ancestors(dimension, value)]))];
-}));
+const spaceOf = memo(authorization => {
+    const dimensions = dimensionsOf(authorization);
+    const endpoints = operationEndpoints().map(endpoint => endpointSpace(dimensions, endpoint));
+    const performed = dimensions.map(dimension => {
+        const values = [...new Set(endpoints.flatMap(({ values }) => values[dimension.name]))];
+        return [dimension.name, new Map(values.map(value => [value, ancestors(dimension, value)]))];
+    });
+    return { dimensions, endpoints, performed: Object.fromEntries(performed) };
+});
 
-const grantProblems = (space, actor) => actor.data.grants.flatMap(grant => Object.entries(grant).flatMap(([name, value]) => {
-    if (!(name in space)) return [`${actor.id}: a grant names an unknown dimension ${name}`];
-    return [value].flat().filter(named => named !== '*' && !space[name].has(named))
+const coveredBy = (performed, value) => [...performed]
+    .filter(([performedValue, above]) => performedValue === value || above.includes(value))
+    .map(([performedValue]) => performedValue);
+
+const grantProblems = (performed, actor) => actor.data.grants.flatMap(grant => Object.entries(grant).flatMap(([name, value]) => {
+    if (!(name in performed)) return [`${actor.id}: a grant names an unknown dimension ${name}`];
+    return [value].flat().filter(named => named !== '*' && coveredBy(performed[name], named).length === 0)
         .map(named => `${actor.id}: grants ${name} ${named}, which no endpoint performs`);
 }));
 
@@ -83,12 +95,57 @@ const repeated = dimensions => dimensions.map(({ name }) => name)
     .map(name => `the dimension ${name} is declared twice`);
 
 export const authorizationProblems = authorization => {
-    const dimensions = dimensionsOf(authorization);
-    const spaces = operationEndpoints().map(endpoint => endpointSpace(dimensions, endpoint));
-    const space = spaceOf(dimensions, spaces);
+    const { dimensions, endpoints, performed } = spaceOf(authorization);
     return [
         ...repeated(dimensions),
-        ...spaces.flatMap(({ problems }) => problems),
-        ...selvesOf('actor').flatMap(actor => grantProblems(space, actor))
+        ...endpoints.flatMap(({ problems }) => problems),
+        ...selvesOf('actor').flatMap(actor => grantProblems(performed, actor))
     ];
+};
+
+const WILDCARD = '*';
+
+const edgesOf = (performed, value) => value === undefined || [value].flat().includes(WILDCARD)
+    ? [WILDCARD]
+    : [...new Set([value].flat().flatMap(named => coveredBy(performed, named)))];
+
+const insert = (node, paths, role) => {
+    if (paths.length === 0) return node.roles.add(role);
+    const [edges, ...rest] = paths;
+    edges.forEach(edge => {
+        if (!node.children.has(edge)) node.children.set(edge, { children: new Map(), roles: new Set() });
+        insert(node.children.get(edge), rest, role);
+    });
+};
+
+const grantsOf = role => role.data.actors.flatMap(actor => selfOf(getElement(actor)).data.grants);
+
+const trieOf = memo(authorization => {
+    const { dimensions, performed } = spaceOf(authorization);
+    const root = { children: new Map(), roles: new Set() };
+    selvesOf('role').forEach(role => grantsOf(role).forEach(grant =>
+        insert(root, dimensions.map(({ name }) => edgesOf(performed[name], grant[name])), role.id)));
+    return root;
+});
+
+const reached = (node, values) => {
+    if (values.length === 0) return [node.roles];
+    const [value, ...rest] = values;
+    return [value, WILDCARD].filter(edge => node.children.has(edge)).flatMap(edge => reached(node.children.get(edge), rest));
+};
+
+const theAuthorization = () => resolveReference({ instanceOf: 'authorization' });
+
+export const permits = ({ operation, roles }) => {
+    const authorization = theAuthorization();
+    const values = dimensionsOf(authorization).map(({ name }) => operation[name]);
+    return reached(trieOf(authorization), values).some(granted => roles.some(role => granted.has(role)));
+};
+
+export const endpointOperation = ({ endpoint, request }) => {
+    const { data } = selfOf(getElement(endpoint));
+    const scope = { params: request.params, query: request.query, headers: request.headers, input: applyMapping({ mapping: data.request ?? '#.body', input: request }) };
+    const named = applyMapping({ mapping: data.operation, input: scope });
+    return Object.fromEntries(dimensionsOf(theAuthorization()).map(dimension =>
+        [dimension.name, named[dimension.name] ?? (dimension.default === undefined ? null : applyMapping({ mapping: dimension.default, input: scope }))]));
 };

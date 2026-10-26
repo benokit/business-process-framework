@@ -14,7 +14,8 @@
     "./clock": "./src/effects/clock.js",
     "./introspection": "./src/introspection.js",
     "./effects": "./src/effect-inference.js",
-    "./data-flow": "./src/data-flow.js"
+    "./data-flow": "./src/data-flow.js",
+    "./registry": "./src/registry.js"
   },
   "scripts": {
     "test": "mocha"

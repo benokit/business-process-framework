@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { boot, packageElements, validate } from '@business-framework/core';
+import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { headerPrincipal, ROLE_HEADER } from './principal.js';
 
 const packages = ['http-server', 'security', 'authorization'].map(name => packageElements(`@business-framework/${name}`));
 
@@ -77,5 +78,56 @@ describe('authorization', () => {
             endpoint('batch-read', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.type', action: 'read', channel: 'batch' } }),
             actor('clerk', [{ area: 'documents', action: 'query' }, { channel: ['web', 'batch'] }])
         )).to.deep.equal([]);
+    });
+});
+
+describe('authorization of requests', () => {
+    const call = async (method, path, role, body) => {
+        const { port } = await invoke('http-server', 'address', null);
+        const response = await fetch(`http://localhost:${port}${path}`, {
+            method,
+            headers: { 'content-type': 'application/json', ...(role && { [ROLE_HEADER]: role }) },
+            ...(body && { body: JSON.stringify(body) })
+        });
+        return response.status;
+    };
+
+    before(async () => {
+        await boot({
+            paths: packages,
+            elements: [
+                { kind: 'app-config', data: { http: { port: 0 } } },
+                ...documents, ...headerPrincipal,
+                endpoint('read-document', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.type', action: 'read' }, request: { type: '#.query.type' } }),
+                endpoint('act-on-document', 'POST', 'act', { operation: { area: 'documents', resource: '#.input.type', action: '#.input.step' } }),
+                endpoint('ping', 'GET', 'read', { public: true, request: { type: 'note' } }),
+                actor('clerk', [{ area: 'documents', resource: 'contract-type', action: ['approve', 'reject'] }, { area: 'documents', action: 'query' }]),
+                actor('auditor', [{ area: '*', resource: 'document-type', action: 'read' }]),
+                { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } },
+                { id: 'auditor-role', kind: 'role', data: { actors: ['auditor'] } }
+            ]
+        });
+        await start();
+    });
+
+    after(stop);
+
+    it('validates', () => {
+        expect(validate()).to.deep.equal([]);
+    });
+
+    it('serves a public endpoint to anyone and refuses the others without a principal', async () => {
+        expect([await call('GET', '/ping'), await call('GET', '/read-document?type=note')]).to.deep.equal([200, 401]);
+    });
+
+    it('permits an operation when one of the user\'s roles grants it, through arrays, kinds above the values and levels', async () => {
+        expect(await Promise.all([
+            call('POST', '/act-on-document', 'clerk-role', { type: 'offer', step: 'approve' }),
+            call('POST', '/act-on-document', 'clerk-role', { type: 'note', step: 'approve' }),
+            call('GET', '/read-document?type=note', 'clerk-role'),
+            call('GET', '/read-document?type=note', 'auditor-role'),
+            call('POST', '/act-on-document', 'auditor-role', { type: 'offer', step: 'reject' }),
+            call('GET', '/read-document?type=note', 'nobody')
+        ])).to.deep.equal([200, 403, 200, 200, 403, 403]);
     });
 });

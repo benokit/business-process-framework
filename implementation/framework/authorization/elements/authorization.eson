@@ -29,6 +29,50 @@
         }
     },
     {
+        "id": "endpoint-operation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!endpoint": "string", "!request": "@http-request" }, "output": "{string}" },
+            "module": "@business-framework/authorization/authorization",
+            "export": "endpointOperation"
+        }
+    },
+    {
+        "id": "permits",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!operation": "object", "!roles[]": "string" }, "output": "boolean" },
+            "module": "@business-framework/authorization/authorization",
+            "export": "permits"
+        }
+    },
+    {
+        "id": "authorize-requests",
+        "kind": "slot-fill",
+        "data": {
+            "target": "http-endpoint",
+            "slot": "requestMiddleware",
+            "position": "first",
+            "after": ["authenticate-requests"],
+            "value": {
+                "if": "#.self.data.public",
+                "then": { "next": true },
+                "else": [
+                    {
+                        "if": { "$negate": "#._ctx.user" },
+                        "then": { "throw": { "code": "unauthorized", "message": "authentication required" } }
+                    },
+                    { "outputKey": "operation", "set": { "$func/endpoint-operation": { "endpoint": "#.self.id", "request": "#.input" } } },
+                    {
+                        "if": { "$negate": { "$func/permits": { "operation": "#.operation", "roles": { "$coalesce": ["#._ctx.user.roles", []] } } } },
+                        "then": { "throw": { "code": "forbidden", "message": "no role of the user permits the operation", "data": { "operation": "#.operation" } } }
+                    },
+                    { "next": true }
+                ]
+            }
+        }
+    },
+    {
         "id": "authorization",
         "kind": "kind",
         "data": {

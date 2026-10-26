@@ -19,7 +19,7 @@ See [entities-http](../../implementation/framework/entities-http/README.md), [en
 
 ## Conventions
 
-- **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/framework/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The token's subject must be an existing `user` entity (created through `POST /entities/user`); a token never creates one.
+- **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/framework/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The token's subject must be an existing `user` entity (created through `POST /entities/user`) with a role that permits what you call (the demo's `underwriter-role`, `viewer-role`, `administrator-role`); a token never creates one. `401`: no token or no such user; `403`: no role permits the operation.
 - **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT`, `DELETE` and transitions require `If-Match` with the current revision.
 - **Records**: `data.body` is the business data; other keys of `data` are traits (`data.state`). An update sends the full `body`, not just changed fields; traits change only through their commands (transitions).
 - **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.

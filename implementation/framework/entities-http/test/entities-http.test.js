@@ -1,22 +1,25 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
+import { headerPrincipal, ROLE_HEADER } from '../../authorization/test/principal.js';
 
 const run = Date.now();
 const ORDER = `order-http-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { http: { port: 0 } } },
-    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } }
+    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: 'editor-role', kind: 'role', data: { actors: ['entity-editor-actor'] } },
+    ...headerPrincipal
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'http-server', 'entities-http'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'http-server', 'security', 'authorization', 'entities-http'];
 
 const call = async (method, path, { body, headers = {} } = {}) => {
     const { port } = await invoke('http-server', 'address', null);
     const response = await fetch(`http://localhost:${port}${path}`, {
         method,
-        headers: { 'content-type': 'application/json', ...headers },
+        headers: { 'content-type': 'application/json', [ROLE_HEADER]: 'editor-role', ...headers },
         ...(body && { body: JSON.stringify(body) })
     });
     return { status: response.status, etag: response.headers.get('etag'), body: await response.json() };
