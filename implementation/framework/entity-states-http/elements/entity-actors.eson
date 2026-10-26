@@ -2,6 +2,6 @@
     {
         "id": "entity-lifecycle-actor",
         "kind": "actor",
-        "data": { "grants": [{ "area": "states" }] }
+        "data": { "grants": [{ "area": "states", "except": [{ "resource": "user" }] }] }
     }
 ]

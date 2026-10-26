@@ -15,6 +15,34 @@
         "data": { "!sessionId": "number" }
     },
     {
+        "id": "migration",
+        "kind": "schema",
+        "data": { "command": "string", "run": "@method" }
+    },
+    {
+        "id": "identified-migration",
+        "kind": "schema",
+        "data": { "!id": "string", "command": "string", "run": "@method" }
+    },
+    {
+        "id": "migrations-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[@identified-migration]" },
+            "module": "@business-framework/database/migrations",
+            "export": "migrationsOf"
+        }
+    },
+    {
+        "id": "migration-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/database/migrations",
+            "export": "migrationProblems"
+        }
+    },
+    {
         "id": "database",
         "kind": "kind",
         "data": {
@@ -24,12 +52,49 @@
                 "executeIrreversible": { "input": "@sql-command", "output": "@sql-result" },
                 "begin": { "input": { "!isolation=1": ["read committed", "repeatable read", "serializable"] }, "output": "@database-session" },
                 "commit": { "input": "@database-session" },
-                "rollback": { "input": "@database-session" }
+                "rollback": { "input": "@database-session" },
+                "migrate": {
+                    "input": "@any",
+                    "output": { "!applied[]": "string" },
+                    "implementation": [
+                        {
+                            "inputMap": { "command": "CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, applied_utc TIMESTAMPTZ NOT NULL DEFAULT now())" },
+                            "invoke": "#.self.id",
+                            "operation": "executeIrreversible"
+                        },
+                        { "outputKey": "recorded", "inputMap": { "command": "SELECT id FROM migrations" }, "invoke": "#.self.id", "operation": "read" },
+                        {
+                            "outputKey": "pending",
+                            "set": {
+                                "$filter": {
+                                    "collection": { "$func/migrations-of": "#.self.id" },
+                                    "as": "migration",
+                                    "predicate": { "$not": { "$includes": { "collection": { "$map": { "over": "#.recorded.rows", "as": "row", "fn": "@row.id" } }, "value": "@migration.id" } } }
+                                }
+                            }
+                        },
+                        {
+                            "inputMap": "#.pending",
+                            "forEach": [
+                                {
+                                    "if": "#.item.command",
+                                    "then": { "inputMap": { "command": "#.item.command" }, "invoke": "#.self.id", "operation": "executeIrreversible" },
+                                    "else": { "execute": "#.item.run" }
+                                },
+                                { "inputMap": { "command": "INSERT INTO migrations (id) VALUES ($1)", "parameters": ["#.item.id"] }, "invoke": "#.self.id", "operation": "executeIrreversible" }
+                            ]
+                        },
+                        { "set": { "applied": { "$map": { "over": "#.pending", "as": "migration", "fn": "@migration.id" } } } }
+                    ]
+                }
             },
             "slots": {
-                "models": { "cardinality": "many", "value": { "!command": "string" } }
+                "migrations": { "cardinality": "many", "value": "@migration" }
             },
-            "lifecycle": { "startPosition": "first" }
+            "lifecycle": {
+                "startPosition": "first",
+                "validate": { "$func/migration-problems": "#.self.id" }
+            }
         }
     },
     {

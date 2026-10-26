@@ -2,11 +2,11 @@
     {
         "id": "entity-reader-actor",
         "kind": "actor",
-        "data": { "grants": [{ "area": "entities", "action": "query" }] }
+        "data": { "grants": [{ "area": "entities", "action": "query", "except": [{ "resource": "user" }] }] }
     },
     {
         "id": "entity-editor-actor",
         "kind": "actor",
-        "data": { "grants": [{ "area": "entities" }] }
+        "data": { "grants": [{ "area": "entities", "except": [{ "resource": "user" }] }] }
     }
 ]

@@ -13,7 +13,7 @@ See [core/README.md](implementation/core/README.md) for pipeline rules, context,
 
 ## Discovery
 
-Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights, effect bounds, and the data flow: the paths and types of every expression) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
+Ask the registry before reading element files (in `implementation/`, add `../demo` for the demo's elements): `npx bpf explain <id>` shows the resolved element (kind chain, data with defaults, operation contracts and who implements them, slot fills in order, source files); `npx bpf refs <id>` shows who references an element (before renaming or removing it); `npx bpf list [kind]` lists elements; `npx bpf vocabulary` lists node forms, node templates, LambdaJSON primitives and pure functions. `npx bpf migrate [paths]` applies the database migrations (a start creates no tables). After changing elements, run `npx bpf validate [paths]`: shapes, references and the code itself (node structure, operations, primitives, slots, `low` modules, context rights, effect bounds, and the data flow: the paths and types of every expression) in about a second, without infrastructure. See [tools](implementation/tools/README.md).
 
 ## Schema syntax (CJSL)
 
@@ -43,7 +43,7 @@ Tests use **Mocha + Chai** (`npm test` in `implementation/` runs every package).
 docker compose -f environments/docker-compose.yml up -d
 ```
 
-PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). OAuth identity provider (mock): `http://localhost:8080/default` (`OAUTH_ISSUER`). Tests that need them skip when unavailable; a test with stubbed effects needs none ([interpreters](implementation/core/README.md#interpreters)). Lint with `npx eslint .`.
+PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). OAuth identity provider (mock): `http://localhost:8080/default` (`OAUTH_ISSUER`). Tests that need them skip when unavailable; a test that starts with PostgreSQL calls `migrate()` of the postgresql test helpers after `start()`; a test with stubbed effects needs none ([interpreters](implementation/core/README.md#interpreters)). Lint with `npx eslint .`.
 
 ## Key conventions
 

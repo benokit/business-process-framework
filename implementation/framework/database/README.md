@@ -9,19 +9,19 @@ The [abstract operations](../../core/README.md#interfaces):
 
 The kind `transaction-execution-node-wrapper` (an `execution-node-wrapper`) is the only manager of the context key `transaction`, a `database-session`; [transaction](../../infrastructure/transaction/README.md) binds it.
 
-## Models
+## Migrations
 
-The slot `models` holds the commands that create database objects (`{ "command": "…" }`); a database runs them, in slot order, when it starts. Commands are written in the database's language, so fills target its kind:
+The slot `migrations` holds what creates and changes database objects and seeds data, each a fill whose id names it: `{ "command": "…" }`, a command in the database's language (fills target its kind), or `{ "run": <method> }`, a pipeline (an entity created through its operations; fills target `database`). `validate()` reports a migration without an id, or with neither or both of `command` and `run`.
 
 ```json
 {
     "id": "orders-table",
     "kind": "slot-fill",
-    "data": { "target": "postgresql-database", "slot": "models", "value": { "command": "CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY)" } }
+    "data": { "target": "postgresql-database", "slot": "migrations", "value": { "command": "CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY)" } }
 }
 ```
 
-Use `after`/`before` between fills when one command needs another (an index after its table).
+`database.migrate()` → `{ applied }` runs, in slot order, each migration whose id the table `migrations` doesn't record, and records it; a second run applies nothing. Use `after`/`before` when one migration needs another (an index after its table), `position: "last"` for data that needs every table. A start runs no migration: [`bpf migrate`](../../tools/README.md) starts the application, migrates and stops, and tests call `migrate()` of [the postgresql test helpers](../../infrastructure/postgresql/test/helpers.js) after `start()`. Migrations don't run in a transaction: a failing one isn't recorded, so it runs again next time, and commands are best written to be repeatable (`IF NOT EXISTS`).
 
 ## Queries
 

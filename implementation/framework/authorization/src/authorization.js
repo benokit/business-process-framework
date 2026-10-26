@@ -8,6 +8,8 @@ import { mappingType, operationInputType } from '@business-framework/core/data-f
 
 const OPEN = { type: 'object' };
 
+const WILDCARD = '*';
+
 const scopeType = target => ({
     type: 'object',
     properties: { params: OPEN, query: OPEN, headers: OPEN, input: operationInputType(target) },
@@ -84,11 +86,18 @@ const coveredBy = (performed, value) => [...performed]
     .filter(([performedValue, above]) => performedValue === value || above.includes(value))
     .map(([performedValue]) => performedValue);
 
-const grantProblems = (performed, actor) => actor.data.grants.flatMap(grant => Object.entries(grant).flatMap(([name, value]) => {
-    if (!(name in performed)) return [`${actor.id}: a grant names an unknown dimension ${name}`];
-    return [value].flat().filter(named => named !== '*' && coveredBy(performed[name], named).length === 0)
-        .map(named => `${actor.id}: grants ${name} ${named}, which no endpoint performs`);
-}));
+const EXCEPT = 'except';
+
+const unknownDimensions = (performed, actor, box) => Object.keys(box).filter(name => !(name in performed))
+    .map(name => `${actor.id}: a grant names an unknown dimension ${name}`);
+
+const grantProblems = (performed, actor) => actor.data.grants.flatMap(({ [EXCEPT]: excepted = [], ...box }) => [
+    ...unknownDimensions(performed, actor, box),
+    ...excepted.flatMap(except => unknownDimensions(performed, actor, except)),
+    ...Object.entries(box).filter(([name]) => name in performed).flatMap(([name, value]) => [value].flat()
+        .filter(named => named !== WILDCARD && coveredBy(performed[name], named).length === 0)
+        .map(named => `${actor.id}: grants ${name} ${named}, which no endpoint performs`))
+]);
 
 const repeated = dimensions => dimensions.map(({ name }) => name)
     .filter((name, index, names) => names.indexOf(name) !== index)
@@ -102,8 +111,6 @@ export const authorizationProblems = authorization => {
         ...selvesOf('actor').flatMap(actor => grantProblems(performed, actor))
     ];
 };
-
-const WILDCARD = '*';
 
 const edgesOf = (performed, value) => value === undefined || [value].flat().includes(WILDCARD)
     ? [WILDCARD]
@@ -120,11 +127,31 @@ const insert = (node, paths, role) => {
 
 const grantsOf = role => role.data.actors.flatMap(actor => selfOf(getElement(actor)).data.grants);
 
+const isAll = edges => edges.includes(WILDCARD);
+
+const intersection = (a, b) => isAll(a) ? b : isAll(b) ? a : a.filter(edge => b.includes(edge));
+
+const difference = (all, a, b) => isAll(b) ? [] : (isAll(a) ? all : a).filter(edge => !b.includes(edge));
+
+const minus = alls => (boxes, excepted) => boxes.flatMap(box => {
+    if (box.some((edges, index) => intersection(edges, excepted[index]).length === 0)) return [box];
+    return box.map((_, split) => box.map((edges, index) => {
+        if (index < split) return intersection(edges, excepted[index]);
+        return index === split ? difference(alls[index], edges, excepted[index]) : edges;
+    })).filter(part => part.every(edges => edges.length > 0));
+});
+
+const boxesOf = (dimensions, performed, { [EXCEPT]: excepted = [], ...grant }) => {
+    const boxOf = values => dimensions.map(({ name }) => edgesOf(performed[name], values[name]));
+    const alls = dimensions.map(({ name }) => [...performed[name].keys()]);
+    return excepted.map(boxOf).reduce(minus(alls), [boxOf(grant)]);
+};
+
 const trieOf = memo(authorization => {
     const { dimensions, performed } = spaceOf(authorization);
     const root = { children: new Map(), roles: new Set() };
     selvesOf('role').forEach(role => grantsOf(role).forEach(grant =>
-        insert(root, dimensions.map(({ name }) => edgesOf(performed[name], grant[name])), role.id)));
+        boxesOf(dimensions, performed, grant).forEach(box => insert(root, box, role.id))));
     return root;
 });
 

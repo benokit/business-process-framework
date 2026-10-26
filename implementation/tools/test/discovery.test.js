@@ -44,7 +44,7 @@ describe('discovery', () => {
     it('finds the references to an element in data, invocations, template nodes and function calls', () => {
         const found = reference => refs(reference).map(({ element, path, via }) => `${element} ${path} ${via}`);
         expect(found('user-cache')).to.deep.equal([
-            'authenticate implementation[2].else[0].cache ref',
+            'authenticate implementation[3].else[0].cache ref',
             'user-cache-eviction handler.invoke invoke'
         ]);
         expect(found('publish')).to.include('contract-activation-events value.then.then template');

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { effectsOf } from '@business-framework/core/introspection';
-import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
+import { migrate, skipWithoutPostgres } from '../../postgresql/test/helpers.js';
 
 const SEQUENCE = `test-seq-${Date.now()}`;
 
@@ -18,6 +18,7 @@ describe('sequence-generator-postgresql', function () {
             elements: numbering
         });
         await start();
+        await migrate();
     });
 
     after(stop);

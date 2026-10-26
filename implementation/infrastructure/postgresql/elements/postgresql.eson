@@ -32,13 +32,7 @@
                 "rollback": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollback", "effects": ["write"] } } }
             },
             "lifecycle": {
-                "start": [
-                    { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },
-                    {
-                        "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "models" } },
-                        "forEach": { "inputMap": "#.item", "invoke": "#.self.id", "operation": "execute" }
-                    }
-                ],
+                "start": { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },
                 "stop": { "low": { "module": "@business-framework/postgresql", "export": "disconnect", "effects": ["irreversible"] } }
             }
         }

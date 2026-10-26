@@ -23,6 +23,6 @@
     {
         "id": "administrator-role",
         "kind": "role",
-        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor"] }
+        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor", "user-administrator-actor"] }
     }
 ]

@@ -57,7 +57,7 @@
         "kind": "slot-fill",
         "/data": {
             "target": "postgresql-database",
-            "slot": "models",
+            "slot": "migrations",
             "after": ["entities-table"],
             "value": { "command": { "/uri": "@business-framework/entity-relations-postgresql/sql/entity-relations-table.sql" } }
         }

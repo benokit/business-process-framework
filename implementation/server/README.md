@@ -3,7 +3,7 @@
 Starts an application: every installed `@business-framework/*` package that has `elements`, plus the directories given as arguments.
 
 ```sh
-node bootstrap.js ../../demo        # npm run start-demo
+node bootstrap.js ../../demo        # npm run start-demo, which runs bpf migrate first
 ```
 
 1. `boot`: load the core and package elements and the arguments' `.eson` files, then run the `load` hooks.

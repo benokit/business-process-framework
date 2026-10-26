@@ -5,9 +5,14 @@
         "data": { "!name": "string", "default": "@mapping", "parents": "@mapping" }
     },
     {
-        "id": "grant",
+        "id": "grant-box",
         "kind": "schema",
         "data": { "*": { "$data#": ["string", "[string]"] } }
+    },
+    {
+        "id": "grant",
+        "kind": "schema",
+        "data": { "except[]": "@grant-box", "*": { "$data#": ["string", "[string]"] } }
     },
     {
         "id": "actor",

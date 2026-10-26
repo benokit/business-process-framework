@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { fileURLToPath } from 'url';
 import { invoke, validate } from '@business-framework/core';
 import { installedPackages, startServer } from '@business-framework/server';
-import { skipWithoutPostgres } from '../../infrastructure/postgresql/test/helpers.js';
+import { migrate, skipWithoutPostgres } from '../../infrastructure/postgresql/test/helpers.js';
 import { skipWithoutMeilisearch } from '../../infrastructure/meilisearch/test/helpers.js';
 import { skipWithoutIdentityProvider, tokenFor } from '../../framework/oauth/test/helpers.js';
 
@@ -26,7 +26,8 @@ describe('server with the demo', function () {
         await skipWithoutPostgres(this);
         await skipWithoutMeilisearch(this);
         await skipWithoutIdentityProvider(this);
-        stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { http: { port: 0 } } }] });
+        stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { http: { port: 0 }, security: { actAs: { [`boss-${run}`]: 'administrator' } } } }] });
+        await migrate();
     });
 
     after(() => stop());
@@ -53,6 +54,23 @@ describe('server with the demo', function () {
         const token = await userWith(`viewer-${run}`, ['viewer-role']);
         expect((await call('GET', '/entities/party', null, token)).status).to.equal(200);
         expect((await call('POST', '/entities/party', { businessKey: `v-${run}`, body: { partyType: 'person', name: 'Bo' } }, token)).status).to.equal(403);
+    });
+
+    it('lets the login the deployment configures act as the migrated administrator', async () => {
+        const boss = await tokenFor(`boss-${run}`);
+        expect((await call('POST', '/entities/user', { body: { subject: `hired-${run}`, roles: ['viewer-role'] } }, boss)).status).to.equal(201);
+    });
+
+    it('lets only an administrator administer users', async () => {
+        const [administrator, underwriter, viewer] = await Promise.all(['administrator', 'underwriter', 'viewer']
+            .map(role => userWith(`${role}-of-users-${run}`, [`${role}-role`])));
+        const user = { body: { subject: `new-${run}`, roles: ['viewer-role'] } };
+        expect(await Promise.all([
+            call('POST', '/entities/user', user, underwriter).then(({ status }) => status),
+            call('GET', '/entities/user', null, viewer).then(({ status }) => status),
+            call('POST', '/entities/user', user, administrator).then(({ status }) => status),
+            call('GET', '/entities/user', null, administrator).then(({ status }) => status)
+        ])).to.deep.equal([403, 403, 201, 200]);
     });
 
     it('runs a contract through its lifecycle as an underwriter, who may not activate it', async () => {

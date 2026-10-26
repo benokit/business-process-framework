@@ -3,7 +3,7 @@
 | Package | Description |
 | --- | --- |
 | [integration](integration/README.md) | Contracts owned by a consumer, implemented per provider kind |
-| [database](database/README.md) | The abstract `database` kind, its `models` slot, queries and the `statement` keyword |
+| [database](database/README.md) | The abstract `database` kind, its `migrations` slot and `migrate`, queries and the `statement` keyword |
 | [messaging](messaging/README.md) | Brokers, channels, consumers; `publish` keyword |
 | [entities](entities/README.md) | Entity types, traits, their slots and the entity store |
 | [entities-postgresql](entities-postgresql/README.md) | The entity store's queries in PostgreSQL, with revision history |

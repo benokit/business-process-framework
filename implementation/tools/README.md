@@ -9,6 +9,7 @@
 | `refs <id>` | every place that references the element, with the referencing element, the path, the kind of reference (`ref`: a typed reference in data or a node, `invoke`, `template`: a node of a template, `function`: a `$func/` call, `slot`: the element of a `$func/slot-values` call, `kind`) and its source file; the same walk over code as the code checks of `validate()` |
 | `list [<kind>]` | the elements with an id, or the instances of a kind and its subkinds, with kind and source file |
 | `vocabulary` | node forms (keyword and companion keys), node templates with their elements, LambdaJSON primitives with their arguments, pure functions with their signatures |
+| `migrate` | starts the application (its HTTP server on a port of its own), runs `database.migrate()` ([migrations](../framework/database/README.md#migrations)) and stops: one `applied <id>` line per migration, or `nothing to apply`; needs the infrastructure |
 
 ```sh
 npx bpf validate ../demo

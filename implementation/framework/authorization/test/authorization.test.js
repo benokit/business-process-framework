@@ -62,13 +62,14 @@ describe('authorization', () => {
 
     it('reports grants of values no endpoint performs, unknown dimensions and roles of unknown actors', async () => {
         expect(await problemsWith(
-            actor('clerk', [{ area: 'documents', resource: ['offer', 'invoice'], action: ['approve', 'aprove'] }, { channel: 'web' }]),
+            actor('clerk', [{ area: 'documents', resource: ['offer', 'invoice'], action: ['approve', 'aprove'] }, { channel: 'web' }, { area: 'documents', except: [{ colour: 'red', resource: 'invoice' }] }]),
             { id: 'back-office', kind: 'role', data: { actors: ['clerk', 'nobody'] } }
         )).to.deep.equal([
             'unknown-element',
             'clerk: grants resource invoice, which no endpoint performs',
             'clerk: grants action aprove, which no endpoint performs',
-            'clerk: a grant names an unknown dimension channel'
+            'clerk: a grant names an unknown dimension channel',
+            'clerk: a grant names an unknown dimension colour'
         ]);
     });
 
@@ -104,7 +105,9 @@ describe('authorization of requests', () => {
                 actor('clerk', [{ area: 'documents', resource: 'contract-type', action: ['approve', 'reject'] }, { area: 'documents', action: 'query' }]),
                 actor('auditor', [{ area: '*', resource: 'document-type', action: 'read' }]),
                 { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } },
-                { id: 'auditor-role', kind: 'role', data: { actors: ['auditor'] } }
+                { id: 'auditor-role', kind: 'role', data: { actors: ['auditor'] } },
+                actor('note-keeper', [{ area: 'documents', except: [{ resource: 'contract-type' }, { resource: 'invoice' }] }]),
+                { id: 'note-keeper-role', kind: 'role', data: { actors: ['note-keeper'] } }
             ]
         });
         await start();
@@ -129,5 +132,14 @@ describe('authorization of requests', () => {
             call('POST', '/act-on-document', 'auditor-role', { type: 'offer', step: 'reject' }),
             call('GET', '/read-document?type=note', 'nobody')
         ])).to.deep.equal([200, 403, 200, 200, 403, 403]);
+    });
+
+    it('permits a grant minus its exceptions, an exception of a value no endpoint performs excepting nothing', async () => {
+        expect(await Promise.all([
+            call('GET', '/read-document?type=note', 'note-keeper-role'),
+            call('POST', '/act-on-document', 'note-keeper-role', { type: 'note', step: 'reject' }),
+            call('GET', '/read-document?type=offer', 'note-keeper-role'),
+            call('POST', '/act-on-document', 'note-keeper-role', { type: 'offer', step: 'approve' })
+        ])).to.deep.equal([200, 200, 403, 403]);
     });
 });

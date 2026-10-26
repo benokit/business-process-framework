@@ -13,3 +13,8 @@ export const skipWithoutPostgres = async context => {
         await probe.end();
     }
 };
+
+export const migrate = async () => {
+    const { invoke } = await import('@business-framework/core');
+    return invoke({ instanceOf: 'database' }, 'migrate', null);
+};

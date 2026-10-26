@@ -26,6 +26,11 @@
         }
     },
     {
+        "id": "user-administrator-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": ["entities", "states"], "resource": "user" }] }
+    },
+    {
         "id": "known-roles",
         "kind": "slot-fill",
         "data": {

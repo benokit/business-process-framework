@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 import path from 'path';
 import { validate } from '@business-framework/core';
-import { bootApplication, explain, list, refs, renderExplanation, renderList, renderRefs, renderVocabulary, report, vocabulary } from './index.js';
+import { bootApplication, explain, list, migrateApplication, refs, renderExplanation, renderList, renderRefs, renderVocabulary, report, vocabulary } from './index.js';
 
 const USAGE = `usage: bpf <command> [--json] [<elements-path> ...]
   validate             problems of the application, or 'valid'
   explain <id>         the resolved element: kind chain, data, operations, slots and their fills
   refs <id>            the elements that reference an element, with the path and the kind of reference
   list [<kind>]        the elements with an id, or the instances of a kind and its subkinds
-  vocabulary           node forms and templates, LambdaJSON primitives, pure functions`;
+  vocabulary           node forms and templates, LambdaJSON primitives, pure functions
+  migrate              starts the application and applies the database migrations not yet applied`;
 
 const [command, ...rest] = process.argv.slice(2);
 const asJson = rest.includes('--json');
@@ -40,6 +41,10 @@ const commands = {
     vocabulary: async paths => {
         await bootApplication({ paths });
         return output(vocabulary(), renderVocabulary);
+    },
+    migrate: async paths => {
+        const { applied } = await migrateApplication({ paths });
+        return output({ applied }, () => applied.length ? applied.map(id => `applied ${id}`).join('\n') : 'nothing to apply');
     }
 };
 

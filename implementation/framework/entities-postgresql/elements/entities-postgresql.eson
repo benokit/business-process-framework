@@ -197,7 +197,7 @@
         "kind": "slot-fill",
         "/data": {
             "target": "postgresql-database",
-            "slot": "models",
+            "slot": "migrations",
             "value": { "command": { "/uri": "@business-framework/entities-postgresql/sql/entities-table.sql" } }
         }
     },
@@ -206,7 +206,7 @@
         "kind": "slot-fill",
         "/data": {
             "target": "postgresql-database",
-            "slot": "models",
+            "slot": "migrations",
             "after": ["entities-table"],
             "value": { "command": { "/uri": "@business-framework/entities-postgresql/sql/entity-history-table.sql" } }
         }
@@ -216,7 +216,7 @@
         "kind": "slot-fill",
         "data": {
             "target": "postgresql-database",
-            "slot": "models",
+            "slot": "migrations",
             "after": ["entities-table"],
             "value": { "command": "CREATE INDEX IF NOT EXISTS entities_recent ON entities (entity_type, timestamp_utc DESC)" }
         }

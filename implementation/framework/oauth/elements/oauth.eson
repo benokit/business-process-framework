@@ -11,6 +11,7 @@
             "node": { "!authenticated": "@method" },
             "implementation": [
                 { "outputKey": "config", "set": { "$func/app-config-section": "oauth" } },
+                { "outputKey": "security", "set": { "$func/app-config-section": "security" } },
                 {
                     "outputKey": "claims",
                     "inputMap": { "header": "#.input.headers.authorization", "issuer": "#.config.issuer", "audience": "#.config.audience" },
@@ -22,7 +23,11 @@
                     "else": [
                         {
                             "outputKey": "user",
-                            "inputMap": { "businessKey": "#.claims.sub" },
+                            "inputMap": {
+                                "businessKey": {
+                                    "$coalesce": [{ "$get": { "object": { "$coalesce": ["#.security.actAs", {}] }, "path": "#.claims.sub" } }, "#.claims.sub"]
+                                }
+                            },
                             "withCache": {
                                 "asSystem": {
                                     "try": { "invoke": "user", "operation": "read" },

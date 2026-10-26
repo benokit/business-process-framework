@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node bootstrap.js",
-    "start-demo": "node bootstrap.js ../../demo",
+    "start-demo": "bpf migrate ../../demo && node bootstrap.js ../../demo",
     "test": "mocha --exit"
   },
   "dependencies": {

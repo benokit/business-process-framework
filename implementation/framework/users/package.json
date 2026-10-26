@@ -12,6 +12,8 @@
     "@business-framework/authorization": "*",
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
-    "@business-framework/entity-states": "*"
+    "@business-framework/entities-http": "*",
+    "@business-framework/entity-states": "*",
+    "@business-framework/entity-states-http": "*"
   }
 }

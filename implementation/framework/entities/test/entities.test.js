@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
-import { skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
+import { migrate, skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
 
 const run = Date.now();
 const ORDER = `order-${run}`;
@@ -54,6 +54,7 @@ describe('entities', function () {
         await skipWithoutPostgres(this);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
+        await migrate();
     });
 
     after(stop);
@@ -153,5 +154,6 @@ describe('entities', function () {
         ]);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
+        await migrate();
     });
 });

@@ -1,0 +1,18 @@
+[
+    {
+        "id": "administrator-user",
+        "kind": "slot-fill",
+        "data": {
+            "target": "database",
+            "slot": "migrations",
+            "position": "last",
+            "value": {
+                "run": {
+                    "inputMap": { "body": { "subject": "administrator", "username": "administrator", "roles": ["administrator-role"] } },
+                    "invoke": "user",
+                    "operation": "create"
+                }
+            }
+        }
+    }
+]
