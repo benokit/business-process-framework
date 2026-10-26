@@ -71,6 +71,15 @@
         }
     },
     {
+        "id": "kind-chain",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/core/kinds",
+            "export": "kindChainOf"
+        }
+    },
+    {
         "id": "instances-of",
         "kind": "pure-function",
         "data": {

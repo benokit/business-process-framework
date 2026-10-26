@@ -89,6 +89,12 @@
     {
         "id": "parties-by-type-endpoint",
         "kind": "http-endpoint",
-        "data": { "method": "POST", "path": "/parties/search-by-type", "target": { "element": "parties-by-type-search-query", "operation": "run" }, "request": "#.body" }
+        "data": {
+            "method": "POST",
+            "path": "/parties/search-by-type",
+            "target": { "element": "parties-by-type-search-query", "operation": "run" },
+            "operation": { "area": "entities", "resource": "party", "action": "search" },
+            "request": "#.body"
+        }
     }
 ]

@@ -13,7 +13,8 @@
     "./app-config": "./src/app-config.js",
     "./clock": "./src/effects/clock.js",
     "./introspection": "./src/introspection.js",
-    "./effects": "./src/effect-inference.js"
+    "./effects": "./src/effect-inference.js",
+    "./data-flow": "./src/data-flow.js"
   },
   "scripts": {
     "test": "mocha"

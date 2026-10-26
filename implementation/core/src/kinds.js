@@ -78,4 +78,11 @@ export const hasOperation = ({ element, operation }) => {
     return found === undefined || operation in resolveKind(kindOf(found)).operations;
 };
 
+export const kindChainOf = id => {
+    const element = findElement(id);
+    if (element === undefined) return [];
+    const chain = element.kind === 'kind' ? kindChain(id).slice(0, -1) : kindChain(kindOf(element));
+    return chain.map(kind => kind.id).reverse();
+};
+
 export const checkKind = self => problemsOf(() => resolveKind(self.id)).map(problem => problem.message);

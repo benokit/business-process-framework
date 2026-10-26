@@ -18,6 +18,8 @@
                 "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
                 "!path": "string",
                 "!target": { "!element": "@ref", "!operation": "string" },
+                "operation": "@mapping",
+                "public": "boolean",
                 "request": "@mapping",
                 "response": "@mapping"
             },
@@ -61,10 +63,21 @@
             },
             "lifecycle": {
                 "validate": {
-                    "$cond": [
-                        [{ "$not": { "$func/has-operation": "#.self.data.target" } }, [{ "$str": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] }]],
-                        [{ "$eq": ["#.self.data.method", "GET"] }, { "$map": { "over": { "$func/changes-of": "#.self.data.target" }, "as": "change", "fn": { "$str": ["a GET target changes state, ", "@change"] } } }],
-                        ["else", []]
+                    "$concat": [
+                        {
+                            "$cond": [
+                                [{ "$not": { "$func/has-operation": "#.self.data.target" } }, [{ "$str": ["target ", "#.self.data.target.element", " has no operation ", "#.self.data.target.operation"] }]],
+                                [{ "$eq": ["#.self.data.method", "GET"] }, { "$map": { "over": { "$func/changes-of": "#.self.data.target" }, "as": "change", "fn": { "$str": ["a GET target changes state, ", "@change"] } } }],
+                                ["else", []]
+                            ]
+                        },
+                        {
+                            "$cond": [
+                                [{ "$and": ["#.self.data.operation", "#.self.data.public"] }, ["declares both an operation and public"]],
+                                [{ "$or": ["#.self.data.operation", "#.self.data.public"] }, []],
+                                ["else", ["declares neither an operation nor public"]]
+                            ]
+                        }
                     ]
                 },
                 "start": {

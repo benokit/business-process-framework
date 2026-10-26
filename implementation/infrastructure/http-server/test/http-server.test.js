@@ -14,7 +14,7 @@ const echo = {
     }
 };
 
-const endpoint = (id, method, path, target, extra = {}) => ({ id, kind: 'http-endpoint', data: { method, path, target: { element: 'the-echo', operation: target }, ...extra } });
+const endpoint = (id, method, path, target, extra = {}) => ({ id, kind: 'http-endpoint', data: { method, path, target: { element: 'the-echo', operation: target }, public: true, ...extra } });
 
 const fill = (id, value, order = {}) => ({ id, kind: 'slot-fill', data: { target: 'http-endpoint', slot: 'requestMiddleware', value, ...order } });
 
@@ -97,7 +97,7 @@ describe('http-endpoint validation', () => {
         await boot({
             paths: [packageElements('@business-framework/http-server')],
             elements: [echo, { id: 'the-echo', kind: 'echo', data: {} }, endpoint('typo', 'GET', '/typo', 'ecco'),
-                { id: 'missing', kind: 'http-endpoint', data: { method: 'GET', path: '/missing', target: { element: 'nobody', operation: 'echo' } } }]
+                { id: 'missing', kind: 'http-endpoint', data: { method: 'GET', path: '/missing', target: { element: 'nobody', operation: 'echo' }, public: true } }]
         });
         expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
             ['unknown-element', "missing target.element: refers to unknown element 'nobody'"],
@@ -110,11 +110,25 @@ describe('http-endpoint validation', () => {
         await boot({
             paths: [packageElements('@business-framework/http-server')],
             elements: [writer, { id: 'the-writer', kind: 'writer', data: {} },
-                { id: 'unsafe', kind: 'http-endpoint', data: { method: 'GET', path: '/unsafe', target: { element: 'the-writer', operation: 'save' } } },
-                { id: 'safe', kind: 'http-endpoint', data: { method: 'POST', path: '/safe', target: { element: 'the-writer', operation: 'save' } } }]
+                { id: 'unsafe', kind: 'http-endpoint', data: { method: 'GET', path: '/unsafe', target: { element: 'the-writer', operation: 'save' }, public: true } },
+                { id: 'safe', kind: 'http-endpoint', data: { method: 'POST', path: '/safe', target: { element: 'the-writer', operation: 'save' }, public: true } }]
         });
         expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
             ['invalid-element', 'unsafe: a GET target changes state, write: low address']
+        ]);
+    });
+
+    it('reports an endpoint that declares neither an operation nor public, or both', async () => {
+        await boot({
+            paths: [packageElements('@business-framework/http-server')],
+            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} },
+                endpoint('closed', 'GET', '/closed', 'echo', { operation: { area: 'echo' }, public: undefined }),
+                endpoint('unsaid', 'GET', '/unsaid', 'echo', { public: undefined }),
+                endpoint('twice', 'GET', '/twice', 'echo', { operation: { area: 'echo' } })]
+        });
+        expect(validate().map(({ message }) => message)).to.deep.equal([
+            'unsaid: declares neither an operation nor public',
+            'twice: declares both an operation and public'
         ]);
     });
 });

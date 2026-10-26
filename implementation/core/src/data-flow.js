@@ -254,6 +254,13 @@ const contractInput = (kindId, name) => {
     return operation?.input === undefined ? ANY : schemaType(`${operation.owner}/${name}/input`);
 };
 
+export const operationInputType = ({ element, operation }) => {
+    const found = findElement(element);
+    return found ? contractInput(kindOf(found), operation) : ANY;
+};
+
+export const mappingType = (code, input) => infer(code, { input, primitives: pureFunctions() });
+
 const methodStart = (author, path) => {
     const _ctx = contextType();
     if (author.kind === 'kind') {

@@ -26,6 +26,41 @@
         }
     },
     {
+        "id": "known-roles",
+        "kind": "slot-fill",
+        "data": {
+            "target": "user",
+            "slot": "guards",
+            "value": [
+                {
+                    "outputKey": "unknown",
+                    "set": {
+                        "$filter": {
+                            "collection": {
+                                "$coalesce": [
+                                    {
+                                        "$cond": [
+                                            [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.body.roles"],
+                                            [{ "$eq": ["#.input.operation", "update"] }, "#.input.value.roles"],
+                                            ["else", []]
+                                        ]
+                                    },
+                                    []
+                                ]
+                            },
+                            "as": "role",
+                            "predicate": { "$not": { "$func/is-instance-of": { "element": "@role", "kind": "role" } } }
+                        }
+                    }
+                },
+                {
+                    "if": { "$head": "#.unknown" },
+                    "then": { "throw": { "code": "invalid", "message": { "$str": ["unknown roles: ", { "$join": { "strings": "#.unknown", "separator": ", " } }] } } }
+                }
+            ]
+        }
+    },
+    {
         "id": "subject-is-business-key",
         "kind": "slot-fill",
         "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.body.subject" } }

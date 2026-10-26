@@ -1,4 +1,4 @@
-import { selvesOf } from '@business-framework/core/kinds';
+import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { traitsOf } from '@business-framework/entities/traits';
 
 const matches = (from, state) => Object.entries(from).every(([dimension, allowed]) => allowed.includes(state[dimension]));
@@ -27,3 +27,7 @@ export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ i
     const model = traitsOf(id)[trait];
     return model ? checkStatesModel(model).map(problem => `${id}: ${problem}`) : [];
 });
+
+export const transitionNames = () => [...new Set(selvesOf('entity-type').flatMap(({ id }) => Object.entries(traitsOf(id))
+    .filter(([trait]) => isInstanceOf({ element: trait, kind: 'states-trait' }))
+    .flatMap(([, model]) => Object.keys(model.transitions ?? {}))))].sort();

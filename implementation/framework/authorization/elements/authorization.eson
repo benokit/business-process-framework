@@ -1,0 +1,82 @@
+[
+    {
+        "id": "authorization-dimension",
+        "kind": "schema",
+        "data": { "!name": "string", "default": "@mapping", "parents": "@mapping" }
+    },
+    {
+        "id": "grant",
+        "kind": "schema",
+        "data": { "*": { "$data#": ["string", "[string]"] } }
+    },
+    {
+        "id": "actor",
+        "kind": "kind",
+        "data": { "shape": { "!grants[]": "@grant" } }
+    },
+    {
+        "id": "role",
+        "kind": "kind",
+        "data": { "shape": { "!actors[]": "@ref/actor" } }
+    },
+    {
+        "id": "authorization-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/authorization/authorization",
+            "export": "authorizationProblems"
+        }
+    },
+    {
+        "id": "authorization",
+        "kind": "kind",
+        "data": {
+            "slots": {
+                "dimensions": { "cardinality": "many", "value": "@authorization-dimension" }
+            },
+            "lifecycle": {
+                "validate": { "$func/authorization-problems": "#.self.id" }
+            }
+        }
+    },
+    {
+        "id": "default-authorization",
+        "kind": "authorization",
+        "data": {}
+    },
+    {
+        "id": "area-dimension",
+        "kind": "slot-fill",
+        "data": { "target": "authorization", "slot": "dimensions", "value": { "name": "area" } }
+    },
+    {
+        "id": "resource-dimension",
+        "kind": "slot-fill",
+        "data": {
+            "target": "authorization",
+            "slot": "dimensions",
+            "after": ["area-dimension"],
+            "value": { "name": "resource", "parents": { "$func/kind-chain": "#" } }
+        }
+    },
+    {
+        "id": "action-dimension",
+        "kind": "slot-fill",
+        "data": {
+            "target": "authorization",
+            "slot": "dimensions",
+            "after": ["resource-dimension"],
+            "value": {
+                "name": "action",
+                "parents": {
+                    "$cond": [
+                        [{ "$includes": { "collection": ["query", "command"], "value": "#" } }, []],
+                        [{ "$includes": { "collection": ["read", "list", "search"], "value": "#" } }, ["query"]],
+                        ["else", ["command"]]
+                    ]
+                }
+            }
+        }
+    }
+]

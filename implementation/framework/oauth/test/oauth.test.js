@@ -10,10 +10,12 @@ const elements = [
     { kind: 'app-config', data: { http: { port: 0 }, oauth: { issuer: OAUTH_ISSUER, audience: 'bpf' } } },
     { id: 'whoami-service', kind: 'kind', data: { operations: { whoami: { input: '@any', implementation: { set: { user: '#._ctx.user' } } } } } },
     { id: 'whoami', kind: 'whoami-service', data: {} },
-    { id: 'whoami-endpoint', kind: 'http-endpoint', data: { method: 'GET', path: '/whoami', target: { element: 'whoami', operation: 'whoami' }, request: {} } }
+    { id: 'clerk-actor', kind: 'actor', data: { grants: [] } },
+    { id: 'clerk', kind: 'role', data: { actors: ['clerk-actor'] } },
+    { id: 'whoami-endpoint', kind: 'http-endpoint', data: { method: 'GET', path: '/whoami', target: { element: 'whoami', operation: 'whoami' }, public: true, request: {} } }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'transactional-outbox-postgresql', 'entity-events', 'cache', 'http-server', 'security', 'users', 'oauth'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'messaging', 'messaging-nats', 'transactional-outbox', 'transactional-outbox-postgresql', 'entity-events', 'cache', 'http-server', 'security', 'authorization', 'users', 'oauth'];
 
 const whoami = async token => {
     const { port } = await invoke('http-server', 'address', null);

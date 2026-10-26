@@ -6,6 +6,7 @@
             "method": "GET",
             "path": "/entity-types",
             "target": { "element": "entities", "operation": "types" },
+            "operation": { "area": "entities", "resource": "entity-type", "action": "read" },
             "request": {}
         }
     },
@@ -16,6 +17,7 @@
             "method": "GET",
             "path": "/entities/:entityType",
             "target": { "element": "entities", "operation": "list" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "list" },
             "request": {
                 "entityType": "#.params.entityType",
                 "request": { "limit": { "$parseInt": "#.query.limit" }, "offset": { "$parseInt": "#.query.offset" } }
@@ -29,6 +31,7 @@
             "method": "POST",
             "path": "/entities/:entityType",
             "target": { "element": "entities", "operation": "create" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "create" },
             "request": {
                 "entityType": "#.params.entityType",
                 "request": { "businessKey": "#.body.businessKey", "body": "#.body.body", "traits": "#.body.traits" }
@@ -43,6 +46,7 @@
             "method": "GET",
             "path": "/entities/:entityType/:businessKey",
             "target": { "element": "entities", "operation": "read" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "read" },
             "request": {
                 "entityType": "#.params.entityType",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" } }
@@ -57,6 +61,7 @@
             "method": "PUT",
             "path": "/entities/:entityType/:businessKey",
             "target": { "element": "entities", "operation": "update" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "update" },
             "request": {
                 "entityType": "#.params.entityType",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" }, "body": "#.body.body" }
@@ -71,6 +76,7 @@
             "method": "DELETE",
             "path": "/entities/:entityType/:businessKey",
             "target": { "element": "entities", "operation": "delete" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "delete" },
             "request": {
                 "entityType": "#.params.entityType",
                 "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" } }

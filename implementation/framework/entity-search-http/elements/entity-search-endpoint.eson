@@ -6,6 +6,7 @@
             "method": "POST",
             "path": "/entity-search/:entityType",
             "target": { "element": "entity-search", "operation": "search" },
+            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "search" },
             "request": {
                 "entityType": "#.params.entityType",
                 "query": "#.body.query",

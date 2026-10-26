@@ -35,6 +35,17 @@ describe('kinds', () => {
         expect(error.code).to.equal('invalid');
     });
 
+    it('names the kinds above an element, nearest first', async () => {
+        await bootWith(
+            kind('chain', { operations: { of: operation({ set: { '$func/kind-chain': '#.input' } }) } }),
+            kind('contract', {}),
+            kind('liability', { extends: 'contract' }),
+            element('general-liability', 'liability'),
+            element('chains', 'chain'));
+        const chains = await Promise.all(['general-liability', 'liability', 'contract', 'nothing'].map(id => invoke('chains', 'of', id)));
+        expect(chains).to.deep.equal([['liability', 'contract'], ['contract'], [], []]);
+    });
+
     it('fails on an unknown operation', async () => {
         await bootWith(kind('empty', {}), element('e', 'empty'));
         const error = await invoke('e', 'missing', null).catch(e => e);

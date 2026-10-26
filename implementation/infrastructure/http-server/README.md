@@ -12,6 +12,8 @@ Each endpoint registers its route in its own `start` hook. Per request, the serv
 
 The target's operation must exist, and a `GET` endpoint's target changes nothing: `validate()` reports one with `write` or `irreversible` [effects](../../core/README.md#effects), with the trace.
 
+Every endpoint states what it does for authorization: `operation`, a mapping from the request to the logical operation it performs, or `public: true`; `validate()` reports an endpoint with neither or both. [authorization](../../framework/authorization/README.md) defines and enforces operations.
+
 ```json
 {
     "id": "read-item",
@@ -20,6 +22,7 @@ The target's operation must exist, and a `GET` endpoint's target changes nothing
         "method": "GET",
         "path": "/items/:id",
         "target": { "element": "items", "operation": "read" },
+        "operation": { "area": "items", "resource": "item", "action": "read" },
         "request": { "id": "#.params.id" },
         "response": { "headers": { "ETag": "#.output.revision" }, "body": "#.output" }
     }

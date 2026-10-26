@@ -6,6 +6,7 @@
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/transitions/:transition",
             "target": { "element": "entity-states", "operation": "transition" },
+            "operation": { "area": "states", "resource": "#.input.entityType", "action": "#.input.transition" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
