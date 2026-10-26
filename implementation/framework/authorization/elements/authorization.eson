@@ -22,15 +22,24 @@
     {
         "id": "role",
         "kind": "kind",
-        "data": { "shape": { "!actors[]": "@ref/actor" } }
+        "data": { "shape": { "actors[]": "@ref/actor", "grants[]": "@grant" } }
     },
     {
         "id": "authorization-problems",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "string", "output": "[string]" },
+            "signature": { "input": "string", "output": "[@any]" },
             "module": "@business-framework/authorization/authorization",
             "export": "authorizationProblems"
+        }
+    },
+    {
+        "id": "authorization-explanation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!authorization": "string", "!element": "string" }, "output": "@any" },
+            "module": "@business-framework/authorization/authorization",
+            "export": "authorizationExplanation"
         }
     },
     {
@@ -85,7 +94,8 @@
                 "dimensions": { "cardinality": "many", "value": "@authorization-dimension" }
             },
             "lifecycle": {
-                "validate": { "$func/authorization-problems": "#.self.id" }
+                "validate": { "$func/authorization-problems": "#.self.id" },
+                "explain": { "$func/authorization-explanation": { "authorization": "#.self.id", "element": "#.element" } }
             }
         }
     },

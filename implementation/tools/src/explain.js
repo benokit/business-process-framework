@@ -1,6 +1,6 @@
 import path from 'path';
 import { getElement } from '@business-framework/core';
-import { effectTracesOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
+import { effectTracesOf, explanationsOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
 
 const relative = file => file && path.relative(process.cwd(), file);
 
@@ -72,7 +72,7 @@ const instanceDescription = element => {
 export const explain = id => {
     const element = getElement(id);
     const description = element.kind === 'kind' ? kindDescription(element) : instanceDescription(element);
-    return { id, kind: element.kind, source: relative(sourceOf(element)), ...description };
+    return { id, kind: element.kind, source: relative(sourceOf(element)), ...description, explanations: explanationsOf(id) };
 };
 
 const json = value => JSON.stringify(value);
@@ -102,6 +102,10 @@ const valueLine = (title, value) => isEmpty(value) ? [] : [`${title}: ${json(val
 
 const listLine = (title, values) => values?.length ? [`${title}: ${values.join(', ')}`] : [];
 
+const explanationLines = (title, value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? section(title, Object.entries(value).map(([key, item]) => `  ${key}: ${json(item)}`))
+    : valueLine(title, value);
+
 export const renderExplanation = description => [
     `${description.id}  ${description.kind}  ${description.source ?? ''}`.trimEnd(),
     `chain: ${description.chain.join(' > ')}`,
@@ -113,5 +117,6 @@ export const renderExplanation = description => [
     ...section('slots', description.slots.flatMap(slotLines)),
     ...section('lifecycle', (description.lifecycle ?? []).map(lifecycleLine)),
     ...listLine('instances', description.instances),
-    ...listLine('bindings', description.bindings)
+    ...listLine('bindings', description.bindings),
+    ...Object.entries(description.explanations ?? {}).flatMap(([title, value]) => explanationLines(title, value))
 ].join('\n');

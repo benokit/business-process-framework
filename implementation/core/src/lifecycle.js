@@ -3,6 +3,7 @@ import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { orderItems } from './order.js';
 import { runMethod } from './execution/pipeline.js';
 import { sequentially } from './execution/sequentially.js';
+import { applyMapping } from './mappings.js';
 
 const chainOf = element => resolveKind(kindOf(element)).chain;
 
@@ -37,5 +38,11 @@ const ELEMENTS_FOR = {
 
 const runHooks = (element, phase) => sequentially(hooksOf(element, phase),
     hook => runMethod(hook, { input: undefined, self: selfOf(element), _ctx: Object.freeze({}) }));
+
+const explainers = () => allElements().filter(element => element.id !== undefined).flatMap(element =>
+    chainOf(element).filter(kind => kind.data.lifecycle?.explain !== undefined).map(kind => ({ element, mapping: kind.data.lifecycle.explain })));
+
+export const explanationsOf = id => Object.assign({}, ...explainers()
+    .map(({ element, mapping }) => applyMapping({ mapping, input: { self: selfOf(element), element: id } }) ?? {}));
 
 export const runLifecycle = phase => sequentially(ELEMENTS_FOR[phase](), element => runHooks(element, phase));

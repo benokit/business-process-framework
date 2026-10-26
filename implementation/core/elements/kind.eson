@@ -15,6 +15,7 @@
                     "start": "@method",
                     "stop": "@method",
                     "validate": "@mapping",
+                    "explain": "@mapping",
                     "startAfter[]": "@ref/kind",
                     "startBefore[]": "@ref/kind",
                     "startPosition=1": ["first", "last"]

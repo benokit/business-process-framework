@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { explanationsOf } from '@business-framework/core/introspection';
 import { headerPrincipal, ROLE_HEADER } from './principal.js';
 
 const packages = ['http-server', 'security', 'authorization'].map(name => packageElements(`@business-framework/${name}`));
@@ -63,14 +64,39 @@ describe('authorization', () => {
     it('reports grants of values no endpoint performs, unknown dimensions and roles of unknown actors', async () => {
         expect(await problemsWith(
             actor('clerk', [{ area: 'documents', resource: ['offer', 'invoice'], action: ['approve', 'aprove'] }, { channel: 'web' }, { area: 'documents', except: [{ colour: 'red', resource: 'invoice' }] }]),
-            { id: 'back-office', kind: 'role', data: { actors: ['clerk', 'nobody'] } }
+            { id: 'back-office', kind: 'role', data: { actors: ['clerk', 'nobody'], grants: [{ action: 'sign' }] } }
         )).to.deep.equal([
             'unknown-element',
             'clerk: grants resource invoice, which no endpoint performs',
             'clerk: grants action aprove, which no endpoint performs',
             'clerk: a grant names an unknown dimension channel',
-            'clerk: a grant names an unknown dimension colour'
+            'clerk: a grant names an unknown dimension colour',
+            'back-office: grants action sign, which no endpoint performs'
         ]);
+    });
+
+    it('warns about an endpoint no actor grants', async () => {
+        await boot({ paths: packages, elements: [...documents, readEndpoint, actEndpoint, actor('reader', [{ action: 'read' }])] });
+        expect(validate({ warnings: true }).map(({ data }) => [data.severity, data.messages])).to.deep.equal([['warning', ['act-on-document: no actor grants its operation']]]);
+    });
+
+    it('explains which actors and roles may call an endpoint, and what an actor and a role reach', async () => {
+        await boot({
+            paths: packages,
+            elements: [...documents, readEndpoint, actEndpoint,
+                actor('clerk', [{ resource: 'contract-type', action: ['approve', 'reject'] }, { action: 'query' }]),
+                { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } }]
+        });
+        expect(explanationsOf('act-on-document').authorization).to.deep.equal({
+            operation: { area: ['documents'], resource: ['note', 'offer'], action: ['approve', 'reject'] },
+            actors: { clerk: 'some' },
+            roles: { 'clerk-role': 'some' }
+        });
+        expect([explanationsOf('clerk').authorization, explanationsOf('clerk-role').authorization]).to.deep.equal([
+            { endpoints: { 'read-document': 'all', 'act-on-document': 'some' }, roles: ['clerk-role'] },
+            { actors: ['clerk'], grants: [], endpoints: { 'read-document': 'all', 'act-on-document': 'some' } }
+        ]);
+        expect(explanationsOf('documents')).to.deep.equal({});
     });
 
     it('takes a dimension added by a module, its default for endpoints that do not name it, and keeps grants without it', async () => {
@@ -107,6 +133,7 @@ describe('authorization of requests', () => {
                 { id: 'clerk-role', kind: 'role', data: { actors: ['clerk'] } },
                 { id: 'auditor-role', kind: 'role', data: { actors: ['auditor'] } },
                 actor('note-keeper', [{ area: 'documents', except: [{ resource: 'contract-type' }, { resource: 'invoice' }] }]),
+                { id: 'offer-approver-role', kind: 'role', data: { grants: [{ area: 'documents', resource: 'offer', action: 'approve' }] } },
                 { id: 'note-keeper-role', kind: 'role', data: { actors: ['note-keeper'] } }
             ]
         });
@@ -141,5 +168,12 @@ describe('authorization of requests', () => {
             call('GET', '/read-document?type=offer', 'note-keeper-role'),
             call('POST', '/act-on-document', 'note-keeper-role', { type: 'offer', step: 'approve' })
         ])).to.deep.equal([200, 200, 403, 403]);
+    });
+
+    it('permits what a role grants directly, beside its actors', async () => {
+        expect(await Promise.all([
+            call('POST', '/act-on-document', 'offer-approver-role', { type: 'offer', step: 'approve' }),
+            call('POST', '/act-on-document', 'offer-approver-role', { type: 'offer', step: 'reject' })
+        ])).to.deep.equal([200, 403]);
     });
 });

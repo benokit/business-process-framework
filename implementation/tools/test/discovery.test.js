@@ -26,6 +26,11 @@ describe('discovery', () => {
         expect(effectsOf('contract-events', 'publish').irreversible).to.match(/^default-transactional-outbox\.put > afterCommit > /);
     });
 
+    it('explains what packages add: the actors and roles that may call an endpoint', () => {
+        const { roles, actors } = explain('entity-transition-endpoint').explanations.authorization;
+        expect([actors['underwriter-actor'], roles['underwriter-role'], roles['administrator-role']]).to.deep.equal(['some', 'some', 'all']);
+    });
+
     it('explains a kind with its instances and the kinds that implement abstract operations', () => {
         const { instances, operations } = explain('message-broker');
         expect(instances).to.deep.equal(['default-nats-broker']);

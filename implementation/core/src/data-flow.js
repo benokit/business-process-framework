@@ -286,6 +286,7 @@ const fillInput = fill => {
 
 const mappingInput = (author, path) => {
     if (author.kind === 'kind' && path === 'lifecycle.validate') return closed({ self: selfType(author.id) });
+    if (author.kind === 'kind' && path === 'lifecycle.explain') return closed({ self: selfType(author.id), element: STRING });
     if (author.kind === 'pure-function' && path === 'mapping') return compactType(author.data.signature?.input);
     if (author.kind === 'slot-fill') return fillInput(author);
     return ANY;

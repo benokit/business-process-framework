@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { start, stop, validate } from '../src/index.js';
+import { explanationsOf } from '../src/introspection.js';
 import { calls } from './fixtures/effects.js';
 import { bootWith, element, kind, low } from './helpers.js';
 
@@ -80,5 +81,23 @@ describe('validate hooks', () => {
             ['invalid-element', 'bad: min exceeds max'],
             ['invalid-element', 'bad: not tight']
         ]);
+    });
+
+    it('reports a validate hook\'s warning messages as warnings', async () => {
+        await bootWith(
+            kind('ranged', { shape: { '!min': 'number', '!max': 'number' }, lifecycle: { validate: { $if: [{ $gt: ['#.self.data.min', '#.self.data.max'] }, ['min exceeds max', { warning: 'empty range' }], []] } } }),
+            element('bad', 'ranged', { min: 2, max: 1 }));
+        expect(validate().map(({ message }) => message)).to.deep.equal(['bad: min exceeds max']);
+        expect(validate({ warnings: true }).map(({ message, data }) => [message, data.severity])).to.deep.equal([['bad: min exceeds max', undefined], ['bad: empty range', 'warning']]);
+    });
+
+    it('merges what the explain hooks of all instances add to an element', async () => {
+        await bootWith(
+            kind('commentator', { shape: { '!word': 'string' }, lifecycle: { explain: { $if: [{ $eq: ['#.element', 'subject'] }, { '\\$': '#.self.data.word' }, null] } } }),
+            element('first', 'commentator', { word: 'one' }),
+            kind('other-commentator', { lifecycle: { explain: { other: '#.element' } } }),
+            element('second', 'other-commentator'),
+            element('subject', 'commentator', { word: 'two' }));
+        expect([explanationsOf('subject'), explanationsOf('first')]).to.deep.equal([{ $: 'two', other: 'subject' }, { other: 'first' }]);
     });
 });

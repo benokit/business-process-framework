@@ -1,5 +1,5 @@
-import { getElement } from '@business-framework/core';
-import { selfOf, selvesOf } from '@business-framework/core/kinds';
+import { findElement, getElement } from '@business-framework/core';
+import { isInstanceOf, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { slotValues } from '@business-framework/core/slots';
 import { applyMapping } from '@business-framework/core/mappings';
 import { resolveReference } from '@business-framework/core/references';
@@ -49,6 +49,7 @@ const endpointSpace = (dimensions, endpoint) => {
         .map(name => `${endpoint.id}: the operation names an unknown dimension ${name}`);
     const typedDimensions = dimensions.map(dimension => ({ dimension, ...dimensionType(endpoint, dimension, operation, scope) }));
     return {
+        id: endpoint.id,
         values: Object.fromEntries(typedDimensions.map(({ dimension, type }) => [dimension.name, (type && valuesOf(type)) ?? []])),
         problems: [
             ...operation.problems.map(message => `${endpoint.id}: ${message}`),
@@ -88,44 +89,40 @@ const coveredBy = (performed, value) => [...performed]
 
 const EXCEPT = 'except';
 
-const unknownDimensions = (performed, actor, box) => Object.keys(box).filter(name => !(name in performed))
-    .map(name => `${actor.id}: a grant names an unknown dimension ${name}`);
+const unknownDimensions = (performed, holder, box) => Object.keys(box).filter(name => !(name in performed))
+    .map(name => `${holder.id}: a grant names an unknown dimension ${name}`);
 
-const grantProblems = (performed, actor) => actor.data.grants.flatMap(({ [EXCEPT]: excepted = [], ...box }) => [
-    ...unknownDimensions(performed, actor, box),
-    ...excepted.flatMap(except => unknownDimensions(performed, actor, except)),
+const grantProblems = (performed, holder) => (holder.data.grants ?? []).flatMap(({ [EXCEPT]: excepted = [], ...box }) => [
+    ...unknownDimensions(performed, holder, box),
+    ...excepted.flatMap(except => unknownDimensions(performed, holder, except)),
     ...Object.entries(box).filter(([name]) => name in performed).flatMap(([name, value]) => [value].flat()
         .filter(named => named !== WILDCARD && coveredBy(performed[name], named).length === 0)
-        .map(named => `${actor.id}: grants ${name} ${named}, which no endpoint performs`))
+        .map(named => `${holder.id}: grants ${name} ${named}, which no endpoint performs`))
 ]);
 
 const repeated = dimensions => dimensions.map(({ name }) => name)
     .filter((name, index, names) => names.indexOf(name) !== index)
     .map(name => `the dimension ${name} is declared twice`);
 
-export const authorizationProblems = authorization => {
-    const { dimensions, endpoints, performed } = spaceOf(authorization);
-    return [
-        ...repeated(dimensions),
-        ...endpoints.flatMap(({ problems }) => problems),
-        ...selvesOf('actor').flatMap(actor => grantProblems(performed, actor))
-    ];
-};
 
 const edgesOf = (performed, value) => value === undefined || [value].flat().includes(WILDCARD)
     ? [WILDCARD]
     : [...new Set([value].flat().flatMap(named => coveredBy(performed, named)))];
 
-const insert = (node, paths, role) => {
-    if (paths.length === 0) return node.roles.add(role);
+const node = () => ({ children: new Map(), holders: new Set() });
+
+const insert = (at, paths, holder) => {
+    if (paths.length === 0) return at.holders.add(holder);
     const [edges, ...rest] = paths;
     edges.forEach(edge => {
-        if (!node.children.has(edge)) node.children.set(edge, { children: new Map(), roles: new Set() });
-        insert(node.children.get(edge), rest, role);
+        if (!at.children.has(edge)) at.children.set(edge, node());
+        insert(at.children.get(edge), rest, holder);
     });
 };
 
-const grantsOf = role => role.data.actors.flatMap(actor => selfOf(getElement(actor)).data.grants);
+const actorsOf = role => role.data.actors ?? [];
+
+const grantsOf = role => [...actorsOf(role).flatMap(actor => selfOf(getElement(actor)).data.grants), ...role.data.grants ?? []];
 
 const isAll = edges => edges.includes(WILDCARD);
 
@@ -147,18 +144,78 @@ const boxesOf = (dimensions, performed, { [EXCEPT]: excepted = [], ...grant }) =
     return excepted.map(boxOf).reduce(minus(alls), [boxOf(grant)]);
 };
 
-const trieOf = memo(authorization => {
+const trieOf = (authorization, holders) => {
     const { dimensions, performed } = spaceOf(authorization);
-    const root = { children: new Map(), roles: new Set() };
-    selvesOf('role').forEach(role => grantsOf(role).forEach(grant =>
-        boxesOf(dimensions, performed, grant).forEach(box => insert(root, box, role.id))));
+    const root = node();
+    holders.forEach(({ id, grants }) => grants.forEach(grant =>
+        boxesOf(dimensions, performed, grant).forEach(box => insert(root, box, id))));
     return root;
-});
+};
 
-const reached = (node, values) => {
-    if (values.length === 0) return [node.roles];
+const roleTrie = memo(authorization => trieOf(authorization, selvesOf('role').map(role => ({ id: role.id, grants: grantsOf(role) }))));
+
+const actorTrie = memo(authorization => trieOf(authorization, selvesOf('actor').map(actor => ({ id: actor.id, grants: actor.data.grants }))));
+
+const reached = (at, values) => {
+    if (values.length === 0) return [at.holders];
     const [value, ...rest] = values;
-    return [value, WILDCARD].filter(edge => node.children.has(edge)).flatMap(edge => reached(node.children.get(edge), rest));
+    return [value, WILDCARD].filter(edge => at.children.has(edge)).flatMap(edge => reached(at.children.get(edge), rest));
+};
+
+const product = lists => lists.reduce((tuples, list) => tuples.flatMap(tuple => list.map(value => [...tuple, value])), [[]]);
+
+const coverage = (trie, operations) => {
+    const counts = operations.map(values => new Set(reached(trie, values).flatMap(holders => [...holders])))
+        .flatMap(holders => [...holders])
+        .reduce((all, holder) => ({ ...all, [holder]: (all[holder] ?? 0) + 1 }), {});
+    return Object.fromEntries(Object.entries(counts).map(([holder, count]) => [holder, count === operations.length ? 'all' : 'some']));
+};
+
+const operationsOf = (dimensions, endpoint) => product(dimensions.map(({ name }) => endpoint.values[name]));
+
+const endpointCoverage = (authorization, trie) => {
+    const { dimensions, endpoints } = spaceOf(authorization);
+    return endpoints.map(endpoint => ({ ...endpoint, holders: coverage(trie, operationsOf(dimensions, endpoint)) }));
+};
+
+const ungranted = authorization => endpointCoverage(authorization, actorTrie(authorization))
+    .filter(({ holders }) => Object.keys(holders).length === 0)
+    .map(({ id }) => ({ warning: `${id}: no actor grants its operation` }));
+
+export const authorizationProblems = authorization => {
+    const { dimensions, endpoints, performed } = spaceOf(authorization);
+    return [
+        ...repeated(dimensions),
+        ...endpoints.flatMap(({ problems }) => problems),
+        ...[...selvesOf('actor'), ...selvesOf('role')].flatMap(holder => grantProblems(performed, holder)),
+        ...ungranted(authorization)
+    ];
+};
+
+const reachable = (authorization, trie, id) => Object.fromEntries(endpointCoverage(authorization, trie)
+    .filter(({ holders }) => id in holders)
+    .map(endpoint => [endpoint.id, endpoint.holders[id]]));
+
+const endpointExplanation = (authorization, endpoint) => {
+    if (endpoint.data.public) return 'public';
+    const covered = trie => endpointCoverage(authorization, trie).find(({ id }) => id === endpoint.id);
+    const operations = covered(roleTrie(authorization));
+    return operations && { operation: operations.values, actors: covered(actorTrie(authorization)).holders, roles: operations.holders };
+};
+
+const EXPLAINED = {
+    'http-endpoint': endpointExplanation,
+    actor: (authorization, actor) => ({
+        endpoints: reachable(authorization, actorTrie(authorization), actor.id),
+        roles: selvesOf('role').filter(role => actorsOf(role).includes(actor.id)).map(role => role.id)
+    }),
+    role: (authorization, role) => ({ actors: actorsOf(role), grants: role.data.grants ?? [], endpoints: reachable(authorization, roleTrie(authorization), role.id) })
+};
+
+export const authorizationExplanation = ({ authorization, element }) => {
+    const found = findElement(element);
+    const kind = found && Object.keys(EXPLAINED).find(name => isInstanceOf({ element, kind: name }));
+    return kind ? { authorization: EXPLAINED[kind](authorization, selfOf(found)) ?? null } : null;
 };
 
 const theAuthorization = () => resolveReference({ instanceOf: 'authorization' });
@@ -166,7 +223,7 @@ const theAuthorization = () => resolveReference({ instanceOf: 'authorization' })
 export const permits = ({ operation, roles }) => {
     const authorization = theAuthorization();
     const values = dimensionsOf(authorization).map(({ name }) => operation[name]);
-    return reached(trieOf(authorization), values).some(granted => roles.some(role => granted.has(role)));
+    return reached(roleTrie(authorization), values).some(granted => roles.some(role => granted.has(role)));
 };
 
 export const endpointOperation = ({ endpoint, request }) => {

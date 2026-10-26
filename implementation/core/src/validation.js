@@ -69,12 +69,30 @@ const referenceProblems = element => {
     return kindReferences(element.data).map(reference => () => inCode.has(reference) ? checkAbstraction(reference) : resolveReference(reference));
 };
 
+const isWarning = message => typeof message === 'object' && message !== null && 'warning' in message;
+
+const hookMessages = (element, kind) => applyMapping({ mapping: kind.data.lifecycle.validate, input: { self: selfOf(element) } }) ?? [];
+
+const quietly = messagesOf => (...args) => {
+    try {
+        return messagesOf(...args);
+    } catch {
+        return [];
+    }
+};
+
+const hookProblem = (element, kind, messagesOf, severity) => () => {
+    const messages = messagesOf(element, kind);
+    if (messages.length > 0) fail('invalid-element', `${element.id}: ${messages.join('; ')}`, { element: element.id, kind: kind.id, messages, ...severity && { severity } });
+};
+
+const hookErrors = (element, kind) => hookMessages(element, kind).filter(message => !isWarning(message));
+
+const hookWarnings = quietly((element, kind) => hookMessages(element, kind).filter(isWarning).map(message => message.warning));
+
 const hookProblems = element => resolveKind(kindOf(element)).chain
     .filter(kind => kind.data.lifecycle?.validate !== undefined)
-    .map(kind => () => {
-        const messages = applyMapping({ mapping: kind.data.lifecycle.validate, input: { self: selfOf(element) } }) ?? [];
-        if (messages.length > 0) fail('invalid-element', `${element.id}: ${messages.join('; ')}`, { element: element.id, kind: kind.id, messages });
-    });
+    .flatMap(kind => [hookProblem(element, kind, hookErrors), hookProblem(element, kind, hookWarnings, 'warning')]);
 
 const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
@@ -99,12 +117,12 @@ const inferredProblems = () => {
     }
 };
 
-const isWarning = problem => problem.data?.severity === 'warning';
+const isWarningProblem = problem => problem.data?.severity === 'warning';
 
 export const validate = ({ warnings = false } = {}) => {
     const all = checks().flatMap(problemsOf);
-    const problems = all.filter(problem => !isWarning(problem));
+    const problems = all.filter(problem => !isWarningProblem(problem));
     const inferred = inferredProblems();
     const failed = inferred.some(({ code }) => code !== 'effect-bound');
-    return [...problems, ...problems.length > 0 && failed ? [] : inferred, ...warnings ? all.filter(isWarning) : []];
+    return [...problems, ...problems.length > 0 && failed ? [] : inferred, ...warnings ? all.filter(isWarningProblem) : []];
 };
