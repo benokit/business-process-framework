@@ -12,6 +12,19 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 ---
 
+## Security (next)
+
+Security lives at the boundary (P19): each HTTP endpoint maps its request to an operation of plain dimensions, modules grant operations to their actors, the application assigns actors to roles (P20), and a middleware checks the user's roles. Security comes before processes (R5.3) and new domain kinds, so they are built with it instead of retrofitted. The representation is proposed in F20. Later, not planned yet: data-level scopes (row filters), parameterized actors and entry points other than HTTP.
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R9.1 | The operation representation: the `dimensions` slot of the security package, filled with `area`, `resource` (parents: the kind chain, `$func/kind-chain`) and `action` (parents: the action levels `read`, `write`), each with an optional default mapping and parents; `operation` (a mapping from `{ params, query, headers, input }`, `input` being the mapped target input) or `public` on `http-endpoint`; `actor` elements granting boxes (each dimension a value, an array or `*`, omitted meaning `*`) and `role` elements listing actors; `validate()` reports an endpoint with neither, a role naming an unknown actor, an operation mapping whose result doesn't fit the dimensions, and a dimension whose type isn't a closed set | F20, P19 | A demo endpoint without an operation, a dimension read from a free string, and a grant naming an unknown transition are reported; a grant on an entity class covers the entity types extending it; a fixture adding a fourth dimension keeps existing grants valid | draft |
+| R9.2 | The authorization middleware: a `requestMiddleware` fill after `authenticate-requests` maps the request to its operation, walks the trie of grants, flattened at load from roles through their actors and expanded through the dimensions' hierarchies, and answers `401` without a principal and `403` without a granting role | R9.1 | A request without a token, or with roles that grant nothing, is refused by every endpoint that isn't public | draft |
+| R9.3 | Every framework and demo endpoint declares its operation; the framework packages declare their actors (`user-administrator`, coarse entity actors), the demo declares its domain actors (underwriter, viewer) and its roles; tests call endpoints with tokens | R9.2 | The demo works for the underwriter and refuses the viewer's changes | draft |
+| R9.4 | Migrations: `migration` elements (an id, a pipeline, an order) and `bpf migrate`, which runs each one not yet applied, as the system principal, and records it in the database; the table creation of the `models` slot moves to migrations, so a start no longer runs the whole schema, which is slow and redundant; tests and the server migrate once before they start | F20 | `bpf migrate` on an empty database creates the tables, a second run applies nothing | draft |
+| R9.5 | Users are created and changed by administrators only, through the actor `user-administrator`, granting the entity endpoints on `user` (a token no longer creates its user, done); a migration of users inserts the user `administrator` with the administrator role; `security.actAs` in the app config maps a login's subject to a user | R9.3, R9.4 | `POST` and `PUT` on a user are refused without the administrator role; after `bpf migrate`, a login whose subject `actAs` maps to `administrator` may create users | draft |
+| R9.6 | Actors and roles per endpoint in the tools: where an endpoint's dimensions are a closed set, `bpf explain` lists the actors granting it and the roles holding them, and a role's operations; `validate()` warns about an endpoint no actor grants and an actor grant that matches no endpoint | R9.2, F40 | `bpf explain` of the transition endpoint lists the underwriter and the roles holding it | draft |
+
 ## Core: execution and effects
 
 | ID | Step | Refs | Done when | Status |
@@ -55,6 +68,5 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R5.1 | Decision table kind | F12 | The demo has a rating or eligibility table | draft |
-| R5.2 | Security layer: principal required by default, a permission model enforced at entity operations | F20, [organisation.txt](organisation.txt) | A request without a principal can't read or change entities; only an administrator can change a user's roles | draft |
 | R5.3 | Process orchestration outside the core (P14): a process kind built from entity states, message consumers and delayed messages; named steps, waits between pipelines, declared extension points | F9, Q3 | A multi-step demo process with a timer runs end to end; no core change is needed | draft |
 | R5.4 | Messaging capabilities for R5.3: delayed delivery and routing a message to its process instance | Q3 | A delayed message arrives after its delay; a process instance receives only its own messages | draft |

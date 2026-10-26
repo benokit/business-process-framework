@@ -41,7 +41,17 @@ describe('oauth', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('binds the principal of the internal user, created on first sight and cached until it changes', async () => {
+    it('binds no principal for a subject that is no user, until the user is created', async () => {
+        const subject = `carl-${run}`;
+        const token = await tokenFor(subject);
+        expect(await whoami(token)).to.equal(undefined);
+        expect((await invoke('user', 'read', { businessKey: subject }).catch(e => e)).code).to.equal('not-found');
+        await invoke('user', 'create', { body: { subject, username: 'carl' } });
+        await eventually(async () => (await whoami(token))?.username === 'carl');
+    });
+
+    it('binds the principal of the user, cached until it changes', async () => {
+        await invoke('user', 'create', { body: { subject: ADA, username: ADA } });
         const token = await tokenFor(ADA);
         expect(await whoami(token)).to.deep.equal({ userId: ADA, username: ADA, roles: [] });
         expect((await invoke('user-cache', 'get', { key: ADA })).found).to.equal(true);
@@ -52,10 +62,11 @@ describe('oauth', function () {
     });
 
     it('binds no principal without a valid token or for a suspended user', async () => {
+        await invoke('user', 'create', { body: { subject: `bob-${run}` } });
         const token = await tokenFor(`bob-${run}`);
         expect(await whoami()).to.equal(undefined);
         expect(await whoami(`${token.slice(0, -2)}xx`)).to.equal(undefined);
-        await whoami(token);
+        expect((await whoami(token)).userId).to.equal(`bob-${run}`);
         await invoke('entity-states', 'transition', { entityType: 'user', businessKey: `bob-${run}`, revision: 1, transition: 'suspend' });
         await eventually(async () => (await whoami(token)) === undefined);
     });

@@ -1,35 +1,7 @@
 [
     {
-        "id": "user-entity-type",
-        "kind": "kind",
-        "data": {
-            "extends": "entity-type",
-            "operations": {
-                "identify": {
-                    "input": { "!subject": "string", "username": "string", "email": "string" },
-                    "output": "@entity-record",
-                    "implementation": {
-                        "try": { "inputMap": { "businessKey": "#.input.subject" }, "invoke": "#.self.id", "operation": "read" },
-                        "catch": {
-                            "if": { "$neq": ["#.error.code", "not-found"] },
-                            "then": { "throw": "#.error" },
-                            "else": {
-                                "try": { "inputMap": { "body": "#.input" }, "invoke": "#.self.id", "operation": "create" },
-                                "catch": {
-                                    "if": { "$neq": ["#.error.code", "conflict"] },
-                                    "then": { "throw": "#.error" },
-                                    "else": { "inputMap": { "businessKey": "#.input.subject" }, "invoke": "#.self.id", "operation": "read" }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    {
         "id": "user",
-        "kind": "user-entity-type",
+        "kind": "entity-type",
         "data": {
             "bodySchema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" }
         }

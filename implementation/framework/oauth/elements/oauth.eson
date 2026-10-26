@@ -22,13 +22,18 @@
                     "else": [
                         {
                             "outputKey": "user",
-                            "inputMap": { "subject": "#.claims.sub", "username": { "$coalesce": ["#.claims.preferred_username", "#.claims.sub"] }, "email": "#.claims.email" },
-                            "withCache": { "asSystem": { "invoke": "user", "operation": "identify" } },
+                            "inputMap": { "businessKey": "#.claims.sub" },
+                            "withCache": {
+                                "asSystem": {
+                                    "try": { "invoke": "user", "operation": "read" },
+                                    "catch": { "if": { "$eq": ["#.error.code", "not-found"] }, "then": { "set": null }, "else": { "throw": "#.error" } }
+                                }
+                            },
                             "cache": "user-cache",
-                            "key": "#.input.subject"
+                            "key": "#.input.businessKey"
                         },
                         {
-                            "if": { "$eq": ["#.user.data.state.status", "suspended"] },
+                            "if": { "$or": [{ "$negate": "#.user" }, { "$eq": ["#.user.data.state.status", "suspended"] }] },
                             "then": { "next": true },
                             "else": {
                                 "withContext": {

@@ -8,7 +8,7 @@ Kind `in-memory-cache` (`{ ttl?, maxEntries? }`): `get({ key })` → `{ found, v
 Keyword `withCache` (an `execution-node-wrapper`): its value is the pipeline that computes the value on a miss, run in the caller's context.
 
 ```json
-{ "inputMap": { "subject": "#.claims.sub" }, "withCache": { "invoke": "user", "operation": "identify" }, "cache": "user-cache", "key": "#.input.subject" }
+{ "inputMap": { "businessKey": "#.claims.sub" }, "withCache": { "invoke": "user", "operation": "read" }, "cache": "user-cache", "key": "#.input.businessKey" }
 ```
 
 | Field | Required | Description |
