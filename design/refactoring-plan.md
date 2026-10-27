@@ -25,6 +25,17 @@ Security lives at the boundary (P19): each HTTP endpoint maps its request to an 
 | R9.5 | Users are created and changed by administrators only, through the actor `user-administrator`, granting the entity endpoints on `user` (a token no longer creates its user, done); the generic entity actors except `user` (`except` in grants); a migration of the application inserts the user `administrator` with the administrator role; `security.actAs` in the app config maps a login's subject to a user; the administrator and its migration are the application's (`administrator-role` is an application role, P20) | R9.3, R9.4 | `POST` and `PUT` on a user are refused without the administrator role; after `bpf migrate`, a login whose subject `actAs` maps to `administrator` may create users | done |
 | R9.6 | Actors and roles per endpoint in the tools: where an endpoint's dimensions are a closed set, `bpf explain` lists the actors granting it and the roles holding them, and a role's operations; `validate()` warns about an endpoint no actor grants and an actor grant that matches no endpoint | R9.2 | `bpf explain` of the transition endpoint lists the underwriter and the roles holding it | done |
 
+## Data composition, `fixed` and settings
+
+The algebra is specified in [data-composition.md](data-composition.md) (P21), the kind values and settings in [kind-settings.md](kind-settings.md) (P22, F48).
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R10.1 | The `/data` operations `replace`, `unset`, `append` and the composition table; arrays stop merging by index; the demo and packages migrated | P21 | `/merge` uses the algebra; the laws hold as property tests | in progress (core done, `core/src/composition.js`; the demo and packages need no migration)
+| R10.2 | `fixed` replaces `defaults`: union along the chain with conflicts reported by `validate()`, fill-in of an instance before the shape check; `search`, `database` integrations migrated; `defaults` removed from the `kind` shape | P22, F48 | An instance has the fixed values of its chain; a different value is an error | done (the cache's `maxEntries` default is a `$coalesce` in its `set` until R10.3; an entity class no longer pre-fills `bodySchema`, an instance composes it with `$data#&`) |
+| R10.3 | Settings: `settings.shape` and `settings.defaults` on a kind, the layers (defaults, `app-config`, environment) by element id, conversion of environment values by the shape, `$func/settings` with a known type; the env-addressable rules in `validate()`; the cache's `maxEntries` and the existing `app-config` sections migrated to kind ids | P22, F48 | A setting is set by one variable; a bad or missing value fails the start naming the layers | done (the type of `$func/settings` isn't inferred yet: its output is `object`) |
+| R10.4 | `bpf explain` lists the settings of a kind or instance (path, type, default, section, variable name, mode values) and its `fixed` values; it doesn't read the environment | P22, F48 | `explain` shows what can be configured | done (without provenance of composed values: settings come in layers by id, listed with their variable) |
+
 ## Core: execution and effects
 
 | ID | Step | Refs | Done when | Status |
