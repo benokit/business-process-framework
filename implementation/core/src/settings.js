@@ -1,5 +1,5 @@
 import { get, isPlainObject, set, uniq } from 'lodash-es';
-import { allElements, getElement, kindOf, lazy, memo } from './registry.js';
+import { allElements, findElement, getElement, kindOf, lazy, memo } from './registry.js';
 import { fail } from './errors.js';
 import { instancesOf, resolveKind } from './kinds.js';
 import { compose } from './composition.js';
@@ -125,13 +125,48 @@ const collisionChecks = () => {
     });
 };
 
-export const settingsProblems = () => [
+const leafPaths = (tree, path = []) => isPlainObject(tree)
+    ? Object.entries(tree).flatMap(([key, value]) => leafPaths(value, [...path, key]))
+    : [path];
+
+const knownPath = (known, path) => known.some(candidate => candidate.length === path.length
+    && candidate.every((step, index) => step === '*' || step === path[index]));
+
+const knownPathsOf = element => merged(settingsKinds(element).map(schemaOf).filter(Boolean).flatMap(schema => leavesOf(schema, [])))
+    .map(({ path }) => path);
+
+const warning = (code, message, data) => () => fail(code, message, { ...data, severity: 'warning' });
+
+const layerIds = () => new Set(allElements().filter(hasSettings).flatMap(layersOf));
+
+const unknownSettingChecks = () => {
+    const ids = layerIds();
+    const sectionChecks = Object.entries(sections()).flatMap(([id, section]) => {
+        const element = findElement(id);
+        if (!ids.has(id)) return [warning('unknown-settings-section', `the app-config section '${id}' matches no element with settings`, { layer: id })];
+        const known = knownPathsOf(element);
+        return leafPaths(section).filter(path => !knownPath(known, path)).map(path =>
+            warning('unknown-setting', `the app-config section '${id}' sets '${path.join('.')}', which ${id} has no setting for`, { layer: id, path }));
+    });
+    const variableChecks = Object.keys(process.env).filter(name => name.startsWith(PREFIX)).flatMap(name => {
+        const [part, ...path] = name.slice(PREFIX.length).split('__');
+        const id = [...ids].find(candidate => variablePart(candidate) === part);
+        if (id === undefined) return [warning('unknown-settings-variable', `${name} matches no element with settings`, { variable: name })];
+        const known = knownPathsOf(findElement(id));
+        return knownPath(known, path) ? [] : [warning('unknown-setting', `${name} sets '${path.join('.')}', which ${id} has no setting for`, { variable: name, path })];
+    });
+    return [...sectionChecks, ...variableChecks];
+};
+
+const errorChecks = () => [
     ...shapeChecks(),
     ...collisionChecks(),
     ...allElements().filter(hasSettings).map(element => () => settingsOfElement(element.id))
 ];
 
-export const checkSettings = () => settingsProblems().forEach(check => check());
+export const settingsProblems = () => [...errorChecks(), ...unknownSettingChecks()];
+
+export const checkSettings = () => errorChecks().forEach(check => check());
 
 const valuesOf = schema => [
     ...schema.const === undefined ? [] : [schema.const],

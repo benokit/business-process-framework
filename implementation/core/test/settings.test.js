@@ -114,4 +114,17 @@ describe('settings', () => {
             ]);
         });
     });
+
+    it('warns about sections and variables that match nothing, and about settings an element doesn\'t have', async () => {
+        await bootWith(
+            integration({ shape: { timeoutMs: 'integer', 'limits{}': 'integer' }, defaults: { timeoutMs: 1 } }),
+            element('one', 'integration'),
+            appConfig({ 'on': { timeoutMs: 2 }, one: { timeoutMs: 3, limits: { a: 1 }, timeout: 4 } }));
+        await withEnvironment({ BPF__oen__timeoutMs: '5', BPF__one__timeoutMS: '6' }, async () => {
+            const warnings = validate({ warnings: true }).filter(problem => problem.data.severity === 'warning');
+            expect(warnings.map(problem => problem.code).sort()).to.deep.equal(
+                ['unknown-setting', 'unknown-setting', 'unknown-settings-section', 'unknown-settings-variable']);
+            await start();
+        });
+    });
 });

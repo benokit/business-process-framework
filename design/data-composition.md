@@ -1,6 +1,6 @@
 # Data composition algebra
 
-Status: **design**, not implemented. It replaces the deep merge of `/merge`. The postulate is P21 in [postulates.md](postulates.md); the work is R10 in [refactoring-plan.md](refactoring-plan.md). Today's behaviour is described in [core/README.md](../implementation/core/README.md#data-composition). Kind values and settings, which used to share this algebra through `defaults`, are in [kind-settings.md](kind-settings.md).
+Status: **implemented** (R10.1, `core/src/composition.js`). It replaced the deep merge of `/merge`. The postulate is P21 in [postulates.md](postulates.md); the work is R10 in [refactoring-plan.md](refactoring-plan.md). Today's behaviour is described in [core/README.md](../implementation/core/README.md#data-composition). Kind values and settings, which used to share this algebra through `defaults`, are in [kind-settings.md](kind-settings.md).
 
 ## 1. Scope
 

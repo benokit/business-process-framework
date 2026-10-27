@@ -1,6 +1,6 @@
 # Kind values and settings
 
-Status: **design**, not implemented. It replaces the `defaults` property of a kind. The postulate is P22 in [postulates.md](postulates.md); the work is R10 in [refactoring-plan.md](refactoring-plan.md). The composition algebra of `/data` is in [data-composition.md](data-composition.md).
+Status: **implemented** (R10.2 to R10.4). It replaced the `defaults` property of a kind. The postulate is P22 in [postulates.md](postulates.md); the work is R10 in [refactoring-plan.md](refactoring-plan.md). The composition algebra of `/data` is in [data-composition.md](data-composition.md).
 
 ## 1. Why `defaults` goes
 
@@ -89,7 +89,7 @@ For an instance `product-search` of `search-integration`, which extends `integra
 
 ### Validation
 
-`bpf validate` checks, without infrastructure: the settings shape against the env-addressable rules, the defaults of every kind in a chain composed against the shape, and `app-config` elements against the shape. Environment variables can only be checked at start.
+`bpf validate` checks, without infrastructure: the settings shape against the env-addressable rules, the defaults of every kind in a chain composed against the shape, and `app-config` elements against the shape. Environment variables are checked at start. `validate()` also warns about an `app-config` section or a `BPF__…` variable that matches no element with settings, and about a setting the element doesn't have (a typo has no other effect).
 
 ## 4. Consequences
 
