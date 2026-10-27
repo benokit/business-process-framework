@@ -11,7 +11,7 @@
             "node": { "!authenticated": "@method" },
             "implementation": [
                 { "outputKey": "config", "set": { "$func/app-config-section": "oauth" } },
-                { "outputKey": "security", "set": { "$func/app-config-section": "security" } },
+                { "outputKey": "actAs", "set": { "$coalesce": [{ "$get": { "object": { "$func/app-config-section": "security" }, "path": "actAs" } }, {}] } },
                 {
                     "outputKey": "claims",
                     "inputMap": { "header": "#.input.headers.authorization", "issuer": "#.config.issuer", "audience": "#.config.audience" },
@@ -25,7 +25,27 @@
                             "outputKey": "user",
                             "inputMap": {
                                 "businessKey": {
-                                    "$coalesce": [{ "$get": { "object": { "$coalesce": ["#.security.actAs", {}] }, "path": "#.claims.sub" } }, "#.claims.sub"]
+                                    "$coalesce": [
+                                        {
+                                            "$find": {
+                                                "collection": { "$keys": "#.actAs" },
+                                                "as": "user",
+                                                "predicate": {
+                                                    "$includes": {
+                                                        "collection": {
+                                                            "$map": {
+                                                                "over": { "$split": { "separator": ",", "string": { "$get": { "object": "#.actAs", "path": "@user" } } } },
+                                                                "as": "subject",
+                                                                "fn": { "$trim": "@subject" }
+                                                            }
+                                                        },
+                                                        "value": "#.claims.sub"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "#.claims.sub"
+                                    ]
                                 }
                             },
                             "withCache": {

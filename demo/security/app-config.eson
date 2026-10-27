@@ -1,0 +1,6 @@
+[
+    {
+        "kind": "app-config",
+        "data": { "security": { "actAs": { "administrator": "admin" } } }
+    }
+]

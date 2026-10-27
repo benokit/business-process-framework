@@ -7,7 +7,7 @@ const run = Date.now();
 const ADA = `ada-${run}`;
 
 const elements = [
-    { kind: 'app-config', data: { http: { port: 0 }, oauth: { issuer: OAUTH_ISSUER, audience: 'bpf' }, security: { actAs: { [`boss-${run}`]: `administrator-${run}` } } } },
+    { kind: 'app-config', data: { http: { port: 0 }, oauth: { issuer: OAUTH_ISSUER, audience: 'bpf' }, security: { actAs: { [`administrator-${run}`]: `someone-${run}@example.com, boss-${run}` } } } },
     { id: 'whoami-service', kind: 'kind', data: { operations: { whoami: { input: '@any', implementation: { set: { user: '#._ctx.user' } } } } } },
     { id: 'whoami', kind: 'whoami-service', data: {} },
     { id: 'clerk-actor', kind: 'actor', data: { grants: [] } },

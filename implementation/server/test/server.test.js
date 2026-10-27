@@ -26,7 +26,7 @@ describe('server with the demo', function () {
         await skipWithoutPostgres(this);
         await skipWithoutMeilisearch(this);
         await skipWithoutIdentityProvider(this);
-        stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { http: { port: 0 }, security: { actAs: { [`boss-${run}`]: 'administrator' } } } }] });
+        stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { http: { port: 0 }, security: { actAs: { administrator: `boss-${run}` } } } }] });
         await migrate();
     });
 
