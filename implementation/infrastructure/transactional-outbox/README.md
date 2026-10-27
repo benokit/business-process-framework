@@ -2,7 +2,7 @@
 
 At-least-once delivery for channels with `publisher.transactionalOutbox`. Kind `transactional-outbox` (a [`message-outbox`](../../framework/messaging/README.md)), instance `default-transactional-outbox`.
 
-Its time scales are the app config section `outbox` (`BPF__outbox__<key>`, `BPF__outbox__retry__<key>`):
+Its time scales are the settings of the kind (`BPF__transactional_outbox__<key>`, `BPF__transactional_outbox__retry__<key>`, or the `app-config` section `transactional-outbox`, or `default-transactional-outbox` for the instance):
 
 | Key | Default | Meaning |
 |---|---|---|

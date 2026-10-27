@@ -136,7 +136,7 @@ describe('authorization of requests', () => {
         await boot({
             paths: packages,
             elements: [
-                { kind: 'app-config', data: { http: { port: 0 } } },
+                { kind: 'app-config', data: { 'http-server': { port: 0 } } },
                 ...documents, ...headerPrincipal,
                 endpoint('read-document', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.type', action: 'read' }, request: { type: '#.query.type' } }),
                 endpoint('act-on-document', 'POST', 'act', { operation: { area: 'documents', resource: '#.input.type', action: '#.input.step' } }),

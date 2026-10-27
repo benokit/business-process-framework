@@ -21,7 +21,8 @@ const elements = [
     { id: 'the-lookups', kind: 'lookups', data: {} },
     { id: 'lasting', kind: 'in-memory-cache', data: {} },
     { id: 'brief', kind: 'in-memory-cache', data: { ttl: 50 } },
-    { id: 'small', kind: 'in-memory-cache', data: { maxEntries: 2 } }
+    { id: 'small', kind: 'in-memory-cache', data: {} },
+    { kind: 'app-config', data: { small: { maxEntries: 2 } } }
 ];
 
 describe('cache', () => {

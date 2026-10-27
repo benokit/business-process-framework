@@ -1,4 +1,4 @@
-import { isEmpty, merge } from 'lodash-es';
+import { isEmpty, isEqual, isPlainObject } from 'lodash-es';
 import { allElements, findElement, kindOf, memo } from './registry.js';
 import { fail, problemsOf } from './errors.js';
 
@@ -41,6 +41,14 @@ const collect = (kinds, property, what) => kinds.reduce((all, kind) =>
 const managedKeys = chain => Object.fromEntries(chain.flatMap(kind =>
     Object.keys(kind.data.context?.manages ?? {}).map(key => [key, kind.id])));
 
+const unite = (base, over, owner, path = []) => {
+    if (isPlainObject(base) && isPlainObject(over)) {
+        return Object.fromEntries([...new Set([...Object.keys(base), ...Object.keys(over)])]
+            .map(key => [key, key in over ? (key in base ? unite(base[key], over[key], owner, [...path, key]) : over[key]) : base[key]]));
+    }
+    return isEqual(base, over) ? base : fail('fixed-conflict', `${owner} can't change the fixed value at '${path.join('.')}'`, { owner, path });
+};
+
 export const resolveKind = memo(id => {
     const chain = kindChain(id);
     const ids = chain.map(kind => kind.id);
@@ -50,17 +58,17 @@ export const resolveKind = memo(id => {
         chain,
         operations: collect(chain, 'operations', 'operation'),
         slots: collect([...chain, ...slotDeclarationsFor(ids)], 'slots', 'slot'),
-        defaults: merge({}, ...chain.map(kind => kind.data.defaults)),
+        fixed: chain.reduce((fixed, kind) => unite(fixed, kind.data.fixed ?? {}, kind.id), {}),
         manages: managedKeys(chain)
     };
 });
 
 export const selfOf = memo(element => {
-    const { defaults } = resolveKind(kindOf(element));
+    const { fixed } = resolveKind(kindOf(element));
     return Object.freeze({
         id: element.id,
         kind: kindOf(element),
-        data: isEmpty(defaults) ? element.data : merge({}, defaults, element.data)
+        data: isEmpty(fixed) ? element.data : unite(fixed, element.data, element.id)
     });
 });
 

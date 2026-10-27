@@ -7,7 +7,7 @@ const run = Date.now();
 const ORDER = `order-http-${run}`;
 
 const elements = [
-    { kind: 'app-config', data: { http: { port: 0 } } },
+    { kind: 'app-config', data: { 'http-server': { port: 0 } } },
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
     { id: 'editor-role', kind: 'role', data: { actors: ['entity-editor-actor'] } },
     ...headerPrincipal

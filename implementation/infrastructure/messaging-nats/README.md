@@ -1,6 +1,6 @@
 # messaging-nats
 
-NATS JetStream broker. Kind `nats-broker` (a [`message-broker`](../../framework/messaging/README.md)), instance `default-nats-broker`, URL from the `nats.url` app config (default `nats://localhost:4222`, `BPF__nats__url`).
+NATS JetStream broker. Kind `nats-broker` (a [`message-broker`](../../framework/messaging/README.md)), instance `default-nats-broker`, URL from its `url` setting (default `nats://localhost:4222`, `BPF__nats_broker__url`).
 
 - One stream per channel `name` with the subjects `<name>` and `<name>.>`, created on first use with `interest` retention: a message is kept until every consumer that existed when it was published has acknowledged or terminated it, then removed. There is no age limit, so a durable consumer that is offline gets every message when it returns, and a durable that is no longer used keeps its messages until an administrator removes it. A stream with another retention fails with `stream-retention` (NATS can't change it; recreate the stream).
 - A message is published to `<name>.<subject>`, or to `<name>` without a subject; a subject that isn't a NATS subject token (it contains `.`, `*`, `>` or whitespace) is refused with `invalid`. A consumer's `filter` becomes the filter subjects of its NATS consumer, so the server delivers it nothing else; a message no consumer's filter matches is removed at once. Without a `filter`, a consumer receives the whole stream. A durable consumer whose filter changed is updated on subscribe, and a stream created with its name as its only subject gets `<name>.>` added.

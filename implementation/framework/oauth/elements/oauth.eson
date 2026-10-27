@@ -1,17 +1,24 @@
 [
     {
-        "kind": "app-config",
-        "data": { "oauth": { "issuer": "http://localhost:8080/default" } }
+        "id": "oauth-authentication-node-wrapper",
+        "kind": "kind",
+        "data": {
+            "extends": "principal-execution-node-wrapper",
+            "settings": {
+                "shape": { "!issuer": "string", "audience": "string", "!actAs{}": "string" },
+                "defaults": { "issuer": "http://localhost:8080/default", "actAs": {} }
+            }
+        }
     },
     {
         "id": "authenticate",
-        "kind": "principal-execution-node-wrapper",
+        "kind": "oauth-authentication-node-wrapper",
         "data": {
             "keyword": "authenticated",
             "node": { "!authenticated": "@method" },
             "implementation": [
-                { "outputKey": "config", "set": { "$func/app-config-section": "oauth" } },
-                { "outputKey": "actAs", "set": { "$coalesce": [{ "$get": { "object": { "$func/app-config-section": "security" }, "path": "actAs" } }, {}] } },
+                { "outputKey": "config", "set": { "$func/settings": "authenticate" } },
+                { "outputKey": "actAs", "set": "#.config.actAs" },
                 {
                     "outputKey": "claims",
                     "inputMap": { "header": "#.input.headers.authorization", "issuer": "#.config.issuer", "audience": "#.config.audience" },

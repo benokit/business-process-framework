@@ -1,23 +1,20 @@
 [
     {
-        "kind": "app-config",
-        "data": { "nats": { "url": "nats://localhost:4222" } }
-    },
-    {
         "id": "nats-broker",
         "kind": "kind",
         "data": {
             "extends": "message-broker",
+            "settings": { "shape": { "!url": "string" }, "defaults": { "url": "nats://localhost:4222" } },
             "operations": {
                 "publish": {
                     "implementation": [
-                        { "outputKey": "url", "set": { "$get": { "object": { "$func/app-config-section": "nats" }, "path": "url" } } },
+                        { "outputKey": "url", "set": { "$get": { "object": { "$func/settings": "#.self.id" }, "path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "publish", "effects": ["irreversible"] } }
                     ]
                 },
                 "subscribe": {
                     "implementation": [
-                        { "outputKey": "url", "set": { "$get": { "object": { "$func/app-config-section": "nats" }, "path": "url" } } },
+                        { "outputKey": "url", "set": { "$get": { "object": { "$func/settings": "#.self.id" }, "path": "url" } } },
                         { "inputMap": { "$merge": ["#.input", { "url": "#.url" }] }, "low": { "module": "@business-framework/messaging-nats", "export": "subscribe", "effects": ["irreversible"] } }
                     ]
                 },

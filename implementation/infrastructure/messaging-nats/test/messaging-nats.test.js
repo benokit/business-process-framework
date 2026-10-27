@@ -27,7 +27,7 @@ const consumer = (id, data = {}) => ({
 });
 
 const elements = [
-    { kind: 'app-config', data: { nats: { url: NATS_URL } } },
+    { kind: 'app-config', data: { 'nats-broker': { url: NATS_URL } } },
     { id: 'orders', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
     { id: 'archive', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: LIMITS_STREAM } },
     consumer('order-recorder'),

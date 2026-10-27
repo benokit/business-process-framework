@@ -5,12 +5,12 @@
         "data": { "shape": "object" }
     },
     {
-        "id": "app-config-section",
+        "id": "settings",
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "object" },
-            "module": "@business-framework/core/app-config",
-            "export": "getAppConfigSection"
+            "module": "@business-framework/core/settings",
+            "export": "getSettings"
         }
     }
 ]

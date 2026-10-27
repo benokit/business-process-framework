@@ -19,7 +19,7 @@ const endpoint = (id, method, path, target, extra = {}) => ({ id, kind: 'http-en
 const fill = (id, value, order = {}) => ({ id, kind: 'slot-fill', data: { target: 'http-endpoint', slot: 'requestMiddleware', value, ...order } });
 
 const elements = [
-    { kind: 'app-config', data: { http: { port: 0 } } },
+    { kind: 'app-config', data: { 'http-server': { port: 0 } } },
     echo,
     { id: 'the-echo', kind: 'echo', data: {} },
     endpoint('echo-body', 'POST', '/echo', 'echo'),

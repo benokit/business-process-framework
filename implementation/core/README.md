@@ -25,7 +25,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 | [registry.js](src/registry.js) | elements by id, `memo`/`lazy` caches cleared by `reset` |
 | [loader.js](src/loader.js) | reading `.eson` files |
 | [data.js](src/data.js) | data composition: `/data` with `/ref`, `/merge`, `/literal`, evaluated once at boot |
-| [kinds.js](src/kinds.js) | kind chains, resolved kinds (operations, slots, defaults, managed context), `selfOf`, `instancesOf` |
+| [kinds.js](src/kinds.js) | kind chains, resolved kinds (operations, slots, fixed values, managed context), `selfOf`, `instancesOf` |
 | [schemas.js](src/schemas.js) | the AJV instance: add at load, compile on first use, contract checks after load |
 | [mappings.js](src/mappings.js) | compiled LambdaJSON mappings, `$func/<id>` from `pure-function` elements |
 | [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
@@ -43,7 +43,7 @@ Errors are `CoreError` with `code`, `message` and `data`.
 
 ## Core elements
 
-Besides the bootstrap kinds: `binding`, the schema `effect`, and the schemas `element-ref` and `ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `app-config-section`, `schema-validate`, `is-instance-of`, `has-operation` (`{ element, operation }`; true for an unknown element, which the reference check reports), `changes-of` (`{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"`, see [Effects](#effects)), `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), `kind-chain` (the kinds above an element, nearest first: an instance's kind chain, a kind's ancestors; `[]` for an unknown id). The schema registry `ajv` adds schemas (`add`) and checks values (`assert`, `{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
+Besides the bootstrap kinds: `binding`, the schema `effect`, and the schemas `element-ref` and `ref` (see [Interfaces](#interfaces)), `clock` (`now()` → ISO time, an effect), `entry-point` (manages `trace`), the pure functions `slot-values`, `apply-mapping`, `settings` (`id` → the effective [settings](#settings) of an element), `schema-validate`, `is-instance-of`, `has-operation` (`{ element, operation }`; true for an unknown element, which the reference check reports), `changes-of` (`{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"`, see [Effects](#effects)), `instances-of` (the `{ id, kind, data }` of every identified instance of a kind), `kind-chain` (the kinds above an element, nearest first: an instance's kind chain, a kind's ancestors; `[]` for an unknown id). The schema registry `ajv` adds schemas (`add`) and checks values (`assert`, `{ schemaId, value }`: throws `invalid` with the errors, or returns the value).
 
 ## Pipeline rules
 
@@ -136,8 +136,26 @@ Where an element is expected (`invoke`, and data fields typed `@element-ref` or 
 
 Packages reference kinds and don't write bindings; the application binds, or names an instance where it means a specific one (a channel to an external system on another transport). `validate()` checks every reference in data and bindings (the bound element is an instance of the abstraction, one binding per abstraction). A reference in code only has to name a kind, because that path may never run; a kind whose configuration selects such a path checks for the instance in its `validate` hook (a channel with `publisher.transactionalOutbox` needs a `message-outbox`).
 
+## Settings
+
+What a deployment tunes is declared by the kind: `settings: { shape, defaults }` (the shape is a schema of primitive leaves, camelCase names, lists of primitives and maps of primitives; variants are selected by an enum, the mode). `$func/settings` of an element id returns its effective settings: the defaults of the kind chain, then the `app-config` sections named by the ids of the chain and the element, then the environment variables `BPF__<id>__<path>` of the same ids (`-` of an id becomes `_`, path steps are separated by `__`; values are converted by the shape: integers, numbers, booleans, comma-separated lists). The source ranks above the specificity, and objects merge while everything else replaces ([data-composition](../../design/data-composition.md)). `start()` checks the settings of every element, and `validate()` reports settings shapes that can't be set from the environment (`settings-shape`) and ids that can't be told apart in a variable name (`settings-name`); an invalid setting fails with `invalid-settings`, naming the layers searched. The design is in [kind-settings](../../design/kind-settings.md).
+
+```json
+{ "id": "http-server", "kind": "kind", "data": { "settings": { "shape": { "port": "integer" }, "defaults": { "port": 3000 } } } }
+```
+
+`BPF__http_server__port=8080` or an `app-config` element `{ "http-server": { "port": 8080 } }` sets it.
+
+## Fixed values
+
+A kind's `fixed` is data its instances have and no child or instance changes. The values of the chain are united deeply, and so are an instance's own data: the same path with a different value fails (`fixed-conflict`, reported by `validate()` and at load), an equal value is accepted. The fill-in happens before the shape is checked, so a required property a kind fixes needn't be written by its instances. A kind has no `defaults`: deployment tuning is configuration, and a schema is composed with its own primitives (`$data#&`). The design is in [kind-settings](../../design/kind-settings.md).
+
+```json
+{ "id": "query", "kind": "kind", "data": { "extends": "integration", "fixed": { "provider": "database" } } }
+```
+
 ## Data composition
 
-An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` deep merges its items (arrays by index, Q5), `{ "/literal": value }` is taken as written, `{ "/uri": uri }` is the text of a file: `<package>/<path>` inside an installed package (`@business-framework/entities-postgresql/sql/entities-table.sql`), or a `file:` URL. A file that can't be read fails the boot (`unreadable-uri`). Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
+An element written with `/data` instead of `data` is composed once at boot, after all elements are registered and before kinds are resolved: `{ "/ref": id }` is the data of another element, `{ "/merge": [...] }` composes its items left to right: objects merge by key, everything else (arrays included) is replaced, `{ "/replace": v }` replaces as a whole, `{ "/unset": true }` removes the key and `{ "/append": [...] }` adds to an array; the markers are resolved at the end of the `/merge` (the rules are in [data-composition](../../design/data-composition.md); an invalid combination fails with `composition-type`), `{ "/literal": value }` is taken as written, `{ "/uri": uri }` is the text of a file: `<package>/<path>` inside an installed package (`@business-framework/entities-postgresql/sql/entities-table.sql`), or a `file:` URL. A file that can't be read fails the boot (`unreadable-uri`). Referenced elements are composed first; a cycle is an error, and so is an element with both `data` and `/data`.
 
 Code keeps the binding rights of the element it is written in: a pipeline reached through `/ref` has its owner's rights, not the referring element's. Merged objects are copies, so code inside a `/merge` result belongs to the merging element.

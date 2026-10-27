@@ -4,7 +4,7 @@ Keyed, revisioned business records, extensible by traits.
 
 ## entity-type
 
-Each entity type is an instance of `entity-type`, or of a class: a kind that extends it, whose `defaults` its instances inherit.
+Each entity type is an instance of `entity-type`, or of a class: a kind that extends it, with its own fills (`businessKey`, `traits`).
 
 ```json
 { "id": "order", "kind": "entity-type", "data": { "bodySchema": { "!amount": "number" } } }

@@ -1,5 +1,6 @@
 import path from 'path';
 import { getElement } from '@business-framework/core';
+import { availableSettings } from '@business-framework/core/settings';
 import { effectTracesOf, explanationsOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
 
 const relative = file => file && path.relative(process.cwd(), file);
@@ -53,7 +54,8 @@ const kindDescription = element => {
     return {
         chain: kind.ids,
         shapes: Object.fromEntries(kind.chain.filter(k => k.data.shape).map(k => [k.id, k.data.shape])),
-        defaults: kind.defaults,
+        fixed: kind.fixed,
+        settings: availableSettings(element.id),
         manages: kind.manages,
         operations: operationsOf(kind),
         slots: slotsOf({ id: element.id, kind: element.id }),
@@ -66,7 +68,7 @@ const kindDescription = element => {
 const instanceDescription = element => {
     const self = selfOf(element);
     const kind = resolveKind(self.kind);
-    return { chain: kind.ids, data: self.data, operations: operationsOf(kind, self), slots: slotsOf(self) };
+    return { chain: kind.ids, data: self.data, settings: availableSettings(element.id), operations: operationsOf(kind, self), slots: slotsOf(self) };
 };
 
 export const explain = id => {
@@ -84,6 +86,9 @@ const operationLine = ({ name, input, output, declaredBy, implementedBy, effects
         : implementedBy === declaredBy ? declaredBy : `${declaredBy}, implemented by ${implementedBy}`;
     return `  ${name}: ${json(input)} -> ${json(output ?? 'any')}  (${origin})${effectsLine(effects)}`;
 };
+
+const settingLine = ({ path, type, values, default: fallback, variable }) =>
+    `  ${path}: ${type}${values ? ` (${values.join(' | ')})` : ''}${fallback === undefined ? '' : ` = ${json(fallback)}`}  ${variable}`;
 
 const slotLines = ({ name, cardinality, value, declaredBy, fills }) => [
     `  ${name} [${cardinality}] ${json(value)}  (${declaredBy})`,
@@ -110,8 +115,9 @@ export const renderExplanation = description => [
     `${description.id}  ${description.kind}  ${description.source ?? ''}`.trimEnd(),
     `chain: ${description.chain.join(' > ')}`,
     ...section('shapes', Object.entries(description.shapes ?? {}).map(([kind, shape]) => `  ${kind}: ${json(shape)}`)),
-    ...valueLine('defaults', description.defaults),
+    ...valueLine('fixed', description.fixed),
     ...valueLine('manages', description.manages),
+    ...section('settings', (description.settings ?? []).map(settingLine)),
     ...valueLine('data', description.data),
     ...section('operations', description.operations.map(operationLine)),
     ...section('slots', description.slots.flatMap(slotLines)),

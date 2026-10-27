@@ -68,7 +68,7 @@ describe('transactional-outbox', function () {
 
     before(async function () {
         await skipWithoutPostgres(this);
-        process.env.BPF__outbox__idleIntervalInMilliseconds = '100';
+        process.env.BPF__transactional_outbox__idleIntervalInMilliseconds = '100';
         await boot({ paths: packages, elements });
         await start();
         await migrate();
@@ -76,7 +76,7 @@ describe('transactional-outbox', function () {
 
     after(async () => {
         await stop();
-        delete process.env.BPF__outbox__idleIntervalInMilliseconds;
+        delete process.env.BPF__transactional_outbox__idleIntervalInMilliseconds;
     });
 
     it('validates', () => {

@@ -65,6 +65,6 @@
     {
         "id": "search-query",
         "kind": "kind",
-        "data": { "extends": "integration", "defaults": { "provider": "search-engine", "output": "@search-result" } }
+        "data": { "extends": "integration", "fixed": { "provider": "search-engine", "output": "@search-result" } }
     }
 ]

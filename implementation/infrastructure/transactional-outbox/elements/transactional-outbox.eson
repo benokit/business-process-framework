@@ -1,13 +1,16 @@
 [
     {
-        "kind": "app-config",
-        "data": { "outbox": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000, "maxBackoffInMilliseconds": 60000, "batchSize": 10, "retry": { "attempts": 3, "backoff": 1000 } } }
-    },
-    {
         "id": "transactional-outbox",
         "kind": "kind",
         "data": {
             "extends": "message-outbox",
+            "settings": {
+                "shape": {
+                    "!lockIntervalInMilliseconds": "integer", "!idleIntervalInMilliseconds": "integer", "!maxBackoffInMilliseconds": "integer", "!batchSize": "integer",
+                    "!retry": { "!attempts": "integer", "!backoff": "integer" }
+                },
+                "defaults": { "lockIntervalInMilliseconds": 30000, "idleIntervalInMilliseconds": 1000, "maxBackoffInMilliseconds": 60000, "batchSize": 10, "retry": { "attempts": 3, "backoff": 1000 } }
+            },
             "operations": {
                 "put": {
                     "implementation": [
@@ -63,7 +66,7 @@
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "outbox" }, "low": { "module": "@business-framework/transactional-outbox", "export": "startProcessor", "effects": ["irreversible"] } },
+                "start": { "inputMap": { "$func/settings": "#.self.id" }, "low": { "module": "@business-framework/transactional-outbox", "export": "startProcessor", "effects": ["irreversible"] } },
                 "stop": { "low": { "module": "@business-framework/transactional-outbox", "export": "stopProcessor", "effects": ["irreversible"] } },
                 "startAfter": ["database", "message-broker"]
             }

@@ -6,6 +6,7 @@ const run = Date.now();
 const ORDER = `order-${run}`;
 const CONTRACT_CLASS = `contract-${run}`;
 const CONSTRUCTION = `construction-${run}`;
+const CONTRACT_BODY = `contract-body-${run}`;
 
 const fill = (id, target, slot, value, order = {}) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target, slot, value, ...order } });
 
@@ -37,8 +38,9 @@ const elements = [
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
     }),
-    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', defaults: { bodySchema: { '!holder': 'string' } } } },
-    { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { bodySchema: { '!project': 'string' } } },
+    { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type' } },
+    { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { bodySchema: { '$data#&': [`@${CONTRACT_BODY}`, { '!project': 'string' }] } } },
     fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $str: ['C-', '#.input.body.holder'] } }),
     fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $str: ['CON-', '#.input.body.project'] } }),
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),

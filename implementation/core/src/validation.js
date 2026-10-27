@@ -9,6 +9,7 @@ import { fail, problemsOf } from './errors.js';
 import { codeOf, codeProblems, targetKind } from './code.js';
 import { effectProblems } from './effect-inference.js';
 import { flowProblems } from './data-flow.js';
+import { settingsProblems } from './settings.js';
 
 const kinds = () => instancesOf('kind');
 
@@ -98,6 +99,7 @@ const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
     ...allElements().flatMap(shapeProblems),
+    ...settingsProblems(),
     ...instancesOf('slot-fill').map(fillProblem),
     ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems),
     ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),

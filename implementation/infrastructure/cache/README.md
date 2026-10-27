@@ -1,9 +1,9 @@
 # cache
 
-Kind `in-memory-cache` (`{ ttl?, maxEntries? }`): `get({ key })` → `{ found, value? }`, `set({ key, value })`, `evict({ key })`. Each instance has its own store in each running process.
+Kind `in-memory-cache` (`{ ttl? }`, and the setting `maxEntries`): `get({ key })` → `{ found, value? }`, `set({ key, value })`, `evict({ key })`. Each instance has its own store in each running process.
 
 - `ttl` in milliseconds; without it entries don't expire. An expired entry is removed when it is read.
-- `maxEntries` (default 10000) bounds the store: a `set` beyond it removes the least recently used entry, so expired entries nobody reads again are removed too.
+- The setting `maxEntries` (default 10000, `BPF__<cache_id>__maxEntries`) bounds the store: a `set` beyond it removes the least recently used entry, so expired entries nobody reads again are removed too.
 
 Keyword `withCache` (an `execution-node-wrapper`): its value is the pipeline that computes the value on a miss, run in the caller's context.
 

@@ -18,8 +18,8 @@
         "id": "in-memory-cache",
         "kind": "kind",
         "data": {
-            "shape": { "ttl": "number", "maxEntries": "number" },
-            "defaults": { "maxEntries": 10000 },
+            "shape": { "ttl": "number" },
+            "settings": { "shape": { "!maxEntries": "integer" }, "defaults": { "maxEntries": 10000 } },
             "operations": {
                 "get": {
                     "input": "@cache-key",
@@ -32,7 +32,7 @@
                 "set": {
                     "input": "@cache-entry",
                     "implementation": {
-                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl", "maxEntries": "#.self.data.maxEntries" },
+                        "inputMap": { "cache": "#.self.id", "key": "#.input.key", "value": "#.input.value", "ttl": "#.self.data.ttl", "maxEntries": { "$get": { "object": { "$func/settings": "#.self.id" }, "path": "maxEntries" } } },
                         "low": { "module": "@business-framework/cache", "export": "cacheSet", "effects": ["irreversible"] }
                     }
                 },

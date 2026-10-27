@@ -1,13 +1,10 @@
 [
     {
-        "kind": "app-config",
-        "data": { "postgresql": { "url": "postgresql://admin:password@localhost:5432/app" } }
-    },
-    {
         "id": "postgresql-database",
         "kind": "kind",
         "data": {
             "extends": "database",
+            "settings": { "shape": { "!url": "string" }, "defaults": { "url": "postgresql://admin:password@localhost:5432/app" } },
             "operations": {
                 "execute": {
                     "implementation": [
@@ -32,7 +29,7 @@
                 "rollback": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollback", "effects": ["write"] } } }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "postgresql" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },
+                "start": { "inputMap": { "$func/settings": "#.self.id" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },
                 "stop": { "low": { "module": "@business-framework/postgresql", "export": "disconnect", "effects": ["irreversible"] } }
             }
         }

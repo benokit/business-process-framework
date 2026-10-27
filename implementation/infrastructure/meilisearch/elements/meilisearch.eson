@@ -1,9 +1,5 @@
 [
     {
-        "kind": "app-config",
-        "data": { "meilisearch": { "url": "http://localhost:7700", "apiKey": "" } }
-    },
-    {
         "id": "meilisearch-string",
         "kind": "pure-function",
         "data": {
@@ -17,6 +13,7 @@
         "kind": "kind",
         "data": {
             "extends": "search-engine",
+            "settings": { "shape": { "!url": "string", "apiKey": "string" }, "defaults": { "url": "http://localhost:7700", "apiKey": "" } },
             "operations": {
                 "configureIndex": {
                     "implementation": { "low": { "module": "@business-framework/meilisearch", "export": "configureIndex", "effects": ["irreversible"] } }
@@ -35,7 +32,7 @@
                 }
             },
             "lifecycle": {
-                "start": { "inputMap": { "$func/app-config-section": "meilisearch" }, "low": { "module": "@business-framework/meilisearch", "export": "connect", "effects": ["irreversible"] } }
+                "start": { "inputMap": { "$func/settings": "#.self.id" }, "low": { "module": "@business-framework/meilisearch", "export": "connect", "effects": ["irreversible"] } }
             }
         }
     },

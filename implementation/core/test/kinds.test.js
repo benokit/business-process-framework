@@ -11,12 +11,31 @@ describe('kinds', () => {
         expect(await invoke('hello', 'greet', 'Ada')).to.equal('Hello Ada');
     });
 
-    it('merges defaults along the chain into the instance data', async () => {
+    it('unites the fixed values along the chain into the instance data', async () => {
         await bootWith(
-            kind('base', { defaults: { a: 1, b: 1 }, operations: { read: operation({ set: '#.self.data' }) } }),
-            kind('derived', { extends: 'base', defaults: { b: 2 } }),
-            element('one', 'derived', { c: 3 }));
-        expect(await invoke('one', 'read', null)).to.deep.equal({ a: 1, b: 2, c: 3 });
+            kind('base', { fixed: { a: 1, nested: { x: 1 } }, operations: { read: operation({ set: '#.self.data' }) } }),
+            kind('derived', { extends: 'base', fixed: { b: 2, nested: { y: 2 } } }),
+            element('one', 'derived', { c: 3, a: 1 }));
+        expect(await invoke('one', 'read', null)).to.deep.equal({ a: 1, b: 2, c: 3, nested: { x: 1, y: 2 } });
+    });
+
+    it('checks the shape after the fixed values are filled in', async () => {
+        await bootWith(
+            kind('provided', { shape: { '!provider': 'string' }, fixed: { provider: 'database' } }),
+            element('one', 'provided'));
+        expect(validate()).to.deep.equal([]);
+    });
+
+    it('rejects a kind that changes an inherited fixed value', async () => {
+        const error = await bootWith(kind('base', { fixed: { a: { b: 1 } } }), kind('derived', { extends: 'base', fixed: { a: { b: 2 } } })).catch(e => e);
+        expect(error.message).to.include("derived can't change the fixed value at 'a.b'");
+    });
+
+    it('rejects an instance that changes a fixed value, and accepts one that repeats it', async () => {
+        const error = await bootWith(kind('base', { fixed: { a: 1 } }), element('one', 'base', { a: 2 })).catch(e => e);
+        expect(error.code).to.equal('fixed-conflict');
+        expect(error.data).to.deep.equal({ owner: 'one', path: ['a'] });
+        await bootWith(kind('base', { fixed: { a: 1 } }), element('one', 'base', { a: 1 }));
     });
 
     it('rejects input that violates the operation contract', async () => {

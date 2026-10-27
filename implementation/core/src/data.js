@@ -1,7 +1,8 @@
-import { isPlainObject, mapValues, merge } from 'lodash-es';
+import { isPlainObject, mapValues } from 'lodash-es';
 import { getElement } from './registry.js';
 import { fail } from './errors.js';
 import { readUri } from './packages.js';
+import { compose as composeItems } from './composition.js';
 
 const LITERAL = '/literal';
 const REF = '/ref';
@@ -30,7 +31,7 @@ const evaluate = tree => Array.isArray(tree)
                 : URI in tree
                     ? readUri(tree[URI])
                     : MERGE in tree
-                        ? merge({}, ...tree[MERGE].map(evaluate))
+                        ? composeItems(tree[MERGE].map(evaluate))
                         : mapValues(tree, evaluate);
 
 const dependenciesOf = element => isComposed(element) ? refsIn(element[COMPOSED]).map(getElement) : [];

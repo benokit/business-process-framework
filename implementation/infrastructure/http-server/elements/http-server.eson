@@ -1,13 +1,9 @@
 [
     {
-        "kind": "app-config",
-        "data": { "http": { "port": 3000 } }
-    },
-    {
         "id": "express-http-server",
         "kind": "kind",
         "data": {
-            "shape": { "port": "number" },
+            "settings": { "shape": { "port": "integer" }, "defaults": { "port": 3000 } },
             "operations": {
                 "registerRoute": {
                     "input": { "!method": "string", "!path": "string", "!endpoint": "string" },
@@ -21,7 +17,7 @@
             },
             "lifecycle": {
                 "start": {
-                    "inputMap": { "port": { "$coalesce": ["#.self.data.port", { "$get": { "object": { "$func/app-config-section": "http" }, "path": "port" } }] } },
+                    "inputMap": { "$func/settings": "#.self.id" },
                     "low": { "module": "@business-framework/http-server", "export": "listen", "effects": ["irreversible"] }
                 },
                 "stop": { "low": { "module": "@business-framework/http-server", "export": "close", "effects": ["irreversible"] } },

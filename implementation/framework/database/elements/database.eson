@@ -108,7 +108,7 @@
     {
         "id": "query",
         "kind": "kind",
-        "data": { "extends": "integration", "defaults": { "provider": "database" } }
+        "data": { "extends": "integration", "fixed": { "provider": "database" } }
     },
     {
         "id": "statement",

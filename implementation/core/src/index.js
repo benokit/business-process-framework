@@ -6,6 +6,7 @@ import { recordAuthors } from './context.js';
 import { preparePureFunctions } from './mappings.js';
 import { enableChecks } from './schemas.js';
 import { runLifecycle } from './lifecycle.js';
+import { checkSettings } from './settings.js';
 import { interpret } from './execution/interpreter.js';
 
 export { invoke } from './execution/invoke.js';
@@ -28,6 +29,9 @@ export const boot = async ({ paths = [], elements = [] } = {}) => {
     enableChecks();
 };
 
-export const start = () => runLifecycle('start');
+export const start = async () => {
+    checkSettings();
+    return runLifecycle('start');
+};
 
 export const stop = () => runLifecycle('stop');

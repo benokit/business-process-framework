@@ -1,6 +1,6 @@
 # http-server
 
-Express HTTP server. Instance `http-server` (kind `express-http-server`) listens in its `start` hook on `port`, or the `http.port` app config (default 3000, `BPF__http__port`), and closes in `stop`. It starts last. `address()` → `{ port }`.
+Express HTTP server. Instance `http-server` (kind `express-http-server`) listens in its `start` hook on its `port` setting (default 3000, `BPF__http_server__port`), and closes in `stop`. It starts last. `address()` → `{ port }`.
 
 ## http-endpoint
 

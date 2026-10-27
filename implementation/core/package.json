@@ -10,7 +10,7 @@
     "./schemas": "./src/schemas.js",
     "./slots": "./src/slots.js",
     "./mappings": "./src/mappings.js",
-    "./app-config": "./src/app-config.js",
+    "./settings": "./src/settings.js",
     "./clock": "./src/effects/clock.js",
     "./introspection": "./src/introspection.js",
     "./effects": "./src/effect-inference.js",
