@@ -12,6 +12,7 @@ import { interpret } from './execution/interpreter.js';
 export { invoke } from './execution/invoke.js';
 export { execute } from './execution/pipeline.js';
 export { interpret } from './execution/interpreter.js';
+export { traced } from './execution/trace.js';
 export { validate } from './validation.js';
 export { CoreError, describe as describeError } from './errors.js';
 export { findElement, getElement } from './registry.js';

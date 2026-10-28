@@ -12,7 +12,11 @@
   "scripts": {
     "test": "mocha --exit"
   },
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  },
   "dependencies": {
+    "@benokit/js-cjsl": "^1.0.0",
     "@business-framework/core": "*",
     "@business-framework/server": "*"
   }

@@ -20,6 +20,6 @@ describe('validate', () => {
 
     it('exits non-zero from the command line on problems', async () => {
         const error = await promisify(execFile)('node', [BPF, 'validate', BROKEN]).catch(e => e);
-        expect([error.code, error.stderr]).to.satisfy(([code, stderr]) => code === 1 && stderr.includes('unknown-slot'));
+        expect([error.code, error.stdout]).to.satisfy(([code, stdout]) => code === 1 && stdout.includes('unknown-slot'));
     });
 });

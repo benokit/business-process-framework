@@ -1,5 +1,5 @@
 import { compileMapping } from '../mappings.js';
-import { fail, withFrame } from '../errors.js';
+import { fail, framing } from '../errors.js';
 import { executors } from './nodes/index.js';
 import { findTemplate, runTemplate } from './templates.js';
 import { sequentially } from './sequentially.js';
@@ -30,8 +30,8 @@ const inputOf = (node, scope) => 'inputMap' in node ? evaluate(node.inputMap, sc
 const keywordOf = node => Object.keys(node).find(key => !MODIFIERS.has(key)) ?? 'input';
 
 const runNode = (node, scope, index) => {
-    const input = withFrame(() => inputOf(node, scope), 'step', index + 1, 'inputMap');
-    return withFrame(() => executorOf(node)(node, scope, input), 'step', index + 1, () => keywordOf(node));
+    const input = framing.around(() => inputOf(node, scope), 'step', index + 1, 'inputMap');
+    return framing.around(() => executorOf(node)(node, scope, input), 'step', index + 1, () => keywordOf(node));
 };
 
 const withOutput = (scope, node, output) => {
@@ -59,7 +59,7 @@ const runSignalled = async (pipeline, scope) => {
 
 export const runMethod = (pipeline, scope) => {
     const owner = ownerOf(pipeline);
-    return owner === undefined ? runSignalled(pipeline, scope) : withFrame(() => runSignalled(pipeline, scope), owner);
+    return owner === undefined ? runSignalled(pipeline, scope) : framing.around(() => runSignalled(pipeline, scope), owner);
 };
 
 export const methodScope = ({ self, _ctx }, input) => ({ input, self, _ctx });

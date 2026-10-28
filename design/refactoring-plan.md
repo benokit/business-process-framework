@@ -40,7 +40,7 @@ The algebra is specified in [data-composition.md](data-composition.md) (P21), th
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R2.5 | Execution tracing in a native execution object, beside `_ctx` | F21 | A run's path of nodes, operations and slot fills can be logged; `_ctx` holds no runtime internals | draft |
+| R2.5 | Execution tracing as an interpreter: `traced` and `bpf trace` | F21, F37 | A run's operations, slot fills, templates, steps and `low` effects can be listed; untraced runs unchanged; `_ctx` holds no runtime internals | done (diagrams open) |
 | R2.6 | Failure frames: `runSequence` and `invoke` add `{ node index, phase }` and `element.operation` to an escaping `CoreError`; `low` errors wrapped in `low-failed`; a formatter; HTTP responses without frames | F52 | A failure three operations deep names the route; no frames in a response | done |
 
 ## Core: pure side

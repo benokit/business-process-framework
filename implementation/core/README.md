@@ -106,6 +106,8 @@ The interpreter decides which effects run. Production runs all of them. `interpr
 - `effects`: the effect classes a `low` node may have (default: all). A `low` node with another class, or with none declared, fails with `stubbed-effect`, naming the node and its element, so a test never reaches a database or broker it didn't stub.
 - `stubs`: `{ <element or kind id>: { <operation>: ({ input, _ctx }) => output } }`. `invoke` runs the stub instead of the operation, the element's own stub before its kind chain's, from the most specific kind. The contract still applies: the input and output of a stub are checked like the operation's.
 
+`traced(run, { skip? })` runs `run` and returns `{ result | error, spans }`: a tree of `{ label, children, ms, error? }` spans, one per frame (the labels of `data.frames`): operations, slot fills, node templates and steps, and a `{ label: 'low <export>', effects, skipped? }` leaf for each `low` node. It decorates the one place frames are made (`framing.around`) and the `low` check for the duration of the run, so an untraced run executes the same code with nothing added. `skip` lists effect classes (`['write', 'irreversible']` is a dry run): a `low` node with one of them is not run and answers `null`, so what depends on its answer fails or differs; a `low` node that declares no effects counts as having all. Values are never recorded.
+
 A stub replaces an operation, never a `low` node: it follows the operation's contract, not the input of a JS function. An effect is therefore stubbable only together with the operation it runs in, so a `low` node whose effect a test replaces is best the whole implementation of its operation (`clock.now`, `message-channel.envelope`). `boot` resets the interpreter to production.
 
 ```js

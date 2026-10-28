@@ -21,7 +21,7 @@ export const calls = {
     execute: (node, scope, input) => runMethod(evaluate(node.execute, scope), methodScope(scope, input)),
 
     low: async (node, scope, input) => {
-        checkEffects(node.low, scope.self);
+        if (!checkEffects(node.low, scope.self)) return null;
         const fn = await lowFunction(node.low);
         return Promise.resolve().then(() => fn({ input, _ctx: scope._ctx })).catch(foreign(node.low));
     }

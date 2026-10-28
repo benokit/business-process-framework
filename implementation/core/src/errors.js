@@ -10,12 +10,14 @@ export const fail = (code, message, data) => {
     throw new CoreError(code, message, data);
 };
 
+export const labelOf = label => label.map(part => typeof part === 'function' ? part() : part).join(' ');
+
 const framed = (error, label) => {
-    if (error instanceof CoreError) error.data = { ...error.data, frames: [label.map(part => typeof part === 'function' ? part() : part).join(' '), ...error.data.frames ?? []] };
+    if (error instanceof CoreError) error.data = { ...error.data, frames: [labelOf(label), ...error.data.frames ?? []] };
     return error;
 };
 
-export const withFrame = (run, ...label) => {
+const withFrame = (run, ...label) => {
     try {
         const result = run();
         return result instanceof Promise ? result.catch(error => { throw framed(error, label); }) : result;
@@ -23,6 +25,8 @@ export const withFrame = (run, ...label) => {
         throw framed(error, label);
     }
 };
+
+export const framing = { around: withFrame };
 
 export const describe = error => {
     const frames = error.data?.frames ?? [];
