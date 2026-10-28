@@ -1,6 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
-import { CoreError, invoke } from '@business-framework/core';
+import { CoreError, describeError, invoke } from '@business-framework/core';
 
 const STATUS_BY_CODE = { invalid: 400, unauthorized: 401, forbidden: 403, 'not-found': 404, conflict: 409 };
 
@@ -9,18 +9,24 @@ const newApp = () => express().use(express.json());
 let app = newApp();
 let server = null;
 
-const errorResponse = error => error instanceof CoreError
-    ? { status: STATUS_BY_CODE[error.code] ?? 500, body: { error: { code: error.code, message: error.message } } }
-    : { status: 500, body: { error: { code: 'error', message: String(error?.message ?? error) } } };
+const errorResponse = correlation => error => {
+    console.error(`[${correlation}] ${describeError(error)}`);
+    return error instanceof CoreError
+        ? { status: STATUS_BY_CODE[error.code] ?? 500, body: { error: { code: error.code, message: error.message, correlation } } }
+        : { status: 500, body: { error: { code: 'error', message: String(error?.message ?? error), correlation } } };
+};
 
 const respond = (res, { status = 200, headers = {}, body = null }) => res.set(headers).status(status).json(body);
 
-const handler = endpoint => async (req, res) => respond(res, await invoke(endpoint, 'handle', {
-    headers: req.headers,
-    params: req.params,
-    query: req.query,
-    body: req.body
-}).catch(errorResponse));
+const handler = endpoint => async (req, res) => {
+    const correlation = correlationOf({ input: req.headers });
+    return respond(res, await invoke(endpoint, 'handle', {
+        headers: { ...req.headers, 'x-correlation-id': correlation },
+        params: req.params,
+        query: req.query,
+        body: req.body
+    }).catch(errorResponse(correlation)));
+};
 
 export const registerRoute = ({ input: { method, path, endpoint } }) => {
     app[method.toLowerCase()](path, handler(endpoint));

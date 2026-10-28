@@ -1,5 +1,5 @@
 import { connect, consumerOpts, createInbox, ErrorCode, JSONCodec, RetentionPolicy } from 'nats';
-import { CoreError, invoke } from '@business-framework/core';
+import { CoreError, describeError, invoke } from '@business-framework/core';
 
 const codec = JSONCodec();
 const connections = new Map();
@@ -106,8 +106,11 @@ const handleWithRetry = async (consumer, envelope, { attempts = 3, backoff = 100
     try {
         await invoke(consumer, 'handle', envelope);
         return true;
-    } catch {
-        if (attempt >= attempts) return false;
+    } catch (error) {
+        if (attempt >= attempts) {
+            console.error(`[${envelope.correlation}] ${describeError(error)}`);
+            return false;
+        }
         await sleep(backoff);
         return handleWithRetry(consumer, envelope, { attempts, backoff }, attempt + 1);
     }

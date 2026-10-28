@@ -16,7 +16,7 @@ execute({ method, input, self, _ctx });               // runs a method value fro
 interpret({ stubs, effects });                         // replaces effects, see Interpreters; boot resets it to production
 ```
 
-Errors are `CoreError` with `code`, `message` and `data`.
+Errors are `CoreError` with `code`, `message`, `data` and optionally a `cause`. An error that escapes collects its route in `data.frames`, outermost first: `<element>.<operation>` per `invoke`, the id of a slot fill or node template whose code runs, and `step <n> <keyword>` (or `step <n> inputMap`) per node; nothing is recorded on success. A `low` module's foreign error becomes `low-failed` (`data.module`, `data.export`, `cause`). `describeError` renders `code: message` and the route. Values are never put in `data` by the framework (`invalid` names schema and paths only); HTTP responses carry code, message and correlation only; the [http-server](../infrastructure/http-server/README.md) and the NATS consumer log the route.
 
 ## Modules
 

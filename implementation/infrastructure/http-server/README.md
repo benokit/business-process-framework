@@ -10,6 +10,8 @@ Each endpoint registers its route in its own `start` hook. Per request, the serv
 2. runs the `requestMiddleware` slot around the action;
 3. the action maps the request with `request` (default `#.body`), invokes the target, and maps `{ output, request }` with `response` (default `{ "body": "#.output" }`).
 
+A failure is answered with `{ error: { code, message, correlation } }` and logged to stderr with the correlation and the route of the error ([frames](../../core/README.md)); the route never leaves the server.
+
 The target's operation must exist, and a `GET` endpoint's target changes nothing: `validate()` reports one with `write` or `irreversible` [effects](../../core/README.md#effects), with the trace.
 
 Every endpoint states what it does for authorization: `operation`, a mapping from the request to the logical operation it performs, or `public: true`; `validate()` reports an endpoint with neither or both. [authorization](../../framework/authorization/README.md) defines and enforces operations.

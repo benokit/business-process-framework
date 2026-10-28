@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { invoke } from '../src/index.js';
 import { executors } from '../src/execution/nodes/index.js';
 import { nodeForms } from '../src/execution/nodes/forms.js';
-import { bootWith, runner } from './helpers.js';
+import { bootWith, EFFECTS, runner } from './helpers.js';
 
 const run = async (implementation, input = null) => {
     await bootWith(runner(implementation));
@@ -60,7 +60,7 @@ describe('pipelines', () => {
 
     it('throws typed errors from objects', async () => {
         const error = await run({ throw: { code: 'conflict', message: 'taken', data: { key: 1 } } }).catch(e => e);
-        expect([error.code, error.message, error.data]).to.deep.equal(['conflict', 'taken', { key: 1 }]);
+        expect([error.code, error.message, error.data.key]).to.deep.equal(['conflict', 'taken', 1]);
     });
 
     it('fails with a CoreError naming the mapping path when an operand is missing', async () => {
@@ -76,6 +76,23 @@ describe('pipelines', () => {
     it("forbids outputKey '_ctx'", async () => {
         const error = await run([{ outputKey: '_ctx', set: {} }]).catch(e => e);
         expect(error.code).to.equal('context-write');
+    });
+
+    it('adds a frame per level to an escaping error, outermost first', async () => {
+        const error = await run([{ set: 1 }, { inputMap: { $sum: [1, '#.missing'] }, set: 2 }]).catch(e => e);
+        expect(error.data.frames).to.deep.equal(['the-runner.run', 'step 2 inputMap']);
+        const nested = await run([{ if: true, then: [{ set: 1 }, { throw: 'boom' }] }]).catch(e => e);
+        expect(nested.data.frames).to.deep.equal(['the-runner.run', 'step 1 if', 'step 2 throw']);
+    });
+
+    it('records only the route up to the catch', async () => {
+        const output = await run([{ try: { throw: 'boom' }, catch: { set: '#.error.data' } }]);
+        expect(output.frames).to.deep.equal(['step 1 throw']);
+    });
+
+    it('wraps a foreign error of a low node, keeping the cause', async () => {
+        const error = await run({ low: { module: EFFECTS, export: 'tryToMutateContext', effects: ['irreversible'] } }).catch(e => e);
+        expect([error.code, error.data.module, error.cause instanceof Error]).to.deep.equal(['low-failed', EFFECTS, true]);
     });
 
     it('declares the form of every node keyword', () => {

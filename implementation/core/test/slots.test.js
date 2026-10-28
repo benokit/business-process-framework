@@ -16,6 +16,21 @@ const pipelineKind = cardinality => [
 const stepsOf = () => invoke('owner', 'steps', null);
 
 describe('slots', () => {
+    it('names the fill in the route of an error it raises', async () => {
+        await bootWith(
+            kind('guarded', {
+                slots: { guards: { cardinality: 'many', value: '@method' } },
+                operations: { go: operation([
+                    { outputKey: 'guards', set: { '$func/slot-values': { element: '#.self.id', slot: 'guards' } } },
+                    { forEach: { execute: '#.item' }, inputMap: '#.guards' }
+                ]) }
+            }),
+            element('the-guarded', 'guarded'),
+            { id: 'refuse-all', kind: 'slot-fill', data: { target: 'guarded', slot: 'guards', value: { throw: { code: 'conflict', message: 'no' } } } });
+        const error = await invoke('the-guarded', 'go', null).catch(e => e);
+        expect(error.data.frames).to.deep.equal(['the-guarded.go', 'step 2 forEach', 'step 1 execute', 'refuse-all', 'step 1 throw']);
+    });
+
     it('orders many-fills from general to specific target, then by fill id', async () => {
         await bootWith(pipelineKind('many'),
             fill('b', 'owner', 'instance'),

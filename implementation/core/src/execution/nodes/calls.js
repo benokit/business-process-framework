@@ -1,6 +1,13 @@
-import { evaluate, methodScope, runMethod } from '../pipeline.js';
+import { evaluate, methodScope, Return, runMethod } from '../pipeline.js';
 import { invoke } from '../invoke.js';
 import { checkEffects } from '../interpreter.js';
+import { CoreError } from '../../errors.js';
+
+const foreign = ({ module, export: name }) => error => {
+    throw error instanceof CoreError || error instanceof Return
+        ? error
+        : new CoreError('low-failed', `${name} of ${module}: ${error?.message ?? error}`, { module, export: name }, error);
+};
 
 const lowFunction = async ({ module, export: name }) => (await import(module))[name];
 
@@ -15,6 +22,7 @@ export const calls = {
 
     low: async (node, scope, input) => {
         checkEffects(node.low, scope.self);
-        return (await lowFunction(node.low))({ input, _ctx: scope._ctx });
+        const fn = await lowFunction(node.low);
+        return Promise.resolve().then(() => fn({ input, _ctx: scope._ctx })).catch(foreign(node.low));
     }
 };

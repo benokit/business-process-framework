@@ -1,8 +1,9 @@
 import { compileMapping } from '../mappings.js';
-import { fail } from '../errors.js';
+import { fail, withFrame } from '../errors.js';
 import { executors } from './nodes/index.js';
 import { findTemplate, runTemplate } from './templates.js';
 import { sequentially } from './sequentially.js';
+import { ownerOf } from './owners.js';
 
 export class Return {
     constructor(value) {
@@ -26,7 +27,12 @@ const executorOf = node => {
 
 const inputOf = (node, scope) => 'inputMap' in node ? evaluate(node.inputMap, scope) : scope.input;
 
-const runNode = (node, scope) => executorOf(node)(node, scope, inputOf(node, scope));
+const keywordOf = node => Object.keys(node).find(key => !MODIFIERS.has(key)) ?? 'input';
+
+const runNode = (node, scope, index) => {
+    const input = withFrame(() => inputOf(node, scope), 'step', index + 1, 'inputMap');
+    return withFrame(() => executorOf(node)(node, scope, input), 'step', index + 1, () => keywordOf(node));
+};
 
 const withOutput = (scope, node, output) => {
     if (node.outputKey === '_ctx') fail('context-write', "outputKey '_ctx' is not allowed: bind context with withContext", { node });
@@ -34,21 +40,26 @@ const withOutput = (scope, node, output) => {
 };
 
 const runSequence = async (nodes, scope) => (await sequentially(nodes, async (node, state) => {
-    const output = await runNode(node, state.scope);
-    return { scope: withOutput(state.scope, node, output), output };
-}, { scope, output: undefined })).output;
+    const output = await runNode(node, state.scope, state.index);
+    return { scope: withOutput(state.scope, node, output), output, index: state.index + 1 };
+}, { scope, output: undefined, index: 0 })).output;
 
 export const runPipeline = (pipeline, scope) => Array.isArray(pipeline)
     ? runSequence(pipeline, scope)
-    : runNode(pipeline, scope);
+    : runNode(pipeline, scope, 0);
 
-export const runMethod = async (pipeline, scope) => {
+const runSignalled = async (pipeline, scope) => {
     try {
         return await runPipeline(pipeline, scope);
     } catch (signal) {
         if (signal instanceof Return) return signal.value;
         throw signal;
     }
+};
+
+export const runMethod = (pipeline, scope) => {
+    const owner = ownerOf(pipeline);
+    return owner === undefined ? runSignalled(pipeline, scope) : withFrame(() => runSignalled(pipeline, scope), owner);
 };
 
 export const methodScope = ({ self, _ctx }, input) => ({ input, self, _ctx });

@@ -3,10 +3,12 @@ import { extendsKind, instancesOf } from '../kinds.js';
 import { fail } from '../errors.js';
 import { runMethod } from './pipeline.js';
 import { NEXT } from './nodes/middleware.js';
+import { ownedBy } from './owners.js';
 
 const templates = lazy(() => instancesOf('execution-node-template').reduce((index, template) => {
     const { keyword } = template.data;
     if (index.has(keyword)) fail('duplicate-keyword', `node keyword '${keyword}' is defined twice`, { keyword });
+    ownedBy(template.id, template.data.implementation);
     return index.set(keyword, template);
 }, new Map()));
 

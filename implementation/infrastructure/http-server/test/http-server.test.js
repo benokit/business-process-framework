@@ -87,6 +87,11 @@ describe('http-server', () => {
         expect([failing.status, failing.body.error.message]).to.deep.equal([500, 'broken']);
     });
 
+    it('answers an error with its correlation and no route', async () => {
+        const { body } = await call('/fail', { headers: { 'x-correlation-id': 'c-2' } });
+        expect(body).to.deep.equal({ error: { code: 'error', message: 'broken', correlation: 'c-2' } });
+    });
+
     it('answers 404 for unknown paths', async () => {
         expect((await call('/unknown')).status).to.equal(404);
     });

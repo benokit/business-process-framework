@@ -53,7 +53,8 @@ describe('scoped context', () => {
 
     it('gives low a frozen context', async () => {
         await boot(kind('mutator', { extends: 'principal-execution-node-wrapper', operations: { go: operation({ withContext: { user: { userId: 'ada' } }, do: low('tryToMutateContext') }) } }), element('the-mutator', 'mutator'));
-        expect(await invoke('the-mutator', 'go', null).catch(e => e)).to.be.instanceOf(TypeError);
+        const error = await invoke('the-mutator', 'go', null).catch(e => e);
+        expect([error.code, error.cause]).to.satisfy(([code, cause]) => code === 'low-failed' && cause instanceof TypeError);
     });
 
     it('reports unrelated managers', async () => {

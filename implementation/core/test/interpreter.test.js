@@ -37,7 +37,7 @@ describe('interpreter', () => {
 
         interpret({ effects: ['trace'], stubs: { store: { get: () => 0 } } });
         const error = await errorOf(invoke('the-runner', 'run', 1));
-        expect([error.code, error.data]).to.deep.equal(['stubbed-effect', { element: 'the-store', module: low().low.module, export: 'record', effects: ['write'] }]);
+        expect([error.code, error.data.element, error.data.effects]).to.deep.equal(['stubbed-effect', 'the-store', ['write']]);
     });
 
     it('checks a stub against the operation contract', async () => {

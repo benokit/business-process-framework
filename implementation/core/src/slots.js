@@ -2,6 +2,7 @@ import { getElement } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { orderItems } from './order.js';
 import { fail } from './errors.js';
+import { ownedBy } from './execution/owners.js';
 
 const baseOrder = targets => (a, b) =>
     targets.indexOf(a.data.target) - targets.indexOf(b.data.target) || (a.id ?? '').localeCompare(b.id ?? '');
@@ -20,7 +21,7 @@ const singleValue = (fills, targets, slot) => {
     const target = targets.findLast(t => fills.some(fill => fill.data.target === t));
     const candidates = fills.filter(fill => fill.data.target === target);
     if (candidates.length > 1) fail('ambiguous-slot', `${candidates.length} '${slot}' fills target '${target}'`, { slot, target });
-    return candidates[0]?.data.value ?? null;
+    return candidates[0] ? ownedBy(candidates[0].id, candidates[0].data.value) : null;
 };
 
 export const fillsOf = (self, slot) => {
@@ -35,5 +36,5 @@ export const slotValues = ({ element, slot }) => {
     const { declaration, targets, fills } = fillsOf(selfOf(getElement(element)), slot);
     return declaration.cardinality === 'one'
         ? singleValue(fills, targets, slot)
-        : orderFills(fills, targets, slot).map(fill => fill.data.value);
+        : orderFills(fills, targets, slot).map(fill => ownedBy(fill.id, fill.data.value));
 };

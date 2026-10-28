@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from 'path';
-import { validate } from '@business-framework/core';
+import { describeError, validate } from '@business-framework/core';
 import { bootApplication, explain, list, migrateApplication, refs, renderExplanation, renderList, renderRefs, renderVocabulary, report, vocabulary } from './index.js';
 
 const USAGE = `usage: bpf <command> [--json] [<elements-path> ...]
@@ -68,6 +68,6 @@ if (run === undefined || (WITH_ID.includes(command) && positional.length === 0))
 run(argumentsOf())
     .then(text => (process.exitCode ? console.error : console.log)(text))
     .catch(error => {
-        console.error(`${error.code ?? 'error'}: ${error.message ?? error}`);
+        console.error(describeError(error));
         process.exit(1);
     });
