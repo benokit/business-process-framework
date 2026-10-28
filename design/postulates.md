@@ -13,7 +13,7 @@
   - We certainly need a mechanism to author complex queries separately. Introducing /file as a data composition tool is a good idea, but an url or uri should be more robust (no relative paths).
 - **P7 — Schemas.** Schema data has the shape of a compact schema. Validation is done by AJV, which also resolves `$ref`s; the framework doesn't. Schemas are registered with AJV in the load phase; AJV compiles each schema lazily, at most once, when a validation is first requested.
 - **P8 — Operations.** Operations are a primitive property of the kind. They are invoked through an instance.
-- **P9 — Instance data.** An instance's data is defined by the shape of its kind, and nothing more. No keys are reserved in it.
+- **P9 — Instance data.** An instance's data is defined by the shape of its kind, and nothing more. No keys are reserved in it. An instance is not generative: it has no subinstances. A hierarchy of values is data (a parent reference in the shape); a differing structure or behaviour is a kind.
 - **P10 — No service kind.** There is no `service` kind. An element with operations is an instance of a kind that defines them.
 - **P11 — Open slots.** A package may declare new slots on a kind it doesn't own.
 - **P12 — Slots and middleware.** A slot fill can be any data. A generic middleware node accepts a sequence of executables and runs them in order; each receives `next` (the continuation) and is responsible for firing it.

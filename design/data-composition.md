@@ -62,7 +62,6 @@ The laws are tested as properties: random chains of the five forms, with both gr
 - `/data` keeps `/ref`, `/literal`, `/uri`; `/merge` takes the operations above in its items. Arrays in `/merge` stop merging by index (breaking change; the demo and the packages are migrated in the same step).
 - `defaults` of a kind is removed; see [kind-settings.md](kind-settings.md).
 - Binding rights of code in a composition result are unchanged ([core/README.md](../implementation/core/README.md#data-composition)).
-- Q12 (specializing instances) stays open.
 
 ## 7. Open points
 
