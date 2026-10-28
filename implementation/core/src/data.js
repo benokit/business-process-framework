@@ -1,4 +1,4 @@
-import { isPlainObject, mapValues } from 'lodash-es';
+import { get, has, isPlainObject, mapValues } from 'lodash-es';
 import { getElement } from './registry.js';
 import { fail } from './errors.js';
 import { readUri } from './packages.js';
@@ -12,12 +12,24 @@ const COMPOSED = '/data';
 
 const isComposed = element => COMPOSED in element;
 
+const parseRef = ref => {
+    const [id, ...path] = ref.split('/');
+    return { id, path };
+};
+
+const resolveRef = ref => {
+    const { id, path } = parseRef(ref);
+    const { data } = getElement(id);
+    if (path.length > 0 && !has(data, path)) fail('unknown-ref-path', `'${ref}' has no value at ${path.join('/')}`, { ref, id, path });
+    return path.length > 0 ? get(data, path) : data;
+};
+
 const refsIn = tree => Array.isArray(tree)
     ? tree.flatMap(refsIn)
     : !isPlainObject(tree) || LITERAL in tree
         ? []
         : REF in tree
-            ? [tree[REF]]
+            ? [parseRef(tree[REF]).id]
             : Object.values(tree).flatMap(refsIn);
 
 const evaluate = tree => Array.isArray(tree)
@@ -27,7 +39,7 @@ const evaluate = tree => Array.isArray(tree)
         : LITERAL in tree
             ? tree[LITERAL]
             : REF in tree
-                ? getElement(tree[REF]).data
+                ? resolveRef(tree[REF])
                 : URI in tree
                     ? readUri(tree[URI])
                     : MERGE in tree

@@ -1,0 +1,32 @@
+[
+    {
+        "id": "marine",
+        "kind": "insurance-contract-type",
+        "data": {
+            "bodySchema": { "!policyholder": "string", "!vessel": "string" }
+        }
+    },
+    {
+        "id": "marine-lifecycle",
+        "kind": "slot-fill",
+        "/data": {
+            "target": "marine",
+            "slot": "traits",
+            "value": {
+                "trait": "state",
+                "configuration": {
+                    "/merge": [
+                        { "/ref": "contract-lifecycle/value/configuration" },
+                        {
+                            "states": { "status": { "suspended": true } },
+                            "transitions": {
+                                "suspend": { "status": { "active": "suspended" } },
+                                "cancel": { "status": { "suspended": "cancelled" } }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+]

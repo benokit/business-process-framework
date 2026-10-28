@@ -12,7 +12,7 @@ const elements = [
     {
         id: `${ORDER}-lifecycle`,
         kind: 'slot-fill',
-        data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: ['draft', 'done'] }, transitions: { finish: { from: { status: ['draft'] }, to: { status: 'done' } } }, initialStates: { default: { status: 'draft' } } } } }
+        data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } } } }
     },
     { id: 'lifecycle-role', kind: 'role', data: { actors: ['entity-lifecycle-actor'] } },
     ...headerPrincipal

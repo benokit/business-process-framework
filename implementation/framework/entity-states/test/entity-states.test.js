@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { applyTransition } from '../src/states.js';
 import { migrate, skipWithoutPostgres } from '../../../infrastructure/postgresql/test/helpers.js';
 
 const run = Date.now();
@@ -7,10 +8,10 @@ const ORDER = `order-${run}`;
 const NOTE = `note-${run}`;
 
 const lifecycle = {
-    states: { status: ['draft', 'confirmed', 'cancelled'] },
+    states: { status: { draft: true, confirmed: true, cancelled: true } },
     transitions: {
-        confirm: { from: { status: ['draft'] }, to: { status: 'confirmed' } },
-        cancel: { from: { status: ['draft', 'confirmed'] }, to: { status: 'cancelled' } }
+        confirm: { status: { draft: 'confirmed' } },
+        cancel: { status: { draft: 'cancelled', confirmed: 'cancelled' } }
     },
     initialStates: { default: { status: 'draft' }, confirmed: { status: 'confirmed' } }
 };
@@ -63,12 +64,22 @@ describe('entity-states', function () {
     });
 
     it('reports a states model with undeclared states in validate()', async () => {
-        const broken = { id: `${ORDER}-broken`, kind: 'slot-fill', data: { target: NOTE, slot: 'traits', value: { trait: 'state', configuration: { states: { status: ['a'] }, initialStates: { default: { status: 'b' } } } } } };
+        const broken = { id: `${ORDER}-broken`, kind: 'slot-fill', data: { target: NOTE, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { a: true } }, initialStates: { default: { status: 'b' } } } } } };
         await stop();
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
         expect(validate().map(problem => problem.message)).to.deep.equal([`state: ${NOTE}: initial state 'default' uses undeclared state status=b`]);
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
         await start();
         await migrate();
+    });
+
+    it('moves the dimensions a transition lists together, and only if all allow it', async () => {
+        const multi = {
+            states: { status: { open: true, closed: true }, payment: { due: true, settled: true } },
+            transitions: { close: { status: { open: 'closed' }, payment: { due: 'settled' } } },
+            initialStates: { default: { status: 'open', payment: 'due' }, paid: { status: 'open', payment: 'settled' } }
+        };
+        expect(applyTransition({ model: multi, state: multi.initialStates.default, transition: 'close' })).to.deep.equal({ status: 'closed', payment: 'settled' });
+        expect(applyTransition({ model: multi, state: multi.initialStates.paid, transition: 'close' })).to.equal(null);
     });
 });

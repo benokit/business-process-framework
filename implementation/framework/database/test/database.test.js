@@ -3,15 +3,16 @@ import { boot, invoke, packageElements, start, stop, validate } from '@business-
 
 const run = Date.now();
 const TABLE = `test_migrations_${run}`;
+const MIGRATION = `migration-${run}`;
 
 const fill = (id, value, order = {}) => ({ id, kind: 'slot-fill', data: { target: 'postgresql-database', slot: 'migrations', value, ...order } });
 
 const packages = ['@business-framework/integration', '@business-framework/database', '@business-framework/postgresql'].map(packageElements);
 
 const migrations = [
-    fill(`${TABLE}-row`, { run: { inputMap: { command: `INSERT INTO ${TABLE} (name) VALUES ('first')` }, invoke: 'default-postgresql-database', operation: 'execute' } }, { position: 'last' }),
-    fill(`${TABLE}-index`, { command: `CREATE INDEX ${TABLE}_name ON ${TABLE} (name)` }, { after: [`${TABLE}-table`] }),
-    fill(`${TABLE}-table`, { command: `CREATE TABLE ${TABLE} (name TEXT)` })
+    fill(`${MIGRATION}-row`, { run: { inputMap: { command: `INSERT INTO ${TABLE} (name) VALUES ('first')` }, invoke: 'default-postgresql-database', operation: 'execute' } }, { position: 'last' }),
+    fill(`${MIGRATION}-index`, { command: `CREATE INDEX ${TABLE}_name ON ${TABLE} (name)` }, { after: [`${MIGRATION}-table`] }),
+    fill(`${MIGRATION}-table`, { command: `CREATE TABLE ${TABLE} (name TEXT)` })
 ];
 
 const database = (command, parameters) => invoke('default-postgresql-database', 'execute', { command, parameters });
@@ -37,13 +38,13 @@ describe('database', () => {
 
         after(async () => {
             await database(`DROP TABLE IF EXISTS ${TABLE}`);
-            await database('DELETE FROM migrations WHERE id LIKE $1', [`${TABLE}%`]);
+            await database('DELETE FROM migrations WHERE id LIKE $1', [`${MIGRATION}%`]);
             await stop();
         });
 
         it('applies the migrations not yet applied, in slot order, once', async () => {
-            const applied = (await invoke('default-postgresql-database', 'migrate', null)).applied.filter(id => id.startsWith(TABLE));
-            expect(applied).to.deep.equal([`${TABLE}-table`, `${TABLE}-index`, `${TABLE}-row`]);
+            const applied = (await invoke('default-postgresql-database', 'migrate', null)).applied.filter(id => id.startsWith(MIGRATION));
+            expect(applied).to.deep.equal([`${MIGRATION}-table`, `${MIGRATION}-index`, `${MIGRATION}-row`]);
             expect((await invoke('default-postgresql-database', 'migrate', null)).applied).to.deep.equal([]);
             const { rows } = await database('SELECT indexname FROM pg_indexes WHERE tablename = $1', [TABLE]);
             expect([rows.map(row => row.indexname), (await database(`SELECT name FROM ${TABLE}`)).rows]).to.deep.equal([[`${TABLE}_name`], [{ name: 'first' }]]);

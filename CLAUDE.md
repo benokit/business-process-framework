@@ -47,7 +47,7 @@ PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRE
 
 ## Key conventions
 
-- `.eson` files contain arrays of element objects (or a single object). Element ids share one namespace: a kind and its instance need different ids.
+- `.eson` files contain arrays of element objects (or a single object). Element ids share one namespace: a kind and its instance need different ids. An id is lowercase letters and digits in segments joined by `-` (`invalid-id`), so `/` can separate an id from a path in `{ "/ref": "<id>/<key>/…" }`.
 - Errors are `CoreError` (`code`, `message`, `data`); `throw` in a pipeline raises one. HTTP maps `invalid` 400, `unauthorized` 401, `forbidden` 403, `not-found` 404, `conflict` 409.
 - Configuration is the `settings` of kinds (a schema and defaults), overridden by `app-config` elements and `BPF__<element_id>__<key>` environment variables (`-` of the id becomes `_`), by kind and by instance id; the environment ranks above `app-config`, which ranks above the defaults. Read with `$func/settings`; it is never in `_ctx`. See [kind-settings](design/kind-settings.md).
 - `entity-record` shape: `{ id, entityType, businessKey, revision, data, timestampUtc }`; `data` maps traits to values; `body`, the business data, is a trait like any other, structurally special only because every entity has it. See [framework/entities](implementation/framework/entities/README.md).

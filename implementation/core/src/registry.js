@@ -4,7 +4,12 @@ const byId = new Map();
 const elements = [];
 const resets = [];
 
+const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
 export const register = element => {
+    if (element.id !== undefined && !ID.test(element.id)) {
+        fail('invalid-id', `'${element.id}' isn't a valid element id: lowercase letters and digits in segments separated by '-'`, { id: element.id });
+    }
     if (element.id !== undefined && byId.has(element.id)) {
         fail('duplicate-element', `element '${element.id}' is defined twice`, { id: element.id });
     }

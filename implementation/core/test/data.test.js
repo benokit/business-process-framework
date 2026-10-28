@@ -17,6 +17,18 @@ describe('data composition', () => {
         expect(getElement('extended').data).to.deep.equal({ a: 1, b: { c: 1, d: 2 } });
     });
 
+    it('resolves /ref with a path to the value inside the data of another element', async () => {
+        await bootWith(
+            element('base', 'data', { a: { b: { c: 1, d: 2 } }, list: [{ x: 1 }] }),
+            composed('copy', { picked: { '/ref': 'base/a/b' }, merged: { '/merge': [{ '/ref': 'base/a/b' }, { d: 3 }] }, item: { '/ref': 'base/list/0/x' } }));
+        expect(getElement('copy').data).to.deep.equal({ picked: { c: 1, d: 2 }, merged: { c: 1, d: 3 }, item: 1 });
+    });
+
+    it('fails on a /ref path that has no value', async () => {
+        const error = await bootWith(element('base', 'data', { a: 1 }), composed('copy', { '/ref': 'base/b' })).catch(e => e);
+        expect(error.code).to.equal('unknown-ref-path');
+    });
+
     it('keeps /literal values as written', async () => {
         await bootWith(composed('raw', { value: { '/literal': { '/ref': 'nothing' } } }));
         expect(getElement('raw').data).to.deep.equal({ value: { '/ref': 'nothing' } });

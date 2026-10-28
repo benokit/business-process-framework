@@ -95,11 +95,6 @@ describe('settings', () => {
         expect(problem.data.problems).to.have.length(3);
     });
 
-    it('reports ids that can\'t be told apart in a variable name', async () => {
-        await bootWith(integration({ shape: { a: 'integer' }, defaults: { a: 1 } }), element('a-b', 'integration'), element('a_b', 'integration'));
-        expect(validate().map(problem => problem.code)).to.include('settings-name');
-    });
-
     it('lists the settings that are available, with type, mode values, default and variable, without reading the environment', async () => {
         await bootWith(
             integration({ shape: { retry: RETRY, 'errors[]': 'string', 'limits{}': 'integer' }, defaults: { retry: { mode: 'fixed', max: 3 }, errors: ['a'] } }),

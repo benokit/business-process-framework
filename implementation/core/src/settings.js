@@ -114,17 +114,6 @@ const shapeChecks = () => allElements().filter(element => element.kind === 'kind
         if (problems.length > 0) fail('settings-shape', problems.join('; '), { kind: kind.id, problems });
     });
 
-const collisionChecks = () => {
-    const ids = allElements().filter(element => element.id !== undefined && (element.kind === 'kind' ? element.data.settings : hasSettings(element)))
-        .map(element => element.id);
-    return ids.map(id => () => {
-        const same = ids.filter(other => other !== id && variablePart(other) === variablePart(id));
-        if (same.length > 0 || id.includes('__')) {
-            fail('settings-name', `'${id}' can't be told apart in an environment variable from ${[...same, ...id.includes('__') ? ['its own separator'] : []].join(', ')}`, { id, same });
-        }
-    });
-};
-
 const leafPaths = (tree, path = []) => isPlainObject(tree)
     ? Object.entries(tree).flatMap(([key, value]) => leafPaths(value, [...path, key]))
     : [path];
@@ -160,7 +149,6 @@ const unknownSettingChecks = () => {
 
 const errorChecks = () => [
     ...shapeChecks(),
-    ...collisionChecks(),
     ...allElements().filter(hasSettings).map(element => () => settingsOfElement(element.id))
 ];
 

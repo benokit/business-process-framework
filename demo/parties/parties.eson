@@ -23,11 +23,11 @@
             "value": {
                 "trait": "state",
                 "configuration": {
-                    "states": { "status": ["prospect", "verified", "blacklisted"] },
+                    "states": { "status": { "prospect": true, "verified": true, "blacklisted": true } },
                     "transitions": {
-                        "verify": { "from": { "status": ["prospect"] }, "to": { "status": "verified" } },
-                        "blacklist": { "from": { "status": ["prospect", "verified"] }, "to": { "status": "blacklisted" } },
-                        "reactivate": { "from": { "status": ["blacklisted"] }, "to": { "status": "prospect" } }
+                        "verify": { "status": { "prospect": "verified" } },
+                        "blacklist": { "status": { "prospect": "blacklisted", "verified": "blacklisted" } },
+                        "reactivate": { "status": { "blacklisted": "prospect" } }
                     },
                     "initialStates": { "default": { "status": "prospect" } }
                 }

@@ -13,12 +13,12 @@
             "value": {
                 "trait": "state",
                 "configuration": {
-                    "states": { "status": ["draft", "discarded", "issued", "active", "cancelled"] },
+                    "states": { "status": { "draft": true, "discarded": true, "issued": true, "active": true, "cancelled": true } },
                     "transitions": {
-                        "discard": { "from": { "status": ["draft"] }, "to": { "status": "discarded" } },
-                        "issue": { "from": { "status": ["draft"] }, "to": { "status": "issued" } },
-                        "activate": { "from": { "status": ["issued"] }, "to": { "status": "active" } },
-                        "cancel": { "from": { "status": ["issued", "active"] }, "to": { "status": "cancelled" } }
+                        "discard": { "status": { "draft": "discarded" } },
+                        "issue": { "status": { "draft": "issued" } },
+                        "activate": { "status": { "issued": "active" } },
+                        "cancel": { "status": { "issued": "cancelled", "active": "cancelled" } }
                     },
                     "initialStates": { "default": { "status": "draft" } }
                 }

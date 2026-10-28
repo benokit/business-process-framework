@@ -15,10 +15,10 @@
             "value": {
                 "trait": "state",
                 "configuration": {
-                    "states": { "status": ["active", "suspended"] },
+                    "states": { "status": { "active": true, "suspended": true } },
                     "transitions": {
-                        "suspend": { "from": { "status": ["active"] }, "to": { "status": "suspended" } },
-                        "reactivate": { "from": { "status": ["suspended"] }, "to": { "status": "active" } }
+                        "suspend": { "status": { "active": "suspended" } },
+                        "reactivate": { "status": { "suspended": "active" } }
                     },
                     "initialStates": { "default": { "status": "active" } }
                 }
