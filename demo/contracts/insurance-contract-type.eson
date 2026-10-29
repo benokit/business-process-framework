@@ -2,7 +2,12 @@
     {
         "id": "insurance-contract-type",
         "kind": "kind",
-        "data": { "extends": "entity-type" }
+        "data": {
+            "extends": "versioned-entity-type",
+            "operations": {
+                "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } }
+            }
+        }
     },
     {
         "id": "contract-lifecycle",
@@ -23,6 +28,45 @@
                     "initialStates": { "default": { "status": "draft" } }
                 }
             }
+        }
+    },
+    {
+        "id": "contract-terms-versionable",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract-type",
+            "slot": "traits",
+            "value": { "trait": "versionable", "key": "timeline", "configuration": { "schema": "@contract-terms" } }
+        }
+    },
+    {
+        "id": "contract-terms-end-after-start",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract-type",
+            "slot": "guards",
+            "value": [
+                {
+                    "outputKey": "timeline",
+                    "set": {
+                        "$cond": [
+                            [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.timeline"],
+                            [{ "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "timeline"] }] }, "#.input.value"],
+                            ["else", null]
+                        ]
+                    }
+                },
+                {
+                    "if": "#.timeline",
+                    "then": [
+                        { "outputKey": "current", "set": { "$func/resolve-segment": { "timeline": "#.timeline" } } },
+                        {
+                            "if": { "$lte": ["#.current.data.endDate", "#.current.validFrom"] },
+                            "then": { "throw": { "code": "invalid", "message": "the end date must be after the start of the terms" } }
+                        }
+                    ]
+                }
+            ]
         }
     },
     {

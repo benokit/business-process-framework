@@ -1,0 +1,12 @@
+[
+    {
+        "id": "premium-adjustment",
+        "kind": "amendment-entity-type",
+        "data": { "bodySchema": { "$data#&": ["@amendment-entity-body", { "!changes": { "!premium": "number" } }] } }
+    },
+    {
+        "id": "extension",
+        "kind": "amendment-entity-type",
+        "data": { "bodySchema": { "$data#&": ["@amendment-entity-body", { "!changes": { "!endDate": "@date" } }] } }
+    }
+]

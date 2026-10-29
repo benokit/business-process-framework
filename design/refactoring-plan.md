@@ -73,7 +73,7 @@ The algebra is specified in [data-composition.md](data-composition.md) (P21), th
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R6.5 | Trait assignments with a key: `key` is a parameter of the assignment (default: the trait's id), a trait declares its cardinality (`one` fixes the key); a change, `writeTrait`, the store and events carry the key ([versionable](versionable.md) §5) | F22 | An entity type holds two assignments of one `many` trait under different keys; existing types are unchanged | done |
-| R6.3 | Versionable trait: a timeline of segments, the last in full and earlier ones as backward JSON Patch deltas, `put`, `remove`, `resolve` ([versionable](versionable.md)) | F22, R6.5 | A demo entity type keeps a timeline; no table changes | draft |
+| R6.3 | Versionable trait: a timeline of segments, the last in full and earlier ones as backward JSON Patch deltas, `put`, `remove`, `resolve` ([versionable](versionable.md)) | F22, R6.5 | A demo entity type keeps a timeline; no table changes | done |
 | R6.4 | Reuse a states model through data composition in the demo | F22 | Two entity types share one states model element | draft |
 
 ## Domain concepts (G1)

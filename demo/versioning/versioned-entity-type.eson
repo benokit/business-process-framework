@@ -1,0 +1,90 @@
+[
+    {
+        "id": "versioned-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "slots": { "amendmentTypes": { "cardinality": "many", "value": "@ref/amendment-entity-type" } },
+            "operations": {
+                "isAmendable": { "input": { "!record": "@entity-record" }, "output": "boolean" }
+            }
+        }
+    },
+    {
+        "id": "ledger-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": { "set": { "last": 0, "open": null } }
+                }
+            }
+        }
+    },
+    {
+        "id": "amendment-ledger",
+        "kind": "ledger-trait",
+        "data": { "configuration": { "*": "never" } }
+    },
+    {
+        "id": "amendment-ledger-value",
+        "kind": "schema",
+        "data": { "!last": "integer", "!open": { "$data#": ["string", "null"] } }
+    },
+    {
+        "id": "versioned-entity-timeline",
+        "kind": "slot-fill",
+        "data": {
+            "target": "versioned-entity-type",
+            "slot": "traits",
+            "value": { "trait": "versionable", "key": "timeline", "configuration": { "schema": {} } }
+        }
+    },
+    {
+        "id": "versioned-entity-ledger",
+        "kind": "slot-fill",
+        "data": {
+            "target": "versioned-entity-type",
+            "slot": "traits",
+            "value": { "trait": "amendment-ledger", "configuration": {} }
+        }
+    },
+    {
+        "id": "versioned-entity-ledger-writes",
+        "kind": "slot-fill",
+        "data": {
+            "target": "versioned-entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "amendment-ledger"] }] },
+                "then": [
+                    {
+                        "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.input.command" } } },
+                        "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.input.command"] } } }
+                    },
+                    { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.input.value" } } },
+                    {
+                        "if": { "$negate": "#.check.isValid" },
+                        "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "id": "versioned-entity-timeline-writes",
+        "kind": "slot-fill",
+        "data": {
+            "target": "versioned-entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "timeline"] }] },
+                "then": {
+                    "if": { "$negate": { "$includes": { "collection": ["put", "remove"], "value": "#.input.command" } } },
+                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the timeline has no command ", "#.input.command"] } } }
+                }
+            }
+        }
+    }
+]

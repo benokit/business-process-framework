@@ -6,9 +6,7 @@
             "bodySchema": {
                 "!policyholder": "string",
                 "!project": "string",
-                "!currency": "string",
-                "!startDate": "@date",
-                "!endDate": "@date"
+                "!currency": "string"
             }
         }
     },
@@ -31,6 +29,16 @@
                 }
             ]
         }
+    },
+    {
+        "id": "construction-premium-adjustment",
+        "kind": "slot-fill",
+        "data": { "target": "construction", "slot": "amendmentTypes", "value": "premium-adjustment" }
+    },
+    {
+        "id": "construction-extension",
+        "kind": "slot-fill",
+        "data": { "target": "construction", "slot": "amendmentTypes", "value": "extension" }
     },
     {
         "id": "construction-policyholder",

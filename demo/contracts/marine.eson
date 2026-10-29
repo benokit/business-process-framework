@@ -3,8 +3,13 @@
         "id": "marine",
         "kind": "insurance-contract-type",
         "data": {
-            "bodySchema": { "!policyholder": "string", "!vessel": "string" }
+            "bodySchema": { "!policyholder": "string", "!vessel": "string", "!currency": "string" }
         }
+    },
+    {
+        "id": "marine-premium-adjustment",
+        "kind": "slot-fill",
+        "data": { "target": "marine", "slot": "amendmentTypes", "value": "premium-adjustment" }
     },
     {
         "id": "marine-lifecycle",

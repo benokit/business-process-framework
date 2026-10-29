@@ -22,10 +22,32 @@
         }
     },
     {
+        "id": "trait-initializer",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "initialize": {
+                    "input": { "!trait": "@ref/entity-trait", "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any" },
+                    "output": "@any",
+                    "implementation": {
+                        "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key", "configuration": "#.input.configuration", "input": "#.input.input" },
+                        "invoke": "#.input.trait",
+                        "operation": "initialize"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-trait-initializer",
+        "kind": "trait-initializer",
+        "data": {}
+    },
+    {
         "id": "entity-traits",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "string", "output": "object" },
+            "signature": { "input": "string", "output": { "*": { "!trait": "@ref/entity-trait", "!configuration": "@any" } } },
             "module": "@business-framework/entities/traits",
             "export": "traitsOf"
         }

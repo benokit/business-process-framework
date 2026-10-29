@@ -43,12 +43,13 @@
                                 {
                                     "outputKey": "value",
                                     "inputMap": {
+                                        "trait": "#.use.trait",
                                         "entityType": "#.self.id",
                                         "key": "#.item",
                                         "configuration": "#.use.configuration",
                                         "input": { "$get": { "object": "#.input.traits", "path": "#.item" } }
                                     },
-                                    "invoke": "#.use.trait",
+                                    "invoke": "entity-trait-initializer",
                                     "operation": "initialize"
                                 },
                                 { "set": { "key": "#.item", "value": "#.value" } }

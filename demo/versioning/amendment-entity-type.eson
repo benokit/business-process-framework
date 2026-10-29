@@ -1,0 +1,110 @@
+[
+    {
+        "id": "amendment-entity-type",
+        "kind": "kind",
+        "data": { "extends": "entity-type" }
+    },
+    {
+        "id": "amendment-entity-body",
+        "kind": "schema",
+        "data": {
+            "!amendedType": "@ref/versioned-entity-type",
+            "!amendedKey": "string",
+            "!effectiveFrom": "@date",
+            "!reason": "string"
+        }
+    },
+    {
+        "id": "amendment-entity-lifecycle",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "traits",
+            "value": {
+                "trait": "state",
+                "configuration": {
+                    "states": { "status": { "draft": true, "issued": true, "active": true, "cancelled": true, "annulled": true } },
+                    "transitions": {
+                        "issue": { "status": { "draft": "issued" } },
+                        "activate": { "status": { "issued": "active" } },
+                        "cancel": { "status": { "draft": "cancelled", "issued": "cancelled" } },
+                        "annul": { "status": { "active": "annulled" } }
+                    },
+                    "initialStates": { "default": { "status": "draft" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "amendment-entity-amended",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "relations",
+            "value": { "set": { "relations": [{ "targetEntityType": "#.input.data.body.amendedType", "targetEntityBusinessKey": "#.input.data.body.amendedKey", "relationType": "amends" }] } }
+        }
+    },
+    {
+        "id": "amendment-entity-created-through-amended",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.operation", "create"] }, { "$negate": "#._ctx.amending" }] },
+                "then": { "throw": { "code": "forbidden", "message": "amendments are proposed through the entity they amend" } }
+            }
+        }
+    },
+    {
+        "id": "amendment-entity-updates-only-in-draft",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$eq": ["#.input.operation", "update"] },
+                "then": {
+                    "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
+                    "then": { "throw": { "code": "conflict", "message": "amendments can only be updated in draft" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "amendment-entity-activation",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "reactions",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "activate"] }] },
+                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
+            }
+        }
+    },
+    {
+        "id": "amendment-entity-annulment",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "reactions",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "annul"] }] },
+                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
+            }
+        }
+    },
+    {
+        "id": "amendment-entity-cancellation",
+        "kind": "slot-fill",
+        "data": {
+            "target": "amendment-entity-type",
+            "slot": "reactions",
+            "value": {
+                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "cancel"] }] },
+                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
+            }
+        }
+    }
+]

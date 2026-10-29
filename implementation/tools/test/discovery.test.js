@@ -12,7 +12,7 @@ describe('discovery', () => {
 
     it('explains an instance with its kind chain, operations and slot fills in order', () => {
         const { kind, chain, source, operations, slots } = explain('construction');
-        expect([kind, chain]).to.deep.equal(['insurance-contract-type', ['entity-type', 'insurance-contract-type']]);
+        expect([kind, chain]).to.deep.equal(['insurance-contract-type', ['entity-type', 'versioned-entity-type', 'insurance-contract-type']]);
         expect(source).to.match(/demo\/contracts\/construction\.eson$/);
         expect(operations.find(op => op.name === 'create')).to.include({ declaredBy: 'entity-type', implementedBy: 'entity-type' });
         expect(slots.find(slot => slot.name === 'reactions').fills.map(fill => fill.id))
