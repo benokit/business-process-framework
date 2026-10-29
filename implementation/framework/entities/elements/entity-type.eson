@@ -39,20 +39,22 @@
                             "outputKey": "values",
                             "inputMap": { "$keys": "#.traits" },
                             "forEach": [
+                                { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.item" } } },
                                 {
                                     "outputKey": "value",
                                     "inputMap": {
                                         "entityType": "#.self.id",
-                                        "configuration": { "$get": { "object": "#.traits", "path": "#.item" } },
+                                        "key": "#.item",
+                                        "configuration": "#.use.configuration",
                                         "input": { "$get": { "object": "#.input.traits", "path": "#.item" } }
                                     },
-                                    "invoke": "#.item",
+                                    "invoke": "#.use.trait",
                                     "operation": "initialize"
                                 },
-                                { "set": { "trait": "#.item", "value": "#.value" } }
+                                { "set": { "key": "#.item", "value": "#.value" } }
                             ]
                         },
-                        { "set": { "$mapValues": { "of": { "$toDictionary": { "by": "#.trait", "collection": "#.values" } }, "fn": "#.value" } } }
+                        { "set": { "$mapValues": { "of": { "$toDictionary": { "by": "#.key", "collection": "#.values" } }, "fn": "#.value" } } }
                     ]
                 },
                 "applyChange": {
@@ -78,7 +80,7 @@
                                 "$cond": [
                                     [{ "$eq": ["#.input.change.operation", "create"] }, { "operation": "create", "input": { "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "data": "#.input.change.after.data" } }],
                                     [{ "$eq": ["#.input.change.operation", "delete"] }, { "operation": "delete", "input": { "before": "#.input.change.before" } }],
-                                    ["else", { "operation": "update", "input": { "before": "#.input.change.before", "trait": "#.input.change.trait", "value": "#.input.change.value" } }]
+                                    ["else", { "operation": "update", "input": { "before": "#.input.change.before", "key": "#.input.change.key", "value": "#.input.change.value" } }]
                                 ]
                             }
                         },
@@ -144,7 +146,7 @@
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
                             "inputMap": {
-                                "change": { "operation": "update", "trait": "body", "value": "#.input.body", "before": "#.before" },
+                                "change": { "operation": "update", "key": "body", "value": "#.input.body", "before": "#.before" },
                                 "revision": "#.input.revision"
                             },
                             "invoke": "#.self.id",
@@ -153,17 +155,17 @@
                     ]
                 },
                 "writeTrait": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!trait": "string", "!command": "string", "!value": "@any" },
+                    "input": { "!businessKey": "string", "!revision": "number", "!key": "string", "!command": "string", "!value": "@any" },
                     "output": "@entity-record",
                     "implementation": [
                         {
-                            "if": { "$negate": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.input.trait" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait"] } } }
+                            "if": { "$negate": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.input.key" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.input.key"] } } }
                         },
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         {
                             "inputMap": {
-                                "change": { "operation": "trait", "trait": "#.input.trait", "command": "#.input.command", "value": "#.input.value", "before": "#.before" },
+                                "change": { "operation": "trait", "key": "#.input.key", "command": "#.input.command", "value": "#.input.value", "before": "#.before" },
                                 "revision": "#.input.revision"
                             },
                             "invoke": "#.self.id",

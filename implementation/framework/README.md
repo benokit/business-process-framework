@@ -8,6 +8,7 @@
 | [entities](entities/README.md) | Entity types, traits, their slots and the entity store |
 | [entities-postgresql](entities-postgresql/README.md) | The entity store's queries in PostgreSQL, with revision history |
 | [entity-states](entity-states/README.md) | The `state` trait: states models and transitions |
+| [entity-versions](entity-versions/README.md) | The `versionable` trait: a timeline of segments of an entity, with `put`, `remove` and `resolve` |
 | [entity-events](entity-events/README.md) | An event per entity write, through the outbox |
 | [entity-relations](entity-relations/README.md) | The `relations` slot and relation maintenance |
 | [entity-relations-postgresql](entity-relations-postgresql/README.md) | Relation queries in PostgreSQL |

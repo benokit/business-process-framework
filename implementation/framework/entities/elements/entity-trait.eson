@@ -2,15 +2,15 @@
     {
         "id": "entity-trait-use",
         "kind": "schema",
-        "data": { "!trait": "@ref/entity-trait", "!configuration": "@any" }
+        "data": { "!trait": "@ref/entity-trait", "key": "string", "!configuration": "@any" }
     },
     {
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema" },
+            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"] },
             "operations": {
-                "initialize": { "input": { "!entityType": "string", "!configuration": "@any", "input": "@any" }, "output": "@any" }
+                "initialize": { "input": { "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any" }, "output": "@any" }
             },
             "lifecycle": {
                 "load": {

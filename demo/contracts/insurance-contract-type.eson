@@ -53,7 +53,7 @@
             "slot": "reactions",
             "after": ["publish-entity-events"],
             "value": {
-                "if": { "$eq": ["#.input.trait", "state"] },
+                "if": { "$eq": ["#.input.key", "state"] },
                 "then": {
                     "if": { "$eq": ["#.input.command", "activate"] },
                     "then": {

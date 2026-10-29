@@ -21,7 +21,7 @@
     {
         "id": "update-entity",
         "kind": "query",
-        "data": { "input": { "!before": "@entity-record", "!trait": "string", "!value": "@any" }, "output": "@entity-record", "errors": ["conflict"] }
+        "data": { "input": { "!before": "@entity-record", "!key": "string", "!value": "@any" }, "output": "@entity-record", "errors": ["conflict"] }
     },
     {
         "id": "delete-entity",

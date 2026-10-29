@@ -11,10 +11,19 @@ const CONTRACT_BODY = `contract-body-${run}`;
 const fill = (id, target, slot, value, order = {}) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target, slot, value, ...order } });
 
 const NOTE = `note-${run}`;
+const TAG = `tag-${run}`;
+const TAGGED = `tagged-${run}`;
+
+const prefixed = id => ({ id: `${id}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }] } } } } } });
 
 const elements = [
-    { id: `${NOTE}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }] } } } } } },
+    prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
+    prefixed(TAG),
+    { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
+    { id: TAGGED, kind: 'entity-type', data: { bodySchema: {} } },
+    fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
+    fill('tagged-second', TAGGED, 'traits', { trait: TAG, key: 'second', configuration: { prefix: 'b: ' } }),
     { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number', note: 'string' } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
@@ -107,10 +116,18 @@ describe('entities', function () {
 
     it('writes a declared trait only, keeping the body', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-5', body: { amount: 1 } });
-        const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 1, trait: NOTE, command: 'rewrite', value: 'changed' });
+        const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 1, key: NOTE, command: 'rewrite', value: 'changed' });
         expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 1, 'changed']);
-        const undeclared = await Promise.all(['body', 'other'].map(trait => errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 2, trait, command: 'x', value: {} }))));
+        const undeclared = await Promise.all(['body', 'other'].map(key => errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 2, key, command: 'x', value: {} }))));
         expect(undeclared.map(error => error.code)).to.deep.equal(['invalid', 'invalid']);
+    });
+
+    it('holds one trait under several keys', async () => {
+        const created = await invoke(TAGGED, 'create', { businessKey: 't-1', body: {}, traits: { first: 'x' } });
+        expect([created.data.first, created.data.second]).to.deep.equal(['a: x', 'b: new']);
+        const written = await invoke(TAGGED, 'writeTrait', { businessKey: 't-1', revision: 1, key: 'second', command: 'rewrite', value: 'changed' });
+        expect([written.data.first, written.data.second]).to.deep.equal(['a: x', 'changed']);
+        expect((await errorOf(invoke(TAGGED, 'writeTrait', { businessKey: 't-1', revision: 2, key: TAG, command: 'x', value: {} }))).code).to.equal('invalid');
     });
 
     it('deletes only at a given revision', async () => {
@@ -144,7 +161,12 @@ describe('entities', function () {
             { id: `bad-${run}`, kind: 'entity-type', data: { bodySchema: {} } },
             fill('bad-configuration', `bad-${run}`, 'traits', { trait: NOTE, configuration: { prefix: 1 } }),
             fill('not-a-trait', ORDER, 'traits', { trait: 'postgresql', configuration: {} }),
-            fill('repeated-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'again' } })
+            fill('repeated-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'again' } }),
+            fill('keyless-tag', `bad-${run}`, 'traits', { trait: TAG, configuration: { prefix: 'p' } }),
+            fill('keyed-note', `bad-${run}`, 'traits', { trait: NOTE, key: 'memo', configuration: { prefix: 'p' } }),
+            fill('body-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'body', configuration: { prefix: 'p' } }),
+            fill('dotted-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'first.one', configuration: { prefix: 'p' } }),
+            fill('repeated-tag', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'again' } })
         ];
         await stop();
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
@@ -152,7 +174,12 @@ describe('entities', function () {
         expect(messages).to.include.members([
             `trait '${NOTE}': configuration/prefix must be string`,
             "'postgresql' is not an entity trait",
-            `trait '${NOTE}' is used twice on ${CONTRACT_CLASS}`
+            `trait '${NOTE}' is used twice on ${CONTRACT_CLASS}`,
+            `trait '${TAG}' needs a key`,
+            `trait '${NOTE}' has cardinality one and takes no key`,
+            "key 'body' is reserved",
+            "key 'first.one' is not lowercase letters and digits in segments joined by '-'",
+            `trait 'first' is used twice on ${TAGGED}`
         ]);
         await boot({ paths: packages.map(packageElements), elements });
         await start();

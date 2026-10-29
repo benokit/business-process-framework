@@ -24,10 +24,10 @@ const checkStatesModel = model => [
 ];
 
 export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ id }) => {
-    const model = traitsOf(id)[trait];
-    return model ? checkStatesModel(model).map(problem => `${id}: ${problem}`) : [];
+    const uses = Object.values(traitsOf(id)).filter(use => use.trait === trait);
+    return uses.flatMap(({ configuration }) => checkStatesModel(configuration).map(problem => `${id}: ${problem}`));
 });
 
-export const transitionNames = () => [...new Set(selvesOf('entity-type').flatMap(({ id }) => Object.entries(traitsOf(id))
-    .filter(([trait]) => isInstanceOf({ element: trait, kind: 'states-trait' }))
-    .flatMap(([, model]) => Object.keys(model.transitions ?? {}))))].sort();
+export const transitionNames = () => [...new Set(selvesOf('entity-type').flatMap(({ id }) => Object.values(traitsOf(id))
+    .filter(({ trait }) => isInstanceOf({ element: trait, kind: 'states-trait' }))
+    .flatMap(({ configuration }) => Object.keys(configuration.transitions ?? {}))))].sort();

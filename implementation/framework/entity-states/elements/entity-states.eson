@@ -84,7 +84,7 @@
                             "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
                             "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
                         },
-                        { "outputKey": "model", "set": { "$get": { "object": { "$func/entity-traits": "#.input.entityType" }, "path": "state" } } },
+                        { "outputKey": "model", "set": { "$get": { "object": { "$func/entity-traits": "#.input.entityType" }, "path": "state.configuration" } } },
                         {
                             "if": { "$negate": { "$get": { "object": { "$coalesce": ["#.model.transitions", {}] }, "path": "#.input.transition" } } },
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no transition ", "#.input.transition"] } } }
@@ -96,7 +96,7 @@
                             "then": { "throw": { "code": "conflict", "message": { "$str": ["transition ", "#.input.transition", " isn't allowed from the current state"] } } }
                         },
                         {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "state", "command": "#.input.transition", "value": "#.state" },
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "state", "command": "#.input.transition", "value": "#.state" },
                             "invoke": "#.input.entityType",
                             "operation": "writeTrait"
                         }

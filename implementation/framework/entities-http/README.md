@@ -6,7 +6,7 @@ Each route's [operation](../authorization/README.md) is `{ area: "entities", res
 
 | Method | Path | Operation | Status | ETag |
 |---|---|---|---|---|
-| `GET` | `/entity-types` | `entities.types` → `{ items: [{ id, kind, bodySchema, traits }] }`, `traits` mapping each trait to its configuration | 200 | |
+| `GET` | `/entity-types` | `entities.types` → `{ items: [{ id, kind, bodySchema, traits }] }`, `traits` mapping each key to `{ trait, configuration }` | 200 | |
 | `GET` | `/entities/:entityType?limit&offset` | `list` | 200 | |
 | `POST` | `/entities/:entityType` | `create` (body `{ businessKey?, body, traits? }`) | 201 | yes |
 | `GET` | `/entities/:entityType/:businessKey?revision` | `read` | 200 | yes |

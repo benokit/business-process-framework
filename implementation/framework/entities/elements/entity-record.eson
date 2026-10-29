@@ -16,7 +16,7 @@
         "kind": "schema",
         "data": {
             "!operation=1": ["create", "update", "trait", "delete"],
-            "trait": "string",
+            "key": "string",
             "command": "string",
             "value": "@any",
             "before": "@entity-record",

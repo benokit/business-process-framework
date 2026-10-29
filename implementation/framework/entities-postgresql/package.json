@@ -9,7 +9,6 @@
   "dependencies": {
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
-    "@business-framework/postgresql": "*",
-    "fast-json-patch": "^3.1.1"
+    "@business-framework/postgresql": "*"
   }
 }

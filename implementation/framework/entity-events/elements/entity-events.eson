@@ -8,7 +8,7 @@
             "!id": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "trait": "string",
+            "key": "string",
             "command": "string"
         }
     },
@@ -52,7 +52,7 @@
                             "id": "#.record.id",
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
-                            "trait": "#.input.trait",
+                            "key": "#.input.key",
                             "command": "#.input.command"
                         },
                         "subject": "#.record.entityType",
