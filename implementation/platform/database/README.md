@@ -21,7 +21,7 @@ The slot `migrations` holds what creates and changes database objects and seeds 
 }
 ```
 
-`database.migrate()` → `{ applied }` runs, in slot order, each migration whose id the table `migrations` doesn't record, and records it; a second run applies nothing. Use `after`/`before` when one migration needs another (an index after its table), `position: "last"` for data that needs every table. A start runs no migration: [`bpf migrate`](../../tools/README.md) starts the application, migrates and stops, and tests call `migrate()` of [the postgresql test helpers](../../adapters/postgresql/test/helpers.js) after `start()`. Migrations don't run in a transaction: a failing one isn't recorded, so it runs again next time, and commands are best written to be repeatable (`IF NOT EXISTS`).
+`database.migrate()` → `{ applied }` runs, in slot order, each migration whose id the table `migrations` doesn't record, and records it; a second run applies nothing. Use `after`/`before` when one migration needs another (an index after its table), `position: "last"` for data that needs every table. Schema changes are deliberate, one-time operations, so a start runs no migration (a replica or a restart must never alter a shared schema): [`bpf migrate`](../../tools/README.md) starts the application, migrates and stops, and tests call `migrate()` of [the postgresql test helpers](../../adapters/postgresql/test/helpers.js) after `start()`. Migrations don't run in a transaction: a failing one isn't recorded, so it runs again next time, and commands are best written to be repeatable (`IF NOT EXISTS`).
 
 ## Queries
 

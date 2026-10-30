@@ -2,6 +2,8 @@
 
 The `ownership` [trait](../entities/README.md#traits): the facts about an entity that access to it depends on, derived from its data at every write. The design is in [row-access](../../../design/row-access.md).
 
+**Why.** "Which rows may this user see" must be answered the same way for a single read and for a search over millions of records, and a search engine can't run business rules. So the facts access depends on (region, departments, …) are derived from the record once, at write time, by a pure rule, and stored beside it. Both the store and the search index then filter on plain values, and callers can't forge them.
+
 - The value of `data.ownership` is a flat map from a dimension to a primitive or to an array of one primitive type. Its configuration is `{ dimensions, rule }`: `dimensions` is the schema of the map (the keys are closed), `rule` a mapping from `{ entityType, businessKey, data }`, the record as the write leaves it, to the ownership. The rule is pure and sees nothing else.
 - A dimension is a `string`, `number`, `integer` or `boolean`, or an array of one of them (`departments[]`). A string has no uppercase letters, since a search engine filter compares strings without case and the two answers must be the same.
 - A class fixes the dimensions (`fixed.traits.ownership.configuration.dimensions`) and each entity type gives its rule, so no entity type can add a dimension.
@@ -10,7 +12,7 @@ The `ownership` [trait](../entities/README.md#traits): the facts about an entity
 
 ## Backfill
 
-Ownership is stored, so a change to a rule, or the trait added to an entity type that has records, leaves the stored ownership as it was. `entity-ownership-backfiller.run({ entityType })` → `{ updated }` derives it again for every record, as the system principal, writing only the records whose ownership differs, so a second run updates none. The writes publish the entity events, so a search index follows. Run it as a migration, named for the change, after the tables:
+Because ownership is stored, a change to a rule, or the trait added to an entity type that has records, leaves the stored ownership as it was. `entity-ownership-backfiller.run({ entityType })` → `{ updated }` derives it again for every record, as the system principal, writing only the records whose ownership differs, so a second run updates none. The writes publish the entity events, so a search index follows. Run it as a migration, named for the change, after the tables:
 
 ```json
 { "id": "contract-ownership-2", "kind": "slot-fill", "data": { "target": "database", "slot": "migrations", "position": "last",

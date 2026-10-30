@@ -1,6 +1,6 @@
 # cache
 
-Kind `in-memory-cache` (`{ ttl? }`, and the setting `maxEntries`): `get({ key })` → `{ found, value? }`, `set({ key, value })`, `evict({ key })`. Each instance has its own store in each running process.
+Kind `in-memory-cache` (`{ ttl? }`, and the setting `maxEntries`): `get({ key })` → `{ found, value? }`, `set({ key, value })`, `evict({ key })`. Each instance has its own store in each running process, so a cache saves a round trip but must be evicted in every instance when its source changes (see the broadcast consumers of [messaging](../messaging/README.md)).
 
 - `ttl` in milliseconds; without it entries don't expire. An expired entry is removed when it is read.
 - The setting `maxEntries` (default 10000, `BPF__<cache_id>__maxEntries`) bounds the store: a `set` beyond it removes the least recently used entry, so expired entries nobody reads again are removed too.

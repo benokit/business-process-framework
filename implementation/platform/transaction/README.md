@@ -1,6 +1,6 @@
 # transaction
 
-Transactions as scoped context, on the sessions of the bound [`database`](../../platform/database/README.md).
+Transactions as scoped context, on the sessions of the bound [`database`](../../platform/database/README.md). The transaction is bound for a subtree rather than passed as an argument, so every store call inside it joins it without its signature mentioning it, and `afterCommit` can defer what must happen only once the work is durable.
 
 - Kind `transaction-manager`, instance `transaction` (`isolation`: `read committed`, `repeatable read` or `serializable`): `begin()` → `{ sessionId }`, `commit({ sessionId })`, `rollback({ sessionId })`, through the database's.
 - Keyword `afterCommit` (instance `after-commit`, [`effects.defers`](../../core/README.md#effects)): its pipeline runs after the bound transaction commits, or at once when no transaction is bound; a rollback drops it. Inside a joined transaction it runs after the outermost commit. It runs in registration order, with the node's input, the `self` of the code it is written in and the caller's context without `transaction`; pass outputs it needs through `inputMap`. The committed work has succeeded whatever the pipeline does: a failure is ignored, so the pipeline handles its own.

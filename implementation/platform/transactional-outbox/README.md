@@ -2,6 +2,8 @@
 
 At-least-once delivery for channels with `publisher.transactionalOutbox`. Kind `transactional-outbox` (a [`message-outbox`](../../platform/messaging/README.md)), instance `default-transactional-outbox`.
 
+**Why.** Publishing to a broker and committing to the database can't be one transaction: publish first and a rollback leaves a message about nothing; commit first and a crash loses the message. The outbox writes the message in the business transaction, so both happen or neither, and delivers it afterwards, retrying until the broker accepts it. The price is at-least-once delivery, so consumers must be idempotent.
+
 Its time scales are the settings of the kind (`BPF__transactional_outbox__<key>`, `BPF__transactional_outbox__retry__<key>`, or the `app-config` section `transactional-outbox`, or `default-transactional-outbox` for the instance):
 
 | Key | Default | Meaning |

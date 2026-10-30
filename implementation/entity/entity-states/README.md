@@ -1,6 +1,6 @@
 # entity-states
 
-The `state` [trait](../entities/README.md#traits): an entity's lifecycle as named states.
+The `state` [trait](../entities/README.md#traits): an entity's lifecycle as named states. Transitions are declared data, so which changes are legal is checked in one place, can be granted one by one in [authorization](../../services/authorization/README.md) and shown by `bpf explain`, instead of being scattered through update code. Independent aspects of the lifecycle are separate dimensions.
 
 - The trait `state`, configured by an `entity-states-model`: `{ states: { <dimension>: { <state>: true } }, transitions?: { <name>: { <dimension>: { <from state>: <target state> } } }, initialStates?: { default, <name>: { <dimension>: value } } }`. A transition changes every dimension it lists, and only if all of them have their current state among its sources (a transition listing several dimensions is coupled); from different source states it may lead to different targets. Everything is a map, so a subtype edits a model with the [data algebra](../../../design/data-composition.md): `{ "cancel": { "status": { "suspended": "cancelled" } } }` adds a source state, `{ "cancel": { "/unset": true } }` removes a transition. `validate()` reports sources, targets and initial states a dimension doesn't declare.
 - `data.state` is `{ <dimension>: value }`, set on `create` from `initialStates.default`, or from the initial state named in the create input (`traits: { state: "<name>" }`).

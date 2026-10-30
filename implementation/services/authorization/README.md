@@ -1,6 +1,6 @@
 # authorization
 
-Authorization at the boundary ([P19, P20](../../../design/postulates.md)): every [HTTP endpoint](../../platform/http-server/README.md#http-endpoint) maps its request to a logical operation, modules grant operations to their actors, and the application assigns actors to roles. The reasons behind the model are under [Design](#design).
+Authorization at the boundary ([P19, P20](../../../design/postulates.md)): every [HTTP endpoint](../../platform/http-server/README.md#http-endpoint) maps its request to a logical operation, modules grant operations to their actors, and the application assigns actors to roles. Its aim is that a permission names a business operation, not a route or a screen, and that modules never need to know the application's roles. The reasons behind the model are under [Design](#design).
 
 ## Operations
 

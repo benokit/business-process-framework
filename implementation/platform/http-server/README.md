@@ -4,7 +4,7 @@ Express HTTP server. Instance `http-server` (kind `express-http-server`) listens
 
 ## http-endpoint
 
-Each endpoint registers its route in its own `start` hook. Per request, the server invokes the endpoint's `handle` with `{ headers, params, query, body }`:
+An endpoint is only a mapping between a request and an operation of an element, so the same operation can be reached over HTTP, from a message or from another operation without change, and the route layout never leaks into the logic. Each endpoint registers its route in its own `start` hook. Per request, the server invokes the endpoint's `handle` with `{ headers, params, query, body }`:
 
 1. binds the `trace` context (`{ correlation }`, from `x-correlation-id` or new), which it manages as an `entry-point`;
 2. runs the `requestMiddleware` slot around the action;
