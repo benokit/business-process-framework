@@ -2,7 +2,7 @@
     {
         "id": "principal-claims",
         "kind": "schema",
-        "data": { "region": "@region" }
+        "data": { "region": "@region", "department": "@department" }
     },
     {
         "id": "own-region-ownership-scope",

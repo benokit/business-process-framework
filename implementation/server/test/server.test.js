@@ -299,4 +299,49 @@ describe('server with the demo', function () {
             expect(found.headOffice).to.include.members(Object.values(contracts));
         });
     });
+
+    describe('organisation access', () => {
+        const memo = (key, department, token) => call('POST', '/entities/memo', { businessKey: key, body: { title: key, department } }, token);
+
+        const visible = async (keys, token) => (await Promise.all(keys.map(key => call('GET', `/entities/memo/${key}`, null, token)))).map(({ status }) => status);
+
+        const keys = ['de', 'fr', 'apac', 'finance'].map(name => `memo-${name}-${run}`);
+
+        let tokens;
+
+        before(async () => {
+            const member = (name, department, profile = 'department-access-profile') => userWith(`org-${name}-${run}`, ['employee-role'], { access: [profile], ...department && { department } });
+            tokens = {
+                secretary: await member('secretary', undefined, 'all-memos-access-profile'),
+                emea: await member('emea', 'emea'),
+                german: await member('german', 'de'),
+                sales: await member('sales', 'sales'),
+                finance: await member('finance', 'finance'),
+                unassigned: await member('unassigned')
+            };
+            await Promise.all([['de', 'de'], ['fr', 'fr'], ['apac', 'apac'], ['finance', 'finance']]
+                .map(([name, department]) => memo(`memo-${name}-${run}`, department, tokens.secretary)));
+        });
+
+        it('stores the owning department alone, and resolves the departments below the member at the time of the request', async () => {
+            const { body } = await call('GET', `/entities/memo/${keys[0]}`, null, tokens.secretary);
+            expect(body.data.ownership).to.deep.equal({ department: 'de' });
+        });
+
+        it('lets a member of a department reach what the department and the departments below it own', async () => {
+            expect(await visible(keys, tokens.emea)).to.deep.equal([200, 200, 404, 404]);
+            expect(await visible(keys, tokens.german)).to.deep.equal([200, 404, 404, 404]);
+            expect(await visible(keys, tokens.sales)).to.deep.equal([200, 200, 200, 404]);
+            expect(await visible(keys, tokens.finance)).to.deep.equal([404, 404, 404, 200]);
+            expect(await visible(keys, tokens.unassigned)).to.deep.equal([404, 404, 404, 404]);
+        });
+
+        it('lets a member write only for the department and the ones below it', async () => {
+            expect([
+                (await memo(`memo-in-${run}`, 'fr', tokens.emea)).status,
+                (await memo(`memo-out-${run}`, 'apac', tokens.emea)).status,
+                (await memo(`memo-up-${run}`, 'sales', tokens.emea)).status
+            ]).to.deep.equal([201, 403, 403]);
+        });
+    });
 });

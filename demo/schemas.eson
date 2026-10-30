@@ -10,6 +10,11 @@
         "data": "string:^[a-z]{2}$"
     },
     {
+        "id": "department",
+        "kind": "schema",
+        "data": "string:^[a-z]+$"
+    },
+    {
         "id": "contract-terms",
         "kind": "schema",
         "data": { "!premium": "number", "!sumInsured": "number", "!endDate": "@date" }

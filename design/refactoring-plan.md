@@ -91,6 +91,7 @@ The algebra is specified in [data-composition.md](data-composition.md) (P21), th
 | R11.4 | Backfill of ownership when a rule changes, run as a migration, its writes reindexing the search through the entity events; `bpf explain` for scopes and ownership ([row-access](row-access.md) §3, §7) | R11.3 | Changing a rule and migrating makes the stored ownership agree with it | done |
 | R11.5 | Scopes see the principal: `{ ownership, principal }`, claims bound as values when the filter of a request is built, an open principal and the optional schema `principal-claims` ([row-access](row-access.md) §4) | R11.3 | One role serves every region through the `region` claim of the user; a missing claim shows nothing | done |
 | R11.6 | Process and access permissions as two kinds, assigned separately: grants carry no scopes, the operation isn't in the context, a user holds `roles` and `access`, no profile reaches nothing ([row-access](row-access.md) §1) | R11.3 | One process role serves users of every region; the region comes from the access profile and the user's claim | done |
+| R11.7 | Organisational access: the `hierarchy` element (a static tree of department names), `$func/hierarchy-subtree`, and computed principal-side values in scopes ([row-access](row-access.md) §4) | R11.5 | A member of a department reaches the entities of the departments below it, from one department in the ownership | done |
 
 ## Domain concepts (G1)
 

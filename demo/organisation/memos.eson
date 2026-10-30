@@ -1,0 +1,37 @@
+[
+    {
+        "id": "memo",
+        "kind": "entity-type",
+        "data": {
+            "traits": {
+                "body": { "configuration": { "schema": { "!title": "string", "!department": "@department" } } },
+                "ownership": { "configuration": { "dimensions": { "!department": "string" }, "rule": { "department": "#.data.body.department" } } }
+            }
+        }
+    },
+    {
+        "id": "department-and-below-ownership-scope",
+        "kind": "ownership-scope",
+        "data": { "filter": { "$includes": { "collection": { "$func/hierarchy-subtree": { "hierarchy": "company-departments", "node": "#.principal.department" } }, "value": "#.ownership.department" } } }
+    },
+    {
+        "id": "department-access-profile",
+        "kind": "access-profile",
+        "data": { "permissions": [{ "resource": "memo", "scopes": ["department-and-below-ownership-scope"] }] }
+    },
+    {
+        "id": "all-memos-access-profile",
+        "kind": "access-profile",
+        "data": { "permissions": [{ "resource": "memo", "scopes": "*" }] }
+    },
+    {
+        "id": "memo-author-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "entities", "resource": "memo" }] }
+    },
+    {
+        "id": "employee-role",
+        "kind": "role",
+        "data": { "actors": ["memo-author-actor"] }
+    }
+]

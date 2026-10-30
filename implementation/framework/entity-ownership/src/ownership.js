@@ -121,7 +121,10 @@ const principalPropertyOf = path => {
     return findElement(CLAIMS) === undefined ? {} : claimOf(head, rest);
 };
 
+const isComputed = operand => operand !== null && typeof operand === 'object' && !Array.isArray(operand);
+
 const describeOperand = (operand, dimensions) => {
+    if (isComputed(operand)) return { kind: 'computed', operand };
     if (typeof operand === 'string' && operand.startsWith(OWNERSHIP)) return { kind: 'dimension', operand, dimension: dimensions.find(({ name }) => `${OWNERSHIP}${name}` === operand) };
     if (typeof operand === 'string' && operand.startsWith(PRINCIPAL)) return { kind: 'principal', operand, property: principalPropertyOf(operand) };
     return isPath(operand) ? { kind: 'unknown', operand } : { kind: 'value', operand };
@@ -131,6 +134,7 @@ const operandProblems = ({ kind, operand, dimension, property }) => ({
     dimension: dimension === undefined ? [`'${operand}' is not a dimension of the ownership`] : [],
     principal: property === undefined ? [`'${operand}' is not a property of the principal`] : [],
     unknown: [`'${operand}' is not a dimension of the ownership or a property of the principal`],
+    computed: JSON.stringify(operand).includes(OWNERSHIP) ? [`${JSON.stringify(operand)} is computed from the ownership: a computed value may use only the principal`] : [],
     value: [operand].flat().filter(item => typeof item === 'string' && item !== item.toLowerCase()).map(item => `'${item}' has uppercase letters`)
 })[kind];
 
@@ -195,6 +199,7 @@ const isUsable = value => value !== undefined && value !== null && !(typeof valu
 const principalValue = (operand, principal) => get(principal, operand.slice(PRINCIPAL.length));
 
 const knownOf = (operand, principal) => {
+    if (isComputed(operand)) return { value: applyMapping({ mapping: operand, input: { principal } }) };
     if (typeof operand === 'string' && operand.startsWith(PRINCIPAL)) return { value: principalValue(operand, principal) };
     return isPath(operand) ? undefined : { value: operand };
 };

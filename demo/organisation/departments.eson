@@ -1,0 +1,12 @@
+[
+    {
+        "id": "company-departments",
+        "kind": "hierarchy",
+        "data": {
+            "tree": {
+                "sales": { "emea": { "de": {}, "fr": {} }, "apac": {} },
+                "finance": {}
+            }
+        }
+    }
+]

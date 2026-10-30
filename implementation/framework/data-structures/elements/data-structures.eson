@@ -1,0 +1,28 @@
+[
+    {
+        "id": "hierarchy-subtree",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!hierarchy": "string", "node": "string" }, "output": "[string]" },
+            "module": "@business-framework/data-structures/hierarchy",
+            "export": "hierarchySubtree"
+        }
+    },
+    {
+        "id": "hierarchy-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/data-structures/hierarchy",
+            "export": "hierarchyProblems"
+        }
+    },
+    {
+        "id": "hierarchy",
+        "kind": "kind",
+        "data": {
+            "shape": { "!tree": "object" },
+            "lifecycle": { "validate": { "$func/hierarchy-problems": "#.self.id" } }
+        }
+    }
+]

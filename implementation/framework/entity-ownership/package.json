@@ -16,6 +16,7 @@
     "@business-framework/entities": "*"
   },
   "devDependencies": {
+    "@business-framework/data-structures": "*",
     "@business-framework/database": "*",
     "@business-framework/postgresql": "*",
     "@business-framework/transaction": "*"

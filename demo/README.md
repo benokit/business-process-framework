@@ -20,6 +20,10 @@ npx bpf explain own-region-ownership-scope ../demo   # its dimensions, the entit
 npx bpf explain construction ../demo                 # the ownership dimensions, rule, scopes and the profiles that reach it
 ```
 
+#### Organisational access
+
+A classic hierarchy: a member of a department reaches what their department and the departments below it own. The hierarchy is one static element, [company-departments](organisation/departments.eson) (a [`hierarchy`](../implementation/framework/data-structures/README.md#hierarchy): a tree of department names), and a [memo](organisation/memos.eson) is owned by a single department (`ownership.department`). The scope resolves the set when the filter is built: `ownership.department` is among `$func/hierarchy-subtree(company-departments, principal.department)`, the department of the principal and every one below it. A member of `emea` reaches the memos of `emea`, `de` and `fr` but not those of `apac` or `finance`, a member of `sales` reaches all sales memos, and a user without the claim reaches none. The process role `employee-role` is the same for all of them, and writing follows the same rows: a member can write for their department and those below it, not for a sibling or the department above. Because the tree is read when a request runs and not stored in the memos, restructuring the organisation is editing the element: no memo changes and nothing is backfilled. The server test runs the scenario.
+
 ```sh
 cd implementation/server && npm run start-demo   # bpf migrate ../../demo, then start
 ```
