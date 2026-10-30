@@ -4,6 +4,7 @@
         "kind": "kind",
         "data": {
             "extends": "entity-type",
+            "fixed": { "traits": { "timeline": { "trait": "versionable" }, "amendment-ledger": {} } },
             "slots": { "amendmentTypes": { "cardinality": "many", "value": "@ref/amendment-entity-type" } },
             "operations": {
                 "isAmendable": { "input": { "!record": "@entity-record" }, "output": "boolean" }
@@ -31,24 +32,6 @@
         "id": "amendment-ledger-value",
         "kind": "schema",
         "data": { "!last": "integer", "!open": { "$data#": ["string", "null"] } }
-    },
-    {
-        "id": "versioned-entity-timeline",
-        "kind": "slot-fill",
-        "data": {
-            "target": "versioned-entity-type",
-            "slot": "traits",
-            "value": { "trait": "versionable", "key": "timeline", "configuration": { "schema": {} } }
-        }
-    },
-    {
-        "id": "versioned-entity-ledger",
-        "kind": "slot-fill",
-        "data": {
-            "target": "versioned-entity-type",
-            "slot": "traits",
-            "value": { "trait": "amendment-ledger", "configuration": {} }
-        }
     },
     {
         "id": "versioned-entity-ledger-writes",

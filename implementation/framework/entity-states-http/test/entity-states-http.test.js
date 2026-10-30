@@ -8,7 +8,7 @@ const ORDER = `order-states-http-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     {
         id: `${ORDER}-lifecycle`,
         kind: 'slot-fill',
@@ -41,7 +41,7 @@ describe('entity-states-http', function () {
     });
 
     it('transitions with ETags', async () => {
-        await invoke(ORDER, 'create', { businessKey: 't-1', body: { amount: 1 } });
+        await invoke(ORDER, 'create', { businessKey: 't-1', traits: { body: { amount: 1 } } });
         expect((await post(`/entities/${ORDER}/t-1/transitions/finish`, { 'if-match': '"5"' })).status).to.equal(409);
         const finished = await post(`/entities/${ORDER}/t-1/transitions/finish`, { 'if-match': '"1"' });
         expect([finished.status, finished.etag, finished.body.data.state]).to.deep.equal([200, '"2"', { status: 'done' }]);

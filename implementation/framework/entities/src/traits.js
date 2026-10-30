@@ -1,41 +1,87 @@
 import { getElement } from '@business-framework/core';
-import { isInstanceOf, selfOf } from '@business-framework/core/kinds';
-import { fillsOf, slotValues } from '@business-framework/core/slots';
+import { isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
+import { fillsOf } from '@business-framework/core/slots';
 import { validateValue } from '@business-framework/core/schemas';
-
-const keyOf = ({ trait, key }) => key ?? trait;
 
 const cardinalityOf = trait => getElement(trait).data.cardinality ?? 'one';
 
-export const traitsOf = entityType => Object.fromEntries(slotValues({ element: entityType, slot: 'traits' })
-    .map(use => [keyOf(use), { trait: use.trait, configuration: use.configuration }]));
+const isTrait = trait => isInstanceOf({ element: trait, kind: 'entity-trait' });
+
+const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
+
+const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const dataContributions = entityType => Object.entries(selfOf(getElement(entityType)).data.traits ?? {})
+    .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: entityType }));
+
+const fillContributions = entityType => fillsOf(selfOf(getElement(entityType)), 'traits').fills
+    .map(({ id, data: { target, value: { trait, key, configuration } } }) => ({ key: key ?? trait, trait, configuration, target, source: id ?? target }));
+
+const unitedWith = ({ configuration, conflicts }, contribution, key) => {
+    try {
+        return { configuration: unite(configuration, contribution.configuration ?? {}, contribution.source), conflicts };
+    } catch (error) {
+        if (error.code !== 'fixed-conflict') throw error;
+        return { configuration, conflicts: [...conflicts, `trait '${key}': ${error.data.owner} can't change the value at 'configuration.${error.data.path.join('.')}'`] };
+    }
+};
+
+const unionOf = (key, contributions) => contributions.reduce((united, contribution) => unitedWith(united, contribution, key), { configuration: {}, conflicts: [] });
+
+const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
+    .map(([key, contributions]) => {
+        const traits = [...new Set(contributions.map(({ trait }) => trait ?? (isTrait(key) ? key : undefined)).filter(trait => trait !== undefined))].sort();
+        return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
+    });
+
+export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
 
 const configurationProblems = (trait, configuration) => validateValue({ schemaId: `${trait}/configuration`, value: configuration }).errors
     .map(error => `trait '${trait}': configuration${error.instancePath} ${error.message}`);
 
-const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
+const cardinalityProblems = ({ key, trait }) => cardinalityOf(trait) === 'many'
+    ? (key === trait ? [`trait '${trait}' needs a key`] : [])
+    : (key === trait ? [] : [`trait '${trait}' has cardinality one and takes no key`]);
 
-const keyProblems = ({ trait, key }) => {
-    if (key === 'body') return ["key 'body' is reserved"];
-    if (key !== undefined && !isName(key)) return [`key '${key}' is not lowercase letters and digits in segments joined by '-'`];
-    if (cardinalityOf(trait) === 'many') return key === undefined ? [`trait '${trait}' needs a key`] : [];
-    return key === undefined ? [] : [`trait '${trait}' has cardinality one and takes no key`];
+const optionalAndRequired = (value, path = []) => isObject(value)
+    ? [
+        ...Object.entries(Object.groupBy(Object.keys(value), field => field.replace(/^!/, '')))
+            .filter(([, fields]) => fields.length > 1 && fields.some(field => field.startsWith('!')))
+            .map(([name]) => [...path, name].join('.')),
+        ...Object.entries(value).flatMap(([field, inner]) => optionalAndRequired(inner, [...path, field]))
+    ]
+    : [];
+
+const useProblems = use => [
+    ...(use.traits.length > 1 ? [`key '${use.key}' is used by the traits ${use.traits.join(' and ')}`] : []),
+    ...(isName(use.key) ? [] : [`key '${use.key}' is not lowercase letters and digits in segments joined by '-'`]),
+    ...use.conflicts,
+    ...(isTrait(use.trait)
+        ? [
+            ...cardinalityProblems(use),
+            ...configurationProblems(use.trait, use.configuration),
+            ...optionalAndRequired(use.configuration).map(path => `trait '${use.key}': configuration.${path} is both optional and required`)
+        ]
+        : [`'${use.trait}' is not an entity trait`])
+];
+
+const isRepeated = (fill, index, fills) => fills.findIndex(other => other.target === fill.target && other.key === fill.key) !== index;
+
+const closedProblems = entityType => {
+    const kind = selfOf(getElement(entityType)).kind;
+    const declared = Object.keys(resolveKind(kind).fixed.traits ?? {});
+    const injectors = Object.groupBy(fillContributions(entityType), ({ key }) => key);
+    return Object.keys(getElement(entityType).data.traits ?? {})
+        .filter(key => !declared.includes(key) && key in injectors)
+        .map(key => `traits.${key} is injected by ${injectors[key].map(({ source }) => source).join(', ')} and not declared by ${kind}`);
 };
 
-const useProblems = ([, { trait, configuration }]) => isInstanceOf({ element: trait, kind: 'entity-trait' })
-    ? configurationProblems(trait, configuration)
-    : [`'${trait}' is not an entity trait`];
-
-const isRepeated = (fill, index, fills) => fills.findIndex(other =>
-    other.data.target === fill.data.target && keyOf(other.data.value) === keyOf(fill.data.value)) !== index;
-
-const isTrait = trait => isInstanceOf({ element: trait, kind: 'entity-trait' });
-
 export const traitProblems = entityType => {
-    const fills = fillsOf(selfOf(getElement(entityType)), 'traits').fills;
+    const fills = fillContributions(entityType);
     return [
-        ...fills.filter(isRepeated).map(fill => `trait '${keyOf(fill.data.value)}' is used twice on ${fill.data.target}`),
-        ...fills.map(fill => fill.data.value).filter(({ trait }) => isTrait(trait)).flatMap(keyProblems),
-        ...Object.entries(traitsOf(entityType)).flatMap(useProblems)
+        ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
+        ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),
+        ...closedProblems(entityType),
+        ...resolve(entityType).flatMap(useProblems)
     ];
 };

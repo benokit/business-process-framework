@@ -34,7 +34,11 @@
                     "input": "@entity-request",
                     "implementation": [
                         { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
-                        { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "update" }
+                        {
+                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.request.businessKey", "revision": "#.input.request.revision", "value": "#.input.request.body" },
+                            "invoke": "entity-bodies",
+                            "operation": "put"
+                        }
                     ]
                 },
                 "delete": {
@@ -53,13 +57,13 @@
                 },
                 "types": {
                     "input": "@any",
-                    "output": { "!items[]": { "!id": "string", "!kind": "string", "!bodySchema": "@schema", "!traits": "object" } },
+                    "output": { "!items[]": { "!id": "string", "!kind": "string", "!traits": "object" } },
                     "implementation": {
                         "set": {
                             "items": {
                                 "$map": {
                                     "over": { "$func/instances-of": "entity-type" },
-                                    "fn": { "id": "#.id", "kind": "#.kind", "bodySchema": "#.data.bodySchema", "traits": { "$func/entity-traits": "#.id" } }
+                                    "fn": { "id": "#.id", "kind": "#.kind", "traits": { "$func/entity-traits": "#.id" } }
                                 }
                             }
                         }

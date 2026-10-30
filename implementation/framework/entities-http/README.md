@@ -1,16 +1,16 @@
 # entities-http
 
-REST endpoints for [entities](../entities/README.md). Every route targets the operation of the same name on `entities` (`create`, `read`, `update`, `delete`, `list`, each taking `{ entityType, request }`), which refuses an `entityType` that isn't an entity type (`not-found`) and invokes that operation of the entity type, so a request reaches no other operation, and each route's effects are known: the `GET` routes only read.
+REST endpoints for [entities](../entities/README.md). Every route targets the operation of the same name on `entities` (`create`, `read`, `update`, `delete`, `list`, each taking `{ entityType, request }`), which refuses an `entityType` that isn't an entity type (`not-found`) and invokes that operation of the entity type (`update` is the `put` of `entity-bodies`), so a request reaches no other operation, and each route's effects are known: the `GET` routes only read.
 
 Each route's [operation](../authorization/README.md) is `{ area: "entities", resource: <entityType>, action: <operation> }` (`entity-types`: resource `entity-type`, action `read`); the [entity search](../entity-search-http/README.md) route's action is `search`. Actors: `entity-reader-actor` (area `entities`, action `query`) and `entity-editor-actor` (area `entities`), both except the resource `user`: users are administered by the [users](../users/README.md) actor only.
 
 | Method | Path | Operation | Status | ETag |
 |---|---|---|---|---|
-| `GET` | `/entity-types` | `entities.types` → `{ items: [{ id, kind, bodySchema, traits }] }`, `traits` mapping each key to `{ trait, configuration }` | 200 | |
+| `GET` | `/entity-types` | `entities.types` → `{ items: [{ id, kind, traits }] }`, `traits` mapping each key to `{ trait, configuration }` (the schema of the `body` among them) | 200 | |
 | `GET` | `/entities/:entityType?limit&offset` | `list` | 200 | |
-| `POST` | `/entities/:entityType` | `create` (body `{ businessKey?, body, traits? }`) | 201 | yes |
+| `POST` | `/entities/:entityType` | `create` (body `{ businessKey?, body, traits? }`, mapped onto `traits.body`) | 201 | yes |
 | `GET` | `/entities/:entityType/:businessKey?revision` | `read` | 200 | yes |
-| `PUT` | `/entities/:entityType/:businessKey` | `update` (body `{ body }`, `If-Match` required) | 200 | yes |
+| `PUT` | `/entities/:entityType/:businessKey` | `entity-bodies.put` (body `{ body }`, `If-Match` required) | 200 | yes |
 | `DELETE` | `/entities/:entityType/:businessKey` | `delete` (`If-Match` required) | 200 | |
 
 The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../infrastructure/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409.

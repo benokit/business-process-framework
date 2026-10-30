@@ -8,7 +8,7 @@ const POLICY = `policy-${run}`;
 const fill = (id, value) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value } });
 
 const elements = [
-    { id: POLICY, kind: 'entity-type', data: { bodySchema: { '!owner': 'string' } } },
+    { id: POLICY, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!owner': 'string' } } } } } },
     fill('pricing', { trait: 'versionable', key: 'pricing', configuration: { schema: { '!premium': 'number', currency: 'string' } } }),
     fill('terms', { trait: 'versionable', key: 'terms', configuration: { schema: { '!text': 'string' } } })
 ];
@@ -36,15 +36,15 @@ describe('entity-versions', function () {
     });
 
     it('starts every timeline with the first version, checked against its schema', async () => {
-        const created = await invoke(POLICY, 'create', { businessKey: 'p-1', body: { owner: 'Ada' }, traits: first });
+        const created = await invoke(POLICY, 'create', { businessKey: 'p-1', traits: { body: { owner: 'Ada' }, ...first } });
         expect([created.data.pricing, created.data.terms]).to.deep.equal([{ '2025-01-01': { premium: 100 } }, { '2025-01-01': { text: 'a' } }]);
-        expect((await errorOf(invoke(POLICY, 'create', { businessKey: 'p-2', body: { owner: 'Ada' }, traits: { pricing: first.pricing } }))).code).to.equal('invalid');
+        expect((await errorOf(invoke(POLICY, 'create', { businessKey: 'p-2', traits: { body: { owner: 'Ada' }, pricing: first.pricing } }))).code).to.equal('invalid');
         const wrong = { ...first, pricing: { validFrom: '2025-01-01', data: { premium: 'high' } } };
-        expect((await errorOf(invoke(POLICY, 'create', { businessKey: 'p-3', body: { owner: 'Ada' }, traits: wrong }))).code).to.equal('invalid');
+        expect((await errorOf(invoke(POLICY, 'create', { businessKey: 'p-3', traits: { body: { owner: 'Ada' }, ...wrong } }))).code).to.equal('invalid');
     });
 
     it('splits, resolves and removes one timeline, leaving the others and the body', async () => {
-        await invoke(POLICY, 'create', { businessKey: 'p-4', body: { owner: 'Ada' }, traits: first });
+        await invoke(POLICY, 'create', { businessKey: 'p-4', traits: { body: { owner: 'Ada' }, ...first } });
         const split = await timeline('put', { businessKey: 'p-4', revision: 1, key: 'pricing', validFrom: '2025-07-01', data: { premium: 110 } });
         expect([split.revision, split.data.body, split.data.terms]).to.deep.equal([2, { owner: 'Ada' }, { '2025-01-01': { text: 'a' } }]);
         expect(await timeline('resolve', { businessKey: 'p-4', key: 'pricing' })).to.deep.equal({ validFrom: '2025-07-01', data: { premium: 110 } });
@@ -54,7 +54,7 @@ describe('entity-versions', function () {
     });
 
     it('refuses an invalid segment, an unknown key, a stale revision and a removal out of order', async () => {
-        await invoke(POLICY, 'create', { businessKey: 'p-5', body: { owner: 'Ada' }, traits: first });
+        await invoke(POLICY, 'create', { businessKey: 'p-5', traits: { body: { owner: 'Ada' }, ...first } });
         const refused = await Promise.all([
             timeline('put', { businessKey: 'p-5', revision: 1, key: 'pricing', validFrom: '2025-07-01', data: { premium: 'high' } }),
             timeline('put', { businessKey: 'p-5', revision: 1, key: 'body', validFrom: '2025-07-01', data: { owner: 'Bob' } }),
@@ -68,7 +68,7 @@ describe('entity-versions', function () {
     });
 
     it('reads a past revision of a timeline', async () => {
-        await invoke(POLICY, 'create', { businessKey: 'p-6', body: { owner: 'Ada' }, traits: first });
+        await invoke(POLICY, 'create', { businessKey: 'p-6', traits: { body: { owner: 'Ada' }, ...first } });
         await timeline('put', { businessKey: 'p-6', revision: 1, key: 'pricing', validFrom: '2025-07-01', data: { premium: 110 } });
         expect((await invoke(POLICY, 'read', { businessKey: 'p-6', revision: 1 })).data.pricing).to.deep.equal({ '2025-01-01': { premium: 100 } });
     });

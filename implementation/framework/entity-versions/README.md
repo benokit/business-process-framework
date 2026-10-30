@@ -15,5 +15,5 @@ The `versionable` [trait](../entities/README.md#traits): the part of an entity t
 Both writes run through `writeTrait` with the command `put` or `remove`, so the `revision` check, guards, reactions and events apply. A write touches the last two segments only, and reading the last segment applies no patch. `put` with an existing last key is a correction nothing undoes; a process that must be annullable splits and removes the key it created.
 
 ```json
-{ "kind": "slot-fill", "data": { "target": "policy", "slot": "traits", "value": { "trait": "versionable", "key": "pricing", "configuration": { "schema": { "!premium": "number", "currency": "string" } } } } }
+{ "id": "policy", "kind": "entity-type", "data": { "traits": { "pricing": { "trait": "versionable", "configuration": { "schema": { "!premium": "number", "currency": "string" } } } } } }
 ```

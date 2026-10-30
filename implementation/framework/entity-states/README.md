@@ -8,5 +8,5 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 - The schema `entity-transition` is the names of every transition of every entity type, registered at load, and types the `transition` input: a transition is a closed set of values, so [authorization](../authorization/README.md) can grant transitions and `validate()` knows them.
 
 ```json
-{ "kind": "slot-fill", "data": { "target": "order", "slot": "traits", "value": { "trait": "state", "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } }
+{ "id": "order", "kind": "entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
 ```

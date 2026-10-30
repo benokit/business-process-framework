@@ -3,7 +3,7 @@
         "id": "party",
         "kind": "entity-type",
         "data": {
-            "bodySchema": {
+            "traits": { "body": { "configuration": { "schema": {
                 "!partyType": "string",
                 "!name": "string",
                 "taxId": "string",
@@ -11,27 +11,16 @@
                 "email": "string",
                 "phone": "string",
                 "address": { "street": "string", "city": "string", "country": "string" }
-            }
-        }
-    },
-    {
-        "id": "party-lifecycle",
-        "kind": "slot-fill",
-        "data": {
-            "target": "party",
-            "slot": "traits",
-            "value": {
-                "trait": "state",
-                "configuration": {
-                    "states": { "status": { "prospect": true, "verified": true, "blacklisted": true } },
-                    "transitions": {
-                        "verify": { "status": { "prospect": "verified" } },
-                        "blacklist": { "status": { "prospect": "blacklisted", "verified": "blacklisted" } },
-                        "reactivate": { "status": { "blacklisted": "prospect" } }
-                    },
-                    "initialStates": { "default": { "status": "prospect" } }
-                }
-            }
+            } } },
+            "state": { "configuration": {
+                "states": { "status": { "prospect": true, "verified": true, "blacklisted": true } },
+                "transitions": {
+                    "verify": { "status": { "prospect": "verified" } },
+                    "blacklist": { "status": { "prospect": "blacklisted", "verified": "blacklisted" } },
+                    "reactivate": { "status": { "blacklisted": "prospect" } }
+                },
+                "initialStates": { "default": { "status": "prospect" } }
+            } } }
         }
     },
     {

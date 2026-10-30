@@ -49,28 +49,28 @@ describe('oauth', function () {
         const token = await tokenFor(subject);
         expect(await whoami(token)).to.equal(undefined);
         expect((await invoke('user', 'read', { businessKey: subject }).catch(e => e)).code).to.equal('not-found');
-        await invoke('user', 'create', { body: { subject, username: 'carl' } });
+        await invoke('user', 'create', { traits: { body: { subject, username: 'carl' } } });
         await eventually(async () => (await whoami(token))?.username === 'carl');
     });
 
     it('binds the principal of the user, cached until it changes', async () => {
-        await invoke('user', 'create', { body: { subject: ADA, username: ADA } });
+        await invoke('user', 'create', { traits: { body: { subject: ADA, username: ADA } } });
         const token = await tokenFor(ADA);
         expect(await whoami(token)).to.deep.equal({ userId: ADA, username: ADA, roles: [] });
         expect((await invoke('user-cache', 'get', { key: ADA })).found).to.equal(true);
         const user = await invoke('user', 'read', { businessKey: ADA });
-        await invoke('user', 'update', { businessKey: ADA, revision: user.revision, body: { ...user.data.body, roles: ['clerk'] } });
+        await invoke('entity-bodies', 'put', { entityType: 'user', businessKey: ADA, revision: user.revision, value: { ...user.data.body, roles: ['clerk'] } });
         await eventually(async () => (await whoami(token)).roles[0] === 'clerk');
         expect((await invoke('user', 'read', { businessKey: ADA })).revision).to.equal(2);
     });
 
     it('binds the user a configured subject acts as', async () => {
-        await invoke('user', 'create', { body: { subject: `administrator-${run}`, roles: ['clerk'] } });
+        await invoke('user', 'create', { traits: { body: { subject: `administrator-${run}`, roles: ['clerk'] } } });
         expect(await whoami(await tokenFor(`boss-${run}`))).to.deep.equal({ userId: `administrator-${run}`, roles: ['clerk'] });
     });
 
     it('binds no principal without a valid token or for a suspended user', async () => {
-        await invoke('user', 'create', { body: { subject: `bob-${run}` } });
+        await invoke('user', 'create', { traits: { body: { subject: `bob-${run}` } } });
         const token = await tokenFor(`bob-${run}`);
         expect(await whoami()).to.equal(undefined);
         expect(await whoami(`${token.slice(0, -2)}xx`)).to.equal(undefined);

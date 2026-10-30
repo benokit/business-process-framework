@@ -62,12 +62,14 @@
                                 "do": {
                                     "inputMap": {
                                         "businessKey": "#.amendmentKey",
-                                        "body": {
-                                            "amendedType": "#.input.entityType",
-                                            "amendedKey": "#.input.businessKey",
-                                            "effectiveFrom": "#.input.effectiveFrom",
-                                            "reason": "#.input.reason",
-                                            "changes": "#.input.changes"
+                                        "traits": {
+                                            "body": {
+                                                "amendedType": "#.input.entityType",
+                                                "amendedKey": "#.input.businessKey",
+                                                "effectiveFrom": "#.input.effectiveFrom",
+                                                "reason": "#.input.reason",
+                                                "changes": "#.input.changes"
+                                            }
                                         }
                                     },
                                     "invoke": "#.input.amendmentType",

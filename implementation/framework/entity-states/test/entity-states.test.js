@@ -17,9 +17,9 @@ const lifecycle = {
 };
 
 const elements = [
-    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: lifecycle } } },
-    { id: NOTE, kind: 'entity-type', data: { bodySchema: { '!text': 'string' } } }
+    { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
 ];
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states'];
@@ -43,13 +43,13 @@ describe('entity-states', function () {
     });
 
     it('starts in the default or a named initial state', async () => {
-        expect((await invoke(ORDER, 'create', { businessKey: 's-1', body: { amount: 1 } })).data.state).to.deep.equal({ status: 'draft' });
-        expect((await invoke(ORDER, 'create', { businessKey: 's-2', body: { amount: 1 }, traits: { state: 'confirmed' } })).data.state).to.deep.equal({ status: 'confirmed' });
-        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 's-3', body: { amount: 1 }, traits: { state: 'shipped' } }))).code).to.equal('invalid');
+        expect((await invoke(ORDER, 'create', { businessKey: 's-1', traits: { body: { amount: 1 } } })).data.state).to.deep.equal({ status: 'draft' });
+        expect((await invoke(ORDER, 'create', { businessKey: 's-2', traits: { body: { amount: 1 }, state: 'confirmed' } })).data.state).to.deep.equal({ status: 'confirmed' });
+        expect((await errorOf(invoke(ORDER, 'create', { businessKey: 's-3', traits: { body: { amount: 1 }, state: 'shipped' } }))).code).to.equal('invalid');
     });
 
     it('transitions along the states model, keeping the body', async () => {
-        await invoke(ORDER, 'create', { businessKey: 's-4', body: { amount: 7 } });
+        await invoke(ORDER, 'create', { businessKey: 's-4', traits: { body: { amount: 7 } } });
         expect((await errorOf(transition('s-4', 'confirm'))).code).to.equal('invalid');
         const confirmed = await transition('s-4', 'confirm', 1);
         expect([confirmed.revision, confirmed.data]).to.deep.equal([2, { body: { amount: 7 }, state: { status: 'confirmed' } }]);
@@ -58,7 +58,7 @@ describe('entity-states', function () {
     });
 
     it('leaves entity types without a states model stateless', async () => {
-        expect((await invoke(NOTE, 'create', { businessKey: 'n-1', body: { text: 'hi' } })).data).to.deep.equal({ body: { text: 'hi' } });
+        expect((await invoke(NOTE, 'create', { businessKey: 'n-1', traits: { body: { text: 'hi' } } })).data).to.deep.equal({ body: { text: 'hi' } });
         expect((await errorOf(transition('n-1', 'confirm', 1, NOTE))).code).to.equal('invalid');
         expect((await errorOf(transition('n-1', 'confirm', 1, 'entity-states'))).code).to.equal('not-found');
     });

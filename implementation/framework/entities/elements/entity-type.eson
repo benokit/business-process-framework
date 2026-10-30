@@ -3,7 +3,8 @@
         "id": "entity-type",
         "kind": "kind",
         "data": {
-            "shape": { "!bodySchema": "@schema" },
+            "shape": { "traits{}": "@entity-trait-entry" },
+            "fixed": { "traits": { "body": {} } },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" },
                 "businessKey": { "cardinality": "one", "value": "@method", "input": "@entity-type/create/input" },
@@ -108,10 +109,15 @@
                     ]
                 },
                 "create": {
-                    "input": { "businessKey": "string", "!body": "object", "traits": "object" },
+                    "input": { "businessKey": "string", "traits": "object" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$str": ["#.self.id", "/bodySchema"] }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
+                        {
+                            "outputKey": "traits",
+                            "inputMap": { "traits": { "$coalesce": ["#.input.traits", {}] } },
+                            "invoke": "#.self.id",
+                            "operation": "initialTraitValues"
+                        },
                         { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
                         {
                             "outputKey": "businessKey",
@@ -124,31 +130,8 @@
                             }
                         },
                         {
-                            "outputKey": "traits",
-                            "inputMap": { "traits": { "$coalesce": ["#.input.traits", {}] } },
-                            "invoke": "#.self.id",
-                            "operation": "initialTraitValues"
-                        },
-                        { "outputKey": "data", "set": { "$merge": ["#.traits", { "body": "#.input.body" }] } },
-                        {
                             "inputMap": {
-                                "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.data" } }
-                            },
-                            "invoke": "#.self.id",
-                            "operation": "applyChange"
-                        }
-                    ]
-                },
-                "update": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!body": "object" },
-                    "output": "@entity-record",
-                    "implementation": [
-                        { "inputMap": { "schemaId": { "$str": ["#.self.id", "/bodySchema"] }, "value": "#.input.body" }, "invoke": "ajv", "operation": "assert" },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        {
-                            "inputMap": {
-                                "change": { "operation": "update", "key": "body", "value": "#.input.body", "before": "#.before" },
-                                "revision": "#.input.revision"
+                                "change": { "operation": "create", "after": { "businessKey": "#.businessKey", "data": "#.traits" } }
                             },
                             "invoke": "#.self.id",
                             "operation": "applyChange"
@@ -191,10 +174,6 @@
                 }
             },
             "lifecycle": {
-                "load": {
-                    "if": "#.self.data.bodySchema",
-                    "then": { "inputMap": { "id": { "$str": ["#.self.id", "/bodySchema"] }, "schema": "#.self.data.bodySchema" }, "invoke": "ajv", "operation": "add" }
-                },
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
         }

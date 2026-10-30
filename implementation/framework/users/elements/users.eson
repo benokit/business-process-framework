@@ -3,25 +3,16 @@
         "id": "user",
         "kind": "entity-type",
         "data": {
-            "bodySchema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" }
-        }
-    },
-    {
-        "id": "user-lifecycle",
-        "kind": "slot-fill",
-        "data": {
-            "target": "user",
-            "slot": "traits",
-            "value": {
-                "trait": "state",
-                "configuration": {
+            "traits": {
+                "body": { "configuration": { "schema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" } } },
+                "state": { "configuration": {
                     "states": { "status": { "active": true, "suspended": true } },
                     "transitions": {
                         "suspend": { "status": { "active": "suspended" } },
                         "reactivate": { "status": { "suspended": "active" } }
                     },
                     "initialStates": { "default": { "status": "active" } }
-                }
+                } }
             }
         }
     },
@@ -46,7 +37,7 @@
                                     {
                                         "$cond": [
                                             [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.body.roles"],
-                                            [{ "$eq": ["#.input.operation", "update"] }, "#.input.value.roles"],
+                                            [{ "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] }, "#.input.value.roles"],
                                             ["else", []]
                                         ]
                                     },
@@ -68,6 +59,6 @@
     {
         "id": "subject-is-business-key",
         "kind": "slot-fill",
-        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.body.subject" } }
+        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.traits.body.subject" } }
     }
 ]

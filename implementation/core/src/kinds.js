@@ -41,7 +41,7 @@ const collect = (kinds, property, what) => kinds.reduce((all, kind) =>
 const managedKeys = chain => Object.fromEntries(chain.flatMap(kind =>
     Object.keys(kind.data.context?.manages ?? {}).map(key => [key, kind.id])));
 
-const unite = (base, over, owner, path = []) => {
+export const unite = (base, over, owner, path = []) => {
     if (isPlainObject(base) && isPlainObject(over)) {
         return Object.fromEntries([...new Set([...Object.keys(base), ...Object.keys(over)])]
             .map(key => [key, key in over ? (key in base ? unite(base[key], over[key], owner, [...path, key]) : over[key]) : base[key]]));

@@ -4,39 +4,59 @@
         "kind": "kind",
         "data": {
             "extends": "versioned-entity-type",
+            "fixed": {
+                "traits": {
+                    "state": {
+                        "configuration": {
+                            "states": {
+                                "status": {
+                                    "draft": true,
+                                    "discarded": true,
+                                    "issued": true,
+                                    "active": true,
+                                    "cancelled": true
+                                }
+                            },
+                            "transitions": {
+                                "discard": {
+                                    "status": {
+                                        "draft": "discarded"
+                                    }
+                                },
+                                "issue": {
+                                    "status": {
+                                        "draft": "issued"
+                                    }
+                                },
+                                "activate": {
+                                    "status": {
+                                        "issued": "active"
+                                    }
+                                },
+                                "cancel": {
+                                    "status": {
+                                        "issued": "cancelled",
+                                        "active": "cancelled"
+                                    }
+                                }
+                            },
+                            "initialStates": {
+                                "default": {
+                                    "status": "draft"
+                                }
+                            }
+                        }
+                    },
+                    "timeline": {
+                        "configuration": {
+                            "schema": "@contract-terms"
+                        }
+                    }
+                }
+            },
             "operations": {
                 "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } }
             }
-        }
-    },
-    {
-        "id": "contract-lifecycle",
-        "kind": "slot-fill",
-        "data": {
-            "target": "insurance-contract-type",
-            "slot": "traits",
-            "value": {
-                "trait": "state",
-                "configuration": {
-                    "states": { "status": { "draft": true, "discarded": true, "issued": true, "active": true, "cancelled": true } },
-                    "transitions": {
-                        "discard": { "status": { "draft": "discarded" } },
-                        "issue": { "status": { "draft": "issued" } },
-                        "activate": { "status": { "issued": "active" } },
-                        "cancel": { "status": { "issued": "cancelled", "active": "cancelled" } }
-                    },
-                    "initialStates": { "default": { "status": "draft" } }
-                }
-            }
-        }
-    },
-    {
-        "id": "contract-terms-versionable",
-        "kind": "slot-fill",
-        "data": {
-            "target": "insurance-contract-type",
-            "slot": "traits",
-            "value": { "trait": "versionable", "key": "timeline", "configuration": { "schema": "@contract-terms" } }
         }
     },
     {
@@ -76,7 +96,7 @@
             "target": "insurance-contract-type",
             "slot": "guards",
             "value": {
-                "if": { "$eq": ["#.input.operation", "update"] },
+                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] },
                 "then": {
                     "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
                     "then": { "throw": { "code": "conflict", "message": "insurance contracts can only be updated in draft" } }

@@ -7,7 +7,7 @@
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "!data": { "!body": "object", "*": "@any" },
+            "!data": "object",
             "!timestampUtc": "string"
         }
     },
@@ -15,7 +15,7 @@
         "id": "entity-change",
         "kind": "schema",
         "data": {
-            "!operation=1": ["create", "update", "trait", "delete"],
+            "!operation=1": ["create", "trait", "delete"],
             "key": "string",
             "command": "string",
             "value": "@any",

@@ -8,7 +8,7 @@
             "position": "last",
             "value": {
                 "run": {
-                    "inputMap": { "body": { "subject": "administrator", "username": "administrator", "roles": ["administrator-role"] } },
+                    "inputMap": { "traits": { "body": { "subject": "administrator", "username": "administrator", "roles": ["administrator-role"] } } },
                     "invoke": "user",
                     "operation": "create"
                 }

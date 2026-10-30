@@ -3,7 +3,7 @@
         "id": "entity-event",
         "kind": "schema",
         "data": {
-            "!eventType=1": ["create", "update", "trait", "delete"],
+            "!eventType=1": ["create", "trait", "delete"],
             "!entityType": "string",
             "!id": "string",
             "!businessKey": "string",

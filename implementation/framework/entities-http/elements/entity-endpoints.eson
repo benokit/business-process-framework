@@ -34,7 +34,7 @@
             "operation": { "area": "entities", "resource": "#.input.entityType", "action": "create" },
             "request": {
                 "entityType": "#.params.entityType",
-                "request": { "businessKey": "#.body.businessKey", "body": "#.body.body", "traits": "#.body.traits" }
+                "request": { "businessKey": "#.body.businessKey", "traits": { "$merge": ["#.body.traits", { "body": "#.body.body" }] } }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

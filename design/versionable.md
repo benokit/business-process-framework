@@ -56,7 +56,7 @@ A trait is addressed by its key in `data`, and today the key is the trait's id. 
 ```
 
 - `key` defaults to the trait's id, so every existing assignment is unchanged. A key is lowercase letters and digits in segments joined by `-`, because it is used in paths.
-- A trait declares its **cardinality**: `one` fixes the key to the trait's id (`state`), `many` requires a key, unique on the entity type (`versionable`). `validate()` reports a missing or repeated key, a key on a `one` trait, and a key that collides with `body` or another assignment.
+- A trait declares its **cardinality**: `one` fixes the key to the trait's id (`state`), `many` requires a key, unique on the entity type (`versionable`). `validate()` reports a missing or repeated key, a key on a `one` trait, and a key used by two traits (`body` is the trait with the key `body`).
 - The most specific assignment wins per key. A change, a command and `$func/entity-traits` carry the key and the trait's id; a trait command receives its key to find its configuration.
 - Timelines are independent. A rule that spans two of them belongs to a guard on the entity type.
 

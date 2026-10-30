@@ -4,7 +4,7 @@ import { boot, interpret, invoke, packageElements } from '@business-framework/co
 const ORDER = 'order';
 
 const elements = [
-    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: 'positive-amount', kind: 'slot-fill', data: { target: ORDER, slot: 'guards', value: {
         if: { $lte: ['#.input.after.data.body.amount', 0] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
@@ -41,20 +41,20 @@ describe('entity events, interpreted with stubbed effects', () => {
     after(() => interpret());
 
     it('creates a record, runs its reactions and puts its event into the outbox, with no database or broker', async () => {
-        const record = await invoke(ORDER, 'create', { businessKey: 'o-1', body: { amount: 1 } });
+        const record = await invoke(ORDER, 'create', { businessKey: 'o-1', traits: { body: { amount: 1 } } });
         expect(record.data.body).to.deep.equal({ amount: 1 });
         expect(logged).to.deep.equal(['created o-1']);
         expect(outbox.map(({ envelope }) => [envelope.message.eventType, envelope.message.businessKey])).to.deep.equal([['create', 'o-1']]);
     });
 
     it('refuses a change a guard rejects before anything is written', async () => {
-        const error = await invoke(ORDER, 'create', { businessKey: 'o-2', body: { amount: 0 } }).catch(error => error);
+        const error = await invoke(ORDER, 'create', { businessKey: 'o-2', traits: { body: { amount: 0 } } }).catch(error => error);
         expect([error.code, outbox.length]).to.deep.equal(['invalid', 1]);
     });
 
     it('fails where a stubbed effect is reached without a stub', async () => {
         interpret({ stubs: { ...stubs, 'default-transactional-outbox': {} }, effects: ['trace'] });
-        const error = await invoke(ORDER, 'create', { businessKey: 'o-3', body: { amount: 3 } }).catch(error => error);
+        const error = await invoke(ORDER, 'create', { businessKey: 'o-3', traits: { body: { amount: 3 } } }).catch(error => error);
         interpret({ stubs, effects: ['trace'] });
         expect([error.code, error.data.export]).to.deep.equal(['stubbed-effect', 'now']);
     });

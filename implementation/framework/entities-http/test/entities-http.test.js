@@ -8,7 +8,7 @@ const ORDER = `order-http-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: ORDER, kind: 'entity-type', data: { bodySchema: { '!amount': 'number' } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: 'editor-role', kind: 'role', data: { actors: ['entity-editor-actor'] } },
     ...headerPrincipal
 ];
@@ -64,7 +64,7 @@ describe('entities-http', function () {
         const { body: { items, total } } = await call('GET', `/entities/${ORDER}?limit=1`);
         expect([items.length, total >= 1]).to.deep.equal([1, true]);
         const types = await call('GET', '/entity-types');
-        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ bodySchema: { '!amount': 'number' }, traits: {} });
+        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { body: { trait: 'body', configuration: { schema: { '!amount': 'number' } } } } });
     });
 
     it('refuses elements that are not entity types', async () => {

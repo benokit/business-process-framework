@@ -2,7 +2,48 @@
     {
         "id": "amendment-entity-type",
         "kind": "kind",
-        "data": { "extends": "entity-type" }
+        "data": {
+            "extends": "entity-type",
+            "fixed": { "traits": { "state": { "configuration": {
+                "states": {
+                    "status": {
+                        "draft": true,
+                        "issued": true,
+                        "active": true,
+                        "cancelled": true,
+                        "annulled": true
+                    }
+                },
+                "transitions": {
+                    "issue": {
+                        "status": {
+                            "draft": "issued"
+                        }
+                    },
+                    "activate": {
+                        "status": {
+                            "issued": "active"
+                        }
+                    },
+                    "cancel": {
+                        "status": {
+                            "draft": "cancelled",
+                            "issued": "cancelled"
+                        }
+                    },
+                    "annul": {
+                        "status": {
+                            "active": "annulled"
+                        }
+                    }
+                },
+                "initialStates": {
+                    "default": {
+                        "status": "draft"
+                    }
+                }
+            } } } }
+        }
     },
     {
         "id": "amendment-entity-body",
@@ -12,27 +53,6 @@
             "!amendedKey": "string",
             "!effectiveFrom": "@date",
             "!reason": "string"
-        }
-    },
-    {
-        "id": "amendment-entity-lifecycle",
-        "kind": "slot-fill",
-        "data": {
-            "target": "amendment-entity-type",
-            "slot": "traits",
-            "value": {
-                "trait": "state",
-                "configuration": {
-                    "states": { "status": { "draft": true, "issued": true, "active": true, "cancelled": true, "annulled": true } },
-                    "transitions": {
-                        "issue": { "status": { "draft": "issued" } },
-                        "activate": { "status": { "issued": "active" } },
-                        "cancel": { "status": { "draft": "cancelled", "issued": "cancelled" } },
-                        "annul": { "status": { "active": "annulled" } }
-                    },
-                    "initialStates": { "default": { "status": "draft" } }
-                }
-            }
         }
     },
     {
@@ -63,7 +83,7 @@
             "target": "amendment-entity-type",
             "slot": "guards",
             "value": {
-                "if": { "$eq": ["#.input.operation", "update"] },
+                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] },
                 "then": {
                     "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
                     "then": { "throw": { "code": "conflict", "message": "amendments can only be updated in draft" } }

@@ -2,7 +2,12 @@
     {
         "id": "entity-trait-use",
         "kind": "schema",
-        "data": { "!trait": "@ref/entity-trait", "key": "string", "!configuration": "@any" }
+        "data": { "trait": "@ref/entity-trait", "key": "string", "!configuration": "@any" }
+    },
+    {
+        "id": "entity-trait-entry",
+        "kind": "schema",
+        "data": { "trait": "@ref/entity-trait", "configuration": "@any" }
     },
     {
         "id": "entity-trait",

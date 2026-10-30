@@ -1,0 +1,66 @@
+[
+    {
+        "id": "body-schemas",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[object]" },
+            "module": "@business-framework/entities/body",
+            "export": "bodySchemas"
+        }
+    },
+    {
+        "id": "body-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        {
+                            "if": { "$negate": "#.input.input" },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " needs a ", "#.input.key"] } } }
+                        },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
+                        { "set": "#.input.input" }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "body",
+        "kind": "body-trait",
+        "data": { "cardinality": "one", "configuration": { "!schema": "@schema" } }
+    },
+    {
+        "id": "entity-body-writer",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "put": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!value": "object" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/body/schema"] }, "value": "#.input.value" }, "invoke": "ajv", "operation": "assert" },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "body", "command": "put", "value": "#.input.value" },
+                            "invoke": "#.input.entityType",
+                            "operation": "writeTrait"
+                        }
+                    ]
+                }
+            },
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "$func/body-schemas": null },
+                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-bodies",
+        "kind": "entity-body-writer",
+        "data": {}
+    }
+]

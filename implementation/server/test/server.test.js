@@ -41,7 +41,7 @@ describe('server with the demo', function () {
     });
 
     const userWith = async (subject, roles) => {
-        await invoke('user', 'create', { body: { subject, roles } });
+        await invoke('user', 'create', { traits: { body: { subject, roles } } });
         return tokenFor(subject);
     };
 
