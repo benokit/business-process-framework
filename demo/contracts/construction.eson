@@ -6,7 +6,9 @@
             "traits": { "body": { "configuration": { "schema": {
                 "!policyholder": "string",
                 "!project": "string",
-                "!currency": "string"
+                "!currency": "string",
+                "!region": "@region",
+                "confidential": "boolean"
             } } } }
         }
     },

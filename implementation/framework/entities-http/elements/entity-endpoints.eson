@@ -11,20 +11,6 @@
         }
     },
     {
-        "id": "entity-list-endpoint",
-        "kind": "http-endpoint",
-        "data": {
-            "method": "GET",
-            "path": "/entities/:entityType",
-            "target": { "element": "entities", "operation": "list" },
-            "operation": { "area": "entities", "resource": "#.input.entityType", "action": "list" },
-            "request": {
-                "entityType": "#.params.entityType",
-                "request": { "limit": { "$parseInt": "#.query.limit" }, "offset": { "$parseInt": "#.query.offset" } }
-            }
-        }
-    },
-    {
         "id": "entity-create-endpoint",
         "kind": "http-endpoint",
         "data": {

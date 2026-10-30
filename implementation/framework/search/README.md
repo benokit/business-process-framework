@@ -1,6 +1,6 @@
 # search
 
-The abstract kind `search-engine` (starts first). It declares these [abstract operations](../../core/README.md#interfaces), which an engine kind implements. `settings`, `filter` and `sort` are in the engine's own language, as SQL is for a [database](../database/README.md):
+The abstract kind `search-engine` (starts first). It declares these [abstract operations](../../core/README.md#interfaces), which an engine kind implements. `settings`, `filter` and `sort` are in the engine's own language (`rows` is a filter tree over the document, in LambdaJSON, which the engine translates and applies besides `filter`), as SQL is for a [database](../database/README.md):
 
 | Operation | Input | Output |
 |---|---|---|
@@ -8,7 +8,7 @@ The abstract kind `search-engine` (starts first). It declares these [abstract op
 | `deleteIndex` | `{ indexName }` | — |
 | `insertDocument` | `{ indexName, document }` (with `id`) | — |
 | `removeDocument` | `{ indexName, id }` | — |
-| `search` | [`search-request`](elements/search.eson) `{ indexName, query?, filter?, sort?, offset?, limit? }` | [`search-result`](elements/search.eson) `{ hits, total, offset, limit }` |
+| `search` | [`search-request`](elements/search.eson) `{ indexName, query?, filter?, rows?, sort?, offset?, limit? }` | [`search-result`](elements/search.eson) `{ hits, total, offset, limit }` |
 
 A `search-index` is an index, independent of the engine: its id is the index name, and it lives in the single or bound `search-engine`, as a query runs on the single or bound database. Its slot `implementations` holds the engine's settings for it (`{ provider: <engine kind>, settings? }`); in `start`, after the engines, the index configures itself with the settings for the most specific kind of that engine, or with none. Its operations `insertDocument({ document })`, `removeDocument({ id })` and `search({ query?, filter?, sort?, offset?, limit? })` go to its engine, so callers name the index, never the engine.
 

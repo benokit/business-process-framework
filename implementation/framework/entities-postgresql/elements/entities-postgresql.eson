@@ -11,7 +11,7 @@
         "id": "entity-revision",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!before": "@entity-record", "!key": "string", "!value": "@any" }, "output": { "!data": "string", "!patch": "string" } },
+            "signature": { "input": { "!before": "@entity-record", "!key": "string", "!value": "@any", "derived": "object" }, "output": { "!data": "string", "!patch": "string" } },
             "module": "@business-framework/entities-postgresql/history",
             "export": "entityRevision"
         }

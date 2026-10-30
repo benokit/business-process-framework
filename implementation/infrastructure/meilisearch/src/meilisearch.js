@@ -1,5 +1,6 @@
 import { MeiliSearch } from 'meilisearch';
 import { CoreError } from '@business-framework/core';
+import { meilisearchFilter } from './filter.js';
 
 let client = null;
 
@@ -12,7 +13,7 @@ const done = async task => {
     return null;
 };
 
-export const meilisearchString = value => `"${value.replace(/["\\]/g, '\\$&')}"`;
+export { meilisearchString } from './quote.js';
 
 export const connect = ({ input: { url, apiKey } }) => {
     client = new MeiliSearch({ host: url, apiKey });
@@ -30,7 +31,9 @@ export const insertDocument = async ({ input: { indexName, document } }) => done
 
 export const removeDocument = async ({ input: { indexName, id } }) => done(await meili().index(indexName).deleteDocument(id));
 
-export const search = async ({ input: { indexName, query = '', filter, sort, offset, limit } }) => {
-    const result = await meili().index(indexName).search(query, { filter, sort, offset, limit });
+const filtersOf = ({ filter, rows }) => [filter, rows && meilisearchFilter(rows)].filter(Boolean);
+
+export const search = async ({ input: { indexName, query = '', filter, rows, sort, offset, limit } }) => {
+    const result = await meili().index(indexName).search(query, { filter: filtersOf({ filter, rows }), sort, offset, limit });
     return { hits: result.hits, total: result.totalHits ?? result.estimatedTotalHits, offset: result.offset, limit: result.limit };
 };

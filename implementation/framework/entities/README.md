@@ -12,8 +12,7 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 
 | Operation | Input | Output |
 |---|---|---|
-| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history) | record |
-| `list` | `limit?` (≤ 200), `offset?` | `{ items, total }` |
+| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history) | record; the `guards` run on it as a change `{ operation: "read", before: record }` |
 | `create` | `businessKey?`, `traits` (input per trait, `body` among them) | record |
 | `writeTrait` | `businessKey`, `revision`, `key`, `command`, `value` | record |
 | `delete` | `businessKey`, `revision` | the deleted record |
@@ -50,8 +49,8 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 | `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored | inside the transaction |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
-A change is `{ operation: create | trait | delete, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`.
+A change is `{ operation: create | trait | delete | read, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`.
 
 ## Storage
 
-`entity-database` (kind `entity-store`) runs the store operations `create`, `read` (at an optional `revision`), `update({ before, key, value })` (replaces one key of `data`), `delete({ before })` and `list`, each through its [query](../database/README.md#queries) (`create-entity`, `read-entity`, `update-entity`, `delete-entity`, `list-entities`), which owns the contract. `update` and `delete` apply only at `before.revision` (`conflict` otherwise); the store writes in the bound `transaction`, if any. Implementation: [entities-postgresql](../entities-postgresql/README.md).
+`entity-database` (kind `entity-store`) runs the store operations `create`, `read` (at an optional `revision`), `update({ before, key, value, derived? })` (replaces one key of `data`, and the keys of `derived`, which an interceptor adds so that a value computed from the write lands in the same revision), `delete({ before })` and `list` (which no endpoint or entity type operation exposes: the store's way to enumerate the records of a type for a backfill or a reindex, run as the system), each through its [query](../database/README.md#queries) (`create-entity`, `read-entity`, `update-entity`, `delete-entity`, `list-entities`), which owns the contract. `update` and `delete` apply only at `before.revision` (`conflict` otherwise); the store writes in the bound `transaction`, if any. Implementation: [entities-postgresql](../entities-postgresql/README.md).

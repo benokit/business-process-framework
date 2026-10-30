@@ -15,7 +15,7 @@
         "id": "entity-change",
         "kind": "schema",
         "data": {
-            "!operation=1": ["create", "trait", "delete"],
+            "!operation=1": ["create", "trait", "delete", "read"],
             "key": "string",
             "command": "string",
             "value": "@any",

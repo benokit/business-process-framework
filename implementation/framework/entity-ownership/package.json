@@ -1,0 +1,23 @@
+{
+  "name": "@business-framework/entity-ownership",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./ownership": "./src/ownership.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/core": "*",
+    "@business-framework/security": "*",
+    "lodash-es": "^4.17.21",
+    "@business-framework/entities": "*"
+  },
+  "devDependencies": {
+    "@business-framework/database": "*",
+    "@business-framework/postgresql": "*",
+    "@business-framework/transaction": "*"
+  }
+}

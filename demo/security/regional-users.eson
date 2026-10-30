@@ -1,0 +1,121 @@
+[
+    {
+        "id": "underwriter-de-user",
+        "kind": "slot-fill",
+        "data": {
+            "target": "database",
+            "slot": "migrations",
+            "position": "last",
+            "value": {
+                "run": {
+                    "inputMap": {
+                        "traits": {
+                            "body": {
+                                "subject": "underwriter-de",
+                                "username": "underwriter-de",
+                                "roles": [
+                                    "underwriter-role"
+                                ],
+                                "access": [
+                                    "regional-contracts-access-profile"
+                                ],
+                                "region": "de"
+                            }
+                        }
+                    },
+                    "invoke": "user",
+                    "operation": "create"
+                }
+            }
+        }
+    },
+    {
+        "id": "underwriter-fr-user",
+        "kind": "slot-fill",
+        "data": {
+            "target": "database",
+            "slot": "migrations",
+            "position": "last",
+            "value": {
+                "run": {
+                    "inputMap": {
+                        "traits": {
+                            "body": {
+                                "subject": "underwriter-fr",
+                                "username": "underwriter-fr",
+                                "roles": [
+                                    "underwriter-role"
+                                ],
+                                "access": [
+                                    "regional-contracts-access-profile"
+                                ],
+                                "region": "fr"
+                            }
+                        }
+                    },
+                    "invoke": "user",
+                    "operation": "create"
+                }
+            }
+        }
+    },
+    {
+        "id": "senior-underwriter-de-user",
+        "kind": "slot-fill",
+        "data": {
+            "target": "database",
+            "slot": "migrations",
+            "position": "last",
+            "value": {
+                "run": {
+                    "inputMap": {
+                        "traits": {
+                            "body": {
+                                "subject": "senior-underwriter-de",
+                                "username": "senior-underwriter-de",
+                                "roles": [
+                                    "underwriter-role"
+                                ],
+                                "access": [
+                                    "senior-regional-contracts-access-profile"
+                                ],
+                                "region": "de"
+                            }
+                        }
+                    },
+                    "invoke": "user",
+                    "operation": "create"
+                }
+            }
+        }
+    },
+    {
+        "id": "auditor-user",
+        "kind": "slot-fill",
+        "data": {
+            "target": "database",
+            "slot": "migrations",
+            "position": "last",
+            "value": {
+                "run": {
+                    "inputMap": {
+                        "traits": {
+                            "body": {
+                                "subject": "auditor",
+                                "username": "auditor",
+                                "roles": [
+                                    "viewer-role"
+                                ],
+                                "access": [
+                                    "open-contracts-access-profile"
+                                ]
+                            }
+                        }
+                    },
+                    "invoke": "user",
+                    "operation": "create"
+                }
+            }
+        }
+    }
+]

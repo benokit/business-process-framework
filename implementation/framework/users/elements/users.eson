@@ -4,7 +4,7 @@
         "kind": "entity-type",
         "data": {
             "traits": {
-                "body": { "configuration": { "schema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string" } } },
+                "body": { "configuration": { "schema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string", "access[]": "string", "*": "@any" } } },
                 "state": { "configuration": {
                     "states": { "status": { "active": true, "suspended": true } },
                     "transitions": {

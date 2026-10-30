@@ -60,9 +60,9 @@ describe('entities-http', function () {
         expect((await call('PUT', `/entities/${ORDER}/h-2`, { body: { body: { amount: 2 } } })).status).to.equal(400);
     });
 
-    it('lists entities and entity types', async () => {
-        const { body: { items, total } } = await call('GET', `/entities/${ORDER}?limit=1`);
-        expect([items.length, total >= 1]).to.deep.equal([1, true]);
+    it('lists entity types, and no route lists the entities of a type', async () => {
+        const { port } = await invoke('http-server', 'address', null);
+        expect((await fetch(`http://localhost:${port}/entities/${ORDER}`, { headers: { [ROLE_HEADER]: 'editor-role' } })).status).to.equal(404);
         const types = await call('GET', '/entity-types');
         expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { body: { trait: 'body', configuration: { schema: { '!amount': 'number' } } } } });
     });

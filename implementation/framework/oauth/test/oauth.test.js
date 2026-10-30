@@ -56,7 +56,7 @@ describe('oauth', function () {
     it('binds the principal of the user, cached until it changes', async () => {
         await invoke('user', 'create', { traits: { body: { subject: ADA, username: ADA } } });
         const token = await tokenFor(ADA);
-        expect(await whoami(token)).to.deep.equal({ userId: ADA, username: ADA, roles: [] });
+        expect(await whoami(token)).to.deep.equal({ userId: ADA, username: ADA, roles: [], access: [] });
         expect((await invoke('user-cache', 'get', { key: ADA })).found).to.equal(true);
         const user = await invoke('user', 'read', { businessKey: ADA });
         await invoke('entity-bodies', 'put', { entityType: 'user', businessKey: ADA, revision: user.revision, value: { ...user.data.body, roles: ['clerk'] } });
@@ -66,7 +66,7 @@ describe('oauth', function () {
 
     it('binds the user a configured subject acts as', async () => {
         await invoke('user', 'create', { traits: { body: { subject: `administrator-${run}`, roles: ['clerk'] } } });
-        expect(await whoami(await tokenFor(`boss-${run}`))).to.deep.equal({ userId: `administrator-${run}`, roles: ['clerk'] });
+        expect(await whoami(await tokenFor(`boss-${run}`))).to.deep.equal({ userId: `administrator-${run}`, roles: ['clerk'], access: [] });
     });
 
     it('binds no principal without a valid token or for a suspended user', async () => {

@@ -1,0 +1,29 @@
+[
+    {
+        "id": "all-contracts-access-profile",
+        "kind": "access-profile",
+        "data": { "permissions": [{ "resource": "insurance-contract-type", "scopes": "*" }] }
+    },
+    {
+        "id": "regional-contracts-access-profile",
+        "kind": "access-profile",
+        "data": {
+            "permissions": [{ "resource": "insurance-contract-type", "scopes": ["own-region-ownership-scope"], "except": [{ "scopes": ["confidential-ownership-scope"] }] }]
+        }
+    },
+    {
+        "id": "senior-regional-contracts-access-profile",
+        "kind": "access-profile",
+        "data": {
+            "profiles": ["regional-contracts-access-profile"],
+            "permissions": [{ "resource": "insurance-contract-type", "scopes": ["own-region-ownership-scope"] }]
+        }
+    },
+    {
+        "id": "open-contracts-access-profile",
+        "kind": "access-profile",
+        "data": {
+            "permissions": [{ "resource": "insurance-contract-type", "scopes": "*", "except": [{ "scopes": ["confidential-ownership-scope"] }] }]
+        }
+    }
+]

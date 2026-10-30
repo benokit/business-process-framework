@@ -1,0 +1,106 @@
+[
+    {
+        "id": "access-permission",
+        "kind": "schema",
+        "data": {
+            "resource": { "$data#": ["string", "[string]"] },
+            "scopes": { "$data#": ["string", "[string]"] },
+            "except[]": { "!scopes": { "$data#": ["string", "[string]"] } }
+        }
+    },
+    {
+        "id": "access-profile",
+        "kind": "kind",
+        "data": {
+            "shape": { "permissions[]": "@access-permission", "profiles[]": "@ref/access-profile" },
+            "lifecycle": {
+                "validate": { "$func/access-profile-problems": "#.self.id" },
+                "explain": { "$func/access-explanation": "#.element" }
+            }
+        }
+    },
+    {
+        "id": "access-profile-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entity-row-access/row-access",
+            "export": "accessProfileProblems"
+        }
+    },
+    {
+        "id": "access-explanation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/entity-row-access/row-access",
+            "export": "accessExplanation"
+        }
+    },
+    {
+        "id": "denies-record",
+        "kind": "pure-function",
+        "data": {
+            "signature": {
+                "input": { "!entityType": "string", "user": "@principal", "record": "@entity-record" },
+                "output": "boolean"
+            },
+            "module": "@business-framework/entity-row-access/row-access",
+            "export": "deniesRecord"
+        }
+    },
+    {
+        "id": "search-rows",
+        "kind": "pure-function",
+        "data": {
+            "signature": {
+                "input": { "!entityType": "string", "user": "@principal" },
+                "output": "@any"
+            },
+            "module": "@business-framework/entity-row-access/row-access",
+            "export": "searchRows"
+        }
+    },
+    {
+        "id": "hide-uncovered-records",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$func/denies-record": { "entityType": "#.self.id", "user": "#._ctx.user", "record": "#.input.before" } },
+                "then": {
+                    "throw": {
+                        "code": "not-found",
+                        "message": { "$str": ["#.self.id", " '", "#.input.before.businessKey", "' doesn't exist"] },
+                        "data": { "entityType": "#.self.id", "businessKey": "#.input.before.businessKey" }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "refuse-uncovered-results",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "position": "first",
+            "value": {
+                "if": { "$func/denies-record": { "entityType": "#.self.id", "user": "#._ctx.user", "record": "#.input.after" } },
+                "then": {
+                    "throw": { "code": "forbidden", "message": { "$str": ["#.self.id", " records outside the rows of the user's access profiles can't be written"] } }
+                }
+            }
+        }
+    },
+    {
+        "id": "search-only-covered-records",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "searchRows",
+            "value": { "set": { "$func/search-rows": { "entityType": "#.input.entityType", "user": "#._ctx.user" } } }
+        }
+    }
+]

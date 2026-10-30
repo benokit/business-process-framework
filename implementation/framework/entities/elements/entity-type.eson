@@ -16,20 +16,19 @@
                 "read": {
                     "input": { "!businessKey": "string", "revision": "number" },
                     "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision" },
-                        "invoke": "entity-database",
-                        "operation": "read"
-                    }
-                },
-                "list": {
-                    "input": { "limit": "number", "offset": "number" },
-                    "output": { "!items[]": "@entity-record", "!total": "number" },
-                    "implementation": {
-                        "inputMap": { "entityType": "#.self.id", "limit": "#.input.limit", "offset": "#.input.offset" },
-                        "invoke": "entity-database",
-                        "operation": "list"
-                    }
+                    "implementation": [
+                        {
+                            "outputKey": "record",
+                            "inputMap": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "revision": "#.input.revision" },
+                            "invoke": "entity-database",
+                            "operation": "read"
+                        },
+                        {
+                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
+                            "forEach": { "inputMap": { "operation": "read", "before": "#.record" }, "execute": "#.item" }
+                        },
+                        { "set": "#.record" }
+                    ]
                 },
                 "initialTraitValues": {
                     "input": { "!traits": "object" },

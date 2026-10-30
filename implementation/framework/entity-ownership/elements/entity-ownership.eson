@@ -1,0 +1,176 @@
+[
+    {
+        "id": "ownership-schemas",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[object]" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "ownershipSchemas"
+        }
+    },
+    {
+        "id": "ownership-rule",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "ownershipRule"
+        }
+    },
+    {
+        "id": "record-after-write",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!operation": "string", "!input": "object" }, "output": "@any" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "recordAfterWrite"
+        }
+    },
+    {
+        "id": "with-ownership",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!operation": "string", "!input": "object", "!ownership": "object" }, "output": "object" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "withOwnership"
+        }
+    },
+    {
+        "id": "ownership-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "ownershipProblems"
+        }
+    },
+    {
+        "id": "scope-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "scopeProblems"
+        }
+    },
+    {
+        "id": "ownership-explanation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "ownershipExplanation"
+        }
+    },
+    {
+        "id": "ownership-backfiller",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "run": {
+                    "input": { "!entityType": "@ref/entity-type" },
+                    "output": { "!updated": "number" },
+                    "implementation": {
+                        "asSystem": {
+                            "low": { "module": "@business-framework/entity-ownership/ownership", "export": "backfillOwnership", "effects": ["read", "write"] }
+                        },
+                        "inputMap": { "entityType": "#.input.entityType" }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-ownership-backfiller",
+        "kind": "ownership-backfiller",
+        "data": {}
+    },
+    {
+        "id": "ownership-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "lifecycle": {
+                "validate": { "$func/ownership-problems": null },
+                "explain": { "$func/ownership-explanation": "#.element" }
+            },
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        {
+                            "if": "#.input.input",
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " derives ", "#.input.key", " from its data and takes no input"] } } }
+                        },
+                        { "set": {} }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "ownership",
+        "kind": "ownership-trait",
+        "data": { "cardinality": "one", "configuration": { "!dimensions": "@schema", "!rule": "@mapping" } }
+    },
+    {
+        "id": "ownership-scope",
+        "kind": "kind",
+        "data": {
+            "shape": { "!filter": "@mapping" },
+            "lifecycle": {
+                "validate": { "$func/scope-problems": "#.self.id" }
+            }
+        }
+    },
+    {
+        "id": "ownership-schemas-loader",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "$func/ownership-schemas": null },
+                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-ownership-schemas-loader",
+        "kind": "ownership-schemas-loader",
+        "data": {}
+    },
+    {
+        "id": "derive-ownership",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "interceptors",
+            "position": "last",
+            "value": [
+                { "outputKey": "rule", "set": { "$func/ownership-rule": "#.self.id" } },
+                { "outputKey": "record", "set": { "$func/record-after-write": "#.input" } },
+                {
+                    "if": { "$and": ["#.rule", "#.record"] },
+                    "then": [
+                        {
+                            "outputKey": "ownership",
+                            "set": { "$func/apply-mapping": { "mapping": "#.rule", "input": "#.record" } }
+                        },
+                        {
+                            "inputMap": { "schemaId": { "$str": ["#.self.id", "/ownership/dimensions"] }, "value": "#.ownership" },
+                            "invoke": "ajv",
+                            "operation": "assert"
+                        },
+                        {
+                            "inputMap": {
+                                "$merge": ["#.input", { "input": { "$func/with-ownership": { "operation": "#.input.operation", "input": "#.input.input", "ownership": "#.ownership" } } }]
+                            },
+                            "next": true
+                        }
+                    ],
+                    "else": { "next": true }
+                }
+            ]
+        }
+    }
+]

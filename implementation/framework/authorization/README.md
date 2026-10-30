@@ -13,7 +13,7 @@ An operation is a point in a space of plain dimensions, the fills of the slot `d
 - It sees `{ params, query, headers, input }`, where `input` is the target's input, typed by its contract, so what is authorized is what the target receives.
 - A dimension it doesn't name takes the dimension's `default` (a mapping over the same scope).
 - Every dimension is a closed set of values: a literal, an enum, `@ref/<kind>` (the transitions of [entity-states](../entity-states/README.md) are the schema `entity-transition`).
-- `parents` maps a value to the values above it: for `resource`, the kind chain (`$func/kind-chain`, so an entity class is above its entity types); for `action`, the levels `query` (`read`, `list`, `search`) and `command` (everything else).
+- `parents` maps a value to the values above it: for `resource`, the kind chain (`$func/kind-chain`, so an entity class is above its entity types); for `action`, the levels `query` (`read`, `search`) and `command` (everything else).
 
 ## Actors and roles
 

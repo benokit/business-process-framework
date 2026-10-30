@@ -7,7 +7,7 @@
     {
         "id": "search-request",
         "kind": "schema",
-        "data": { "!indexName": "string", "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" }
+        "data": { "!indexName": "string", "query": "string", "filter": "@any", "rows": "object", "sort[]": "string", "offset": "number", "limit": "number" }
     },
     {
         "id": "search-engine",
@@ -40,7 +40,7 @@
                     "implementation": { "inputMap": { "indexName": "#.self.id", "id": "#.input.id" }, "invoke": { "instanceOf": "search-engine" }, "operation": "removeDocument" }
                 },
                 "search": {
-                    "input": { "query": "string", "filter": "@any", "sort[]": "string", "offset": "number", "limit": "number" },
+                    "input": { "query": "string", "filter": "@any", "rows": "object", "sort[]": "string", "offset": "number", "limit": "number" },
                     "output": "@search-result",
                     "implementation": { "inputMap": { "$merge": ["#.input", { "indexName": "#.self.id" }] }, "invoke": { "instanceOf": "search-engine" }, "operation": "search" }
                 }

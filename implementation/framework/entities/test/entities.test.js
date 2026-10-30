@@ -150,8 +150,9 @@ describe('entities', function () {
         expect([raced.revision, raced.data.body.amount]).to.deep.equal([2, 2]);
     });
 
-    it('lists', async () => {
-        const { items, total } = await invoke(ORDER, 'list', { limit: 2 });
+    it('lists the records of a type in the store, which no entity type operation exposes', async () => {
+        const { items, total } = await invoke('entity-database', 'list', { entityType: ORDER, limit: 2 });
+        expect(await errorOf(invoke(ORDER, 'list', { limit: 2 }))).to.not.equal(null);
         expect(items).to.have.length(2);
         expect(total).to.be.at.least(4);
     });

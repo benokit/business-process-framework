@@ -1,0 +1,41 @@
+[
+    {
+        "id": "contract-search-index",
+        "kind": "search-index",
+        "data": {}
+    },
+    {
+        "id": "contract-search-index-meilisearch",
+        "kind": "slot-fill",
+        "data": {
+            "target": "contract-search-index",
+            "slot": "implementations",
+            "value": {
+                "provider": "meilisearch-engine",
+                "settings": {
+                    "searchableAttributes": ["businessKey", "policyholder", "subject", "region"],
+                    "filterableAttributes": ["ownership.region", "ownership.confidential"]
+                }
+            }
+        }
+    },
+    {
+        "id": "contracts-searchable",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract-type",
+            "slot": "searchIndex",
+            "value": {
+                "index": "contract-search-index",
+                "mapping": {
+                    "set": {
+                        "businessKey": "#.input.businessKey",
+                        "policyholder": "#.input.data.body.policyholder",
+                        "subject": { "$coalesce": ["#.input.data.body.project", "#.input.data.body.vessel"] },
+                        "region": "#.input.data.body.region"
+                    }
+                }
+            }
+        }
+    }
+]

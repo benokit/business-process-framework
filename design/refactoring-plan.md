@@ -81,6 +81,17 @@ The algebra is specified in [data-composition.md](data-composition.md) (P21), th
 | R6.9 | Demo trait configurations moved from fills into entity type data; `bpf explain` shows the fills and the effective data | F22, R6.6 | The demo configures its traits in its entity types | done |
 | R6.10 | Trait configuration as kind data ([body-trait](body-trait.md) §2): a use is `{ trait?, configuration }`; `entity-type` fixes the shape and `fixed.traits.body`; the effective configuration of a key is the union of the kind chain's `fixed`, the data and the fills, a different value at one path is a conflict; fills require `configuration`; keys introduced only by fills are closed to instance data; `validate()` reports a field both optional and required | F22, R6.9 | `marine` extends the class's state model without `/merge`; a conflict names the contributor and the path; no precedence rule remains | done |
 
+## Row access
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R11.1 | Ownership trait: a kind fixes typed dimensions, the entity type configures a `rule` mapping the record to the ownership; a generic interceptor recomputes it at every write ([row-access](row-access.md) §2, §3) | F22 | An entity type holds an ownership that follows its body (the demo's contracts hold one); a rule reading an unknown path fails `validate()` | done |
+| R11.2 | Scopes: the `scope` kind, the filter subset of LambdaJSON, the mapping as the in-memory evaluator and a translator to the search filter ([row-access](row-access.md) §4) | R11.1 | One test runs both evaluators over the same records with equal results | done |
+| R11.3 | Access profiles, apart from process permissions: the `access-profile` element (permissions `{ resource, scopes, except }`, included profiles), the `access` list of the user beside `roles`, `rowAccess`; the generic guard on `read` (the `guards` slot extended to it) and writes, a reaction for the record as written, the search filter ([row-access](row-access.md) §1, §5, §6) | R11.2 | A user reads and finds only the records their access profiles reach, whatever their process roles; a hidden record is `not-found`; `list` is gone from the entity type and the HTTP API | done |
+| R11.4 | Backfill of ownership when a rule changes, run as a migration, its writes reindexing the search through the entity events; `bpf explain` for scopes and ownership ([row-access](row-access.md) §3, §7) | R11.3 | Changing a rule and migrating makes the stored ownership agree with it | done |
+| R11.5 | Scopes see the principal: `{ ownership, principal }`, claims bound as values when the filter of a request is built, an open principal and the optional schema `principal-claims` ([row-access](row-access.md) §4) | R11.3 | One role serves every region through the `region` claim of the user; a missing claim shows nothing | done |
+| R11.6 | Process and access permissions as two kinds, assigned separately: grants carry no scopes, the operation isn't in the context, a user holds `roles` and `access`, no profile reaches nothing ([row-access](row-access.md) §1) | R11.3 | One process role serves users of every region; the region comes from the access profile and the user's claim | done |
+
 ## Domain concepts (G1)
 
 | ID | Step | Refs | Done when | Status |

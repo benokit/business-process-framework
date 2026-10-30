@@ -2,7 +2,7 @@
     {
         "id": "principal",
         "kind": "schema",
-        "data": { "!userId": "string", "username": "string", "email": "string", "roles[]": "string" }
+        "data": { "!userId": "string", "username": "string", "email": "string", "roles[]": "string", "access[]": "string", "*": "@any" }
     },
     {
         "id": "principal-execution-node-wrapper",

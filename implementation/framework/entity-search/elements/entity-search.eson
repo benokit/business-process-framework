@@ -10,6 +10,11 @@
         "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index", "input": "@entity-record" }
     },
     {
+        "id": "entity-search-rows-slot",
+        "kind": "slot-declaration",
+        "data": { "target": "entity-type", "slot": "searchRows", "cardinality": "one", "value": "@method", "input": { "!entityType": "string" } }
+    },
+    {
         "id": "entity-search-service",
         "kind": "kind",
         "data": {
@@ -19,7 +24,7 @@
                     "implementation": [
                         { "outputKey": "document", "inputMap": "#.input.record", "execute": "#.input.index.mapping" },
                         {
-                            "inputMap": { "document": { "$merge": ["#.document", { "id": "#.input.record.id" }] } },
+                            "inputMap": { "document": { "$merge": ["#.document", { "id": "#.input.record.id" }, { "$if": ["#.input.record.data.ownership", { "ownership": "#.input.record.data.ownership" }, {}] }] } },
                             "invoke": "#.input.index.index",
                             "operation": "insertDocument"
                         }
@@ -51,7 +56,7 @@
                     "input": { "!entityType": "@ref/entity-type" },
                     "implementation": [
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
-                        { "outputKey": "records", "inputMap": { "limit": 200 }, "invoke": "#.input.entityType", "operation": "list" },
+                        { "outputKey": "records", "inputMap": { "entityType": "#.input.entityType", "limit": 200 }, "invoke": "entity-database", "operation": "list" },
                         { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": "#.item" }, "invoke": "#.self.id", "operation": "indexRecord" } },
                         { "set": null }
                     ]
@@ -69,8 +74,19 @@
                             "if": { "$negate": "#.index" },
                             "then": { "throw": { "code": "not-found", "message": { "$str": ["#.input.entityType", " has no search index"] } } }
                         },
+                        { "outputKey": "rowsRule", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchRows" } } },
                         {
-                            "inputMap": { "query": "#.input.query", "offset": "#.input.offset", "limit": "#.input.limit" },
+                            "outputKey": "rows",
+                            "if": "#.rowsRule",
+                            "then": { "inputMap": { "entityType": "#.input.entityType" }, "execute": "#.rowsRule" },
+                            "else": { "set": null }
+                        },
+                        {
+                            "if": { "$eq": ["#.rows", false] },
+                            "then": { "return": { "hits": [], "total": 0, "offset": { "$coalesce": ["#.input.offset", 0] }, "limit": { "$coalesce": ["#.input.limit", 0] } } }
+                        },
+                        {
+                            "inputMap": { "$merge": [{ "query": "#.input.query", "offset": "#.input.offset", "limit": "#.input.limit" }, { "$if": ["#.rows", { "rows": "#.rows" }, {}] }] },
                             "invoke": "#.index.index",
                             "operation": "search"
                         }

@@ -70,10 +70,16 @@
                             "else": {
                                 "withContext": {
                                     "user": {
-                                        "userId": "#.user.businessKey",
-                                        "username": "#.user.data.body.username",
-                                        "email": "#.user.data.body.email",
-                                        "roles": { "$coalesce": ["#.user.data.body.roles", []] }
+                                        "$merge": [
+                                            { "$omit": { "keys": ["subject"], "object": "#.user.data.body" } },
+                                            {
+                                                "userId": "#.user.businessKey",
+                                                "username": "#.user.data.body.username",
+                                                "email": "#.user.data.body.email",
+                                                "roles": { "$coalesce": ["#.user.data.body.roles", []] },
+                                                "access": { "$coalesce": ["#.user.data.body.access", []] }
+                                            }
+                                        ]
                                     }
                                 },
                                 "do": { "next": true }

@@ -16,13 +16,13 @@ describe('discovery', () => {
         expect(source).to.match(/demo\/contracts\/construction\.eson$/);
         expect(operations.find(op => op.name === 'create')).to.include({ declaredBy: 'entity-type', implementedBy: 'entity-type' });
         expect(slots.find(slot => slot.name === 'reactions').fills.map(fill => fill.id))
-            .to.deep.equal(['maintain-entity-relations', 'publish-entity-events', 'contract-activation-events']);
+            .to.deep.equal(['refuse-uncovered-results', 'maintain-entity-relations', 'publish-entity-events', 'contract-activation-events']);
         expect(slots.find(slot => slot.name === 'businessKey').fills.map(fill => fill.id)).to.deep.equal(['construction-business-key']);
     });
 
     it('explains the effects of each operation of an instance, with a trace', () => {
         const effectsOf = (id, name) => explain(id).operations.find(op => op.name === name).effects;
-        expect(Object.keys(effectsOf('entities', 'list'))).to.deep.equal(['read']);
+        expect(Object.keys(effectsOf('entities', 'read'))).to.include('read');
         expect(effectsOf('contract-events', 'publish').irreversible).to.match(/^default-transactional-outbox\.put > afterCommit > /);
     });
 

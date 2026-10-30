@@ -4,7 +4,7 @@
         "kind": "insurance-contract-type",
         "data": {
             "traits": {
-                "body": { "configuration": { "schema": { "!policyholder": "string", "!vessel": "string", "!currency": "string" } } },
+                "body": { "configuration": { "schema": { "!policyholder": "string", "!vessel": "string", "!currency": "string", "!region": "@region", "confidential": "boolean" } } },
                 "state": { "configuration": {
                     "states": { "status": { "suspended": true } },
                     "transitions": {

@@ -1,7 +1,7 @@
 import { applyAll, compare } from '@business-framework/entities/patch';
 
-export const entityRevision = ({ before, key, value }) => {
-    const data = { ...before.data, [key]: value };
+export const entityRevision = ({ before, key, value, derived }) => {
+    const data = { ...before.data, [key]: value, ...derived };
     return { data: JSON.stringify(data), patch: JSON.stringify(compare(data, before.data)) };
 };
 

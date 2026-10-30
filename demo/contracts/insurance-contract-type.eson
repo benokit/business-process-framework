@@ -51,6 +51,15 @@
                         "configuration": {
                             "schema": "@contract-terms"
                         }
+                    },
+                    "ownership": {
+                        "configuration": {
+                            "dimensions": { "!region": "string", "!confidential": "boolean" },
+                            "rule": {
+                                "region": "#.data.body.region",
+                                "confidential": { "$coalesce": ["#.data.body.confidential", false] }
+                            }
+                        }
                     }
                 }
             },

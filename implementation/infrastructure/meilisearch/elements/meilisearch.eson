@@ -1,5 +1,14 @@
 [
     {
+        "id": "meilisearch-filter",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "string" },
+            "module": "@business-framework/meilisearch/filter",
+            "export": "meilisearchFilter"
+        }
+    },
+    {
         "id": "meilisearch-string",
         "kind": "pure-function",
         "data": {

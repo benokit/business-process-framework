@@ -1,0 +1,17 @@
+[
+    {
+        "id": "principal-claims",
+        "kind": "schema",
+        "data": { "region": "@region" }
+    },
+    {
+        "id": "own-region-ownership-scope",
+        "kind": "ownership-scope",
+        "data": { "filter": { "$eq": ["#.ownership.region", "#.principal.region"] } }
+    },
+    {
+        "id": "confidential-ownership-scope",
+        "kind": "ownership-scope",
+        "data": { "filter": { "$eq": ["#.ownership.confidential", true] } }
+    }
+]

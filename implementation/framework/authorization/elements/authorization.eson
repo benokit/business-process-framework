@@ -131,7 +131,7 @@
                 "parents": {
                     "$cond": [
                         [{ "$includes": { "collection": ["query", "command"], "value": "#" } }, []],
-                        [{ "$includes": { "collection": ["read", "list", "search"], "value": "#" } }, ["query"]],
+                        [{ "$includes": { "collection": ["read", "search"], "value": "#" } }, ["query"]],
                         ["else", ["command"]]
                     ]
                 }

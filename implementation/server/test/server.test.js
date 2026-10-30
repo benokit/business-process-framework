@@ -40,8 +40,8 @@ describe('server with the demo', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    const userWith = async (subject, roles) => {
-        await invoke('user', 'create', { traits: { body: { subject, roles } } });
+    const userWith = async (subject, roles, { access = ['all-contracts-access-profile'], ...claims } = {}) => {
+        await invoke('user', 'create', { traits: { body: { subject, roles, access, ...claims } } });
         return tokenFor(subject);
     };
 
@@ -52,7 +52,8 @@ describe('server with the demo', function () {
 
     it('lets a viewer read and refuses its changes', async () => {
         const token = await userWith(`viewer-${run}`, ['viewer-role']);
-        expect((await call('GET', '/entities/party', null, token)).status).to.equal(200);
+        expect((await call('GET', '/entities/party/nobody', null, token)).status).to.equal(404);
+        expect((await call('GET', '/entity-types', null, token)).status).to.equal(200);
         expect((await call('POST', '/entities/party', { businessKey: `v-${run}`, body: { partyType: 'person', name: 'Bo' } }, token)).status).to.equal(403);
     });
 
@@ -67,9 +68,9 @@ describe('server with the demo', function () {
         const user = { body: { subject: `new-${run}`, roles: ['viewer-role'] } };
         expect(await Promise.all([
             call('POST', '/entities/user', user, underwriter).then(({ status }) => status),
-            call('GET', '/entities/user', null, viewer).then(({ status }) => status),
+            call('GET', `/entities/user/viewer-of-users-${run}`, null, viewer).then(({ status }) => status),
             call('POST', '/entities/user', user, administrator).then(({ status }) => status),
-            call('GET', '/entities/user', null, administrator).then(({ status }) => status)
+            call('GET', `/entities/user/administrator-of-users-${run}`, null, administrator).then(({ status }) => status)
         ])).to.deep.equal([403, 403, 201, 200]);
     });
 
@@ -85,7 +86,7 @@ describe('server with the demo', function () {
 
     const contractOf = async (entityType, body, underwriter, businessKey) => (await call('POST', `/entities/${entityType}`, {
         businessKey,
-        body: { policyholder: await newParty(underwriter), currency: 'EUR', ...body },
+        body: { policyholder: await newParty(underwriter), currency: 'EUR', region: 'de', ...body },
         traits: { timeline: { validFrom: '2026-01-01', data: terms(1000, '2027-01-01') } }
     }, underwriter)).body;
 
@@ -203,7 +204,7 @@ describe('server with the demo', function () {
         const party = await call('POST', '/entities/party', { businessKey: `p-${run}`, body: { partyType: 'person', name: 'Ada' } }, token);
         expect(party.status).to.equal(201);
         const contract = await call('POST', '/entities/construction', {
-            body: { policyholder: `p-${run}`, project: 'bridge', currency: 'EUR' },
+            body: { policyholder: `p-${run}`, project: 'bridge', currency: 'EUR', region: 'de' },
             traits: { timeline: { validFrom: '2026-01-01', data: terms(1000, '2027-01-01') } }
         }, token);
         expect([contract.status, contract.body.businessKey]).to.satisfy(([status, key]) => status === 201 && /^CON-\d{4}-\d{4,}$/.test(key));
@@ -214,5 +215,88 @@ describe('server with the demo', function () {
         expect(activated.status).to.equal(403);
         const late = await call('PUT', `/entities/construction/${key}`, { body: contract.body.data.body }, token, { 'if-match': `"${issued.body.revision}"` });
         expect([late.status, late.body.error.message]).to.deep.equal([409, 'insurance contracts can only be updated in draft']);
+    });
+
+    describe('row access', () => {
+        const eventually = async (check, timeout = 80000) => {
+            const deadline = Date.now() + timeout;
+            while (!(await check()) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 250));
+            expect(await check()).to.equal(true);
+        };
+
+        const statuses = (...calls) => Promise.all(calls).then(results => results.map(({ status }) => status));
+
+        const keysFound = async token => (await call('POST', '/entity-search/construction', { query: String(run), limit: 100 }, token)).body.hits?.map(hit => hit.businessKey) ?? [];
+
+        let users;
+        let contracts;
+
+        before(async () => {
+            const [headOffice, german, senior, french, auditor] = await Promise.all([
+                ['head-office', 'underwriter-role', 'all-contracts-access-profile'],
+                ['german', 'underwriter-role', 'regional-contracts-access-profile', 'de'],
+                ['senior', 'underwriter-role', 'senior-regional-contracts-access-profile', 'de'],
+                ['french', 'underwriter-role', 'regional-contracts-access-profile', 'fr'],
+                ['auditor', 'viewer-role', 'open-contracts-access-profile']
+            ].map(([name, role, profile, region]) => userWith(`${name}-${run}`, [role], { access: [profile], ...region && { region } })));
+            users = { headOffice, german, senior, french, auditor };
+            const create = async (region, confidential) => (await contractOf('construction', { project: 'tunnel', region, confidential }, headOffice)).businessKey;
+            contracts = { german: await create('de', false), confidentialGerman: await create('de', true), french: await create('fr', false) };
+        });
+
+        const get = (key, token) => call('GET', `/entities/construction/${key}`, null, token).then(({ status }) => status);
+
+        it('shows a regional underwriter the contracts of the region that are not confidential, and the others as not found', async () => {
+            expect(await Promise.all([contracts.german, contracts.confidentialGerman, contracts.french].map(key => get(key, users.german)))).to.deep.equal([200, 404, 404]);
+            expect(await Promise.all([contracts.german, contracts.confidentialGerman, contracts.french].map(key => get(key, users.headOffice)))).to.deep.equal([200, 200, 200]);
+        });
+
+        it('gives users of one process role different rows through different access profiles, and a profile can include another: a senior sees the confidential contracts of the region', async () => {
+            expect(await Promise.all([contracts.german, contracts.confidentialGerman, contracts.french].map(key => get(key, users.senior)))).to.deep.equal([200, 200, 404]);
+        });
+
+        it('shows a regional underwriter without the claim nothing, and finds nothing for them', async () => {
+            const unassigned = await userWith(`unassigned-${run}`, ['underwriter-role'], { access: ['regional-contracts-access-profile'] });
+            expect(await Promise.all([contracts.german, contracts.french].map(key => get(key, unassigned)))).to.deep.equal([404, 404]);
+            const search = await call('POST', '/entity-search/construction', { query: String(run) }, unassigned);
+            expect([search.status, search.body.hits, search.body.total]).to.deep.equal([200, [], 0]);
+        });
+
+        it('lets an auditor, whose process role only reads, read what is not confidential in every region', async () => {
+            expect(await Promise.all([contracts.german, contracts.confidentialGerman, contracts.french].map(key => get(key, users.auditor)))).to.deep.equal([200, 404, 200]);
+            const created = await call('POST', '/entities/construction', { body: { policyholder: 'x', project: 'y', currency: 'EUR', region: 'de' }, traits: { timeline: { validFrom: '2026-01-01', data: terms(1, '2027-01-01') } } }, users.auditor);
+            expect(created.status).to.equal(403);
+        });
+
+        it('limits creating and changing to the rows of the scopes, whatever the entity type of the class', async () => {
+            const draft = body => ({ body: { policyholder: `p-${run}`, currency: 'EUR', ...body }, traits: { timeline: { validFrom: '2026-01-01', data: terms(1, '2027-01-01') } } });
+            expect(await statuses(
+                call('POST', '/entities/construction', draft({ project: 'a', region: 'fr' }), users.german),
+                call('POST', '/entities/construction', draft({ project: 'a', region: 'de', confidential: true }), users.german),
+                call('POST', '/entities/construction', draft({ project: 'a', region: 'de' }), users.german),
+                call('POST', '/entities/marine', { ...draft({ vessel: 'ship', region: 'de' }), businessKey: `MAR-${run}-de` }, users.german),
+                call('POST', '/entities/marine', { ...draft({ vessel: 'ship', region: 'fr' }), businessKey: `MAR-${run}-fr` }, users.german)
+            )).to.deep.equal([403, 403, 201, 201, 403]);
+            const french = await read({ entityType: 'construction', businessKey: contracts.french }, users.headOffice);
+            expect([
+                (await move(french, 'issue', users.german)).status,
+                (await move(french, 'issue', users.french)).status
+            ]).to.deep.equal([404, 200]);
+            const own = await read({ entityType: 'construction', businessKey: contracts.german }, users.german);
+            const handed = await call('PUT', `/entities/construction/${contracts.german}`, { body: { ...own.data.body, region: 'fr' } }, users.german, { 'if-match': `"${own.revision}"` });
+            expect(handed.status).to.equal(403);
+            expect((await read(own, users.headOffice)).data.ownership).to.deep.equal({ region: 'de', confidential: false });
+        });
+
+        it('finds only the contracts of the scopes', async function () {
+            this.timeout(180000);
+            await eventually(async () => (await keysFound(users.headOffice)).includes(contracts.french));
+            await eventually(async () => (await keysFound(users.auditor)).includes(contracts.german));
+            const found = Object.fromEntries(await Promise.all(Object.entries(users).map(async ([name, token]) => [name, await keysFound(token)])));
+            expect(found.german).to.include(contracts.german).and.not.include.members([contracts.confidentialGerman]).and.not.include.members([contracts.french]);
+            expect(found.senior).to.include.members([contracts.german, contracts.confidentialGerman]).and.not.include.members([contracts.french]);
+            expect(found.auditor).to.include.members([contracts.german, contracts.french]).and.not.include.members([contracts.confidentialGerman]);
+            expect(found.headOffice).to.include.members(Object.values(contracts));
+        });
     });
 });

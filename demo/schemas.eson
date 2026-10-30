@@ -5,6 +5,11 @@
         "data": "string:^\\d{4}-\\d{2}-\\d{2}$"
     },
     {
+        "id": "region",
+        "kind": "schema",
+        "data": "string:^[a-z]{2}$"
+    },
+    {
         "id": "contract-terms",
         "kind": "schema",
         "data": { "!premium": "number", "!sumInsured": "number", "!endDate": "@date" }

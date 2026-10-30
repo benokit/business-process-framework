@@ -24,7 +24,7 @@ npx bpf explain insurance-contract-type ../demo
 npx bpf refs user-cache
 npx bpf list entity-type ../demo
 npx bpf vocabulary
-npx bpf trace entities list --input '{"entityType":"construction","request":{}}' ../demo
+npx bpf trace entities read --input '{"entityType":"construction","request":{"businessKey":"CON-2026-0001"}}' ../demo
 ```
 
 From code: `bootApplication({ packages?, paths? })`, `validateApplication(options)` → problems, `explain(id)`, `refs(id)`, `list(kind?)` and `vocabulary()` → descriptions, `renderExplanation`, `renderRefs`, `renderList` and `renderVocabulary` → text.
