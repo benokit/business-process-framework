@@ -1,6 +1,6 @@
 # Versionable entities
 
-Status: **implemented** in [entity-versions](../implementation/framework/entity-versions/README.md) and [entities](../implementation/framework/entities/README.md) (R6.5, R6.3), and demonstrated by the demo's contracts and amendments. The work is R6.3 and R6.5 in [refactoring-plan.md](refactoring-plan.md). Entities and traits are in [entities](../implementation/framework/entities/README.md).
+Status: **implemented** in [entity-versions](../implementation/entity/entity-versions/README.md) and [entities](../implementation/entity/entities/README.md) (R6.5, R6.3), and demonstrated by the demo's contracts and amendments. The work is R6.3 and R6.5 in [refactoring-plan.md](refactoring-plan.md). Entities and traits are in [entities](../implementation/entity/entities/README.md).
 
 ## 1. The model
 

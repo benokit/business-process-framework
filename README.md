@@ -25,8 +25,10 @@ Everything is an **element**: `{ id, kind, data }`. The **kind** is the abstract
 | | |
 | --- | --- |
 | [Core](implementation/core/README.md) | Elements, kinds, schemas, pipelines, slots, context, lifecycle, validation |
-| [Infrastructure](implementation/infrastructure/README.md) | PostgreSQL, transactions, HTTP server, NATS, transactional outbox, Meilisearch, cache, logging |
-| [Framework](implementation/framework/README.md) | Databases, messaging, entities and their traits, events, relations, search, security, users, OAuth authentication |
+| [Platform](implementation/platform/README.md) | Databases, messaging, search, integration, security, transactions, outbox, HTTP server, cache, logging |
+| [Adapters](implementation/adapters/README.md) | PostgreSQL, NATS, Meilisearch and HTTP bindings of the abstractions |
+| [Entity](implementation/entity/README.md) | Entities, their traits (states, versions, ownership, row access), events, relations, search |
+| [Services](implementation/services/README.md) | Authorization, users, OAuth authentication |
 | [Server](implementation/server/README.md) | Starts an application |
 | [Tools](implementation/tools/README.md) | `bpf`: validation and discovery of an application |
 | [Demo](demo/README.md) | An insurance application |

@@ -4,8 +4,10 @@
   "type": "module",
   "workspaces": [
     "core",
-    "infrastructure/*",
-    "framework/*",
+    "platform/*",
+    "adapters/*",
+    "entity/*",
+    "services/*",
     "server",
     "tools"
   ],

@@ -15,11 +15,11 @@ Interact with the server on the user's behalf using `curl`. Save all responses a
 | Transition | POST | `/entities/:entityType/:businessKey/transitions/:transition` | |
 | Search | POST | `/entity-search/:entityType` | `{ query?, filter?, sort?, offset?, limit? }` |
 
-See [entities-http](../../implementation/framework/entities-http/README.md), [entity-states-http](../../implementation/framework/entity-states-http/README.md), [entity-search-http](../../implementation/framework/entity-search-http/README.md) and [oauth](../../implementation/framework/oauth/README.md).
+See [entities-http](../../implementation/adapters/entities-http/README.md), [entity-states-http](../../implementation/adapters/entity-states-http/README.md), [entity-search-http](../../implementation/adapters/entity-search-http/README.md) and [oauth](../../implementation/services/oauth/README.md).
 
 ## Conventions
 
-- **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/framework/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The token's subject must be an existing `user` entity (created through `POST /entities/user`) with a role that permits what you call (the demo's `underwriter-role`, `viewer-role`, `administrator-role`); a token never creates one. In the demo, a token for client id `admin` acts as the migrated `administrator` user: use it to create the users other tokens need. `401`: no token or no such user; `403`: no role permits the operation.
+- **Authentication**: get an access token from the identity provider (the mock at `http://localhost:8080/default/token`, see [oauth](../../implementation/services/oauth/README.md)) and send `Authorization: Bearer <token>` on every request. The token's subject must be an existing `user` entity (created through `POST /entities/user`) with a role that permits what you call (the demo's `underwriter-role`, `viewer-role`, `administrator-role`); a token never creates one. In the demo, a token for client id `admin` acts as the migrated `administrator` user: use it to create the users other tokens need. `401`: no token or no such user; `403`: no role permits the operation.
 - **Optimistic concurrency**: responses carry the revision as `ETag` (`"2"`). `PUT`, `DELETE` and transitions require `If-Match` with the current revision.
 - **Records**: `data.body` is the business data; other keys of `data` are traits (`data.state`). An update sends the full `body`, not just changed fields; traits change only through their commands (transitions).
 - **Business keys**: some entity types generate them (construction contracts: `CON-<year>-<number>`); omit `businessKey` on create for those.

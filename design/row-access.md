@@ -1,6 +1,6 @@
 # Row access
 
-Status: **implemented** (R11), demonstrated by the demo's contracts ([demo](../demo/README.md#row-access)). Which records of an entity type a user reaches, apart from what they may do. The work is R11 in [refactoring-plan.md](refactoring-plan.md). It uses the traits of [entities](../implementation/framework/entities/README.md).
+Status: **implemented** (R11), demonstrated by the demo's contracts ([demo](../demo/README.md#row-access)). Which records of an entity type a user reaches, apart from what they may do. The work is R11 in [refactoring-plan.md](refactoring-plan.md). It uses the traits of [entities](../implementation/entity/entities/README.md).
 
 ## 1. Two kinds of permission
 
@@ -11,10 +11,10 @@ What a user may **do** and which **data** they may do it to are different questi
 | Says | which operations: `{ area, resource, action }` | which rows of which entity types: `{ resource, scopes }` |
 | Element | `actor` (module), `role` (application) | `access-profile` (application) |
 | Held by the user as | `roles` | `access` |
-| Checked | at the boundary, per request ([authorization](../implementation/framework/authorization/README.md)) | at the entity, per record ([entity-row-access](../implementation/framework/entity-row-access/README.md)) |
+| Checked | at the boundary, per request ([authorization](../implementation/services/authorization/README.md)) | at the entity, per record ([entity-row-access](../implementation/entity/entity-row-access/README.md)) |
 | Needs | the endpoint's operation | the entity type and the user's context |
 
-A process permission names no row, an access permission no operation. The underwriter role is one set of operations whoever holds it; the German and the French underwriter differ only in the access profile assigned beside it. A role never multiplies by region, nor does a profile by process. Both only add: roles' operations unite, profiles' rows unite, and nothing prevails over anything ([no deny](../implementation/framework/authorization/README.md#design)). A request needs both: a permitted operation, and rows within the access.
+A process permission names no row, an access permission no operation. The underwriter role is one set of operations whoever holds it; the German and the French underwriter differ only in the access profile assigned beside it. A role never multiplies by region, nor does a profile by process. Both only add: roles' operations unite, profiles' rows unite, and nothing prevails over anything ([no deny](../implementation/services/authorization/README.md#design)). A request needs both: a permitted operation, and rows within the access.
 
 Three parts make access work:
 
@@ -55,7 +55,7 @@ The configuration of the trait has a `rule`: a mapping from the record to the ow
 
 ### The middleware
 
-A generic `interceptor` fill on `entity-type` ([slots](../implementation/framework/entities/README.md#slots)), present on every entity type that configures an ownership trait. Inside the transaction and around the store write, it computes the rule on the record the write produces and writes the ownership with it.
+A generic `interceptor` fill on `entity-type` ([slots](../implementation/entity/entities/README.md#slots)), present on every entity type that configures an ownership trait. Inside the transaction and around the store write, it computes the rule on the record the write produces and writes the ownership with it.
 
 - **`create`:** the interceptor adds the ownership key to the created `data`, so the record is born with it.
 - **A trait write or `delete`:** the ownership is recomputed from the record after the write. It is stored only if it differs (deep equality), so a write that changes nothing the rule reads leaves it alone.
@@ -73,7 +73,7 @@ A generic `interceptor` fill on `entity-type` ([slots](../implementation/framewo
 - **The filter language** is a subset of LambdaJSON: `$eq` and `$neq` (a scalar dimension and a value), `$includes` (an array dimension holds a value, or a scalar dimension is one of a list), `$and`, `$or`, `$not`, literals and paths into `ownership`. No effects, no `low`, no ordering (it fails on a missing value, where a scope answers false).
 - **It sees the pair `{ ownership, principal }`.** A scope composes primitive filters, each comparing a dimension of the ownership with a value: a literal or a property of the principal (`ownership.region = principal.region`, `ownership.owner = principal.userId`, a dimension among `principal.regions`). Which scopes a user reaches comes only from their access profiles; the principal only supplies the values the scopes compare with, so "own records" and "my region" are scopes, and one profile serves every region.
 - **The principal is open.** The framework restricts nothing but `userId`, `roles` and `access`: any property is a claim, as the users or the identity provider supply it (the properties of a `user` besides `subject` are the claims of the principal). An application states them by declaring the schema `principal-claims`; `validate` checks the paths and types of scopes against it, and does not check the claims of a principal without one. Checking the claims of a user against it is still to come.
-- **Computed values.** A value on the principal's side may be computed from it by a pure function, e.g. the departments below the principal's: `$func/hierarchy-subtree` over a static [`hierarchy`](../implementation/framework/data-structures/README.md#hierarchy) element (a tree of names). It may use only the principal. An organisation is then one department in the ownership and a tree that is read when the request runs: restructuring edits the tree, with no backfill.
+- **Computed values.** A value on the principal's side may be computed from it by a pure function, e.g. the departments below the principal's: `$func/hierarchy-subtree` over a static [`hierarchy`](../implementation/platform/data-structures/README.md#hierarchy) element (a tree of names). It may use only the principal. An organisation is then one department in the ownership and a tree that is read when the request runs: restructuring edits the tree, with no backfill.
 - **Binding.** The filter of a request is built from the context: `#.principal.…` and the computed values are replaced by their values, and what no dimension decides folds into a constant (`true`, `false`). What reaches the search engine is a plain predicate over the dimensions, and `false` means no hit. A claim is a value, never code (a string that starts with `#`, `@` or `\\` is escaped), one with uppercase letters or of another shape (an array where a scalar is compared) matches nothing, and a missing claim compares false, so `$not` of it is true. The guard evaluates the same bound filter.
 - **Closed.** A path into `ownership` names a dimension of the kind, one into `principal` a claim; `validate` reports an unknown one, a comparison of the wrong type, an operator outside the subset.
 - **Two evaluators, one meaning.** The mapping itself run on one record, and `$func/meilisearch-filter`, a translator to the filter of the search engine. A test runs both over the same records and requires equal results.

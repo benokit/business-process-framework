@@ -1,6 +1,6 @@
 # `body` as a trait, and trait configuration as kind data
 
-Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/framework/entities/README.md), keyed traits in [versionable](versionable.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md).
+Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/entity/entities/README.md), keyed traits in [versionable](versionable.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md).
 
 ## 1. Problem
 
@@ -95,7 +95,7 @@ Revision, **R6.10, done**:
 2. `traitsOf` unites the contributions of the kind chain's `fixed`, the fills and the data, reporting conflicts with their sources; `configuration` of a fill is required again; the first form's precedence is removed.
 3. `validate()`: closed keys, `trait` optional only for a `one` trait, a field in both optional and required form.
 4. The demo and tests migrated: class state models and timelines into `fixed.traits`, `marine` without `/merge`; `party` and `user` with the wrapper.
-5. Documentation of the owners: [entities](../implementation/framework/entities/README.md#traits), F22, [refactoring-plan](refactoring-plan.md).
+5. Documentation of the owners: [entities](../implementation/entity/entities/README.md#traits), F22, [refactoring-plan](refactoring-plan.md).
 
 ## 6. Open
 

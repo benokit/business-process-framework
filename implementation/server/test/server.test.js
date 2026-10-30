@@ -2,9 +2,9 @@ import { expect } from 'chai';
 import { fileURLToPath } from 'url';
 import { invoke, validate } from '@business-framework/core';
 import { installedPackages, startServer } from '@business-framework/server';
-import { migrate, skipWithoutPostgres } from '../../infrastructure/postgresql/test/helpers.js';
-import { skipWithoutMeilisearch } from '../../infrastructure/meilisearch/test/helpers.js';
-import { skipWithoutIdentityProvider, tokenFor } from '../../framework/oauth/test/helpers.js';
+import { migrate, skipWithoutPostgres } from '../../adapters/postgresql/test/helpers.js';
+import { skipWithoutMeilisearch } from '../../adapters/meilisearch/test/helpers.js';
+import { skipWithoutIdentityProvider, tokenFor } from '../../services/oauth/test/helpers.js';
 
 const DEMO = fileURLToPath(new URL('../../../demo', import.meta.url));
 const run = Date.now();
