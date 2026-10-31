@@ -1,6 +1,6 @@
 # demo
 
-An insurance application built on the [framework](../implementation/README.md). It shows how the pieces combine: entity classes with traits, searchable parties, a timeline of contract terms amended through their own entities, roles, and row-level access.
+An insurance application built on the [framework](../implementation/README.md). It shows how the pieces combine: entity classes with traits, searchable parties, contract terms with a history, amended through their own entities, roles, and row-level access.
 
 ## Contents
 
@@ -8,26 +8,18 @@ An insurance application built on the [framework](../implementation/README.md). 
 - **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a model that allows updates only in draft and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type whose lifecycle is composed from the construction one with `/ref` of a path and `/merge`: they add the state `suspended`, the transition `suspend` and `cancel` from it.
 - **Security**: [roles](security/roles.eson) (see [Roles](#roles)) and [row access](#row-access).
 
-## Contract data
-
-Users see a contract as one plain document ([contract-api](contracts/contract-api.eson)): the body fields and the terms side by side, with `startDate` (the first version of the timeline), e.g. `{ policyholder, project, currency, region, startDate, premium, sumInsured, endDate }`. The contract type's operations `createContract`, `readContract` and `updateContract` map it onto the body and the timeline with the pure functions `contract-to-traits` and `contract-view`, and the routes `POST /contracts/:entityType` (body: the contract, optionally with a `businessKey`), `GET /contracts/:entityType/:businessKey` and `PUT` (`If-Match`) expose them through the gateway `contracts`. The reply is `{ businessKey, revision, state, contract }`. `updateContract` writes the body and the timeline in one change (`traitOperations`, one revision), is possible only in draft (`operations` of the model), and refuses a changed `startDate`. The terms of an active contract change by [amendments](#contract-terms-and-amendments). The generic `/entities` routes remain and show the stored shape.
-
 ## Contract terms and amendments
 
-What varies in time is the `versionable` timeline of the contract class (`premium`, `sumInsured`, `endDate`), whose first version is the start of the contract; the body keeps what never varies (policyholder, project, currency).
+A contract is one document: the body fields and the terms side by side (`policyholder`, `project`, `currency`, `region`, `startDate`, `premium`, `sumInsured`, `endDate`). Its body is [versioned](../design/versioned-body.md) (`versioned.validFrom` is `/startDate`, fixed by `insurance-contract-type`), so the terms known before the contract is issued are part of the document users create and update, through the framework's own `/entities` routes: `POST` and `PUT` (`If-Match`) take the plain body, `GET` returns the last version and, with `?at=<date>`, the one valid then. In draft the whole document can be corrected, its `startDate` included, and without a start date it waits keyed `undated`. The model allows `update` only in draft; afterwards the terms change by amendments.
 
-How an entity with a timeline is amended is not specific to contracts and lives in [versioning](versioning/):
+How an entity with a versioned body is amended is not specific to contracts: `insurance-contract-type` extends the framework's `versioned-entity-type` and its amendments are `amendment-entity-type`s ([entity-amendments](../implementation/entity/entity-amendments/README.md)). `insurance-contract-type` lists `applyAmendment` for the state `active` in its model. The amendment process is the demo's own: `underwriting-amendment-type` gives amendments the lifecycle draft, issued, active, cancelled, annulled (the dimension `status`), whose transitions `activate`, `cancel` and `annul` move the framework's `versionStatus` (pending, applied, discarded) that applies and reverts the version.
 
-- `versioned-entity-type`: an entity type with its timeline under the fixed key `timeline` (a concrete kind sets the segment schema by filling the same key), an `amendment-ledger` trait that takes no configuration, guards that accept the ledger only through `open` and `close` with the value `{ last, open }` and the timeline only through `put` and `remove`, the slot `amendmentTypes` and the abstract operation `isAmendable`, which `insurance-contract-type` implements as amendable when active.
-- `amendment-entity-type`: lifecycle draft, issued, active, cancelled, annulled; a relation `amends`; guards and the reactions that apply, revert and close.
-- the process `entity-amendments`.
-
-Premium adjustments and extensions ([amendment-types.eson](contracts/amendment-types.eson)) are amendment types holding the `changes` to the terms, an effective date and a reason; a contract type lists the types it allows (marine only the first).
+Premium adjustments and extensions ([amendment-types.eson](contracts/amendment-types.eson)) are amendment types holding the `changes` to the terms and a reason; the `changes` schema is what an amendment may touch, and a contract type lists the types it allows (marine only the first). The route [`POST /entities/:entityType/:businessKey/amendments`](contracts/amendment-endpoint.eson) takes `{ amendmentType, effectiveFrom, reason, changes }` and turns `changes` into the JSON Patch that the process needs. The end date must be after the start (a reaction on `insurance-contract-type`).
 
 How an amendment goes:
 
-- **Proposing.** It is created only by `POST /entities/:entityType/:businessKey/amendments`, which needs an amendable entity and an allowed type and binds the context `amending`, without which a guard refuses `create`. The entity keeps the `amendment-ledger` (`{ last, open }`): proposing writes `last + 1` and the new key as `open` in the same transaction as the amendment, at the entity's revision. So only one amendment is open (draft or issued) at a time, concurrent proposals can't both win, and the numbers have no gaps. The amendment's key is the entity's key and that number (`<contract key>-001`).
-- **Activating** merges its changes into the terms current then and adds them from the effective date; activating or cancelling closes the open amendment. **Annulling** an active one removes them, and only the latest can be annulled, so annulments run in the reverse order of activations. Cancelling one that never took effect (draft or issued) changes nothing.
+- **Proposing.** Only through the route above (an amendment can't be created directly). Only one amendment is open (draft or issued) at a time; its key is the contract's key and a number (`<contract key>-001`).
+- **Activating** amends the contract: the last version with the changes merged becomes a new version valid from the effective date, which must not be before the last one (`conflict` otherwise; at its date it replaces that version); activating or cancelling closes the open amendment. **Annulling** an active one removes them, and only the latest can be annulled, so annulments run in the reverse order of activations. Cancelling one that never took effect (draft or issued) changes nothing.
 - **Who.** The underwriter proposes, issues, cancels and annuls amendments; an administrator activates them.
 
 ## Roles

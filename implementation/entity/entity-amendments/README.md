@@ -1,0 +1,25 @@
+# entity-amendments
+
+Changes to an entity with a [versioned body](../../../design/versioned-body.md) as entities of their own: an amendment is proposed, issued, activated, and may be annulled. Activating one amends the entity from a date; annulling it takes the version away. The mechanism of versions is the trait `body` of [entities](../entities/README.md#versioned-body); this package is the process around it, and an application builds on it or writes its own.
+
+- **`versioned-entity-type`** (kind, extends `stateful-entity-type`): an entity type whose body is versioned and that can be amended. It fixes the trait `amendment-ledger`, has the slot `amendmentTypes` (the `amendment-entity-type`s that may amend it) and the operations `applyAmendment({ businessKey, revision, validFrom, patch })` and `revertAmendment({ businessKey, revision, validFrom })`, which run the trait operations `amend` and `remove` of `body`. The concrete type configures the body (`versioned.validFrom`) and its state model. Whether an entity can be amended is its model: `operations` lists `applyAmendment` for the states it is possible in, as for `update`.
+- **`amendment-ledger`** (trait, no configuration): `{ last, open }`, the number of the last amendment and the key of the open one (`null` if none). A guard accepts only the commands `open` and `close` with a value of that shape.
+- **`amendment-entity-type`** (kind): the dimension `versionStatus` of its `state`: `pending` (the change is being made or reviewed, not in the entity's versions), `applied` (its version is in them) and `discarded` (it is not, or no longer is), moving `pending` → `applied` → `discarded` or `pending` → `discarded`; a guard refuses any other move. The **process** is the application's own, in other dimensions (an approval with `status`, say) and in transitions of its own names, each of which moves `versionStatus` where it should; a relation `amends`; the body schema `amendment-entity-body` is `{ amendedType, amendedKey, effectiveFrom, patch }`, and a concrete amendment type adds its own fields (a reason, typed changes) with `$data#&`. A guard refuses to `create` one other than through `propose`.
+- **`entity-amendments`** (instance of `entity-amendment-process`):
+
+| Operation | Input | Effect |
+|---|---|---|
+| `propose` | `entityType`, `businessKey`, `amendmentType`, `effectiveFrom`, `patch`, `data?` | in one transaction: the entity must allow `applyAmendment` in its state (`conflict`), list the type (`invalid`) and have no open amendment (`conflict`); writes `last + 1` and the new key as `open` in the ledger at the entity's revision, and creates the amendment `<businessKey>-<number>` (`%03d`) with the body `data` plus `amendedType`, `amendedKey`, `effectiveFrom`, `patch`. Concurrent proposals can't both win and the numbers have no gaps |
+| `apply` | `entityType`, `amendment` | when `versionStatus` goes `pending` → `applied`: `applyAmendment` of the entity with the amendment's date and patch (`conflict` if the date is before the last version), then `close` |
+| `revert` | `entityType`, `amendment` | when it goes `applied` → `discarded`: `revertAmendment` of the entity at the amendment's date; only the latest version can go, so annulments run in the reverse order of activations (`conflict` otherwise) |
+| `close` | `entityType`, `amendment` | when it goes `pending` → `discarded`, and after `apply`: the ledger's `open` is `null` again; `conflict` if the amendment is not the open one |
+
+`apply`, `revert` and `close` are the reactions of `amendment-entity-type` to those moves, in the transaction of the transition: a failure rolls the transition back. The context `amending` (managed by the process) is what lets `propose` create an amendment.
+
+What the package leaves to the application: an HTTP route for `propose`, who may do what ([authorization](../../services/authorization/README.md), per state with [state-permissions](../../services/state-permissions/README.md)), the amendment types and the shape of their data, and how a user's description of a change becomes the `patch`. The demo's [amendment endpoint](../../../demo/contracts/amendment-endpoint.eson) turns a flat `changes` object into a patch.
+
+```json
+{ "id": "policy", "kind": "versioned-entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!startDate": "@date", "!premium": "number" }, "versioned": { "validFrom": "/startDate" } } }, "state": { "configuration": { "…": "a model with operations: { applyAmendment: { status: { active: true } } }" } } } } }
+{ "id": "premium-raise", "kind": "amendment-entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "$data#&": ["@amendment-entity-body", { "!reason": "string" }] } } }, "state": { "configuration": { "…": "a process: states of its own, and transitions that move versionStatus, such as approve: { versionStatus: { pending: applied } }" } } } } }
+{ "id": "policy-premium-raise", "kind": "slot-fill", "data": { "target": "policy", "slot": "amendmentTypes", "value": "premium-raise" } }
+```

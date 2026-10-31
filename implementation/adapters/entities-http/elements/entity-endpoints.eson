@@ -35,7 +35,7 @@
             "operation": { "area": "entities", "resource": "#.input.entityType", "action": "read" },
             "request": {
                 "entityType": "#.params.entityType",
-                "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" } }
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" }, "at": "#.query.at" }
             },
             "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

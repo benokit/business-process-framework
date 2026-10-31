@@ -27,7 +27,8 @@
             "entityOperation": "string",
             "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
             "before": "@entity-record",
-            "after": "object"
+            "after": "object",
+            "versions": "object"
         }
     }
 ]

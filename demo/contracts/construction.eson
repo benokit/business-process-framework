@@ -3,13 +3,13 @@
         "id": "construction",
         "kind": "insurance-contract-type",
         "data": {
-            "traits": { "body": { "configuration": { "schema": {
+            "traits": { "body": { "configuration": { "schema": { "$data#&": ["@contract-terms", {
                 "!policyholder": "string",
                 "!project": "string",
                 "!currency": "string",
                 "!region": "@region",
                 "confidential": "boolean"
-            } } } }
+            }] } } } }
         }
     },
     {

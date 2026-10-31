@@ -13,7 +13,8 @@
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@entity-change" }
             },
             "operations": {
-                "read": {
+                "load": {
+                    "private": true,
                     "input": { "!businessKey": "string", "revision": "number" },
                     "output": "@entity-record",
                     "implementation": [
@@ -25,9 +26,20 @@
                         },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
-                            "forEach": { "inputMap": { "operation": "read", "before": "#.record" }, "execute": "#.item" }
+                            "forEach": {
+                                "inputMap": { "$func/resolved-change": { "change": { "operation": "read", "before": "#.record" }, "entityType": "#.self.id" } },
+                                "execute": "#.item"
+                            }
                         },
                         { "set": "#.record" }
+                    ]
+                },
+                "read": {
+                    "input": { "!businessKey": "string", "revision": "number", "at": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision" }, "invoke": "#.self.id", "operation": "load" },
+                        { "set": { "$func/resolved-record": { "record": "#.record", "at": "#.input.at" } } }
                     ]
                 },
                 "initialTraitValues": {
@@ -74,7 +86,7 @@
                         },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
-                            "forEach": { "inputMap": "#.input.change", "execute": "#.item" }
+                            "forEach": { "inputMap": { "$func/resolved-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
                         },
                         {
                             "outputKey": "store",
@@ -98,12 +110,15 @@
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                                     "forEach": {
                                         "inputMap": {
-                                            "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }]
+                                            "$func/resolved-change": {
+                                                "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record", "versions": { "$func/record-versions": { "record": "#.record" } } }] }] },
+                                                "entityType": "#.self.id"
+                                            }
                                         },
                                         "execute": "#.item"
                                     }
                                 },
-                                { "return": "#.record" }
+                                { "return": { "$func/resolved-record": { "record": "#.record" } } }
                             ]
                         }
                     ]
@@ -128,7 +143,7 @@
                             "then": { "throw": { "code": "invalid", "message": "a write changes a trait once" } }
                         },
                         { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
                         {
                             "outputKey": "commands",
                             "inputMap": "#.input.operations",
@@ -213,7 +228,7 @@
                     "input": { "!businessKey": "string", "!revision": "number" },
                     "output": "@entity-record",
                     "implementation": [
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
                         {
                             "inputMap": {
                                 "change": { "operation": "delete", "entityOperation": "#.operation", "before": "#.before" },

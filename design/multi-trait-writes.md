@@ -28,4 +28,4 @@ An entity's data is the values of its traits. `create` writes all of them in one
 
 ## Not decided here
 
-Which of a version's fields belong to which trait, and what an entity exposes to its users: both stay the entity's declaration. The demo's contract maps one plain document onto the body and the timeline and writes them with `traitOperations`.
+Which of a version's fields belong to which trait, and what an entity exposes to its users: both stay the entity's declaration. A versioned entity no longer needs the node for its data: its document is one body ([versioned-body](versioned-body.md)). The node stays for the entity that has to change a body and another trait in one revision.

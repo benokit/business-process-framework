@@ -1,0 +1,35 @@
+[
+    {
+        "id": "changes-patch",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "object", "output": "[object]" },
+            "mapping": {
+                "$map": {
+                    "over": { "$keys": "#" },
+                    "as": "name",
+                    "fn": { "op": "add", "path": { "$str": ["/", "@name"] }, "value": { "$get": { "object": "#", "path": "@name" } } }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-amendment-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType/:businessKey/amendments",
+            "target": { "element": "entity-amendments", "operation": "propose" },
+            "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "propose" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "businessKey": "#.params.businessKey",
+                "amendmentType": "#.body.amendmentType",
+                "effectiveFrom": "#.body.effectiveFrom",
+                "patch": { "$func/changes-patch": "#.body.changes" },
+                "data": { "reason": "#.body.reason", "changes": "#.body.changes" }
+            },
+            "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    }
+]

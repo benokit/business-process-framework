@@ -1,10 +1,10 @@
 # `body` as a trait, and trait configuration as kind data
 
-Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/entity/entities/README.md), keyed traits in [versionable](versionable.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md).
+Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/entity/entities/README.md), keyed traits in [entities](../implementation/entity/entities/README.md), the versioned mode of `body` in [versioned-body](versioned-body.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md).
 
 ## 1. Problem
 
-`body` was called "a trait like any other" and wasn't one: `bodySchema` was a property of the shape of `entity-type`, `create` and `update` were hard-wired to it, the change operation `update` existed for it alone, `entity-record.data` required it, its key was reserved. Once `versionable` showed what a trait can be, the asymmetry was visible.
+`body` was called "a trait like any other" and wasn't one: `bodySchema` was a property of the shape of `entity-type`, `create` and `update` were hard-wired to it, the change operation `update` existed for it alone, `entity-record.data` required it, its key was reserved. Once the first other trait (a timeline) showed what a trait can be, the asymmetry was visible.
 
 The reason it was built so is that `bodySchema` is **instance data**, written in the entity type's own element and composed along the class chain. A `traits` slot fill, the only place a trait was configured, is the wrong place: it lives apart from the element, and per key the most specific fill replaced the whole configuration. Making `body` a trait needs the missing half: configuring a trait through the data of the kind that uses it.
 
@@ -37,7 +37,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
               "state":    { "configuration": { "states": { "status": { "draft": true, "issued": true, "active": true, "cancelled": true } },
                                                "transitions": { "issue": { "status": { "draft": "issued" } }, … },
                                                "initialStates": { "default": { "status": "draft" } } } },
-              "timeline": { "trait": "versionable", "configuration": { "schema": "@contract-terms" } } } } } }
+              "body":     { "configuration": { "versioned": { "validFrom": "/startDate" } } } } } } }
 
 { "id": "marine", "kind": "insurance-contract-type",
   "data": { "traits": {
@@ -61,7 +61,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
 
 ## 3. The `body` trait
 
-`body` is an element in `entities`, no different from `versionable`:
+`body` is an element in `entities`, no different from any trait (its versioned mode is [versioned-body](versioned-body.md)):
 
 ```json
 { "id": "body", "kind": "body-trait", "data": { "cardinality": "one", "configuration": { "!schema": "@schema" } } }
@@ -69,7 +69,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
 
 | Concern | As a trait |
 |---|---|
-| Schema | the trait's `load` registers `<entityType>/body/schema` per use, as `segment-schemas` registers `…/segment` |
+| Schema | the trait's `load` registers `<entityType>/body/schema` per use |
 | `create` | `initialize` asserts `traits.body` against the schema and returns it |
 | Write | the operation `update({ businessKey, revision, value })` of the entity type runs the operation `put` of the trait on the key `body`, which checks the value; the `PUT` endpoint calls it |
 | Required | declared by `fixed.traits.body` of `entity-type`; `entity-record.data` is any object |
@@ -101,4 +101,4 @@ Revision, **R6.10, done**:
 
 - **Appending to arrays** in a specialising fill, which needs a rule in the algebra ([data-composition](data-composition.md)).
 - **Slot sources in general.** Declaring guards, reactions and the business key rule in an element's own data, by the same argument of locality; values are methods, keyed only for traits. Decide after R6.10.
-- **A trait that reads another's configuration** (versionable keeping `body` as the version valid now, the open point of F22): the contributions of a key are reachable by key; whether one trait may use them is a separate rule.
+- **A trait that reads another's configuration** (the open point of F22, closed by [versioned-body](versioned-body.md): the body itself is versioned): the contributions of a key are reachable by key; whether one trait may use them is a separate rule.

@@ -6,7 +6,8 @@
     "./package.json": "./package.json",
     "./traits": "./src/traits.js",
     "./body": "./src/body.js",
-    "./patch": "./src/patch.js"
+    "./patch": "./src/patch.js",
+    "./versions": "./src/versions.js"
   },
   "scripts": {
     "test": "mocha --exit"

@@ -45,14 +45,10 @@
                                     "status": "draft"
                                 }
                             },
-                            "operations": { "update": { "status": { "draft": true } }, "updateContract": { "status": { "draft": true } } }
+                            "operations": { "update": { "status": { "draft": true } }, "applyAmendment": { "status": { "active": true } } }
                         }
                     },
-                    "timeline": {
-                        "configuration": {
-                            "schema": "@contract-terms"
-                        }
-                    },
+                    "body": { "configuration": { "versioned": { "validFrom": "/startDate" } } },
                     "ownership": {
                         "configuration": {
                             "dimensions": { "!region": "string", "!confidential": "boolean" },
@@ -65,50 +61,6 @@
                 }
             },
             "operations": {
-                "createContract": {
-                    "input": { "businessKey": "string", "!contract": "@contract-data" },
-                    "output": "@contract-view-data",
-                    "implementation": [
-                        {
-                            "outputKey": "record",
-                            "inputMap": { "businessKey": "#.input.businessKey", "traits": { "$func/contract-to-traits": "#.input.contract" } },
-                            "invoke": "#.self.id",
-                            "operation": "create"
-                        },
-                        { "set": { "$func/contract-view": "#.record" } }
-                    ]
-                },
-                "readContract": {
-                    "input": { "!businessKey": "string", "revision": "number" },
-                    "output": "@contract-view-data",
-                    "implementation": [
-                        { "outputKey": "record", "inputMap": "#.input", "invoke": "#.self.id", "operation": "read" },
-                        { "set": { "$func/contract-view": "#.record" } }
-                    ]
-                },
-                "updateContract": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!contract": "@contract-data" },
-                    "output": "@contract-view-data",
-                    "implementation": [
-                        { "outputKey": "traits", "set": { "$func/contract-to-traits": "#.input.contract" } },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        { "outputKey": "current", "set": { "$func/resolve-segment": { "timeline": "#.before.data.timeline" } } },
-                        {
-                            "if": { "$neq": ["#.traits.timeline.validFrom", "#.current.validFrom"] },
-                            "then": { "throw": { "code": "invalid", "message": "the start date of a contract can't be changed" } }
-                        },
-                        {
-                            "outputKey": "record",
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "body": "#.traits.body", "timeline": "#.traits.timeline" },
-                            "traitOperations": [
-                                { "key": "body", "operation": "put", "input": { "value": "#.input.body" } },
-                                { "key": "timeline", "operation": "put", "input": "#.input.timeline" }
-                            ]
-                        },
-                        { "set": { "$func/contract-view": "#.record" } }
-                    ]
-                },
-                "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } },
                 "deriveOwnership": {
                     "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
                     "output": "@entity-record",
@@ -125,29 +77,11 @@
         "kind": "slot-fill",
         "data": {
             "target": "insurance-contract-type",
-            "slot": "guards",
-            "value": [
-                { "outputKey": "command", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "timeline" } } },
-                {
-                    "outputKey": "timeline",
-                    "set": {
-                        "$cond": [
-                            [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.timeline"],
-                            ["else", "#.command.value"]
-                        ]
-                    }
-                },
-                {
-                    "if": "#.timeline",
-                    "then": [
-                        { "outputKey": "current", "set": { "$func/resolve-segment": { "timeline": "#.timeline" } } },
-                        {
-                            "if": { "$lte": ["#.current.data.endDate", "#.current.validFrom"] },
-                            "then": { "throw": { "code": "invalid", "message": "the end date must be after the start of the terms" } }
-                        }
-                    ]
-                }
-            ]
+            "slot": "reactions",
+            "value": {
+                "if": { "$and": ["#.input.after.data.body.startDate", { "$lte": ["#.input.after.data.body.endDate", "#.input.after.data.body.startDate"] }] },
+                "then": { "throw": { "code": "invalid", "message": "the end date must be after the start of the terms" } }
+            }
         }
     },
     {

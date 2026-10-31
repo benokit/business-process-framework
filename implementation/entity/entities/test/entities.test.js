@@ -30,6 +30,7 @@ const prefixed = id => ({
 });
 
 const WRITING = `writing-${run}`;
+const VERSIONED = `versioned-${run}`;
 
 const elements = [
     {
@@ -60,6 +61,16 @@ const elements = [
                         ]
                     }
                 },
+                amend: {
+                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string', '!patch': '@any' },
+                    output: '@entity-record',
+                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom', patch: '#.input.patch' } }, traitOperation: { key: 'body', operation: 'amend' } }
+                },
+                unamend: {
+                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string' },
+                    output: '@entity-record',
+                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom' } }, traitOperation: { key: 'body', operation: 'remove' } }
+                },
                 writeTrait: {
                     input: { '!businessKey': 'string', '!revision': 'number', '!key': 'string', '!command': 'string', '!value': '@any' },
                     output: '@entity-record',
@@ -79,6 +90,7 @@ const elements = [
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
+    { id: VERSIONED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } } } } },
     { id: ORDER, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
@@ -192,6 +204,75 @@ describe('entities', function () {
         expect((await errorOf(invoke(ORDER, 'writeTwice', { businessKey: 'o-twice', revision: 1 }))).code).to.equal('invalid');
     });
 
+    describe('a versioned body', () => {
+        const set = changes => Object.entries(changes).map(([key, value]) => ({ op: 'add', path: `/${key}`, value }));
+        const body = (startDate, premium) => ({ owner: 'Ada', ...(startDate && { startDate }), premium });
+        const stored = businessKey => invoke('entity-database', 'read', { entityType: VERSIONED, businessKey });
+
+        it('is stored as versions keyed by its date and read as the last one, or the one valid at a date', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-1', traits: { body: body('2025-01-01', 100) } });
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-1', revision: 1, validFrom: '2025-07-01', patch: set({ premium: 110 }) });
+            expect(Object.keys((await stored('v-1')).data.body).sort()).to.deep.equal(['2025-01-01', '2025-07-01']);
+            expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1' })).data.body).to.deep.equal(body('2025-07-01', 110));
+            expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1', at: '2025-03-01' })).data.body).to.deep.equal(body('2025-01-01', 100));
+            expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1', revision: 1 })).data.body).to.deep.equal(body('2025-01-01', 100));
+            expect((await errorOf(invoke(VERSIONED, 'read', { businessKey: 'v-1', at: '2024-01-01' }))).code).to.equal('not-found');
+        });
+
+        it('checks the whole body, including an amended one, against the schema', async () => {
+            expect((await errorOf(invoke(VERSIONED, 'create', { businessKey: 'v-2', traits: { body: { owner: 'Ada', premium: 'high' } } }))).code).to.equal('invalid');
+            await invoke(VERSIONED, 'create', { businessKey: 'v-2', traits: { body: body('2025-01-01', 100) } });
+            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-2', revision: 1, validFrom: '2025-07-01', patch: set({ premium: 'high' }) }))).code).to.equal('invalid');
+        });
+
+        it('lets update correct a body of one version, its date included, and refuses it once amended', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-3', traits: { body: body('2025-01-01', 100) } });
+            const corrected = await invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 1, value: body('2025-02-01', 90) });
+            expect([corrected.revision, corrected.data.body]).to.deep.equal([2, body('2025-02-01', 90)]);
+            expect(Object.keys((await stored('v-3')).data.body)).to.deep.equal(['2025-02-01']);
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-3', revision: 2, validFrom: '2025-07-01', patch: set({ premium: 95 }) });
+            expect((await errorOf(invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 3, value: body('2025-02-01', 1) }))).code).to.equal('conflict');
+        });
+
+        it('amends from the date of the last version or later, and removes only the last one', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-4', traits: { body: body('2025-01-01', 100) } });
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 1, validFrom: '2025-07-01', patch: set({ premium: 110 }) });
+            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, validFrom: '2025-03-01', patch: set({}) }))).code).to.equal('conflict');
+            const replaced = await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, validFrom: '2025-07-01', patch: set({ premium: 115 }) });
+            expect([replaced.revision, replaced.data.body]).to.deep.equal([3, body('2025-07-01', 115)]);
+            expect(Object.keys((await stored('v-4')).data.body).sort()).to.deep.equal(['2025-01-01', '2025-07-01']);
+            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, validFrom: '2025-01-01' }))).code).to.equal('conflict');
+            const removed = await invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, validFrom: '2025-07-01' });
+            expect(removed.data.body).to.deep.equal(body('2025-01-01', 100));
+            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 4, validFrom: '2025-01-01' }))).code).to.equal('invalid');
+        });
+
+        it('amends by any JSON Patch of the last version, and refuses one that does not apply', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-7', traits: { body: { ...body('2025-01-01', 100), tags: ['a', 'b'] } } });
+            const patch = [{ op: 'replace', path: '/premium', value: 120 }, { op: 'remove', path: '/tags/0' }, { op: 'add', path: '/tags/-', value: 'c' }];
+            const amended = await invoke(VERSIONED, 'amend', { businessKey: 'v-7', revision: 1, validFrom: '2025-07-01', patch });
+            expect(amended.data.body).to.deep.equal({ ...body('2025-07-01', 120), tags: ['b', 'c'] });
+            expect((await invoke(VERSIONED, 'read', { businessKey: 'v-7', at: '2025-03-01' })).data.body.tags).to.deep.equal(['a', 'b']);
+            const refused = await Promise.all([
+                [{ op: 'remove', path: '/nothing' }], [{ op: 'test', path: '/premium', value: 1 }], { premium: 1 }
+            ].map(bad => errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-7', revision: 2, validFrom: '2026-01-01', patch: bad }))));
+            expect(refused.map(error => error.code)).to.deep.equal(['invalid', 'invalid', 'invalid']);
+        });
+
+        it('keys a body without a date by a marker that the first date replaces', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-5', traits: { body: body(undefined, 100) } });
+            expect(Object.keys((await stored('v-5')).data.body)).to.deep.equal(['undated']);
+            await invoke(VERSIONED, 'update', { businessKey: 'v-5', revision: 1, value: body('2025-01-01', 100) });
+            expect(Object.keys((await stored('v-5')).data.body)).to.deep.equal(['2025-01-01']);
+        });
+
+        it('returns the body of the last version from every write', async () => {
+            await invoke(VERSIONED, 'create', { businessKey: 'v-6', traits: { body: body('2025-01-01', 100) } });
+            const amended = await invoke(VERSIONED, 'amend', { businessKey: 'v-6', revision: 1, validFrom: '2025-07-01', patch: set({ premium: 110 }) });
+            expect(amended.data.body).to.deep.equal(body('2025-07-01', 110));
+        });
+    });
+
     it('holds one trait under several keys', async () => {
         const created = await invoke(TAGGED, 'create', { businessKey: 't-1', traits: { body: {}, first: 'x' } });
         expect([created.data.first, created.data.second]).to.deep.equal(['a: x', 'b: new']);
@@ -246,7 +327,9 @@ describe('entities', function () {
             fill('keyed-note', `bad-${run}`, 'traits', { trait: NOTE, key: 'memo', configuration: { prefix: 'p' } }),
             fill('body-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'body', configuration: { prefix: 'p' } }),
             fill('dotted-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'first.one', configuration: { prefix: 'p' } }),
-            fill('repeated-tag', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'again' } })
+            fill('repeated-tag', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'again' } }),
+            { id: `undated-field-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { startDate: 'string:^x$' }, versioned: { validFrom: '/startDate' } } } } } },
+            { id: `missing-field-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { startDate: 'string' }, versioned: { validFrom: '/begin' } } } } } }
         ];
         await stop();
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
@@ -263,7 +346,9 @@ describe('entities', function () {
             `trait '${NOTE}' has cardinality one and takes no key`,
             `key 'body' is used by the traits body and ${TAG}`,
             "key 'first.one' is not lowercase letters and digits in segments joined by '-'",
-            `trait 'first' is used twice on ${TAGGED}`
+            `trait 'first' is used twice on ${TAGGED}`,
+            `undated-field-${run}: the field '/startDate' of the versioned body is no date (a string that matches YYYY-MM-DD)`,
+            `missing-field-${run}: the pointer '/begin' of the versioned body is no field of its schema`
         ]);
         expect(messages.some(message => message.includes("can't change the value at 'configuration.prefix'"))).to.equal(true);
         await boot({ paths: packages.map(packageElements), elements });

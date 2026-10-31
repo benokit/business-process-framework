@@ -6,6 +6,7 @@ import { hasOperation, isInstanceOf, selvesOf } from '@business-framework/core/k
 import { standardOf } from '@business-framework/core/schemas';
 import { mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
+import { resolvedRecord } from '@business-framework/entities/versions';
 
 const PRIMITIVES = ['string', 'number', 'integer', 'boolean'];
 
@@ -35,8 +36,8 @@ export const ownershipSchemas = () => ownedTypes().map(({ id, use }) => ({
 export const ownershipRule = entityType => ownershipUseOf(entityType)?.configuration.rule ?? null;
 
 const recordsAfterWrite = {
-    create: ({ entityType, businessKey, data }) => ({ entityType, businessKey, data }),
-    update: ({ before, values }) => ({ entityType: before.entityType, businessKey: before.businessKey, data: { ...before.data, ...values } })
+    create: ({ entityType, businessKey, data }) => resolvedRecord({ record: { entityType, businessKey, data } }),
+    update: ({ before, values }) => resolvedRecord({ record: { entityType: before.entityType, businessKey: before.businessKey, data: { ...before.data, ...values } } })
 };
 
 export const recordAfterWrite = ({ operation, input }) => recordsAfterWrite[operation]?.(input) ?? null;
@@ -253,7 +254,7 @@ const recordsOf = async entityType => {
     return offsets.reduce(async (read, offset) => [...await read, ...(await invoke('entity-database', 'list', { entityType, limit: PAGE, offset })).items], Promise.resolve([]));
 };
 
-const derivedOwnership = (rule, record) => applyMapping({ mapping: rule, input: { entityType: record.entityType, businessKey: record.businessKey, data: record.data } });
+const derivedOwnership = (rule, record) => applyMapping({ mapping: rule, input: { entityType: record.entityType, businessKey: record.businessKey, data: resolvedRecord({ record }).data } });
 
 export const backfillOwnership = async ({ input: { entityType } }) => {
     const rule = ownershipRule(entityType);

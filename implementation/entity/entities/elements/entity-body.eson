@@ -1,5 +1,10 @@
 [
     {
+        "id": "date",
+        "kind": "schema",
+        "data": "string:^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    {
         "id": "body-schemas",
         "kind": "pure-function",
         "data": {
@@ -9,10 +14,103 @@
         }
     },
     {
+        "id": "start-body-versions",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "startVersions"
+        }
+    },
+    {
+        "id": "replace-body-versions",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "replaceVersions"
+        }
+    },
+    {
+        "id": "amended-body",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "amendedBody"
+        }
+    },
+    {
+        "id": "append-body-version",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "appendVersion"
+        }
+    },
+    {
+        "id": "remove-body-version",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "removeVersion"
+        }
+    },
+    {
+        "id": "resolve-body-version",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entities/versions",
+            "export": "resolveVersion"
+        }
+    },
+    {
+        "id": "resolved-record",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entities/versions",
+            "export": "resolvedRecord"
+        }
+    },
+    {
+        "id": "record-versions",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "recordVersions"
+        }
+    },
+    {
+        "id": "versioned-body-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entities/versions",
+            "export": "versionedBodyProblems"
+        }
+    },
+    {
+        "id": "resolved-change",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entities/versions",
+            "export": "resolvedChange"
+        }
+    },
+    {
         "id": "body-trait",
         "kind": "kind",
         "data": {
             "extends": "entity-trait",
+            "lifecycle": {
+                "validate": { "$func/versioned-body-problems": null }
+            },
             "operations": {
                 "initialize": {
                     "implementation": [
@@ -21,7 +119,11 @@
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " needs a ", "#.input.key"] } } }
                         },
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
-                        { "set": "#.input.input" }
+                        {
+                            "if": "#.input.configuration.versioned",
+                            "then": { "set": { "$func/start-body-versions": { "configuration": "#.input.configuration", "body": "#.input.input" } } },
+                            "else": { "set": "#.input.input" }
+                        }
                     ]
                 },
                 "put": {
@@ -29,7 +131,40 @@
                     "output": "@trait-command",
                     "implementation": [
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
-                        { "set": { "command": "put", "value": "#.input.input.value" } }
+                        {
+                            "if": "#.input.configuration.versioned",
+                            "then": { "set": { "command": "put", "value": { "$func/replace-body-versions": { "timeline": "#.input.value", "configuration": "#.input.configuration", "body": "#.input.input.value" } } } },
+                            "else": { "set": { "command": "put", "value": "#.input.input.value" } }
+                        }
+                    ]
+                },
+                "amend": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$negate": "#.input.configuration.versioned" },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["the ", "#.input.key", " of ", "#.input.entityType", " has no versions"] } } }
+                        },
+                        {
+                            "outputKey": "body",
+                            "set": { "$func/amended-body": { "timeline": "#.input.value", "configuration": "#.input.configuration", "validFrom": "#.input.input.validFrom", "patch": "#.input.input.patch" } }
+                        },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.body" }, "invoke": "ajv", "operation": "assert" },
+                        {
+                            "set": { "command": "amend", "value": { "$func/append-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "body": "#.body" } } }
+                        }
+                    ]
+                },
+                "remove": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$negate": "#.input.configuration.versioned" },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["the ", "#.input.key", " of ", "#.input.entityType", " has no versions"] } } }
+                        },
+                        { "set": { "command": "remove", "value": { "$func/remove-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom" } } } }
                     ]
                 }
             }
@@ -38,7 +173,7 @@
     {
         "id": "body",
         "kind": "body-trait",
-        "data": { "cardinality": "one", "configuration": { "!schema": "@schema" } }
+        "data": { "cardinality": "one", "configuration": { "!schema": "@schema", "versioned": { "!validFrom": "string:^(/([^/~]|~[01])*)+$" } } }
     },
     {
         "id": "entity-body-writer",
