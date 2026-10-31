@@ -1,9 +1,14 @@
 [
     {
+        "id": "entity-state-declaration",
+        "kind": "schema",
+        "data": { "$data#": ["boolean", { "initial": "boolean", "to[]": "string" }] }
+    },
+    {
         "id": "entity-states-model",
         "kind": "schema",
         "data": {
-            "!states{}": "{boolean}",
+            "!states{}": "{@entity-state-declaration}",
             "transitions": { "*": { "*": { "*": "string" } } },
             "initialStates{}": "{string}",
             "operations": { "*": { "*": { "*": "boolean" } } },

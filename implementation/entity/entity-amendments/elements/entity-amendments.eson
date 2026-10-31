@@ -92,7 +92,13 @@
         "data": {
             "extends": "stateful-entity-type",
             "fixed": { "traits": { "state": { "configuration": {
-                "states": { "versionStatus": { "pending": true, "applied": true, "discarded": true } },
+                "states": {
+                    "versionStatus": {
+                        "pending": { "initial": true, "to": ["applied", "discarded"] },
+                        "applied": { "to": ["discarded"] },
+                        "discarded": { "to": [] }
+                    }
+                },
                 "initialStates": { "default": { "versionStatus": "pending" } }
             } } } }
         }
@@ -126,39 +132,6 @@
                 "if": { "$and": [{ "$eq": ["#.input.operation", "create"] }, { "$negate": "#._ctx.amending" }] },
                 "then": { "throw": { "code": "forbidden", "message": "amendments are proposed through the entity they amend" } }
             }
-        }
-    },
-    {
-        "id": "amendment-entity-version-status-changes",
-        "kind": "slot-fill",
-        "data": {
-            "target": "amendment-entity-type",
-            "slot": "guards",
-            "value": [
-                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
-                {
-                    "if": {
-                        "$and": [
-                            "#.transition",
-                            { "$neq": ["#.input.before.data.state.versionStatus", "#.transition.value.versionStatus"] },
-                            {
-                                "$negate": {
-                                    "$includes": {
-                                        "collection": ["pending>applied", "applied>discarded", "pending>discarded"],
-                                        "value": { "$str": ["#.input.before.data.state.versionStatus", ">", "#.transition.value.versionStatus"] }
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    "then": {
-                        "throw": {
-                            "code": "invalid",
-                            "message": { "$str": ["an amendment can't go from ", "#.input.before.data.state.versionStatus", " to ", "#.transition.value.versionStatus"] }
-                        }
-                    }
-                }
-            ]
         }
     },
     {

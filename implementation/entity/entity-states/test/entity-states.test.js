@@ -91,6 +91,55 @@ describe('entity-states', function () {
         await migrate();
     });
 
+    describe('a dimension that restricts its moves', () => {
+        const flow = {
+            pending: { initial: true, to: ['applied', 'discarded'] },
+            applied: { to: ['discarded'] },
+            discarded: { to: [] }
+        };
+
+        const modelProblems = async configuration => {
+            const broken = { id: `${ORDER}-flow`, kind: 'slot-fill', data: { target: NOTE, slot: 'traits', value: { trait: 'state', configuration } } };
+            await stop();
+            await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
+            const problems = validate().flatMap(problem => problem.message.split('; ')).filter(message => !message.includes('exposes no transition operation'));
+            await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+            await start();
+            await migrate();
+            return problems;
+        };
+
+        it('accepts transitions and initial states along the declared moves', async () => {
+            expect(await modelProblems({
+                states: { flow },
+                transitions: { apply: { flow: { pending: 'applied' } }, drop: { flow: { pending: 'discarded', applied: 'discarded' } } },
+                initialStates: { default: { flow: 'pending' } }
+            })).to.deep.equal([]);
+        });
+
+        it('reports a transition that moves against the declared moves, and one that leaves a state with none', async () => {
+            expect(await modelProblems({
+                states: { flow },
+                transitions: { reopen: { flow: { applied: 'pending' } }, revive: { flow: { discarded: 'pending' } }, stay: { flow: { applied: 'applied' } } },
+                initialStates: { default: { flow: 'pending' } }
+            })).to.deep.equal([
+                `${NOTE}: transition 'reopen' moves flow from applied to pending, which the dimension does not allow`,
+                `${NOTE}: transition 'revive' moves flow from discarded to pending, which the dimension does not allow`
+            ]);
+        });
+
+        it('reports an initial state in a state not marked initial, a move to an undeclared state and a state without moves', async () => {
+            expect(await modelProblems({
+                states: { flow: { ...flow, applied: { to: ['discarded', 'lost'] }, suspended: true } },
+                initialStates: { default: { flow: 'pending' }, late: { flow: 'applied' } }
+            })).to.deep.equal([
+                `${NOTE}: state flow=applied leads to undeclared state lost`,
+                `${NOTE}: state flow=suspended declares no moves in a dimension that restricts them (to: [] ends it)`,
+                `${NOTE}: initial state 'late' starts flow in applied, which the dimension does not allow`
+            ]);
+        });
+    });
+
     it('moves the dimensions a transition lists together, and only if all allow it', async () => {
         const multi = {
             states: { status: { open: true, closed: true }, payment: { due: true, settled: true } },

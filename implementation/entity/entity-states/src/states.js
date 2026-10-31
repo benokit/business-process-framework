@@ -9,9 +9,35 @@ export const applyTransition = ({ model, state, transition }) => {
 
 export const initialState = ({ model, name }) => model.initialStates?.[name ?? 'default'] ?? null;
 
-const undeclared = (model, dimension, state, where) => model.states[dimension]?.[state] === true
+const isDeclaration = declaration => declaration === true || (declaration !== null && typeof declaration === 'object');
+
+const undeclared = (model, dimension, state, where) => isDeclaration(model.states[dimension]?.[state])
     ? []
     : [`${where} uses undeclared state ${dimension}=${state}`];
+
+const declarationsOf = (model, dimension) => Object.entries(model.states[dimension] ?? {});
+
+const hasMoves = declaration => Array.isArray(declaration?.to);
+
+const hasInitial = declaration => declaration?.initial === true;
+
+const restrictsMoves = (model, dimension) => declarationsOf(model, dimension).some(([, declaration]) => hasMoves(declaration));
+
+const restrictsInitial = (model, dimension) => declarationsOf(model, dimension).some(([, declaration]) => hasInitial(declaration));
+
+const movesProblems = (model, dimension) => !restrictsMoves(model, dimension)
+    ? []
+    : declarationsOf(model, dimension).flatMap(([state, declaration]) => hasMoves(declaration)
+        ? declaration.to.filter(target => !isDeclaration(model.states[dimension][target])).map(target => `state ${dimension}=${state} leads to undeclared state ${target}`)
+        : [`state ${dimension}=${state} declares no moves in a dimension that restricts them (to: [] ends it)`]);
+
+const moveProblems = (model, name, dimension, source, target) => source === target || !hasMoves(model.states[dimension]?.[source]) || model.states[dimension][source].to.includes(target)
+    ? []
+    : [`transition '${name}' moves ${dimension} from ${source} to ${target}, which the dimension does not allow`];
+
+const initialProblems = (model, name, dimension, value) => !restrictsInitial(model, dimension) || hasInitial(model.states[dimension]?.[value])
+    ? []
+    : [`initial state '${name}' starts ${dimension} in ${value}, which the dimension does not allow`];
 
 const DEFAULT_PERMISSION_DIMENSION = 'status';
 
@@ -39,14 +65,19 @@ const operationsProblems = (model, entityType) => Object.entries(model.operation
 const checkStatesModel = (model, entityType) => [
     ...operationsProblems(model, entityType),
     ...permissionDimensionProblems(model),
+    ...Object.keys(model.states).flatMap(dimension => movesProblems(model, dimension)),
     ...Object.entries(model.transitions ?? {}).flatMap(([name, dimensions]) => Object.entries(dimensions)
         .flatMap(([dimension, edges]) => Object.entries(edges)
             .flatMap(([source, target]) => [
                 ...undeclared(model, dimension, source, `transition '${name}'`),
-                ...undeclared(model, dimension, target, `transition '${name}'`)
+                ...undeclared(model, dimension, target, `transition '${name}'`),
+                ...moveProblems(model, name, dimension, source, target)
             ]))),
     ...Object.entries(model.initialStates ?? {}).flatMap(([name, state]) => Object.entries(state)
-        .flatMap(([dimension, value]) => undeclared(model, dimension, value, `initial state '${name}'`)))
+        .flatMap(([dimension, value]) => [
+            ...undeclared(model, dimension, value, `initial state '${name}'`),
+            ...initialProblems(model, name, dimension, value)
+        ]))
 ];
 
 export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ id }) => {

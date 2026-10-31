@@ -37,8 +37,7 @@ const elements = [
                             issue: { status: { draft: 'issued' } },
                             activate: { status: { issued: 'active' }, versionStatus: { pending: 'applied' } },
                             cancel: { status: { draft: 'cancelled', issued: 'cancelled' }, versionStatus: { pending: 'discarded' } },
-                            annul: { status: { active: 'annulled' }, versionStatus: { applied: 'discarded' } },
-                            reopen: { versionStatus: { discarded: 'pending' } }
+                            annul: { status: { active: 'annulled' }, versionStatus: { applied: 'discarded' } }
                         },
                         initialStates: { default: { status: 'draft' } }
                     }
@@ -150,13 +149,35 @@ describe('entity-amendments', function () {
         expect(discarded.data.state).to.deep.equal({ status: 'cancelled', versionStatus: 'discarded' });
     });
 
-    it('refuses a transition that moves the version status against its order', async () => {
-        await policy('a-7');
-        const proposed = await propose('a-7', '2026-07-01', 110);
-        const cancelled = await move(proposed, 'cancel');
-        expect(cancelled.data.state.versionStatus).to.equal('discarded');
-        const error = await errorOf(invoke(RAISE, 'transition', { businessKey: cancelled.businessKey, revision: cancelled.revision, transition: 'reopen' }));
-        expect([error.code, error.message]).to.deep.equal(['invalid', "an amendment can't go from discarded to pending"]);
+    it('reports a process that moves the version status against its order, starts it elsewhere than pending or adds a state to it', async () => {
+        const broken = {
+            id: `${RAISE}-broken`,
+            kind: 'amendment-entity-type',
+            data: {
+                traits: {
+                    body: { configuration: { schema: '@amendment-entity-body' } },
+                    state: {
+                        configuration: {
+                            states: { status: { open: true }, versionStatus: { suspended: true } },
+                            transitions: { reopen: { versionStatus: { discarded: 'pending' }, status: { open: 'open' } }, undo: { versionStatus: { applied: 'pending' } } },
+                            initialStates: { default: { status: 'open' }, applied: { status: 'open', versionStatus: 'applied' } }
+                        }
+                    }
+                }
+            }
+        };
+        await stop();
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
+        const messages = validate().flatMap(problem => problem.message.replace(/^state: /, '').split('; ')).filter(message => message.startsWith(`${RAISE}-broken`));
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+        await start();
+        await migrate();
+        expect(messages).to.include.members([
+            `${RAISE}-broken: state versionStatus=suspended declares no moves in a dimension that restricts them (to: [] ends it)`,
+            `${RAISE}-broken: transition 'reopen' moves versionStatus from discarded to pending, which the dimension does not allow`,
+            `${RAISE}-broken: transition 'undo' moves versionStatus from applied to pending, which the dimension does not allow`,
+            `${RAISE}-broken: initial state 'applied' starts versionStatus in applied, which the dimension does not allow`
+        ]);
     });
 
     it('refuses an amendment created other than through the entity it amends, and a ledger write that is no command of it', async () => {
