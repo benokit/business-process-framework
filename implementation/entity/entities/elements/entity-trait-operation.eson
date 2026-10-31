@@ -41,6 +41,10 @@
                     "if": { "$negate": "#.use" },
                     "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.key"] } } }
                 },
+                {
+                    "if": { "$negate": { "$func/has-operation": { "element": "#.use.trait", "operation": "#.node.traitOperation.operation" } } },
+                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the trait under ", "#.key", " of ", "#.self.id", " has no operation ", "#.node.traitOperation.operation"] } } }
+                },
                 { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                 {
                     "outputKey": "command",
@@ -60,7 +64,7 @@
                 },
                 {
                     "inputMap": {
-                        "change": { "operation": "trait", "key": "#.key", "command": "#.command.command", "value": "#.command.value", "before": "#.before" },
+                        "change": { "operation": "trait", "entityOperation": "#.operation", "key": "#.key", "command": "#.command.command", "value": "#.command.value", "before": "#.before" },
                         "revision": "#.input.revision"
                     },
                     "invoke": "#.self.id",

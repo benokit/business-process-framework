@@ -23,7 +23,7 @@ export const invoke = async (reference, operationName, input, _ctx = Object.free
     }
     return framing.around(async () => {
         check(contractId(operation.owner, operationName, 'input'), input, where);
-        const output = await (stub ? stub({ input, _ctx }) : runMethod(operation.implementation, { input, self, _ctx }));
+        const output = await (stub ? stub({ input, _ctx }) : runMethod(operation.implementation, { input, self, _ctx, operation: operationName }));
         if (operation.output !== undefined) check(contractId(operation.owner, operationName, 'output'), output, where);
         return output;
     }, where);

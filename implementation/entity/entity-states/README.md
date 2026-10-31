@@ -14,14 +14,14 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 
 ## Operations by state
 
-Besides transitions, the model says in which states the other writes of an entity are possible, as a rule of the process that holds for everyone: `operations` maps `delete` or a trait key (other than `state`, which only transitions write) to the states it is possible in, in the shape of the sources of a transition (`{ <dimension>: { <state>: true } }`; with several dimensions all must hold). An operation the model doesn't list is possible in every state.
+Besides transitions, the model says in which states the operations an entity exposes are possible, as a rule of the process that holds for everyone: `operations` maps the name of an operation of the entity type (`update`, `delete`, `putSegment`, … any public operation other than `read`, `create` and `transition`) to the states it is possible in, in the shape of the sources of a transition (`{ <dimension>: { <state>: true } }`; with several dimensions all must hold). An operation the model doesn't list is possible in every state. Trait operations are private to the entity and have no name here.
 
 ```json
-"operations": { "body": { "status": { "draft": true } }, "delete": { "status": { "draft": true, "cancelled": true } } }
+"operations": { "update": { "status": { "draft": true } }, "delete": { "status": { "draft": true, "cancelled": true } } }
 ```
 
-- The fill `refuse-operations-outside-their-states` (slot `guards`) refuses an operation outside its states with `conflict`. It judges the record as it is, so `create` and `read` are never refused.
-- A subtype edits it with the [data algebra](../../../design/data-composition.md), like `states` and `transitions`. `validate()` reports a name that is neither `delete` nor a trait other than `state`, and states a dimension doesn't declare.
+- The fill `refuse-operations-outside-their-states` (slot `guards`) refuses an operation outside its states with `conflict`. It judges the record as it is and decides on the `entityOperation` of the change.
+- A subtype edits it with the [data algebra](../../../design/data-composition.md), like `states` and `transitions`. `validate()` reports a name that is no public operation of the entity type (or one of `read`, `create`, `transition`), and states a dimension doesn't declare.
 - Who may do an operation the states allow is a [permission](../../services/state-permissions/README.md), apart from this.
 
 ## Permission states

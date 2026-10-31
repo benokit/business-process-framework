@@ -14,7 +14,7 @@ const templates = lazy(() => instancesOf('execution-node-template').reduce((inde
 
 export const findTemplate = keyword => templates().get(keyword);
 
-const templateScope = (node, scope, input) => ({ input, self: scope.self, _ctx: scope._ctx, node });
+const templateScope = (node, scope, input) => ({ input, self: scope.self, _ctx: scope._ctx, operation: scope.operation, node });
 
 const runWrapper = (template, node, scope, input) => runMethod(template.data.implementation, {
     ...templateScope(node, scope, input),

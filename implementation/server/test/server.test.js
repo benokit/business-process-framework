@@ -216,7 +216,7 @@ describe('server with the demo', function () {
         const activated = await call('POST', `/entities/construction/${key}/transitions/activate`, null, token, { 'if-match': `"${issued.body.revision}"` });
         expect(activated.status).to.equal(403);
         const late = await call('PUT', `/entities/construction/${key}`, { body: contract.body.data.body }, token, { 'if-match': `"${issued.body.revision}"` });
-        expect([late.status, late.body.error.message]).to.deep.equal([409, "construction doesn't allow trait body in its current state"]);
+        expect([late.status, late.body.error.message]).to.deep.equal([409, "construction doesn't allow update in its current state"]);
     });
 
     it('lets an underwriter cancel a contract only while it is issued, an administrator in any state', async () => {

@@ -45,7 +45,7 @@
                                     "status": "draft"
                                 }
                             },
-                            "operations": { "body": { "status": { "draft": true } } }
+                            "operations": { "update": { "status": { "draft": true } } }
                         }
                     },
                     "timeline": {

@@ -7,7 +7,8 @@ describe('private operations', () => {
         kind('safe', {
             operations: {
                 secret: { ...operation({ set: 'hidden' }), private: true },
-                reveal: operation({ invoke: '#.self.id', operation: 'secret' })
+                reveal: operation({ invoke: '#.self.id', operation: 'secret' }),
+                named: operation({ set: '#.operation' })
             }
         }),
         kind('thief', { operations: { steal: operation({ invoke: 'a-safe', operation: 'secret' }) } }),
@@ -18,5 +19,9 @@ describe('private operations', () => {
         expect(await invoke('a-safe', 'reveal', null)).to.equal('hidden');
         const errors = await Promise.all([invoke('a-safe', 'secret', null), invoke('a-thief', 'steal', null)].map(call => call.catch(error => error.code)));
         expect(errors).to.deep.equal(['private-operation', 'private-operation']);
+    });
+
+    it('tells an operation its own name', async () => {
+        expect(await invoke('a-safe', 'named', null)).to.equal('named');
     });
 });

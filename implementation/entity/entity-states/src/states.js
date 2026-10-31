@@ -1,4 +1,5 @@
-import { hasOperation, isInstanceOf, selvesOf } from '@business-framework/core/kinds';
+import { getElement } from '@business-framework/core';
+import { hasOperation, isInstanceOf, resolveKind, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { traitsOf } from '@business-framework/entities/traits';
 
 export const applyTransition = ({ model, state, transition }) => {
@@ -23,18 +24,20 @@ const permissionDimensionProblems = model => model.states[permissionDimensionOf(
     ? [`the permission dimension ${permissionDimensionOf(model)} is no state dimension`]
     : [];
 
-const DELETE = 'delete';
+const NOT_GOVERNED = ['read', 'create', 'transition'];
 
-const STATE_KEY = 'state';
+const exposedOperationsOf = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
+    .filter(([name, operation]) => !operation.private && !NOT_GOVERNED.includes(name))
+    .map(([name]) => name);
 
-const operationsProblems = (model, traitKeys) => Object.entries(model.operations ?? {}).flatMap(([name, dimensions]) => [
-    ...name === DELETE || (traitKeys.includes(name) && name !== STATE_KEY) ? [] : [`operation '${name}' is neither delete nor a trait other than ${STATE_KEY}`],
+const operationsProblems = (model, entityType) => Object.entries(model.operations ?? {}).flatMap(([name, dimensions]) => [
+    ...exposedOperationsOf(entityType).includes(name) ? [] : [`operation '${name}' is no operation the entity type exposes, other than ${NOT_GOVERNED.join(', ')}`],
     ...Object.entries(dimensions).flatMap(([dimension, states]) => Object.keys(states)
         .flatMap(state => undeclared(model, dimension, state, `operation '${name}'`)))
 ]);
 
-const checkStatesModel = (model, traitKeys) => [
-    ...operationsProblems(model, traitKeys),
+const checkStatesModel = (model, entityType) => [
+    ...operationsProblems(model, entityType),
     ...permissionDimensionProblems(model),
     ...Object.entries(model.transitions ?? {}).flatMap(([name, dimensions]) => Object.entries(dimensions)
         .flatMap(([dimension, edges]) => Object.entries(edges)
@@ -49,7 +52,7 @@ const checkStatesModel = (model, traitKeys) => [
 export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ id }) => {
     const uses = Object.values(traitsOf(id)).filter(use => use.trait === trait);
     const unexposed = uses.length > 0 && !hasOperation({ element: id, operation: 'transition' }) ? [`${id}: has states and exposes no transition operation`] : [];
-    return [...unexposed, ...uses.flatMap(({ configuration }) => checkStatesModel(configuration, Object.keys(traitsOf(id))).map(problem => `${id}: ${problem}`))];
+    return [...unexposed, ...uses.flatMap(({ configuration }) => checkStatesModel(configuration, id).map(problem => `${id}: ${problem}`))];
 });
 
 const statesConfigurationOf = entityType => Object.values(traitsOf(entityType))
@@ -73,12 +76,9 @@ export const permissionStatesOfType = entityType => statesConfigurationOf(entity
 
 export const transitionsOfType = entityType => statesConfigurationOf(entityType).flatMap(model => Object.keys(model.transitions ?? {}));
 
-const operationNameOf = ({ operation, key }) => operation === DELETE ? DELETE : operation === 'trait' && key !== STATE_KEY ? key : null;
-
 const allows = (model, name, state) => Object.entries(model.operations?.[name] ?? {}).every(([dimension, states]) => states[state[dimension]] === true);
 
-export const forbidsOperation = ({ entityType, operation, key, state }) => {
-    const name = operationNameOf({ operation, key });
+export const forbidsOperation = ({ entityType, entityOperation, state }) => {
     const [model] = statesConfigurationOf(entityType);
-    return name !== null && model !== undefined && state !== undefined && !allows(model, name, state);
+    return entityOperation !== undefined && model !== undefined && state !== undefined && !allows(model, entityOperation, state);
 };

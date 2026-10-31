@@ -63,7 +63,7 @@ Besides the bootstrap kinds:
 
 ## Pipeline rules
 
-- A node has one keyword plus `inputMap` and `outputKey`. The node's own expressions (`set`, `if`, `invoke`, `execute`, …) see the scope it is written in; `inputMap` sets the node's input: what it passes to what it calls or runs (operations, `low`, methods, branches, `next`). Without `inputMap` the input is the current `#.input`.
+- A node has one keyword plus `inputMap` and `outputKey`. The node's own expressions (`set`, `if`, `invoke`, `execute`, …) see the scope it is written in (in an operation and in a template's implementation that includes `#.operation`, the name of the operation that runs); `inputMap` sets the node's input: what it passes to what it calls or runs (operations, `low`, methods, branches, `next`). Without `inputMap` the input is the current `#.input`.
 - `forEach` runs its body once per item of its input, with the item as `#.item`; the body keeps the scope it is written in, `#.input` included.
 - `throw` raises a `CoreError`: a string is its message (code `error`), an object gives `code`, `message` and `data`. In `catch`, `#.error` is that error.
 - Outputs (`outputKey`) are local to their sequence: a branch's outputs don't leak out. `set` doesn't merge.

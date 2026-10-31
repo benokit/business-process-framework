@@ -14,7 +14,7 @@ const lifecycle = {
         cancel: { status: { draft: 'cancelled', confirmed: 'cancelled' } }
     },
     initialStates: { default: { status: 'draft' }, confirmed: { status: 'confirmed' } },
-    operations: { body: { status: { draft: true } }, delete: { status: { draft: true, cancelled: true } } }
+    operations: { update: { status: { draft: true } }, delete: { status: { draft: true, cancelled: true } } }
 };
 
 const elements = [
@@ -65,7 +65,7 @@ describe('entity-states', function () {
         expect(changed.data.body.amount).to.equal(2);
         const confirmed = await transition('o-1', 'confirm', changed.revision);
         const refused = await errorOf(put('o-1', confirmed.revision, 3));
-        expect([refused.code, refused.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow trait body in its current state`]);
+        expect([refused.code, refused.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow update in its current state`]);
         expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-1', revision: confirmed.revision }))).code).to.equal('conflict');
         const cancelled = await transition('o-1', 'cancel', confirmed.revision);
         expect((await invoke(ORDER, 'delete', { businessKey: 'o-1', revision: cancelled.revision })).businessKey).to.equal('o-1');
@@ -82,7 +82,7 @@ describe('entity-states', function () {
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
         expect(validate().map(problem => problem.message)).to.deep.equal([[
             `state: ${NOTE}: has states and exposes no transition operation`,
-            `${NOTE}: operation 'amend' is neither delete nor a trait other than state`,
+            `${NOTE}: operation 'amend' is no operation the entity type exposes, other than read, create, transition`,
             `${NOTE}: operation 'delete' uses undeclared state status=z`,
             `${NOTE}: initial state 'default' uses undeclared state status=b`
         ].join('; ')]);

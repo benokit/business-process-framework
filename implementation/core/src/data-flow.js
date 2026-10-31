@@ -206,7 +206,7 @@ const isWrapper = template => extendsKind(kindOf(template), 'execution-node-wrap
 const silent = walk => ({ ...walk, problems: [] });
 
 const implementationType = (walk, template, scope, input, next) => method(silent(walk), template.data.implementation,
-    { input, self: scope.self, _ctx: scope._ctx, node: template.data.node ? schemaType(`${template.id}/node`) : ANY }, 'implementation', next);
+    { input, self: scope.self, _ctx: scope._ctx, operation: STRING, node: template.data.node ? schemaType(`${template.id}/node`) : ANY }, 'implementation', next);
 
 const templateNode = (walk, node, scope, input, path, keyword, template) => {
     const runs = isWrapper(template) ? `${path}.${keyword}` : undefined;
@@ -267,10 +267,10 @@ const methodStart = (author, path) => {
         const self = selfType(author.id);
         const operation = OPERATION.exec(path)?.[1];
         const input = operation ? contractInput(author.id, operation) : HOOK.test(path) ? NULL : ANY;
-        return { kind: author.id, scope: { input, self, _ctx } };
+        return { kind: author.id, scope: { input, self, _ctx, ...operation && { operation: STRING } } };
     }
     if (extendsKind(kindOf(author), 'execution-node-template') && path === 'implementation') {
-        return { scope: { input: ANY, self: ANY_SELF, _ctx, node: author.data.node ? schemaType(`${author.id}/node`) : ANY } };
+        return { scope: { input: ANY, self: ANY_SELF, _ctx, operation: STRING, node: author.data.node ? schemaType(`${author.id}/node`) : ANY } };
     }
     const kind = author.kind === 'slot-fill' ? fillTarget(author)?.id : kindOf(author);
     const input = author.kind === 'slot-fill' ? fillInput(author) : ANY;

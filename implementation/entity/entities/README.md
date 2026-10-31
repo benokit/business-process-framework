@@ -49,7 +49,7 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 | `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored | inside the transaction |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
-A change is `{ operation: create | trait | delete | read, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`.
+A change is `{ operation: create | trait | delete | read, entityOperation?, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`. `entityOperation` names the operation of the entity type that causes a `trait` or `delete` change (`update`, `putSegment`, `delete`, …), so that a guard can decide on what the entity exposes and not on the trait it ends in.
 
 ## Storage
 
