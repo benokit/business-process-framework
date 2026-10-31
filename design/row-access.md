@@ -60,7 +60,7 @@ A generic `interceptor` fill on `entity-type` ([slots](../implementation/entity/
 - **`create`:** the interceptor adds the ownership key to the created `data`, so the record is born with it.
 - **A trait write or `delete`:** the ownership is recomputed from the record after the write. It is stored only if it differs (deep equality), so a write that changes nothing the rule reads leaves it alone.
 - **One revision.** The ownership key changes with the write that caused it, in the same revision. The store's `update` replaces one key of `data`, so it takes a map of keys (a small extension), or the interceptor makes the second update without a revision bump; to settle when implementing.
-- **Every path.** Because it sits in `applyChange`, `writeTrait`, `put`, a state transition and a version `put` all pass through it, and no module writes ownership or forgets to.
+- **Every path.** Because it sits in `applyChange`, which every trait command passes through, `update`, a state transition and a version `put` all pass through it, and no module writes ownership or forgets to.
 - **A rule changes, the stored ownership doesn't.** Ownership is stored, since the filters run against it. Changing a rule (or adding the trait to a type with records) needs a backfill that recomputes every record; its writes publish the entity events, which reindex the search. Changing a scope or a grant needs neither, since filters are built at query time. The backfill is `entity-ownership-backfiller.run`, which the application names in a migration for the change; it writes only the records whose ownership differs, so it can run again.
 
 ## 4. Scopes
@@ -112,7 +112,7 @@ Access is calculated from the current context, never stored with the user: `_ctx
 |---|---|
 | `read` | the guard evaluates the expression on the record; not covered: `not-found`, never `forbidden`, so existence is not revealed |
 | `search` | the expression is translated to the search filter, so `total`, `limit` and `offset` are right; the index holds the ownership dimensions as filterable attributes |
-| `writeTrait`, `delete` | the record as it is (`before`) must be covered |
+| trait commands, `delete` | the record as it is (`before`) must be covered |
 | `create`, and a write that changes ownership | the record as it will be (`after`) must be covered too, so nobody creates or hands over a record they could not change; checked by a reaction (see above) |
 | related entities, versions, events | through the same `read` guard |
 

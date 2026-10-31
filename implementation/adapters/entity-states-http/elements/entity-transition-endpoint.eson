@@ -5,7 +5,7 @@
         "data": {
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/transitions/:transition",
-            "target": { "element": "entity-states", "operation": "transition" },
+            "target": { "element": "entity-transition-gateway", "operation": "transition" },
             "operation": { "area": "states", "resource": "#.input.entityType", "action": "#.input.transition" },
             "request": {
                 "entityType": "#.params.entityType",

@@ -1,0 +1,34 @@
+[
+    {
+        "id": "entity-transition-gateway-kind",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "transition": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!transition": "@entity-transition" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                            "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
+                        },
+                        {
+                            "if": { "$negate": { "$func/has-operation": { "element": "#.input.entityType", "operation": "transition" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no transition ", "#.input.transition"] } } }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "transition": "#.input.transition" },
+                            "invoke": "#.input.entityType",
+                            "operation": "transition"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-transition-gateway",
+        "kind": "entity-transition-gateway-kind",
+        "data": {}
+    }
+]

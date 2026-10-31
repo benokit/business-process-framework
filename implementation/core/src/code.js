@@ -153,12 +153,23 @@ const structureProblems = (node, keys, keyword, at, path) => [
     ...keyword === 'next' && !at.allowsNext ? [problem(at, path, 'next-outside-middleware', "'next' where no middleware runs")] : []
 ];
 
+const withinProblems = (template, at, path) => {
+    const within = template?.data.within;
+    const inside = within !== undefined && (at.author.kind === 'kind'
+        ? extendsKind(at.author.id, within)
+        : extendsKind(kindOf(at.author), 'execution-node-template') && at.author.data.within === within);
+    return within === undefined || inside
+        ? []
+        : [problem(at, path, 'node-outside-context', `'${template.data.keyword}' is valid only in an operation of a kind extending ${within}`)];
+};
+
 const nodeProblems = at => ({ node, path, keywords, keyword, template }) => {
     if (!isPlainObject(node)) return [problem(at, path, 'invalid-node', 'a node is an object')];
     if (keywords.length > 1) return [problem(at, path, 'ambiguous-node', `several node keywords: '${keywords.join("', '")}'`)];
     return [
         ...structureProblems(node, Object.keys(node).filter(key => !NODE_KEYS.includes(key)), keyword, at, path),
         ...NODE_CHECKS[keyword]?.(node, at, path) ?? [],
+        ...withinProblems(template, at, path),
         ...template?.data.node ? templateProblems(node, template, at, path) : []
     ];
 };

@@ -13,7 +13,7 @@ const unowned = [{ id: CONTRACT, kind: 'entity-type', data: { traits: { body } }
 
 const owned = [
     { id: PLAIN, kind: 'entity-type', data: { traits: { body } } },
-    { id: REGIONAL, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
+    { id: REGIONAL, kind: 'kind', data: { extends: 'owned-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
     {
         id: `ownership-backfill-${run}`,
         kind: 'slot-fill',

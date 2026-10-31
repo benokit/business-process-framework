@@ -59,6 +59,7 @@
                     ]
                 },
                 "applyChange": {
+                    "private": true,
                     "input": { "!change": "@entity-change", "revision": "number" },
                     "output": "@entity-record",
                     "implementation": [
@@ -137,24 +138,13 @@
                         }
                     ]
                 },
-                "writeTrait": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!key": "string", "!command": "string", "!value": "@any" },
+                "update": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
                     "output": "@entity-record",
-                    "implementation": [
-                        {
-                            "if": { "$negate": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.input.key" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.input.key"] } } }
-                        },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        {
-                            "inputMap": {
-                                "change": { "operation": "trait", "key": "#.input.key", "command": "#.input.command", "value": "#.input.value", "before": "#.before" },
-                                "revision": "#.input.revision"
-                            },
-                            "invoke": "#.self.id",
-                            "operation": "applyChange"
-                        }
-                    ]
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
+                        "traitOperation": { "key": "body", "operation": "put" }
+                    }
                 },
                 "delete": {
                     "input": { "!businessKey": "string", "!revision": "number" },

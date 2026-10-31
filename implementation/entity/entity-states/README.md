@@ -4,12 +4,25 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 
 - The trait `state`, configured by an `entity-states-model`: `{ states: { <dimension>: { <state>: true } }, transitions?: { <name>: { <dimension>: { <from state>: <target state> } } }, initialStates?: { default, <name>: { <dimension>: value } } }`. A transition changes every dimension it lists, and only if all of them have their current state among its sources (a transition listing several dimensions is coupled); from different source states it may lead to different targets. Everything is a map, so a subtype edits a model with the [data algebra](../../../design/data-composition.md): `{ "cancel": { "status": { "suspended": "cancelled" } } }` adds a source state, `{ "cancel": { "/unset": true } }` removes a transition. `validate()` reports sources, targets and initial states a dimension doesn't declare.
 - `data.state` is `{ <dimension>: value }`, set on `create` from `initialStates.default`, or from the initial state named in the create input (`traits: { state: "<name>" }`).
-- `entity-states.transition({ entityType, businessKey, revision, transition })` computes the target state from the record at `revision` and writes it as command `<transition>`; a record no longer at `revision` gives `conflict`. Errors: `not-found` (no entity type), `invalid` (no such transition), `conflict` (not allowed from the current state, revision mismatch).
+- An entity type with the `state` trait exposes the operation `transition({ businessKey, revision, transition })`: it runs the operation `transition` of the `state` trait (`traitOperation`), which computes the target state from the record at `revision` and writes it as command `<transition>`. The kind `stateful-entity-type` declares it; a kind that has to expose other operations too declares `transition` with the same node. `validate()` reports an entity type with states and no `transition`.
+-  a record no longer at `revision` gives `conflict`. Errors: `not-found` (no entity type), `invalid` (no such transition), `conflict` (not allowed from the current state, revision mismatch).
 - The schema `entity-transition` is the names of every transition of every entity type, registered at load, and types the `transition` input: a transition is a closed set of values, so [authorization](../../services/authorization/README.md) can grant transitions and `validate()` knows them.
 
 ```json
 { "id": "order", "kind": "entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
 ```
+
+## Operations by state
+
+Besides transitions, the model says in which states the other writes of an entity are possible, as a rule of the process that holds for everyone: `operations` maps `delete` or a trait key (other than `state`, which only transitions write) to the states it is possible in, in the shape of the sources of a transition (`{ <dimension>: { <state>: true } }`; with several dimensions all must hold). An operation the model doesn't list is possible in every state.
+
+```json
+"operations": { "body": { "status": { "draft": true } }, "delete": { "status": { "draft": true, "cancelled": true } } }
+```
+
+- The fill `refuse-operations-outside-their-states` (slot `guards`) refuses an operation outside its states with `conflict`. It judges the record as it is, so `create` and `read` are never refused.
+- A subtype edits it with the [data algebra](../../../design/data-composition.md), like `states` and `transitions`. `validate()` reports a name that is neither `delete` nor a trait other than `state`, and states a dimension doesn't declare.
+- Who may do an operation the states allow is a [permission](../../services/state-permissions/README.md), apart from this.
 
 ## Permission states
 

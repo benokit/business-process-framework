@@ -84,15 +84,9 @@
                     "input": { "!entityType": "@ref/versioned-entity-type", "!businessKey": "string", "!revision": "number", "!command": "string", "!value": "object" },
                     "output": "@entity-record",
                     "implementation": {
-                        "inputMap": {
-                            "businessKey": "#.input.businessKey",
-                            "revision": "#.input.revision",
-                            "key": "amendment-ledger",
-                            "command": "#.input.command",
-                            "value": "#.input.value"
-                        },
+                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "command": "#.input.command", "value": "#.input.value" },
                         "invoke": "#.input.entityType",
-                        "operation": "writeTrait"
+                        "operation": "writeLedger"
                     }
                 },
                 "close": {
@@ -147,15 +141,14 @@
                         },
                         {
                             "inputMap": {
-                                "entityType": "#.input.entityType",
                                 "businessKey": "#.record.businessKey",
                                 "revision": "#.record.revision",
                                 "key": "timeline",
                                 "validFrom": "#.input.amendment.data.body.effectiveFrom",
                                 "data": { "$merge": ["#.current.data", "#.input.amendment.data.body.changes"] }
                             },
-                            "invoke": "entity-versions",
-                            "operation": "put"
+                            "invoke": "#.input.entityType",
+                            "operation": "putSegment"
                         },
                         { "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment" }, "invoke": "#.self.id", "operation": "close" }
                     ]
@@ -172,14 +165,13 @@
                         },
                         {
                             "inputMap": {
-                                "entityType": "#.input.entityType",
                                 "businessKey": "#.record.businessKey",
                                 "revision": "#.record.revision",
                                 "key": "timeline",
                                 "validFrom": "#.input.amendment.data.body.effectiveFrom"
                             },
-                            "invoke": "entity-versions",
-                            "operation": "remove"
+                            "invoke": "#.input.entityType",
+                            "operation": "removeSegment"
                         }
                     ]
                 }

@@ -68,6 +68,21 @@
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/segment"] }, "value": "#.input.input.data" }, "invoke": "ajv", "operation": "assert" },
                         { "set": { "$func/start-timeline": "#.input.input" } }
                     ]
+                },
+                "put": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/segment"] }, "value": "#.input.input.data" }, "invoke": "ajv", "operation": "assert" },
+                        { "set": { "command": "put", "value": { "$func/put-segment": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "data": "#.input.input.data" } } } }
+                    ]
+                },
+                "remove": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": { "command": "remove", "value": { "$func/remove-segment": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom" } } }
+                    }
                 }
             }
         }
@@ -76,6 +91,43 @@
         "id": "versionable",
         "kind": "versions-trait",
         "data": { "cardinality": "many", "configuration": { "!schema": "@schema" } }
+    },
+    {
+        "id": "versionable-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "putSegment": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!key": "string", "!validFrom": "string", "!data": "object" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-versionable": { "entityType": "#.self.id", "key": "#.input.key" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no versionable trait under the key ", "#.input.key"] } } }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "#.input.key", "input": { "validFrom": "#.input.validFrom", "data": "#.input.data" } },
+                            "traitOperation": { "key": "#.input.key", "operation": "put" }
+                        }
+                    ]
+                },
+                "removeSegment": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!key": "string", "!validFrom": "string" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-versionable": { "entityType": "#.self.id", "key": "#.input.key" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no versionable trait under the key ", "#.input.key"] } } }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "#.input.key", "input": { "validFrom": "#.input.validFrom" } },
+                            "traitOperation": { "key": "#.input.key", "operation": "remove" }
+                        }
+                    ]
+                }
+            }
+        }
     },
     {
         "id": "entity-version-timeline",
@@ -93,41 +145,10 @@
                         {
                             "if": { "$negate": { "$func/is-versionable": "#.input" } },
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no versionable trait under the key ", "#.input.key"] } } }
-                        }
-                    ]
-                },
-                "put": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!key": "string", "!validFrom": "string", "!data": "object" },
-                    "output": "@entity-record",
-                    "implementation": [
-                        { "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key" }, "invoke": "#.self.id", "operation": "assertVersionable" },
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/segment"] }, "value": "#.input.data" }, "invoke": "ajv", "operation": "assert" },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
-                        {
-                            "outputKey": "timeline",
-                            "set": { "$func/put-segment": { "timeline": { "$get": { "object": "#.before.data", "path": "#.input.key" } }, "validFrom": "#.input.validFrom", "data": "#.input.data" } }
                         },
                         {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "#.input.key", "command": "put", "value": "#.timeline" },
-                            "invoke": "#.input.entityType",
-                            "operation": "writeTrait"
-                        }
-                    ]
-                },
-                "remove": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!key": "string", "!validFrom": "string" },
-                    "output": "@entity-record",
-                    "implementation": [
-                        { "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key" }, "invoke": "#.self.id", "operation": "assertVersionable" },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
-                        {
-                            "outputKey": "timeline",
-                            "set": { "$func/remove-segment": { "timeline": { "$get": { "object": "#.before.data", "path": "#.input.key" } }, "validFrom": "#.input.validFrom" } }
-                        },
-                        {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "#.input.key", "command": "remove", "value": "#.timeline" },
-                            "invoke": "#.input.entityType",
-                            "operation": "writeTrait"
+                            "if": { "$negate": { "$func/has-operation": { "element": "#.input.entityType", "operation": "putSegment" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " exposes no segment operations"] } } }
                         }
                     ]
                 },

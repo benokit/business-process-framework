@@ -47,7 +47,7 @@ describe('entity-relations', function () {
     it('maintains relations from all rules on create and update', async () => {
         const created = await invoke(CONTRACT, 'create', { businessKey: 'c-1', traits: { body: { holder: 'ada', broker: 'bob' } } });
         expect(await relationsOf(created)).to.deep.equal(['broker', 'holder']);
-        const updated = await invoke('entity-bodies', 'put', { entityType: CONTRACT, businessKey: 'c-1', revision: 1, value: { holder: 'bob' } });
+        const updated = await invoke(CONTRACT, 'update', { businessKey: 'c-1', revision: 1, value: { holder: 'bob' } });
         expect(await relationsOf(updated)).to.deep.equal(['holder']);
     });
 

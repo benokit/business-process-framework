@@ -71,7 +71,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
 |---|---|
 | Schema | the trait's `load` registers `<entityType>/body/schema` per use, as `segment-schemas` registers `…/segment` |
 | `create` | `initialize` asserts `traits.body` against the schema and returns it |
-| Write | `entity-bodies.put({ entityType, businessKey, revision, value })` checks the value and calls `writeTrait` with the key `body` and the command `put`; the `PUT` endpoint calls it |
+| Write | the operation `update({ businessKey, revision, value })` of the entity type runs the operation `put` of the trait on the key `body`, which checks the value; the `PUT` endpoint calls it |
 | Required | declared by `fixed.traits.body` of `entity-type`; `entity-record.data` is any object |
 | Events and changes | a body change is a `trait` change with `key: body`, `command: put`; there is no change operation or event type `update` |
 

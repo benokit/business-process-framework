@@ -3,7 +3,7 @@
         "id": "amendment-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "entity-type",
+            "extends": "stateful-entity-type",
             "fixed": { "traits": { "state": { "configuration": {
                 "states": {
                     "status": {
@@ -41,7 +41,8 @@
                     "default": {
                         "status": "draft"
                     }
-                }
+                },
+                "operations": { "body": { "status": { "draft": true } } }
             } } } }
         }
     },
@@ -73,21 +74,6 @@
             "value": {
                 "if": { "$and": [{ "$eq": ["#.input.operation", "create"] }, { "$negate": "#._ctx.amending" }] },
                 "then": { "throw": { "code": "forbidden", "message": "amendments are proposed through the entity they amend" } }
-            }
-        }
-    },
-    {
-        "id": "amendment-entity-updates-only-in-draft",
-        "kind": "slot-fill",
-        "data": {
-            "target": "amendment-entity-type",
-            "slot": "guards",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] },
-                "then": {
-                    "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
-                    "then": { "throw": { "code": "conflict", "message": "amendments can only be updated in draft" } }
-                }
             }
         }
     },

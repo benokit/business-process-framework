@@ -63,6 +63,23 @@
         }
     },
     {
+        "id": "owned-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "deriveOwnership": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
+                        "traitOperation": { "key": "ownership", "operation": "derive" }
+                    }
+                }
+            }
+        }
+    },
+    {
         "id": "ownership-backfiller",
         "kind": "kind",
         "data": {
@@ -103,6 +120,11 @@
                         },
                         { "set": {} }
                     ]
+                },
+                "derive": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": { "set": { "command": "derive", "value": "#.input.input.value" } }
                 }
             }
         }

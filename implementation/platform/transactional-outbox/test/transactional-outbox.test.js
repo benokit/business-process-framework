@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { getPool } from '@business-framework/postgresql';
-import { migrate, skipWithoutPostgres } from '../../postgresql/test/helpers.js';
+import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
 import { delivered, failures, outage } from './flaky-broker.js';
 
 const BROKER = new URL('./flaky-broker.js', import.meta.url).href;

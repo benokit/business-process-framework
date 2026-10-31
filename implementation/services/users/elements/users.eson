@@ -1,7 +1,7 @@
 [
     {
         "id": "user",
-        "kind": "entity-type",
+        "kind": "stateful-entity-type",
         "data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string", "access[]": "string", "*": "@any" } } },

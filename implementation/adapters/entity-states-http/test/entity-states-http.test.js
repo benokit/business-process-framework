@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
-import { headerPrincipal, ROLE_HEADER } from '../../authorization/test/principal.js';
+import { headerPrincipal, ROLE_HEADER } from '../../../services/authorization/test/principal.js';
 
 const run = Date.now();
 const ORDER = `order-states-http-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     {
         id: `${ORDER}-lifecycle`,
         kind: 'slot-fill',

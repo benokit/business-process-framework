@@ -17,21 +17,47 @@ const CONFIGURED = `configured-${run}`;
 const NOTED = `noted-${run}`;
 const SPECIALISED = `specialised-${run}`;
 
-const prefixed = id => ({ id: `${id}-trait`, kind: 'kind', data: { extends: 'entity-trait', operations: { initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }, { $coalesce: ['#.input.configuration.suffix', ''] }] } } } } } });
+const prefixed = id => ({
+    id: `${id}-trait`,
+    kind: 'kind',
+    data: {
+        extends: 'entity-trait',
+        operations: {
+            initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }, { $coalesce: ['#.input.configuration.suffix', ''] }] } } },
+            rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } }
+        }
+    }
+});
+
+const WRITING = `writing-${run}`;
 
 const elements = [
+    {
+        id: WRITING,
+        kind: 'kind',
+        data: {
+            extends: 'entity-type',
+            operations: {
+                writeTrait: {
+                    input: { '!businessKey': 'string', '!revision': 'number', '!key': 'string', '!command': 'string', '!value': '@any' },
+                    output: '@entity-record',
+                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', key: '#.input.key', input: { value: '#.input.value' } }, traitOperation: { key: '#.input.key', operation: 'rewrite' } }
+                }
+            }
+        }
+    },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(TAG),
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
-    { id: TAGGED, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } } } } },
+    { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
     fill('tagged-second', TAGGED, 'traits', { trait: TAG, key: 'second', configuration: { prefix: 'b: ' } }),
     { id: NOTED, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
-    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
+    { id: ORDER, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
         if: { $and: [{ $eq: ['#.input.operation', 'create'] }, { $lte: ['#.input.after.data.body.amount', 0] }] },
@@ -47,7 +73,7 @@ const elements = [
         if: { $eq: ['#.input.before.businessKey', 'o-raced'] },
         then: {
             if: { $eq: ['#.input.operation', 'delete'] },
-            then: { inputMap: { entityType: ORDER, businessKey: 'o-raced', revision: '#.input.before.revision', value: { amount: 2 } }, invoke: 'entity-bodies', operation: 'put' }
+            then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', value: { amount: 2 } }, invoke: ORDER, operation: 'update' }
         }
     }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
@@ -115,9 +141,9 @@ describe('entities', function () {
 
     it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-4', traits: { body: { amount: 1 } } });
-        const updated = await invoke('entity-bodies', 'put', { entityType: ORDER, businessKey: 'o-4', revision: 1, value: { amount: 2 } });
+        const updated = await invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, value: { amount: 2 } });
         expect([updated.revision, updated.data.body, updated.data[NOTE]]).to.deep.equal([2, { amount: 2 }, 'order: new']);
-        expect((await errorOf(invoke('entity-bodies', 'put', { entityType: ORDER, businessKey: 'o-4', revision: 1, value: { amount: 3 } }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, value: { amount: 3 } }))).code).to.equal('conflict');
         expect((await invoke(ORDER, 'read', { businessKey: 'o-4', revision: 1 })).data.body.amount).to.equal(1);
     });
 

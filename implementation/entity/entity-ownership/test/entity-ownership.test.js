@@ -59,7 +59,7 @@ describe('entity-ownership', function () {
 
     it('rederives it in the revision of the write that changes the data', async () => {
         await create('c-2', { region: 'de', team: 'motor' });
-        const moved = await invoke('entity-bodies', 'put', { entityType: CONTRACT, businessKey: 'c-2', revision: 1, value: { region: 'fr', team: 'motor' } });
+        const moved = await invoke(CONTRACT, 'update', { businessKey: 'c-2', revision: 1, value: { region: 'fr', team: 'motor' } });
         expect([moved.revision, moved.data.ownership]).to.deep.equal([2, { region: 'fr', departments: ['motor'] }]);
         const past = await invoke(CONTRACT, 'read', { businessKey: 'c-2', revision: 1 });
         expect(past.data.ownership.region).to.equal('de');
@@ -67,7 +67,7 @@ describe('entity-ownership', function () {
 
     it('leaves the record alone when the ownership does not change', async () => {
         await create('c-3', { region: 'de', team: 'motor' });
-        const written = await invoke('entity-bodies', 'put', { entityType: CONTRACT, businessKey: 'c-3', revision: 1, value: { region: 'de', team: 'motor' } });
+        const written = await invoke(CONTRACT, 'update', { businessKey: 'c-3', revision: 1, value: { region: 'de', team: 'motor' } });
         expect([written.revision, written.data.ownership]).to.deep.equal([2, { region: 'de', departments: ['motor'] }]);
     });
 

@@ -6,6 +6,7 @@
             "!states{}": "{boolean}",
             "transitions": { "*": { "*": { "*": "string" } } },
             "initialStates{}": "{string}",
+            "operations": { "*": { "*": { "*": "boolean" } } },
             "permissionDimension": "string"
         }
     },
@@ -64,6 +65,15 @@
         }
     },
     {
+        "id": "state-forbids-operation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!operation": "string", "key": "string", "state": "object" }, "output": "boolean" },
+            "module": "@business-framework/entity-states/states",
+            "export": "forbidsOperation"
+        }
+    },
+    {
         "id": "states-model-problems",
         "kind": "pure-function",
         "data": {
@@ -87,6 +97,22 @@
                         },
                         { "set": "#.state" }
                     ]
+                },
+                "transition": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$get": { "object": { "$coalesce": ["#.input.configuration.transitions", {}] }, "path": "#.input.input.transition" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no transition ", "#.input.input.transition"] } } }
+                        },
+                        { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.input.configuration", "state": "#.input.value", "transition": "#.input.input.transition" } } },
+                        {
+                            "if": { "$negate": "#.state" },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["transition ", "#.input.input.transition", " isn't allowed from the current state"] } } }
+                        },
+                        { "set": { "command": "#.input.input.transition", "value": "#.state" } }
+                    ]
                 }
             },
             "lifecycle": {
@@ -100,37 +126,26 @@
         "data": { "configuration": "@entity-states-model" }
     },
     {
+        "id": "stateful-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "transition": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!transition": "@entity-transition" },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "transition": "#.input.transition" } },
+                        "traitOperation": { "key": "state", "operation": "transition" }
+                    }
+                }
+            }
+        }
+    },
+    {
         "id": "entity-state-machine",
         "kind": "kind",
         "data": {
-            "operations": {
-                "transition": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!transition": "@entity-transition" },
-                    "output": "@entity-record",
-                    "implementation": [
-                        {
-                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
-                            "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
-                        },
-                        { "outputKey": "model", "set": { "$get": { "object": { "$func/entity-traits": "#.input.entityType" }, "path": "state.configuration" } } },
-                        {
-                            "if": { "$negate": { "$get": { "object": { "$coalesce": ["#.model.transitions", {}] }, "path": "#.input.transition" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no transition ", "#.input.transition"] } } }
-                        },
-                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.input.entityType", "operation": "read" },
-                        { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.model", "state": "#.before.data.state", "transition": "#.input.transition" } } },
-                        {
-                            "if": { "$negate": "#.state" },
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["transition ", "#.input.transition", " isn't allowed from the current state"] } } }
-                        },
-                        {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "state", "command": "#.input.transition", "value": "#.state" },
-                            "invoke": "#.input.entityType",
-                            "operation": "writeTrait"
-                        }
-                    ]
-                }
-            },
             "lifecycle": {
                 "load": {
                     "inputMap": { "id": "entity-transition", "schema": { "\\$data=1": { "$func/transition-names": null } } },
@@ -144,5 +159,22 @@
         "id": "entity-states",
         "kind": "entity-state-machine",
         "data": {}
+    },
+    {
+        "id": "refuse-operations-outside-their-states",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "guards",
+            "value": {
+                "if": { "$func/state-forbids-operation": { "entityType": "#.self.id", "operation": "#.input.operation", "key": "#.input.key", "state": "#.input.before.data.state" } },
+                "then": {
+                    "throw": {
+                        "code": "conflict",
+                        "message": { "$str": ["#.self.id", " doesn't allow ", "#.input.operation", " ", { "$coalesce": ["#.input.key", ""] }, " in its current state"] }
+                    }
+                }
+            }
+        }
     }
 ]

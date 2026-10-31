@@ -129,4 +129,14 @@ describe('code checks', () => {
             ['invalid-reference', 'bad', 'channelKind']
         ]);
     });
+
+    it('reports a node valid only within a kind in code of any other element', async () => {
+        await bootWith(
+            kind('vault', {}),
+            kind('safe-vault', { extends: 'vault', operations: { open: operation({ guarded: true }) } }),
+            kind('shed', { operations: { open: operation({ guarded: true }) } }),
+            { id: 'guarded-node', kind: 'execution-node-template', data: { keyword: 'guarded', within: 'vault', implementation: { set: 1 } } },
+            element('a-shed', 'shed'));
+        expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([['node-outside-context', 'shed', 'operations.open.implementation']]);
+    });
 });

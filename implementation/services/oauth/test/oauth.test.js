@@ -59,7 +59,7 @@ describe('oauth', function () {
         expect(await whoami(token)).to.deep.equal({ userId: ADA, username: ADA, roles: [], access: [] });
         expect((await invoke('user-cache', 'get', { key: ADA })).found).to.equal(true);
         const user = await invoke('user', 'read', { businessKey: ADA });
-        await invoke('entity-bodies', 'put', { entityType: 'user', businessKey: ADA, revision: user.revision, value: { ...user.data.body, roles: ['clerk'] } });
+        await invoke('user', 'update', { businessKey: ADA, revision: user.revision, value: { ...user.data.body, roles: ['clerk'] } });
         await eventually(async () => (await whoami(token)).roles[0] === 'clerk');
         expect((await invoke('user', 'read', { businessKey: ADA })).revision).to.equal(2);
     });
@@ -75,7 +75,7 @@ describe('oauth', function () {
         expect(await whoami()).to.equal(undefined);
         expect(await whoami(`${token.slice(0, -2)}xx`)).to.equal(undefined);
         expect((await whoami(token)).userId).to.equal(`bob-${run}`);
-        await invoke('entity-states', 'transition', { entityType: 'user', businessKey: `bob-${run}`, revision: 1, transition: 'suspend' });
+        await invoke('user', 'transition', { businessKey: `bob-${run}`, revision: 1, transition: 'suspend' });
         await eventually(async () => (await whoami(token)) === undefined);
     });
 });

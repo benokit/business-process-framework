@@ -147,19 +147,21 @@ describe('server with the demo', function () {
         expect([winner.businessKey, await ledgerOf(contract, administrator)]).to.deep.equal([`${contract.businessKey}-001`, { last: 1, open: winner.businessKey }]);
     });
 
-    it('refuses writes to the ledger and the timeline other than by their own commands', async () => {
+    it('refuses writes to the ledger other than by its own commands, and exposes no write of a timeline command', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`amender-w-${run}`, ['underwriter-role']), userWith(`approver-w-${run}`, ['administrator-role'])]);
         const contract = await activeContract(underwriter, administrator);
-        const write = (key, command, value) => invoke('construction', 'writeTrait', { businessKey: contract.businessKey, revision: contract.revision, key, command, value })
+        const write = (operation, input) => invoke('construction', operation, { businessKey: contract.businessKey, revision: contract.revision, ...input })
             .then(() => 'accepted', error => `${error.code}: ${error.message}`);
         expect(await Promise.all([
-            write('amendment-ledger', 'reset', { last: 0, open: null }),
-            write('amendment-ledger', 'open', { last: 'many', open: null }),
-            write('timeline', 'overwrite', {})
+            write('writeLedger', { command: 'reset', value: { last: 0, open: null } }),
+            write('writeLedger', { command: 'open', value: { last: 'many', open: null } }),
+            write('writeTrait', { key: 'timeline', command: 'overwrite', value: {} }),
+            write('applyChange', { change: {} })
         ])).to.deep.equal([
             'invalid: the amendment ledger has no command reset',
             'invalid: the amendment ledger is { last, open }',
-            'invalid: the timeline has no command overwrite'
+            "unknown-operation: construction has no operation 'writeTrait'",
+            'private-operation: construction.applyChange is private to construction'
         ]);
     });
 
@@ -214,7 +216,7 @@ describe('server with the demo', function () {
         const activated = await call('POST', `/entities/construction/${key}/transitions/activate`, null, token, { 'if-match': `"${issued.body.revision}"` });
         expect(activated.status).to.equal(403);
         const late = await call('PUT', `/entities/construction/${key}`, { body: contract.body.data.body }, token, { 'if-match': `"${issued.body.revision}"` });
-        expect([late.status, late.body.error.message]).to.deep.equal([409, 'insurance contracts can only be updated in draft']);
+        expect([late.status, late.body.error.message]).to.deep.equal([409, "construction doesn't allow trait body in its current state"]);
     });
 
     it('lets an underwriter cancel a contract only while it is issued, an administrator in any state', async () => {

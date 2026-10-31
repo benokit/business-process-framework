@@ -99,7 +99,7 @@
     {
         "id": "operation",
         "kind": "schema",
-        "data": { "input": "@schema", "output": "@schema", "implementation": "@method" }
+        "data": { "input": "@schema", "output": "@schema", "implementation": "@method", "private": "boolean" }
     },
     {
         "id": "slot",

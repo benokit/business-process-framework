@@ -23,6 +23,14 @@
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
                         { "set": "#.input.input" }
                     ]
+                },
+                "put": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
+                        { "set": { "command": "put", "value": "#.input.input.value" } }
+                    ]
                 }
             }
         }
@@ -36,20 +44,6 @@
         "id": "entity-body-writer",
         "kind": "kind",
         "data": {
-            "operations": {
-                "put": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!value": "object" },
-                    "output": "@entity-record",
-                    "implementation": [
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/body/schema"] }, "value": "#.input.value" }, "invoke": "ajv", "operation": "assert" },
-                        {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "key": "body", "command": "put", "value": "#.input.value" },
-                            "invoke": "#.input.entityType",
-                            "operation": "writeTrait"
-                        }
-                    ]
-                }
-            },
             "lifecycle": {
                 "load": {
                     "inputMap": { "$func/body-schemas": null },

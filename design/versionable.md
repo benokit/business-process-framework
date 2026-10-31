@@ -41,7 +41,7 @@ The value of the trait is a map from the start of a segment to the segment:
 
 A replace is a split with an infinitely small left interval, so `put` is one rule: the key is not less than the last. Either way every earlier segment keeps its content; only the stored delta of the previous one is recomputed, against the new last segment. Segments are validated against the configured `schema` when written, never when read.
 
-A write touches at most the last two segments: the timeline is append-only at its end. `put` and `remove` are trait commands: they run through `writeTrait`, so the optimistic `revision`, guards, interceptors, reactions and events apply as for any trait.
+A write touches at most the last two segments: the timeline is append-only at its end. `put` and `remove` are operations of the trait: they run through the node `traitOperation`, so the optimistic `revision`, guards, interceptors, reactions and events apply as for any trait.
 
 ## 4. Processes that change a versionable entity
 
@@ -57,7 +57,7 @@ A trait is addressed by its key in `data`, and today the key is the trait's id. 
 
 - `key` defaults to the trait's id, so every existing assignment is unchanged. A key is lowercase letters and digits in segments joined by `-`, because it is used in paths.
 - A trait declares its **cardinality**: `one` fixes the key to the trait's id (`state`), `many` requires a key, unique on the entity type (`versionable`). `validate()` reports a missing or repeated key, a key on a `one` trait, and a key used by two traits (`body` is the trait with the key `body`).
-- The most specific assignment wins per key. A change, a command and `$func/entity-traits` carry the key and the trait's id; a trait command receives its key to find its configuration.
+- The most specific assignment wins per key. A change, a command and `$func/entity-traits` carry the key and the trait's id; a trait operation receives its key to find its configuration.
 - Timelines are independent. A rule that spans two of them belongs to a guard on the entity type.
 
 ## 6. Open

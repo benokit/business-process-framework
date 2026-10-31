@@ -1,0 +1,72 @@
+[
+    {
+        "id": "trait-operation-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "value": "@any", "input": "@any" }
+    },
+    {
+        "id": "trait-command",
+        "kind": "schema",
+        "data": { "!command": "string", "!value": "@any" }
+    },
+    {
+        "id": "trait-operator",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "run": {
+                    "input": { "!trait": "@ref/entity-trait", "!operation": "string", "!request": "@trait-operation-input" },
+                    "output": "@trait-command",
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "#.input.operation" }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-trait-operator",
+        "kind": "trait-operator",
+        "data": {}
+    },
+    {
+        "id": "trait-operation",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "traitOperation",
+            "within": "entity-type",
+            "node": { "!traitOperation": { "!key": "@mapping", "!operation": "string" } },
+            "implementation": [
+                { "outputKey": "key", "set": { "$func/apply-mapping": { "mapping": "#.node.traitOperation.key", "input": "#" } } },
+                { "outputKey": "use", "set": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.key" } } },
+                {
+                    "if": { "$negate": "#.use" },
+                    "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.key"] } } }
+                },
+                { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                {
+                    "outputKey": "command",
+                    "inputMap": {
+                        "trait": "#.use.trait",
+                        "operation": "#.node.traitOperation.operation",
+                        "request": {
+                            "entityType": "#.self.id",
+                            "key": "#.key",
+                            "configuration": "#.use.configuration",
+                            "value": { "$get": { "object": "#.before.data", "path": "#.key" } },
+                            "input": "#.input.input"
+                        }
+                    },
+                    "invoke": "entity-trait-operator",
+                    "operation": "run"
+                },
+                {
+                    "inputMap": {
+                        "change": { "operation": "trait", "key": "#.key", "command": "#.command.command", "value": "#.command.value", "before": "#.before" },
+                        "revision": "#.input.revision"
+                    },
+                    "invoke": "#.self.id",
+                    "operation": "applyChange"
+                }
+            ]
+        }
+    }
+]

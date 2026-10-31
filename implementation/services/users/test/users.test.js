@@ -34,7 +34,7 @@ describe('users', function () {
     it('holds only declared roles', async () => {
         const subject = `bob-${run}`;
         const created = await invoke('user', 'create', { traits: { body: { subject, roles: ['clerk-role'] } } });
-        const error = await invoke('entity-bodies', 'put', { entityType: 'user', businessKey: subject, revision: created.revision, value: { subject, roles: ['clerk-role', 'root', 'clerk-actor'] } }).catch(e => e);
+        const error = await invoke('user', 'update', { businessKey: subject, revision: created.revision, value: { subject, roles: ['clerk-role', 'root', 'clerk-actor'] } }).catch(e => e);
         expect([error.code, error.message]).to.deep.equal(['invalid', 'unknown roles: root, clerk-actor']);
         expect((await invoke('user', 'create', { traits: { body: { subject: `carl-${run}`, roles: ['root'] } } }).catch(e => e)).message).to.equal('unknown roles: root');
     });

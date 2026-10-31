@@ -13,7 +13,7 @@ export const record = ({ input, _ctx }) => {
 };
 
 const elements = [
-    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } },
     { id: `${ORDER}-group`, kind: 'slot-fill', data: { target: ORDER, slot: 'eventGroup', value: 'all-orders' } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } } } } },
@@ -44,8 +44,8 @@ describe('entity-events', function () {
 
     it('publishes create, trait and delete events in order', async () => {
         await invoke(ORDER, 'create', { businessKey: 'e-1', traits: { body: { amount: 1 } } });
-        await invoke('entity-bodies', 'put', { entityType: ORDER, businessKey: 'e-1', revision: 1, value: { amount: 2 } });
-        await invoke('entity-states', 'transition', { entityType: ORDER, businessKey: 'e-1', revision: 2, transition: 'finish' });
+        await invoke(ORDER, 'update', { businessKey: 'e-1', revision: 1, value: { amount: 2 } });
+        await invoke(ORDER, 'transition', { businessKey: 'e-1', revision: 2, transition: 'finish' });
         await invoke(ORDER, 'delete', { businessKey: 'e-1', revision: 3 });
         await eventually(() => received.length === 4);
         expect(received.map(event => [event.eventType, event.revision])).to.deep.equal([['create', 1], ['trait', 2], ['trait', 3], ['delete', 3]]);

@@ -16,7 +16,8 @@ export const calls = {
         evaluate(node.invoke, scope),
         evaluate(node.operation, scope),
         input,
-        scope._ctx),
+        scope._ctx,
+        scope.self),
 
     execute: (node, scope, input) => runMethod(evaluate(node.execute, scope), methodScope(scope, input)),
 

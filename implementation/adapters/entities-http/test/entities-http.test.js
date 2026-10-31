@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
-import { headerPrincipal, ROLE_HEADER } from '../../authorization/test/principal.js';
+import { headerPrincipal, ROLE_HEADER } from '../../../services/authorization/test/principal.js';
 
 const run = Date.now();
 const ORDER = `order-http-${run}`;

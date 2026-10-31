@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
-import { skipWithoutPostgres } from '../../postgresql/test/helpers.js';
+import { skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
 
 const TABLE = `test_tx_${Date.now()}`;
 

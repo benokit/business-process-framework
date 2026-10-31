@@ -9,9 +9,9 @@ Each route's [operation](../../services/authorization/README.md) is `{ area: "en
 | `GET` | `/entity-types` | `entities.types` → `{ items: [{ id, kind, traits }] }`, `traits` mapping each key to `{ trait, configuration }` (the schema of the `body` among them) | 200 | |
 | `POST` | `/entities/:entityType` | `create` (body `{ businessKey?, body, traits? }`, mapped onto `traits.body`) | 201 | yes |
 | `GET` | `/entities/:entityType/:businessKey?revision` | `read` | 200 | yes |
-| `PUT` | `/entities/:entityType/:businessKey` | `entity-bodies.put` (body `{ body }`, `If-Match` required) | 200 | yes |
+| `PUT` | `/entities/:entityType/:businessKey` | `update` of the entity type (body `{ body }`, `If-Match` required) | 200 | yes |
 | `DELETE` | `/entities/:entityType/:businessKey` | `delete` (`If-Match` required) | 200 | |
 
 The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../platform/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409.
 
-Only these operations are exposed; `writeTrait` is not. Trait commands are exposed by their own packages ([entity-states-http](../entity-states-http/README.md)), and an operation that an entity class adds by an [`http-endpoint`](../../platform/http-server/README.md#http-endpoint) written for it.
+Only these operations are exposed; trait commands are private to the entity, and exposed through the operations the entity declares and the endpoints of the trait packages ([entity-states-http](../entity-states-http/README.md)), and an operation that an entity class adds by an [`http-endpoint`](../../platform/http-server/README.md#http-endpoint) written for it.

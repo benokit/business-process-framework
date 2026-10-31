@@ -8,7 +8,7 @@ const POLICY = `policy-${run}`;
 const fill = (id, value) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value } });
 
 const elements = [
-    { id: POLICY, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!owner': 'string' } } } } } },
+    { id: POLICY, kind: 'versionable-entity-type', data: { traits: { body: { configuration: { schema: { '!owner': 'string' } } } } } },
     fill('pricing', { trait: 'versionable', key: 'pricing', configuration: { schema: { '!premium': 'number', currency: 'string' } } }),
     fill('terms', { trait: 'versionable', key: 'terms', configuration: { schema: { '!text': 'string' } } })
 ];
@@ -19,7 +19,9 @@ const errorOf = promise => promise.then(() => null, error => error);
 
 const first = { pricing: { validFrom: '2025-01-01', data: { premium: 100 } }, terms: { validFrom: '2025-01-01', data: { text: 'a' } } };
 
-const timeline = (operation, input) => invoke('entity-versions', operation, { entityType: POLICY, ...input });
+const timeline = (operation, input) => operation === 'resolve'
+    ? invoke('entity-versions', operation, { entityType: POLICY, ...input })
+    : invoke(POLICY, `${operation}Segment`, input);
 
 describe('entity-versions', function () {
     before(async function () {

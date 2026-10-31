@@ -1,7 +1,7 @@
 [
     {
         "id": "memo",
-        "kind": "entity-type",
+        "kind": "owned-entity-type",
         "data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!title": "string", "!department": "@department" } } },

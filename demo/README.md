@@ -5,7 +5,7 @@ An insurance application built on the [framework](../implementation/README.md). 
 ## Contents
 
 - **Parties**: searchable, with a `parties-by-type-search-query` search query at `POST /parties/search-by-type`.
-- **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a draft-only update guard and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type whose lifecycle is composed from the construction one with `/ref` of a path and `/merge`: they add the state `suspended`, the transition `suspend` and `cancel` from it.
+- **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a model that allows updates only in draft and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type whose lifecycle is composed from the construction one with `/ref` of a path and `/merge`: they add the state `suspended`, the transition `suspend` and `cancel` from it.
 - **Security**: [roles](security/roles.eson) (see [Roles](#roles)) and [row access](#row-access).
 
 ## Contract terms and amendments
@@ -32,7 +32,7 @@ How an amendment goes:
 
 ### State permissions
 
-Who may do a transition can depend on the state it is done from ([state-permissions](../design/state-permissions.md)). Which states are locked for editing is a rule of the process, the guard above; this is about who may act. The contract's state is its permission state (the default with one dimension). The `underwriter-actor` may discard and issue contracts and may `cancel` one only while it is `issued`; cancelling an active one needs the administrator, whose grants name no state. `npx bpf explain construction ../demo` shows the roles per permission state.
+Who may do a transition can depend on the state it is done from ([state-permissions](../design/state-permissions.md)). Which states are locked for editing is a rule of the process, declared in the model as `operations`; this is about who may act. The contract's state is its permission state (the default with one dimension). The `underwriter-actor` may discard and issue contracts and may `cancel` one only while it is `issued`; cancelling an active one needs the administrator, whose grants name no state. `npx bpf explain construction ../demo` shows the roles per permission state.
 
 ### Row access
 

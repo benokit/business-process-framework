@@ -44,7 +44,8 @@
                                 "default": {
                                     "status": "draft"
                                 }
-                            }
+                            },
+                            "operations": { "body": { "status": { "draft": true } } }
                         }
                     },
                     "timeline": {
@@ -64,7 +65,15 @@
                 }
             },
             "operations": {
-                "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } }
+                "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } },
+                "deriveOwnership": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
+                        "traitOperation": { "key": "ownership", "operation": "derive" }
+                    }
+                }
             }
         }
     },
@@ -96,21 +105,6 @@
                     ]
                 }
             ]
-        }
-    },
-    {
-        "id": "contract-updates-only-in-draft",
-        "kind": "slot-fill",
-        "data": {
-            "target": "insurance-contract-type",
-            "slot": "guards",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] },
-                "then": {
-                    "if": { "$neq": ["#.input.before.data.state.status", "draft"] },
-                    "then": { "throw": { "code": "conflict", "message": "insurance contracts can only be updated in draft" } }
-                }
-            }
         }
     },
     {
