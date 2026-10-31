@@ -30,6 +30,10 @@ How an amendment goes:
 
 [Roles](security/roles.eson) ([authorization](../implementation/services/authorization/README.md)): an `underwriter-role` (its own `underwriter-actor`: contracts, their transitions except `activate`, and parties; plus the framework's `entity-reader-actor`), a `viewer-role` and an `administrator-role`. The migration [`administrator-user`](security/administrator.eson) creates the user `administrator` with the administrator role; the demo's [app config](security/app-config.eson) maps the login `admin` to it (the `actAs` setting of `authenticate`), so a token of the mock identity provider for `admin` administers users. A real deployment leaves that file out and maps its own login (`BPF__security__actAs__administrator=<subject>`).
 
+### State permissions
+
+Who may do a transition can depend on the state it is done from ([state-permissions](../design/state-permissions.md)). Which states are locked for editing is a rule of the process, the guard above; this is about who may act. The contract's state is its permission state (the default with one dimension). The `underwriter-actor` may discard and issue contracts and may `cancel` one only while it is `issued`; cancelling an active one needs the administrator, whose grants name no state. `npx bpf explain construction ../demo` shows the roles per permission state.
+
 ### Row access
 
 What a user may do and which contracts they reach are two permissions, assigned separately ([row-access](../design/row-access.md)). The *process* permissions are the roles above; the *access* permissions are [access profiles](security/access-profiles.eson), and a user holds `roles` and `access` as two lists. The contract class ([insurance-contract-type](contracts/insurance-contract-type.eson)) fixes an `ownership` trait with the dimensions `region` and `confidential` and a rule that takes them from the body (`region` is required, `confidential` defaults to false). [Scopes](security/scopes.eson) name rows: `own-region-ownership-scope` (the contract's region is the `region` claim of the user's principal) and `confidential-ownership-scope`; the claims are declared as the schema `principal-claims`.

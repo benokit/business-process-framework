@@ -5,7 +5,8 @@
         "data": {
             "!states{}": "{boolean}",
             "transitions": { "*": { "*": { "*": "string" } } },
-            "initialStates{}": "{string}"
+            "initialStates{}": "{string}",
+            "permissionDimension": "string"
         }
     },
     {
@@ -33,6 +34,33 @@
             "signature": { "input": "@any", "output": "[string]" },
             "module": "@business-framework/entity-states/states",
             "export": "transitionNames"
+        }
+    },
+    {
+        "id": "permission-state",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!state": "object" }, "output": "@any" },
+            "module": "@business-framework/entity-states/states",
+            "export": "permissionState"
+        }
+    },
+    {
+        "id": "permission-state-names",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entity-states/states",
+            "export": "permissionStateNames"
+        }
+    },
+    {
+        "id": "permission-states-of-type",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entity-states/states",
+            "export": "permissionStatesOfType"
         }
     },
     {

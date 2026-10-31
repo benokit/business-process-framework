@@ -5,7 +5,8 @@
         "data": {
             "grants": [
                 { "area": "entities", "resource": "insurance-contract-type" },
-                { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue", "cancel"] },
+                { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue"] },
+                { "area": "states", "resource": "insurance-contract-type", "action": "cancel", "state": "issued" },
                 { "area": "entities", "resource": "party", "action": ["query", "create", "update"] },
                 { "area": "entities", "resource": "amendment-entity-type", "action": ["query", "update"] },
                 { "area": "states", "resource": "amendment-entity-type", "action": ["issue", "cancel", "annul"] },

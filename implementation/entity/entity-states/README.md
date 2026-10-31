@@ -10,3 +10,15 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 ```json
 { "id": "order", "kind": "entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
 ```
+
+## Permission states
+
+One state dimension of a model is its **permission state**: the value that [state-permissions](../../services/state-permissions/README.md) grants name. `permissionDimension` names it; it defaults to the only dimension of the model, otherwise to `status`.
+
+```json
+"states": { "status": { "draft": true, "issued": true }, "payment": { "open": true, "paid": true } },
+"permissionDimension": "payment"
+```
+
+- `validate()` reports a permission dimension the model doesn't declare, which includes a model with several dimensions and none named `status`.
+- `$func/permission-state` gives the permission state of a record's state for an entity type, `$func/permission-state-names` the union of the states of the permission dimensions of every entity type.

@@ -93,6 +93,15 @@ The algebra is specified in [data-composition.md](data-composition.md) (P21), th
 | R11.6 | Process and access permissions as two kinds, assigned separately: grants carry no scopes, the operation isn't in the context, a user holds `roles` and `access`, no profile reaches nothing ([row-access](row-access.md) §1) | R11.3 | One process role serves users of every region; the region comes from the access profile and the user's claim | done |
 | R11.7 | Organisational access: the `hierarchy` element (a static tree of department names), `$func/hierarchy-subtree`, and computed principal-side values in scopes ([row-access](row-access.md) §4) | R11.5 | A member of a department reaches the entities of the departments below it, from one department in the ownership | done |
 
+## State permissions
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R12.1 | Permission state: the state dimension named by `permissionDimension` (the only one, otherwise `status`) in the state model, checked by `validate()` ([state-permissions](state-permissions.md) §2, §5) | R11.7 | A model whose permission dimension is undeclared fails `validate()` | done |
+| R12.2 | The `state` dimension of `default-authorization`, a closed set registered at load, unknown at the boundary; `authorize-requests` binds `_ctx.operation` ([state-permissions](state-permissions.md) §3, §4) | R12.1 | Permission state: the state dimension named by `permissionDimension` (the only one, otherwise `status`) in the state model, checked by `validate()` ([state-permissions](state-permissions.md) §2, §5) | R11.7 | A model whose permission dimension is undeclared fails `validate()` | done |
+| R12.3 | The state guard on `entity-type`: writes and transitions on the record as it is, `create` by a reaction, `forbidden` ([state-permissions](state-permissions.md) §4) | R12.2 | A role granted `command` in `editable` modifies a draft and gets `forbidden` on a locked record, the same role on an ungoverned type is unaffected | done |
+| R12.4 | `bpf explain` for the permission states and who may do what in each; the demo's contracts ([state-permissions](state-permissions.md) §5) | R12.3 | The demo has a role that modifies drafts only, and a server test runs it | done |
+
 ## Domain concepts (G1)
 
 | ID | Step | Refs | Done when | Status |

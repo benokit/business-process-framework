@@ -1,0 +1,23 @@
+{
+  "name": "@business-framework/state-permissions",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./state-permissions": "./src/state-permissions.js"
+  },
+  "scripts": {
+    "test": "mocha --exit"
+  },
+  "dependencies": {
+    "@business-framework/authorization": "*",
+    "@business-framework/core": "*",
+    "@business-framework/entities": "*",
+    "@business-framework/entity-states": "*"
+  },
+  "devDependencies": {
+    "@business-framework/database": "*",
+    "@business-framework/postgresql": "*",
+    "@business-framework/transaction": "*"
+  }
+}

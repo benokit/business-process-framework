@@ -217,6 +217,15 @@ describe('server with the demo', function () {
         expect([late.status, late.body.error.message]).to.deep.equal([409, 'insurance contracts can only be updated in draft']);
     });
 
+    it('lets an underwriter cancel a contract only while it is issued, an administrator in any state', async () => {
+        const [underwriter, administrator] = await Promise.all([userWith(`canceller-${run}`, ['underwriter-role']), userWith(`canceller-admin-${run}`, ['administrator-role'])]);
+        const issued = (await move(await contractOf('construction', { project: 'dam' }, underwriter), 'issue', underwriter)).body;
+        const active = await activeContract(underwriter, administrator);
+        expect((await move(active, 'cancel', underwriter)).status).to.equal(403);
+        expect((await move(active, 'cancel', administrator)).body.data.state.status).to.equal('cancelled');
+        expect((await move(issued, 'cancel', underwriter)).body.data.state.status).to.equal('cancelled');
+    });
+
     describe('row access', () => {
         const eventually = async (check, timeout = 80000) => {
             const deadline = Date.now() + timeout;

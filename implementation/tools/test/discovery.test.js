@@ -16,7 +16,7 @@ describe('discovery', () => {
         expect(source).to.match(/demo\/contracts\/construction\.eson$/);
         expect(operations.find(op => op.name === 'create')).to.include({ declaredBy: 'entity-type', implementedBy: 'entity-type' });
         expect(slots.find(slot => slot.name === 'reactions').fills.map(fill => fill.id))
-            .to.deep.equal(['refuse-uncovered-results', 'maintain-entity-relations', 'publish-entity-events', 'contract-activation-events']);
+            .to.deep.equal(['refuse-uncovered-results', 'maintain-entity-relations', 'publish-entity-events', 'refuse-forbidden-initial-states', 'contract-activation-events']);
         expect(slots.find(slot => slot.name === 'businessKey').fills.map(fill => fill.id)).to.deep.equal(['construction-business-key']);
     });
 

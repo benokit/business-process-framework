@@ -13,6 +13,7 @@ An operation is a point in a space of plain dimensions, the fills of the slot `d
 - It sees `{ params, query, headers, input }`, where `input` is the target's input, typed by its contract, so what is authorized is what the target receives.
 - A dimension it doesn't name takes the dimension's `default` (a mapping over the same scope).
 - Every dimension is a closed set of values: a literal, an enum, `@ref/<kind>` (the transitions of [entity-states](../../entity/entity-states/README.md) are the schema `entity-transition`).
+- A dimension with `values` (a mapping to the closed set of its values) is decided later: no endpoint names it, `$func/permits` takes a missing value as any value, so a request passes the boundary if some value would be permitted, and the value is decided where the data is known ([state-permissions](../state-permissions/README.md)).
 - `parents` maps a value to the values above it: for `resource`, the kind chain (`$func/kind-chain`, so an entity class is above its entity types); for `action`, the levels `query` (`read`, `search`) and `command` (everything else).
 
 ## Actors and roles
@@ -31,7 +32,7 @@ An operation is a point in a space of plain dimensions, the fills of the slot `d
 
 ## Enforcement
 
-`authorize-requests`, a `requestMiddleware` of every endpoint, first among them after `authenticate-requests` ([oauth](../oauth/README.md)): a `public` endpoint serves anyone; otherwise a request without a principal (`_ctx.user`) fails with `unauthorized` (401), and one whose user holds no role permitting the operation with `forbidden` (403, `data.operation`).
+`authorize-requests`, a `requestMiddleware` of every endpoint, first among them after `authenticate-requests` ([oauth](../oauth/README.md)), runs the wrapper `authorized`, which manages the context key `operation` and binds the operation of the request for what follows: a `public` endpoint serves anyone; otherwise a request without a principal (`_ctx.user`) fails with `unauthorized` (401), and one whose user holds no role permitting the operation with `forbidden` (403, `data.operation`).
 
 - `$func/endpoint-operation({ endpoint, request })`: the request's operation, every dimension named (`null` where neither the endpoint nor a default names it).
 - `$func/permits({ operation, roles })`: whether a role permits it. At first use after boot, the grants of every role, through its actors and the roles it includes, are put in a trie with one level per dimension, whose edges are the values an endpoint can have that a grant covers (a value covers itself and the values below it) and `*`, and whose leaves are role sets; a grant with `except` is split into the boxes of its difference, `*` minus a value being the other values endpoints perform; a lookup follows, per level, the edge of the operation's value and `*`. A value no endpoint performs matches only `*`.

@@ -10,6 +10,12 @@ const OPEN = { type: 'object' };
 
 const WILDCARD = '*';
 
+const ANY = '(any)';
+
+const isDecidedLater = dimension => dimension.values !== undefined;
+
+const namedValues = dimension => isDecidedLater(dimension) ? applyMapping({ mapping: dimension.values, input: null }) : [];
+
 const scopeType = target => ({
     type: 'object',
     properties: { params: OPEN, query: OPEN, headers: OPEN, input: operationInputType(target) },
@@ -47,10 +53,14 @@ const endpointSpace = (dimensions, endpoint) => {
     const names = dimensions.map(({ name }) => name);
     const unknown = Object.keys(operation.type.properties ?? {}).filter(name => !names.includes(name))
         .map(name => `${endpoint.id}: the operation names an unknown dimension ${name}`);
-    const typedDimensions = dimensions.map(dimension => ({ dimension, ...dimensionType(endpoint, dimension, operation, scope) }));
+    const typedDimensions = dimensions.filter(dimension => !isDecidedLater(dimension))
+        .map(dimension => ({ dimension, ...dimensionType(endpoint, dimension, operation, scope) }));
     return {
         id: endpoint.id,
-        values: Object.fromEntries(typedDimensions.map(({ dimension, type }) => [dimension.name, (type && valuesOf(type)) ?? []])),
+        values: {
+            ...Object.fromEntries(dimensions.filter(isDecidedLater).map(({ name }) => [name, [ANY]])),
+            ...Object.fromEntries(typedDimensions.map(({ dimension, type }) => [dimension.name, (type && valuesOf(type)) ?? []]))
+        },
         problems: [
             ...operation.problems.map(message => `${endpoint.id}: ${message}`),
             ...unknown,
@@ -77,7 +87,7 @@ const spaceOf = memo(authorization => {
     const dimensions = dimensionsOf(authorization);
     const endpoints = operationEndpoints().map(endpoint => endpointSpace(dimensions, endpoint));
     const performed = dimensions.map(dimension => {
-        const values = [...new Set(endpoints.flatMap(({ values }) => values[dimension.name]))];
+        const values = [...new Set([...namedValues(dimension), ...endpoints.flatMap(({ values }) => values[dimension.name]).filter(value => value !== ANY)])];
         return [dimension.name, new Map(values.map(value => [value, ancestors(dimension, value)]))];
     });
     return { dimensions, endpoints, performed: Object.fromEntries(performed) };
@@ -173,10 +183,12 @@ const roleTrie = memo(authorization => trieOf(authorization, selvesOf('role').ma
 
 const actorTrie = memo(authorization => trieOf(authorization, selvesOf('actor').map(actor => ({ id: actor.id, grants: actor.data.grants }))));
 
+const edgesToFollow = (at, value) => value === ANY ? [...at.children.keys()] : [value, WILDCARD].filter(edge => at.children.has(edge));
+
 const reached = (at, values) => {
     if (values.length === 0) return [at.holders];
     const [value, ...rest] = values;
-    return [value, WILDCARD].filter(edge => at.children.has(edge)).flatMap(edge => reached(at.children.get(edge), rest));
+    return edgesToFollow(at, value).flatMap(edge => reached(at.children.get(edge), rest));
 };
 
 const product = lists => lists.reduce((tuples, list) => tuples.flatMap(tuple => list.map(value => [...tuple, value])), [[]]);
@@ -246,7 +258,7 @@ const theAuthorization = () => resolveReference({ instanceOf: 'authorization' })
 
 export const permits = ({ operation, roles }) => {
     const authorization = theAuthorization();
-    const values = dimensionsOf(authorization).map(({ name }) => operation[name]);
+    const values = dimensionsOf(authorization).map(dimension => operation[dimension.name] ?? (isDecidedLater(dimension) ? ANY : undefined));
     return reached(roleTrie(authorization), values).some(granted => roles.some(role => granted.has(role)));
 };
 

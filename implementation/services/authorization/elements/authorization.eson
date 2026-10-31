@@ -2,7 +2,7 @@
     {
         "id": "authorization-dimension",
         "kind": "schema",
-        "data": { "!name": "string", "default": "@mapping", "parents": "@mapping" }
+        "data": { "!name": "string", "default": "@mapping", "parents": "@mapping", "values": "@mapping" }
     },
     {
         "id": "grant-box",
@@ -61,14 +61,20 @@
         }
     },
     {
-        "id": "authorize-requests",
-        "kind": "slot-fill",
+        "id": "authorization-execution-node-wrapper",
+        "kind": "kind",
         "data": {
-            "target": "http-endpoint",
-            "slot": "requestMiddleware",
-            "position": "first",
-            "after": ["authenticate-requests"],
-            "value": {
+            "extends": "execution-node-wrapper",
+            "context": { "manages": { "operation": "object" } }
+        }
+    },
+    {
+        "id": "authorize",
+        "kind": "authorization-execution-node-wrapper",
+        "data": {
+            "keyword": "authorized",
+            "node": { "!authorized": "@method" },
+            "implementation": {
                 "if": "#.self.data.public",
                 "then": { "next": true },
                 "else": [
@@ -81,9 +87,20 @@
                         "if": { "$negate": { "$func/permits": { "operation": "#.operation", "roles": { "$coalesce": ["#._ctx.user.roles", []] } } } },
                         "then": { "throw": { "code": "forbidden", "message": "no role of the user permits the operation", "data": { "operation": "#.operation" } } }
                     },
-                    { "next": true }
+                    { "withContext": { "operation": "#.operation" }, "do": { "next": true } }
                 ]
             }
+        }
+    },
+    {
+        "id": "authorize-requests",
+        "kind": "slot-fill",
+        "data": {
+            "target": "http-endpoint",
+            "slot": "requestMiddleware",
+            "position": "first",
+            "after": ["authenticate-requests"],
+            "value": { "authorized": { "next": true } }
         }
     },
     {

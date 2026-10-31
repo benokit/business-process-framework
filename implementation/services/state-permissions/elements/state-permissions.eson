@@ -1,0 +1,92 @@
+[
+    {
+        "id": "state-dimension",
+        "kind": "slot-fill",
+        "data": {
+            "target": "authorization",
+            "slot": "dimensions",
+            "after": ["action-dimension"],
+            "value": { "name": "state", "values": { "$func/permission-state-names": null } }
+        }
+    },
+    {
+        "id": "denies-state",
+        "kind": "pure-function",
+        "data": {
+            "signature": {
+                "input": { "!entityType": "string", "user": "@principal", "operation": "object", "record": "@entity-record" },
+                "output": "boolean"
+            },
+            "module": "@business-framework/state-permissions/state-permissions",
+            "export": "deniesState"
+        }
+    },
+    {
+        "id": "state-grant-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/state-permissions/state-permissions",
+            "export": "stateGrantProblems"
+        }
+    },
+    {
+        "id": "state-permission-explanation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/state-permissions/state-permissions",
+            "export": "statePermissionExplanation"
+        }
+    },
+    {
+        "id": "state-permissions",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "validate": { "$func/state-grant-problems": null },
+                "explain": { "$func/state-permission-explanation": "#.element" }
+            }
+        }
+    },
+    {
+        "id": "entity-state-permissions",
+        "kind": "state-permissions",
+        "data": {}
+    },
+    {
+        "id": "refuse-forbidden-states",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "guards",
+            "position": "last",
+            "value": {
+                "if": {
+                    "$and": [
+                        { "$neq": ["#.input.operation", "read"] },
+                        { "$func/denies-state": { "entityType": "#.self.id", "user": "#._ctx.user", "operation": "#._ctx.operation", "record": "#.input.before" } }
+                    ]
+                },
+                "then": { "throw": { "code": "forbidden", "message": { "$str": ["no role of the user permits the operation on ", "#.self.id", " in this state"] } } }
+            }
+        }
+    },
+    {
+        "id": "refuse-forbidden-initial-states",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "value": {
+                "if": {
+                    "$and": [
+                        { "$eq": ["#.input.operation", "create"] },
+                        { "$func/denies-state": { "entityType": "#.self.id", "user": "#._ctx.user", "operation": "#._ctx.operation", "record": "#.input.after" } }
+                    ]
+                },
+                "then": { "throw": { "code": "forbidden", "message": { "$str": ["no role of the user permits creating ", "#.self.id", " in its initial state"] } } }
+            }
+        }
+    }
+]

@@ -12,7 +12,19 @@ const undeclared = (model, dimension, state, where) => model.states[dimension]?.
     ? []
     : [`${where} uses undeclared state ${dimension}=${state}`];
 
+const DEFAULT_PERMISSION_DIMENSION = 'status';
+
+const permissionDimensionOf = model => model.permissionDimension
+    ?? (Object.keys(model.states).length === 1 ? Object.keys(model.states)[0] : DEFAULT_PERMISSION_DIMENSION);
+
+const permissionStatesOf = model => Object.keys(model.states[permissionDimensionOf(model)] ?? {});
+
+const permissionDimensionProblems = model => model.states[permissionDimensionOf(model)] === undefined
+    ? [`the permission dimension ${permissionDimensionOf(model)} is no state dimension`]
+    : [];
+
 const checkStatesModel = model => [
+    ...permissionDimensionProblems(model),
     ...Object.entries(model.transitions ?? {}).flatMap(([name, dimensions]) => Object.entries(dimensions)
         .flatMap(([dimension, edges]) => Object.entries(edges)
             .flatMap(([source, target]) => [
@@ -28,6 +40,23 @@ export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ i
     return uses.flatMap(({ configuration }) => checkStatesModel(configuration).map(problem => `${id}: ${problem}`));
 });
 
-export const transitionNames = () => [...new Set(selvesOf('entity-type').flatMap(({ id }) => Object.values(traitsOf(id))
+const statesConfigurationOf = entityType => Object.values(traitsOf(entityType))
     .filter(({ trait }) => isInstanceOf({ element: trait, kind: 'states-trait' }))
-    .flatMap(({ configuration }) => Object.keys(configuration.transitions ?? {}))))].sort();
+    .map(({ configuration }) => configuration);
+
+const statesConfigurations = () => selvesOf('entity-type').flatMap(({ id }) => statesConfigurationOf(id));
+
+export const transitionNames = () => [...new Set(statesConfigurations()
+    .flatMap(configuration => Object.keys(configuration.transitions ?? {})))].sort();
+
+export const permissionStateNames = () => [...new Set(statesConfigurations()
+    .flatMap(permissionStatesOf))].sort();
+
+export const permissionState = ({ entityType, state }) => {
+    const [model] = statesConfigurationOf(entityType);
+    return model === undefined ? null : state[permissionDimensionOf(model)] ?? null;
+};
+
+export const permissionStatesOfType = entityType => statesConfigurationOf(entityType).flatMap(permissionStatesOf);
+
+export const transitionsOfType = entityType => statesConfigurationOf(entityType).flatMap(model => Object.keys(model.transitions ?? {}));
