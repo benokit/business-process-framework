@@ -36,39 +36,50 @@
             "node": { "!traitOperation": { "!key": "@mapping", "!operation": "string" } },
             "implementation": [
                 { "outputKey": "key", "set": { "$func/apply-mapping": { "mapping": "#.node.traitOperation.key", "input": "#" } } },
-                { "outputKey": "use", "set": { "$get": { "object": { "$func/entity-traits": "#.self.id" }, "path": "#.key" } } },
-                {
-                    "if": { "$negate": "#.use" },
-                    "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.key"] } } }
-                },
-                {
-                    "if": { "$negate": { "$func/has-operation": { "element": "#.use.trait", "operation": "#.node.traitOperation.operation" } } },
-                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the trait under ", "#.key", " of ", "#.self.id", " has no operation ", "#.node.traitOperation.operation"] } } }
-                },
-                { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                {
-                    "outputKey": "command",
-                    "inputMap": {
-                        "trait": "#.use.trait",
-                        "operation": "#.node.traitOperation.operation",
-                        "request": {
-                            "entityType": "#.self.id",
-                            "key": "#.key",
-                            "configuration": "#.use.configuration",
-                            "value": { "$get": { "object": "#.before.data", "path": "#.key" } },
-                            "input": "#.input.input"
-                        }
-                    },
-                    "invoke": "entity-trait-operator",
-                    "operation": "run"
-                },
                 {
                     "inputMap": {
-                        "change": { "operation": "trait", "entityOperation": "#.operation", "key": "#.key", "command": "#.command.command", "value": "#.command.value", "before": "#.before" },
-                        "revision": "#.input.revision"
+                        "businessKey": "#.input.businessKey",
+                        "revision": "#.input.revision",
+                        "entityOperation": "#.operation",
+                        "operations": [{ "key": "#.key", "operation": "#.node.traitOperation.operation", "input": "#.input.input" }]
                     },
                     "invoke": "#.self.id",
-                    "operation": "applyChange"
+                    "operation": "applyTraitOperations"
+                }
+            ]
+        }
+    },
+    {
+        "id": "trait-operations",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "traitOperations",
+            "within": "entity-type",
+            "node": { "!traitOperations[]": { "!key": "@mapping", "!operation": "string", "!input": "@mapping" } },
+            "implementation": [
+                {
+                    "outputKey": "operations",
+                    "set": {
+                        "$map": {
+                            "over": "#.node.traitOperations",
+                            "as": "use",
+                            "fn": {
+                                "key": { "$func/apply-mapping": { "mapping": "@use.key", "input": "#" } },
+                                "operation": "@use.operation",
+                                "input": { "$func/apply-mapping": { "mapping": "@use.input", "input": "#" } }
+                            }
+                        }
+                    }
+                },
+                {
+                    "inputMap": {
+                        "businessKey": "#.input.businessKey",
+                        "revision": "#.input.revision",
+                        "entityOperation": "#.operation",
+                        "operations": "#.operations"
+                    },
+                    "invoke": "#.self.id",
+                    "operation": "applyTraitOperations"
                 }
             ]
         }

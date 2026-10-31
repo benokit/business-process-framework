@@ -83,10 +83,13 @@
         "data": {
             "target": "amendment-entity-type",
             "slot": "reactions",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "activate"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
-            }
+            "value": [
+                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
+                {
+                    "if": { "$eq": ["#.transition.command", "activate"] },
+                    "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
+                }
+            ]
         }
     },
     {
@@ -95,10 +98,13 @@
         "data": {
             "target": "amendment-entity-type",
             "slot": "reactions",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "annul"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
-            }
+            "value": [
+                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
+                {
+                    "if": { "$eq": ["#.transition.command", "annul"] },
+                    "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
+                }
+            ]
         }
     },
     {
@@ -107,10 +113,13 @@
         "data": {
             "target": "amendment-entity-type",
             "slot": "reactions",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.key", "state"] }, { "$eq": ["#.input.command", "cancel"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
-            }
+            "value": [
+                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
+                {
+                    "if": { "$eq": ["#.transition.command", "cancel"] },
+                    "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
+                }
+            ]
         }
     }
 ]

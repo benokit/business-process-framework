@@ -8,6 +8,10 @@ An insurance application built on the [framework](../implementation/README.md). 
 - **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a model that allows updates only in draft and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type whose lifecycle is composed from the construction one with `/ref` of a path and `/merge`: they add the state `suspended`, the transition `suspend` and `cancel` from it.
 - **Security**: [roles](security/roles.eson) (see [Roles](#roles)) and [row access](#row-access).
 
+## Contract data
+
+Users see a contract as one plain document ([contract-api](contracts/contract-api.eson)): the body fields and the terms side by side, with `startDate` (the first version of the timeline), e.g. `{ policyholder, project, currency, region, startDate, premium, sumInsured, endDate }`. The contract type's operations `createContract`, `readContract` and `updateContract` map it onto the body and the timeline with the pure functions `contract-to-traits` and `contract-view`, and the routes `POST /contracts/:entityType` (body: the contract, optionally with a `businessKey`), `GET /contracts/:entityType/:businessKey` and `PUT` (`If-Match`) expose them through the gateway `contracts`. The reply is `{ businessKey, revision, state, contract }`. `updateContract` writes the body and the timeline in one change (`traitOperations`, one revision), is possible only in draft (`operations` of the model), and refuses a changed `startDate`. The terms of an active contract change by [amendments](#contract-terms-and-amendments). The generic `/entities` routes remain and show the stored shape.
+
 ## Contract terms and amendments
 
 What varies in time is the `versionable` timeline of the contract class (`premium`, `sumInsured`, `endDate`), whose first version is the start of the contract; the body keeps what never varies (policyholder, project, currency).

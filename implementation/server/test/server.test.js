@@ -111,6 +111,37 @@ describe('server with the demo', function () {
 
     const ledgerOf = async (contract, token) => (await read(contract, token)).data['amendment-ledger'];
 
+    it('exposes a contract as plain data that maps onto its body and timeline, on create, update and read', async () => {
+        const underwriter = await userWith(`planner-${run}`, ['underwriter-role']);
+        const contract = { policyholder: await newParty(underwriter), project: 'tunnel', currency: 'EUR', region: 'de', startDate: '2026-01-01', ...terms(1000, '2027-01-01') };
+        const created = await call('POST', '/contracts/construction', contract, underwriter);
+        expect([created.status, created.body.contract, created.body.state.status]).to.deep.equal([201, contract, 'draft']);
+
+        const stored = await read({ entityType: 'construction', businessKey: created.body.businessKey }, underwriter);
+        expect([stored.data.body.premium, stored.data.timeline['2026-01-01']]).to.deep.equal([undefined, terms(1000, '2027-01-01')]);
+
+        const changed = { ...contract, sumInsured: 250000, project: 'bridge' };
+        const updated = await call('PUT', `/contracts/construction/${created.body.businessKey}`, changed, underwriter, { 'if-match': created.body.revision });
+        expect([updated.status, updated.body.contract, updated.body.revision]).to.deep.equal([200, changed, created.body.revision + 1]);
+        expect((await call('GET', `/contracts/construction/${created.body.businessKey}`, null, underwriter)).body.contract).to.deep.equal(changed);
+        expect((await call('PUT', `/contracts/construction/${created.body.businessKey}`, { ...changed, startDate: '2026-02-01' }, underwriter, { 'if-match': updated.body.revision })).status).to.equal(400);
+        expect((await call('PUT', `/contracts/construction/${created.body.businessKey}`, changed, underwriter, { 'if-match': created.body.revision })).status).to.equal(409);
+
+        const issued = await move({ entityType: 'construction', businessKey: created.body.businessKey, revision: updated.body.revision }, 'issue', underwriter);
+        expect((await call('PUT', `/contracts/construction/${created.body.businessKey}`, changed, underwriter, { 'if-match': issued.body.revision })).status).to.equal(409);
+    });
+
+    it('derives the ownership of a contract updated through its plain data in the same revision', async () => {
+        const underwriter = await userWith(`owner-${run}`, ['underwriter-role']);
+        const contract = { policyholder: await newParty(underwriter), project: 'tunnel', currency: 'EUR', region: 'de', startDate: '2026-01-01', ...terms(1000, '2027-01-01') };
+        const created = (await call('POST', '/contracts/construction', contract, underwriter)).body;
+        const updated = await call('PUT', `/contracts/construction/${created.businessKey}`, { ...contract, region: 'fr', sumInsured: 5 }, underwriter, { 'if-match': created.revision });
+        expect([updated.status, updated.body.revision]).to.deep.equal([200, created.revision + 1]);
+        const stored = await read({ entityType: 'construction', businessKey: created.businessKey }, underwriter);
+        expect([stored.revision, stored.data.ownership.region, stored.data.timeline['2026-01-01'].sumInsured]).to.deep.equal([created.revision + 1, 'fr', 5]);
+        expect((await call('GET', `/entities/construction/${created.businessKey}?revision=${created.revision}`, null, underwriter)).body.data.ownership.region).to.equal('de');
+    });
+
     it('amends an active contract by amendments, one open at a time, numbered without gaps, that an administrator activates and that are annulled in reverse order', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`amender-${run}`, ['underwriter-role']), userWith(`approver-${run}`, ['administrator-role'])]);
         const contract = await activeContract(underwriter, administrator);

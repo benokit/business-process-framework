@@ -52,7 +52,7 @@ describe('discovery', () => {
             'authenticate implementation[3].else[0].cache ref',
             'user-cache-eviction handler.invoke invoke'
         ]);
-        expect(found('publish')).to.include('contract-activation-events value.then.then template');
+        expect(found('publish')).to.include('contract-activation-events value[1].then template');
         expect(found('slot-values')).to.include('maintain-entity-relations value.then[1].inputMap function');
         expect(found('insurance-contract-type')).to.include('construction kind kind');
         expect(() => refs('nope')).to.throw('nope');

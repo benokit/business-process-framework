@@ -1,0 +1,131 @@
+[
+    {
+        "id": "contract-term-keys",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "mapping": { "$literal": ["premium", "sumInsured", "endDate"] }
+        }
+    },
+    {
+        "id": "contract-to-traits",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@contract-data", "output": { "!body": "object", "!timeline": { "!validFrom": "@date", "!data": "object" } } },
+            "mapping": {
+                "body": { "$omit": { "keys": ["startDate"], "object": { "$omit": { "keys": { "$func/contract-term-keys": null }, "object": "#" } } } },
+                "timeline": {
+                    "validFrom": "#.startDate",
+                    "data": { "$pick": { "keys": { "$func/contract-term-keys": null }, "object": "#" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "contract-view",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@entity-record", "output": "@contract-view-data" },
+            "mapping": {
+                "$let": { "current": { "$func/resolve-segment": { "timeline": "#.data.timeline" } } },
+                "$merge": [
+                    { "businessKey": "#.businessKey", "revision": "#.revision", "state": "#.data.state" },
+                    { "contract": { "$merge": ["#.data.body", "@current.data", { "startDate": "@current.validFrom" }] } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "contract-data",
+        "kind": "schema",
+        "data": { "!startDate": "@date", "!premium": "number", "!sumInsured": "number", "!endDate": "@date" }
+    },
+    {
+        "id": "contract-view-data",
+        "kind": "schema",
+        "data": { "!businessKey": "string", "!revision": "number", "!state": "object", "!contract": "@contract-data" }
+    },
+    {
+        "id": "contract-request",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/insurance-contract-type", "!request": "object" }
+    },
+    {
+        "id": "contract-gateway",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "create": {
+                    "input": "@contract-request",
+                    "output": "@contract-view-data",
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "createContract" }
+                },
+                "read": {
+                    "input": "@contract-request",
+                    "output": "@contract-view-data",
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "readContract" }
+                },
+                "update": {
+                    "input": "@contract-request",
+                    "output": "@contract-view-data",
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.entityType", "operation": "updateContract" }
+                }
+            }
+        }
+    },
+    {
+        "id": "contracts",
+        "kind": "contract-gateway",
+        "data": {}
+    },
+    {
+        "id": "contract-create-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/contracts/:entityType",
+            "target": { "element": "contracts", "operation": "create" },
+            "operation": { "area": "contracts", "resource": "#.input.entityType", "action": "create" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "request": { "businessKey": "#.body.businessKey", "contract": { "$omit": { "keys": ["businessKey"], "object": "#.body" } } }
+            },
+            "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "contract-read-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "GET",
+            "path": "/contracts/:entityType/:businessKey",
+            "target": { "element": "contracts", "operation": "read" },
+            "operation": { "area": "contracts", "resource": "#.input.entityType", "action": "read" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$parseInt": "#.query.revision" } }
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "contract-update-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "PUT",
+            "path": "/contracts/:entityType/:businessKey",
+            "target": { "element": "contracts", "operation": "update" },
+            "operation": { "area": "contracts", "resource": "#.input.entityType", "action": "update" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "request": { "businessKey": "#.params.businessKey", "revision": { "$func/if-match-revision": "#.headers.if-match" }, "contract": "#.body" }
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "contract-reader-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "contracts", "resource": "insurance-contract-type", "action": "query" }] }
+    }
+]

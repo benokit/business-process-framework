@@ -36,7 +36,7 @@ export const ownershipRule = entityType => ownershipUseOf(entityType)?.configura
 
 const recordsAfterWrite = {
     create: ({ entityType, businessKey, data }) => ({ entityType, businessKey, data }),
-    update: ({ before, key, value }) => ({ entityType: before.entityType, businessKey: before.businessKey, data: { ...before.data, [key]: value } })
+    update: ({ before, values }) => ({ entityType: before.entityType, businessKey: before.businessKey, data: { ...before.data, ...values } })
 };
 
 export const recordAfterWrite = ({ operation, input }) => recordsAfterWrite[operation]?.(input) ?? null;

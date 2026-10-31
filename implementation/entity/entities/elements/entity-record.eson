@@ -12,14 +12,20 @@
         }
     },
     {
+        "id": "change-command",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "commands[]": { "!key": "string", "!command": "string", "!value": "@any" }, "!key": "string" }, "output": "@any" },
+            "mapping": { "$find": { "collection": { "$coalesce": ["#.commands", []] }, "as": "command", "predicate": { "$eq": ["@command.key", "#.key"] } } }
+        }
+    },
+    {
         "id": "entity-change",
         "kind": "schema",
         "data": {
             "!operation=1": ["create", "trait", "delete", "read"],
             "entityOperation": "string",
-            "key": "string",
-            "command": "string",
-            "value": "@any",
+            "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
             "before": "@entity-record",
             "after": "object"
         }

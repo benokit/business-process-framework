@@ -28,6 +28,7 @@
             "target": "user",
             "slot": "guards",
             "value": [
+                { "outputKey": "body", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "body" } } },
                 {
                     "outputKey": "unknown",
                     "set": {
@@ -37,7 +38,7 @@
                                     {
                                         "$cond": [
                                             [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.body.roles"],
-                                            [{ "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "body"] }] }, "#.input.value.roles"],
+                                            [{ "$eq": ["#.input.operation", "trait"] }, "#.body.value.roles"],
                                             ["else", []]
                                         ]
                                     },

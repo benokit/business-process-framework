@@ -49,7 +49,7 @@ describe('entity-events', function () {
         await invoke(ORDER, 'delete', { businessKey: 'e-1', revision: 3 });
         await eventually(() => received.length === 4);
         expect(received.map(event => [event.eventType, event.revision])).to.deep.equal([['create', 1], ['trait', 2], ['trait', 3], ['delete', 3]]);
-        expect([received[1].key, received[1].command, received[2].key, received[2].command]).to.deep.equal(['body', 'put', 'state', 'finish']);
+        expect([received[1].commands, received[2].commands]).to.deep.equal([[{ key: 'body', command: 'put' }], [{ key: 'state', command: 'finish' }]]);
     });
 
     it("doesn't publish when the write rolls back", async () => {

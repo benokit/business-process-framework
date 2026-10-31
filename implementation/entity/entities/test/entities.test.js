@@ -38,6 +38,28 @@ const elements = [
         data: {
             extends: 'entity-type',
             operations: {
+                writeTraits: {
+                    input: { '!businessKey': 'string', '!revision': 'number', '!amount': 'number', '!note': 'string' },
+                    output: '@entity-record',
+                    implementation: {
+                        inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', amount: '#.input.amount', note: '#.input.note' },
+                        traitOperations: [
+                            { key: 'body', operation: 'put', input: { value: { amount: '#.input.amount' } } },
+                            { key: NOTE, operation: 'rewrite', input: { value: '#.input.note' } }
+                        ]
+                    }
+                },
+                writeTwice: {
+                    input: { '!businessKey': 'string', '!revision': 'number' },
+                    output: '@entity-record',
+                    implementation: {
+                        inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision' },
+                        traitOperations: [
+                            { key: NOTE, operation: 'rewrite', input: { value: 'a' } },
+                            { key: NOTE, operation: 'rewrite', input: { value: 'b' } }
+                        ]
+                    }
+                },
                 writeTrait: {
                     input: { '!businessKey': 'string', '!revision': 'number', '!key': 'string', '!command': 'string', '!value': '@any' },
                     output: '@entity-record',
@@ -152,6 +174,22 @@ describe('entities', function () {
         const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 1, key: NOTE, command: 'rewrite', value: 'changed' });
         expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 1, 'changed']);
         expect((await errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 2, key: 'other', command: 'x', value: {} }))).code).to.equal('invalid');
+    });
+
+    it('writes several traits in one revision, or none of them', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-multi', traits: { body: { amount: 1 } } });
+        const written = await invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 1, amount: 2, note: 'changed' });
+        expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 2, 'changed']);
+        expect((await invoke(ORDER, 'read', { businessKey: 'o-multi', revision: 1 })).data[NOTE]).to.equal('order: new');
+        expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 1, amount: 3, note: 'late' }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 2, amount: 'x', note: 'refused' }))).code).to.equal('invalid');
+        const unchanged = await invoke(ORDER, 'read', { businessKey: 'o-multi' });
+        expect([unchanged.revision, unchanged.data.body.amount, unchanged.data[NOTE]]).to.deep.equal([2, 2, 'changed']);
+    });
+
+    it('refuses a write that changes a trait twice', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-twice', traits: { body: { amount: 1 } } });
+        expect((await errorOf(invoke(ORDER, 'writeTwice', { businessKey: 'o-twice', revision: 1 }))).code).to.equal('invalid');
     });
 
     it('holds one trait under several keys', async () => {

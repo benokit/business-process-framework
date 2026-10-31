@@ -80,20 +80,23 @@
         "data": {
             "target": "versioned-entity-type",
             "slot": "guards",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "amendment-ledger"] }] },
-                "then": [
-                    {
-                        "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.input.command" } } },
-                        "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.input.command"] } } }
-                    },
-                    { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.input.value" } } },
-                    {
-                        "if": { "$negate": "#.check.isValid" },
-                        "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
-                    }
-                ]
-            }
+            "value": [
+                { "outputKey": "ledger", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "amendment-ledger" } } },
+                {
+                    "if": "#.ledger",
+                    "then": [
+                        {
+                            "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.ledger.command" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.ledger.command"] } } }
+                        },
+                        { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.ledger.value" } } },
+                        {
+                            "if": { "$negate": "#.check.isValid" },
+                            "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
+                        }
+                    ]
+                }
+            ]
         }
     },
     {
@@ -102,13 +105,16 @@
         "data": {
             "target": "versioned-entity-type",
             "slot": "guards",
-            "value": {
-                "if": { "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "timeline"] }] },
-                "then": {
-                    "if": { "$negate": { "$includes": { "collection": ["put", "remove"], "value": "#.input.command" } } },
-                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the timeline has no command ", "#.input.command"] } } }
+            "value": [
+                { "outputKey": "timeline", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "timeline" } } },
+                {
+                    "if": "#.timeline",
+                    "then": {
+                        "if": { "$negate": { "$includes": { "collection": ["put", "remove"], "value": "#.timeline.command" } } },
+                        "then": { "throw": { "code": "invalid", "message": { "$str": ["the timeline has no command ", "#.timeline.command"] } } }
+                    }
                 }
-            }
+            ]
         }
     }
 ]

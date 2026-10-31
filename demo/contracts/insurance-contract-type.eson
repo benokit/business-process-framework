@@ -45,7 +45,7 @@
                                     "status": "draft"
                                 }
                             },
-                            "operations": { "update": { "status": { "draft": true } } }
+                            "operations": { "update": { "status": { "draft": true } }, "updateContract": { "status": { "draft": true } } }
                         }
                     },
                     "timeline": {
@@ -65,6 +65,49 @@
                 }
             },
             "operations": {
+                "createContract": {
+                    "input": { "businessKey": "string", "!contract": "@contract-data" },
+                    "output": "@contract-view-data",
+                    "implementation": [
+                        {
+                            "outputKey": "record",
+                            "inputMap": { "businessKey": "#.input.businessKey", "traits": { "$func/contract-to-traits": "#.input.contract" } },
+                            "invoke": "#.self.id",
+                            "operation": "create"
+                        },
+                        { "set": { "$func/contract-view": "#.record" } }
+                    ]
+                },
+                "readContract": {
+                    "input": { "!businessKey": "string", "revision": "number" },
+                    "output": "@contract-view-data",
+                    "implementation": [
+                        { "outputKey": "record", "inputMap": "#.input", "invoke": "#.self.id", "operation": "read" },
+                        { "set": { "$func/contract-view": "#.record" } }
+                    ]
+                },
+                "updateContract": {
+                    "input": { "!businessKey": "string", "!revision": "number", "!contract": "@contract-data" },
+                    "output": "@contract-view-data",
+                    "implementation": [
+                        { "outputKey": "traits", "set": { "$func/contract-to-traits": "#.input.contract" } },
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "current", "set": { "$func/resolve-segment": { "timeline": "#.before.data.timeline" } } },
+                        {
+                            "if": { "$neq": ["#.traits.timeline.validFrom", "#.current.validFrom"] },
+                            "then": { "throw": { "code": "invalid", "message": "the start date of a contract can't be changed" } }
+                        },
+                        {
+                            "outputKey": "record",
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "body": "#.traits.body", "timeline": "#.traits.timeline" },
+                            "traitOperations": [
+                                { "key": "body", "operation": "put", "input": { "value": "#.input.body" } },
+                                { "key": "timeline", "operation": "put", "input": "#.input.timeline" }
+                            ]
+                        },
+                        { "set": { "$func/contract-view": "#.record" } }
+                    ]
+                },
                 "isAmendable": { "implementation": { "set": { "$eq": ["#.input.record.data.state.status", "active"] } } },
                 "deriveOwnership": {
                     "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
@@ -84,13 +127,13 @@
             "target": "insurance-contract-type",
             "slot": "guards",
             "value": [
+                { "outputKey": "command", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "timeline" } } },
                 {
                     "outputKey": "timeline",
                     "set": {
                         "$cond": [
                             [{ "$eq": ["#.input.operation", "create"] }, "#.input.after.data.timeline"],
-                            [{ "$and": [{ "$eq": ["#.input.operation", "trait"] }, { "$eq": ["#.input.key", "timeline"] }] }, "#.input.value"],
-                            ["else", null]
+                            ["else", "#.command.value"]
                         ]
                     }
                 },
@@ -119,10 +162,10 @@
             "target": "insurance-contract-type",
             "slot": "reactions",
             "after": ["publish-entity-events"],
-            "value": {
-                "if": { "$eq": ["#.input.key", "state"] },
-                "then": {
-                    "if": { "$eq": ["#.input.command", "activate"] },
+            "value": [
+                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
+                {
+                    "if": { "$eq": ["#.transition.command", "activate"] },
                     "then": {
                         "inputMap": {
                             "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey" },
@@ -131,7 +174,7 @@
                         "publish": "contract-events"
                     }
                 }
-            }
+            ]
         }
     }
 ]

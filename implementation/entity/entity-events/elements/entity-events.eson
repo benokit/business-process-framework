@@ -52,8 +52,7 @@
                             "id": "#.record.id",
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
-                            "key": "#.input.key",
-                            "command": "#.input.command"
+                            "commands": { "$map": { "over": { "$coalesce": ["#.input.commands", []] }, "fn": { "key": "#.key", "command": "#.command" } } }
                         },
                         "subject": "#.record.entityType",
                         "messageId": { "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation"], "separator": "-" } },
