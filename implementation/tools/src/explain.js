@@ -28,7 +28,7 @@ const winningFills = (fills, targets) => {
     return fills.filter(fill => fill.data.target === target);
 };
 
-const fillOf = fill => ({ id: fill.id, target: fill.data.target, source: relative(sourceOf(fill)) });
+const fillOf = fill => ({ id: fill.id, target: fill.data.target, ...fill.data.on && { on: fill.data.on }, source: relative(sourceOf(fill)) });
 
 const declarationOf = (ids, slot) => instancesOf('slot-declaration')
     .find(declaration => declaration.data.slot === slot && ids.includes(declaration.data.target));
@@ -40,10 +40,10 @@ const declaredBy = (ids, slot, owner) => {
 
 const slotsOf = self => {
     const { ids, slots } = resolveKind(self.kind);
-    return Object.entries(slots).map(([name, { cardinality, value, owner }]) => {
+    return Object.entries(slots).map(([name, { cardinality, value, owner, discriminator }]) => {
         const { targets, fills } = fillsOf(self, name);
         const ordered = cardinality === 'one' ? winningFills(fills, targets) : orderFills(fills, targets, name);
-        return { name, cardinality, value, declaredBy: declaredBy(ids, name, owner), fills: ordered.map(fillOf) };
+        return { name, cardinality, value, ...discriminator && { discriminator }, declaredBy: declaredBy(ids, name, owner), fills: ordered.map(fillOf) };
     });
 };
 

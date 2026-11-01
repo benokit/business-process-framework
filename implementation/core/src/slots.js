@@ -1,6 +1,7 @@
 import { getElement } from './registry.js';
 import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { orderItems } from './order.js';
+import { isFilterable } from './discriminators.js';
 import { fail } from './errors.js';
 import { ownedBy } from './execution/owners.js';
 
@@ -32,9 +33,14 @@ export const fillsOf = (self, slot) => {
     return { declaration, targets, fills };
 };
 
-export const slotValues = ({ element, slot }) => {
+const handles = on => fill => on === undefined || fill.data.on === undefined || fill.data.on.includes(on);
+
+export const slotValues = ({ element, slot, on }) => {
     const { declaration, targets, fills } = fillsOf(selfOf(getElement(element)), slot);
+    if (on !== undefined && !isFilterable(declaration)) {
+        fail('not-filterable', `${element}.${slot} has no discriminator to select fills by '${on}'`, { element, slot });
+    }
     return declaration.cardinality === 'one'
         ? singleValue(fills, targets, slot)
-        : orderFills(fills, targets, slot).map(fill => ownedBy(fill.id, fill.data.value));
+        : orderFills(fills, targets, slot).filter(handles(on)).map(fill => ownedBy(fill.id, fill.data.value));
 };

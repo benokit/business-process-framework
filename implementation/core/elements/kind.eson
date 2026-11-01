@@ -104,7 +104,7 @@
     {
         "id": "slot",
         "kind": "schema",
-        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema", "effects[]": "@effect", "input": "@schema" }
+        "data": { "!cardinality=1": ["one", "many"], "!value": "@schema", "effects[]": "@effect", "input": "@schema", "discriminator": "string" }
     },
     {
         "id": "effect",

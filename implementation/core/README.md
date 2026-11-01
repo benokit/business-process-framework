@@ -30,7 +30,7 @@ Errors are `CoreError` with `code`, `message`, `data` and optionally a `cause`. 
 | [kinds.js](src/kinds.js) | kind chains, resolved kinds (operations, slots, fixed values, managed context), `selfOf`, `instancesOf` |
 | [schemas.js](src/schemas.js) | the AJV instance: add at load, compile on first use, contract checks after load |
 | [mappings.js](src/mappings.js) | compiled LambdaJSON mappings, `$func/<id>` from `pure-function` elements |
-| [slots.js](src/slots.js), [order.js](src/order.js) | slot values; ordering by bands, `after`/`before` |
+| [slots.js](src/slots.js), [order.js](src/order.js), [discriminators.js](src/discriminators.js) | slot values; ordering by bands, `after`/`before`; the variants of a slot's discriminator |
 | [context.js](src/context.js) | code authors, binding rights |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke`, the interpreter |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (`validate` hooks run in [validation.js](src/validation.js)) |
@@ -129,6 +129,12 @@ A stub replaces an operation, never a `low` node: it follows the operation's con
 ```js
 interpret({ effects: ['trace'], stubs: { transaction: { begin: () => ({ sessionId: 1 }), commit: () => null }, 'entity-database': { create: ({ input }) => ({ ...input, id, revision: 1, timestampUtc }) } } });
 ```
+
+## Slots
+
+A slot is declared by a kind (or by a `slot-declaration` for a kind that is not yours) with a `cardinality`, the schema of a fill's `value` and, for code, the `input` its fills see. A fill is selected by its `target`, the kinds and instance it contributes to, and ordered by `position`, `after` and `before`.
+
+A `many` slot whose `input` is a tagged union names its `discriminator`, the property that tells the variants apart; its values (an enum, or a `const` in each branch of a one-of) are the slot's variants. A fill says which variants it handles with `on` (without it, all), `$func/slot-values` takes `on` and returns the fills that handle it, in the order of the whole slot, and `validate` checks `on` against the variants. The input of a fill's code is narrowed to the variants it is on, so a path none of them has is an `unknown-path`; a path some of them have is `value | null`.
 
 ## Lifecycle
 

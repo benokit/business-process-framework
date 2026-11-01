@@ -5,6 +5,7 @@ import { extendsKind, instancesOf, resolveKind } from './kinds.js';
 import { schemaRef, standardOf, storedSchema } from './schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
 import { isKindReference } from './references.js';
+import { valuesOf } from './discriminators.js';
 
 const ANY = {};
 const NULL = { type: 'null' };
@@ -279,9 +280,20 @@ const methodStart = (author, path) => {
 
 const fillTarget = fill => findElement(fill.data.target) && targetKind(fill.data.target);
 
+const narrowed = (type, discriminator, on) => {
+    const variants = (type.anyOf ?? []).filter(branch => {
+        const values = valuesOf(branch, discriminator);
+        return values.length === 0 || values.some(value => on.includes(value));
+    });
+    return variants.length > 0 ? { ...type, anyOf: variants } : type;
+};
+
 const fillInput = fill => {
-    const declaration = fillTarget(fill)?.slots[fill.data.slot];
-    return declaration?.input === undefined ? ANY : schemaType(`${declaration.owner}/slots/${fill.data.slot}/input`);
+    const { slot, on } = fill.data;
+    const declaration = fillTarget(fill)?.slots[slot];
+    if (declaration?.input === undefined) return ANY;
+    const type = schemaType(`${declaration.owner}/slots/${slot}/input`);
+    return on && declaration.discriminator ? narrowed(type, declaration.discriminator, on) : type;
 };
 
 const mappingInput = (author, path) => {

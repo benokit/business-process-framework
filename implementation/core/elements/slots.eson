@@ -3,7 +3,7 @@
         "id": "slot-declaration",
         "kind": "kind",
         "data": {
-            "shape": { "!target": "@ref", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema", "input": "@schema" },
+            "shape": { "!target": "@ref", "!slot": "string", "!cardinality=1": ["one", "many"], "!value": "@schema", "input": "@schema", "discriminator": "string" },
             "lifecycle": {
                 "load": [
                     {
@@ -29,6 +29,7 @@
                 "!target": "@ref",
                 "!slot": "string",
                 "!value": "@any",
+                "on[]": "string",
                 "position=1": ["first", "last"],
                 "after[]": "string",
                 "before[]": "string"
@@ -39,7 +40,7 @@
         "id": "slot-values",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!element": "string", "!slot": "string" }, "output": "@any" },
+            "signature": { "input": { "!element": "string", "!slot": "string", "on": "string" }, "output": "@any" },
             "module": "@business-framework/core/slots",
             "export": "slotValues"
         }

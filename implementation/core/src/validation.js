@@ -3,6 +3,7 @@ import { instancesOf, resolveKind, selfOf } from './kinds.js';
 import { validateValue } from './schemas.js';
 import { applyMapping } from './mappings.js';
 import { fillsOf, orderFills } from './slots.js';
+import { domainOf, isFilterable } from './discriminators.js';
 import { elementsInStartOrder } from './lifecycle.js';
 import { checkAbstraction, checkBinding, isKindReference, resolveReference } from './references.js';
 import { fail, problemsOf } from './errors.js';
@@ -36,16 +37,31 @@ const shapeProblems = element => resolveKind(kindOf(element)).chain
     });
 
 const fillProblem = fill => () => {
-    const { target, slot, value, position } = fill.data;
+    const { target, slot, value, position, on } = fill.data;
     if (!findElement(target)) return;
     const declaration = targetKind(target).slots[slot]
         ?? fail('unknown-slot', `${target} has no slot '${slot}'`, { target, slot });
     if (declaration.cardinality === 'one' && position !== undefined) {
         fail('slot-position', `a fill of the 'one' slot '${slot}' can't have a position`, { target, slot });
     }
+    if (on !== undefined && !isFilterable(declaration)) {
+        fail('not-filterable', `'${slot}' has no discriminator, a fill of ${target} can't be on ${on.join(', ')}`, { target, slot });
+    }
+    const unknown = (on ?? []).filter(variant => !domainOf(declaration, slot).includes(variant));
+    if (unknown.length > 0) {
+        fail('unknown-variant', `'${slot}' has no variant ${unknown.join(', ')} of '${declaration.discriminator}'`, { target, slot, variants: unknown });
+    }
     const { isValid, errors } = validateValue({ schemaId: `${declaration.owner}/slots/${slot}`, value });
     if (!isValid) fail('invalid-fill', `${fill.id ?? `a fill of ${target}.${slot}`} doesn't match the slot's value schema`, { target, slot, errors });
 };
+
+const discriminatorProblems = kind => Object.entries(resolveKind(kind.id).slots)
+    .filter(([, declaration]) => declaration.owner === kind.id && declaration.discriminator !== undefined)
+    .map(([slot, declaration]) => () => {
+        if (!isFilterable(declaration) || domainOf(declaration, slot).length === 0) {
+            fail('invalid-discriminator', `${kind.id}: '${declaration.discriminator}' discriminates nothing in the input of the 'many' slot '${slot}'`, { kind: kind.id, slot });
+        }
+    });
 
 const orderProblems = element => Object.entries(resolveKind(kindOf(element)).slots)
     .filter(([, declaration]) => declaration.cardinality === 'many')
@@ -100,6 +116,7 @@ const checks = () => [
     ...contextProblems(),
     ...allElements().flatMap(shapeProblems),
     ...settingsProblems(),
+    ...kinds().flatMap(discriminatorProblems),
     ...instancesOf('slot-fill').map(fillProblem),
     ...allElements().filter(element => element.id !== undefined).flatMap(orderProblems),
     ...allElements().filter(element => element.id !== undefined).flatMap(unimplementedOperations),

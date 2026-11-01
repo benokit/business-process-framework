@@ -5,6 +5,7 @@ import { findElement, kindOf } from './registry.js';
 import { extendsKind, resolveKind } from './kinds.js';
 import { positionsIn, propertiesOf, validateValue } from './schemas.js';
 import { managedBy } from './context.js';
+import { domainOf, isFilterable } from './discriminators.js';
 import { findTemplate } from './execution/templates.js';
 import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
 import { isKindReference } from './references.js';
@@ -178,7 +179,16 @@ const slotValuesProblems = (argument, at, path) => {
     if (!isPlainObject(argument) || !isLiteral(argument.slot)) return [];
     const kind = argument.element === '#.self.id' ? selfKindOf(at.author) : kindOfTarget(argument.element);
     const slot = literalOf(argument.slot);
-    return kind && !kind.slots[slot] ? [problem(at, path, 'unknown-slot', `${kind.id} has no slot '${slot}'`)] : [];
+    const declaration = kind?.slots[slot];
+    if (kind && !declaration) return [problem(at, path, 'unknown-slot', `${kind.id} has no slot '${slot}'`)];
+    return declaration && argument.on !== undefined ? onProblems(declaration, slot, argument.on, at, `${path}.$func/slot-values.on`) : [];
+};
+
+const onProblems = (declaration, slot, on, at, path) => {
+    if (!isFilterable(declaration)) return [problem(at, path, 'not-filterable', `'${slot}' has no discriminator to select fills by`)];
+    return isLiteral(on) && !domainOf(declaration, slot).includes(literalOf(on))
+        ? [problem(at, path, 'unknown-variant', `'${slot}' has no variant '${literalOf(on)}' of '${declaration.discriminator}'`)]
+        : [];
 };
 
 const isCall = tree => Object.keys(tree).some(key => key.startsWith('$'));

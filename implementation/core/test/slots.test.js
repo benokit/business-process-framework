@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { invoke, validate } from '../src/index.js';
+import { slotValues } from '../src/slots.js';
 import { bootWith, element, kind, operation } from './helpers.js';
 
 const fill = (id, target, value, order = {}) => ({ id, kind: 'slot-fill', data: { target, slot: 'steps', value, ...order } });
@@ -75,6 +76,72 @@ describe('slots', () => {
             fill('a', 'pipeline-owner', 42),
             { kind: 'slot-fill', data: { target: 'owner', slot: 'missing', value: 'x' } });
         expect(validate().map(p => p.code)).to.have.members(['invalid-fill', 'unknown-slot']);
+    });
+
+    describe('discriminator', () => {
+        const changes = [
+            kind('changes', {
+                slots: { reactions: {
+                    cardinality: 'many',
+                    value: 'string',
+                    discriminator: 'operation',
+                    input: { '$data#1': [{ '!operation=': 'read', '!before': 'string' }, { '!operation=': 'trait', '!commands[]': 'string' }, { '!operation=': 'delete', '!before': 'string' }] }
+                } },
+                operations: { on: operation({ set: { '$func/slot-values': { element: '#.self.id', slot: 'reactions', on: '#.input' } } }, 'string') }
+            }),
+            element('the-changes', 'changes')
+        ];
+        const reaction = (id, value, data = {}) => ({ id, kind: 'slot-fill', data: { target: 'changes', slot: 'reactions', value, ...data } });
+        const on = operationName => invoke('the-changes', 'on', operationName);
+
+        it('selects the fills that handle the variant, and those that handle all', async () => {
+            await bootWith(changes,
+                reaction('a', 'reads', { on: ['read'] }),
+                reaction('b', 'writes', { on: ['trait', 'delete'] }),
+                reaction('c', 'all'));
+            expect(await on('read')).to.deep.equal(['reads', 'all']);
+            expect(await on('trait')).to.deep.equal(['writes', 'all']);
+            expect(await on('delete')).to.deep.equal(['writes', 'all']);
+        });
+
+        it('keeps the order of the whole slot, also through a fill it skips', async () => {
+            await bootWith(changes,
+                reaction('a', 'a', { on: ['read'], after: ['b'] }),
+                reaction('b', 'b', { on: ['trait'], after: ['c'] }),
+                reaction('c', 'c', { on: ['read'] }));
+            expect(await on('read')).to.deep.equal(['c', 'a']);
+        });
+
+        it('refuses a variant on a slot without a discriminator', async () => {
+            await bootWith(pipelineKind('many'));
+            expect(() => slotValues({ element: 'owner', slot: 'steps', on: 'read' })).to.throw(/no discriminator/);
+        });
+
+        it('reports an on outside the domain or on a slot without a discriminator', async () => {
+            await bootWith(changes, pipelineKind('many'),
+                reaction('a', 'x', { on: ['update'] }),
+                fill('b', 'owner', 'x', { on: ['read'] }));
+            expect(validate().map(p => [p.code, p.data.slot])).to.have.deep.members([['unknown-variant', 'reactions'], ['not-filterable', 'steps']]);
+        });
+
+        it('reports a literal variant the slot lacks where the slot is read', async () => {
+            await bootWith(
+                kind('reader', {
+                    slots: { reactions: { cardinality: 'many', value: 'string', discriminator: 'operation', input: { '!operation=1': ['read', 'trait'] } } },
+                    operations: { run: operation([
+                        { set: { '$func/slot-values': { element: '#.self.id', slot: 'reactions', on: 'read' } } },
+                        { set: { '$func/slot-values': { element: '#.self.id', slot: 'reactions', on: 'update' } } }
+                    ]) }
+                }));
+            expect(validate().map(p => [p.code, p.data.path])).to.deep.equal([['unknown-variant', 'operations.run.implementation[1].set.$func/slot-values.on']]);
+        });
+
+        it('reports a discriminator the input does not have, or a one-slot with one', async () => {
+            await bootWith(
+                kind('untagged', { slots: { reactions: { cardinality: 'many', value: 'string', discriminator: 'operation', input: { '!count': 'number' } } } }),
+                kind('single', { slots: { choice: { cardinality: 'one', value: 'string', discriminator: 'operation', input: { '!operation=1': ['read'] } } } }));
+            expect(validate().map(p => [p.code, p.data.kind])).to.have.deep.members([['invalid-discriminator', 'untagged'], ['invalid-discriminator', 'single']]);
+        });
     });
 
     it('accepts slots declared from outside the kind', async () => {

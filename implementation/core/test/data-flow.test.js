@@ -97,6 +97,22 @@ describe('data flow', () => {
         expect(problemsOf()).to.deep.equal([['type-mismatch', 'value.set.$sum[1]']]);
     });
 
+    it('narrows the input of a fill to the variants it is on', async () => {
+        await bootWith(
+            kind('changer', { slots: { guards: {
+                cardinality: 'many',
+                value: '@method',
+                discriminator: 'operation',
+                input: { '$data#1': [{ '!operation=': 'read', '!before': 'string' }, { '!operation=': 'trait', '!before': 'string', '!commands[]': 'string' }, { '!operation=': 'delete', '!before': 'string' }] }
+            } } }),
+            element('the-changer', 'changer'),
+            element('read-commands', 'slot-fill', { target: 'changer', slot: 'guards', on: ['read'], value: { set: '#.input.commands' } }),
+            element('trait-commands', 'slot-fill', { target: 'changer', slot: 'guards', on: ['trait'], value: { set: '#.input.commands' } }),
+            element('trait-or-delete-commands', 'slot-fill', { target: 'changer', slot: 'guards', on: ['trait', 'delete'], value: { set: '#.input.commands' } }),
+            element('any-commands', 'slot-fill', { target: 'changer', slot: 'guards', value: { set: '#.input.commands' } }));
+        expect(validate().map(({ code, data }) => [code, data.element])).to.deep.equal([['unknown-path', 'read-commands']]);
+    });
+
     it('reads declared objects of contracts and shapes as closed, and maps as open', async () => {
         await bootWith(
             kind('runner', { shape: { limit: 'number' }, operations: { run: operation([
