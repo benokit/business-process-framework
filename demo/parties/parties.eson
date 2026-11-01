@@ -1,7 +1,7 @@
 [
     {
         "id": "party",
-        "kind": "stateful-entity-type",
+        "kind": "stateful-body-entity-type",
         "data": {
             "traits": { "body": { "configuration": { "schema": {
                 "!partyType": "string",

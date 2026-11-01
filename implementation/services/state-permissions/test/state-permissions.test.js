@@ -25,7 +25,7 @@ const grant = (role, grants) => [
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: DOCUMENT, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!title': 'string' } } } } } },
+    { id: DOCUMENT, kind: 'stateful-body-entity-type', data: { traits: { body: { configuration: { schema: { '!title': 'string' } } } } } },
     { id: `${DOCUMENT}-lifecycle`, kind: 'slot-fill', data: { target: DOCUMENT, slot: 'traits', value: { trait: 'state', configuration: lifecycle } } },
     ...grant('author', [
         { area: 'entities', resource: DOCUMENT, action: 'read' },

@@ -6,6 +6,7 @@ import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/
 const run = Date.now();
 const ORDER = `order-${run}`;
 const NOTE = `note-${run}`;
+const TICKET = `ticket-${run}`;
 
 const lifecycle = {
     states: { status: { draft: true, confirmed: true, cancelled: true } },
@@ -18,8 +19,9 @@ const lifecycle = {
 };
 
 const elements = [
-    { id: ORDER, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'stateful-body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: lifecycle } } },
+    { id: TICKET, kind: 'stateful-entity-type', data: { traits: { state: { configuration: { ...lifecycle, operations: { delete: lifecycle.operations.delete } } } } } },
     { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
 ];
 
@@ -41,6 +43,13 @@ describe('entity-states', function () {
 
     it('validates', () => {
         expect(validate()).to.deep.equal([]);
+    });
+
+    it('moves an entity without a body and gives it no update', async () => {
+        const created = await invoke(TICKET, 'create', { businessKey: 't-1' });
+        expect(created.data).to.deep.equal({ state: { status: 'draft' } });
+        expect((await transition('t-1', 'confirm', 1, TICKET)).data).to.deep.equal({ state: { status: 'confirmed' } });
+        expect((await errorOf(invoke(TICKET, 'update', { businessKey: 't-1', revision: 2, value: {} }))).code).to.equal('unknown-operation');
     });
 
     it('starts in the default or a named initial state', async () => {

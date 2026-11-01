@@ -7,7 +7,7 @@ Keyed, revisioned business records, extensible by traits.
 Each entity type is an instance of `entity-type`, or of a class: a kind that extends it, with its own fills (`businessKey`, `traits`).
 
 ```json
-{ "id": "order", "kind": "stateful-entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } }, "state": { "configuration": { … } } } } }
+{ "id": "order", "kind": "stateful-body-entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } }, "state": { "configuration": { … } } } } }
 ```
 
 | Operation | Input | Output |

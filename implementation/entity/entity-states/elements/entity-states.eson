@@ -144,12 +144,26 @@
         "id": "stateful-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "body-entity-type",
+            "extends": "entity-type",
             "operations": {
                 "transition": {
                     "input": { "$data#&": ["@entity-revision-input", "@state-transition-input"] },
                     "output": "@entity-record",
                     "implementation": { "exposes": { "key": "state", "operation": "transition" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "stateful-body-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "stateful-entity-type",
+            "operations": {
+                "update": {
+                    "input": { "$data#&": ["@entity-revision-input", "@body-put-input"] },
+                    "output": "@viewed-entity-record",
+                    "implementation": { "exposes": { "key": "body", "operation": "put" } }
                 }
             }
         }

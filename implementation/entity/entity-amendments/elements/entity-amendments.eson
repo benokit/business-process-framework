@@ -3,7 +3,7 @@
         "id": "versioned-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "stateful-entity-type",
+            "extends": "stateful-body-entity-type",
             "fixed": { "traits": { "amendment-ledger": {} } },
             "slots": { "amendmentTypes": { "cardinality": "many", "value": "@ref/amendment-entity-type" } },
             "operations": {
@@ -87,7 +87,7 @@
         "id": "amendment-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "stateful-entity-type",
+            "extends": "stateful-body-entity-type",
             "fixed": { "traits": { "state": { "configuration": {
                 "states": {
                     "versionStatus": {
