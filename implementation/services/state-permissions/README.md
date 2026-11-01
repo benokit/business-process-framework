@@ -1,6 +1,6 @@
 # state-permissions
 
-Who may modify an entity in a given state: a `state` dimension of the operation in [authorization](../authorization/README.md), checked where the record is known. The design is in [state-permissions](../../../design/state-permissions.md).
+Who may modify an entity in a given state: a `state` dimension of the operation in [authorization](../authorization/README.md), checked where the record is known.
 
 The permission state of a record is the value of one dimension of its [state trait](\1), `status` by default. A grant names it like any dimension:
 

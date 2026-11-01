@@ -1,6 +1,6 @@
 # entity-ownership
 
-The `ownership` [trait](../entities/README.md#traits): the facts about an entity that access to it depends on, derived from its data at every write. The design is in [row-access](../../../design/row-access.md).
+The `ownership` [trait](../entities/README.md#traits): the facts about an entity that access to it depends on, derived from its data at every write.
 
 **Why.** "Which rows may this user see" must be answered the same way for a single read and for a search over millions of records, and a search engine can't run business rules. So the facts access depends on (region, departments, …) are derived from the record once, at write time, by a pure rule, and stored beside it. Both the store and the search index then filter on plain values, and callers can't forge them.
 
@@ -25,7 +25,7 @@ Changing a scope or an access profile needs nothing of this: filters are built f
 
 ## Scopes
 
-An `ownership-scope` is a named filter over the ownership: `{ filter }`, a mapping from `{ ownership, principal }` to true or false, with no effects and no `low`. The principal supplies values to compare with: `"#.principal.region"`, `"#.principal.userId"`. The framework restricts its properties to none but `userId` and `roles` ([security](../../platform/security/README.md)); an application declares the claims it uses as the schema `principal-claims`, against which `validate()` checks the scopes. [Access profiles](../entity-row-access/README.md) refer to scopes ([row-access](../../../design/row-access.md#5-access-profiles)).
+An `ownership-scope` is a named filter over the ownership: `{ filter }`, a mapping from `{ ownership, principal }` to true or false, with no effects and no `low`. The principal supplies values to compare with: `"#.principal.region"`, `"#.principal.userId"`. The framework restricts its properties to none but `userId` and `roles` ([security](../../platform/security/README.md)); an application declares the claims it uses as the schema `principal-claims`, against which `validate()` checks the scopes. [Access profiles](../entity-row-access/README.md) refer to scopes.
 
 ```json
 { "id": "principal-claims", "kind": "schema", "data": { "region": "string", "regions[]": "string" } }

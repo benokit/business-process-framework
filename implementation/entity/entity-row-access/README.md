@@ -1,6 +1,6 @@
 # entity-row-access
 
-Access permissions: which rows of an entity type a user reaches, apart from what they may do. The design is in [row-access](../../../design/row-access.md).
+Access permissions: which rows of an entity type a user reaches, apart from what they may do.
 
 A **process permission** (an [actor or role](../../services/authorization/README.md), held by the user as `roles`) says which operations a user may perform. An **access permission** (an `access-profile`, held as `access`) says which rows they reach. They are assigned separately and combine freely: one process role serves users of every region, and a profile says which.
 
