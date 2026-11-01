@@ -5,10 +5,25 @@
         "data": { "!entityType": "string", "!businessKey": "string:^.+$", "revision": "number" }
     },
     {
+        "id": "entity-create-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": "object" }
+    },
+    {
+        "id": "entity-update-input",
+        "kind": "schema",
+        "data": { "!before": "@entity-record", "!values": "object" }
+    },
+    {
+        "id": "entity-delete-input",
+        "kind": "schema",
+        "data": { "!before": "@entity-record" }
+    },
+    {
         "id": "create-entity",
         "kind": "query",
         "data": {
-            "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": "object" },
+            "input": "@entity-create-input",
             "output": "@entity-record",
             "errors": ["conflict"]
         }
@@ -21,12 +36,12 @@
     {
         "id": "update-entity",
         "kind": "query",
-        "data": { "input": { "!before": "@entity-record", "!values": "object" }, "output": "@entity-record", "errors": ["conflict"] }
+        "data": { "input": "@entity-update-input", "output": "@entity-record", "errors": ["conflict"] }
     },
     {
         "id": "delete-entity",
         "kind": "query",
-        "data": { "input": { "!before": "@entity-record" }, "output": "@entity-record", "errors": ["conflict"] }
+        "data": { "input": "@entity-delete-input", "output": "@entity-record", "errors": ["conflict"] }
     },
     {
         "id": "list-entities",
@@ -41,10 +56,10 @@
         "kind": "kind",
         "data": {
             "operations": {
-                "create": { "input": "@any", "output": "@any", "implementation": { "invoke": "create-entity", "operation": "run" } },
-                "read": { "input": "@any", "output": "@any", "implementation": { "invoke": "read-entity", "operation": "run" } },
-                "update": { "input": "@any", "output": "@any", "implementation": { "invoke": "update-entity", "operation": "run" } },
-                "delete": { "input": "@any", "output": "@any", "implementation": { "invoke": "delete-entity", "operation": "run" } }
+                "create": { "input": "@entity-create-input", "output": "@entity-record", "implementation": { "invoke": "create-entity", "operation": "run" } },
+                "read": { "input": "@entity-key", "output": "@entity-record", "implementation": { "invoke": "read-entity", "operation": "run" } },
+                "update": { "input": "@entity-update-input", "output": "@entity-record", "implementation": { "invoke": "update-entity", "operation": "run" } },
+                "delete": { "input": "@entity-delete-input", "output": "@entity-record", "implementation": { "invoke": "delete-entity", "operation": "run" } }
             }
         }
     },
