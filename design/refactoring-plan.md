@@ -36,7 +36,6 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
-| R6.4 | Reuse a states model through data composition in the demo | F22 | Two entity types share one states model element | draft |
 | R6.18 | `entityOperation` a reference to an operation of the entity type, checked by `validate()` and found by `refs` (the change is already a one-of by `operation`) | F66 | Renaming an operation listed in a state model is reported; a guard reading `after` on a `delete` is reported | draft |
 | R6.19 | Typed operations on `entity-store`; the `body` requirement leaves `create-entity`; paging of `list` | F59 | A second store implements the typed contract | draft |
 | R6.20 | Decide what a trait command is (stored or metadata of the change) and record it in the owner | F60 | The decision is in [entities](../implementation/entity/entities/README.md#traits) and F60 is removed | draft |

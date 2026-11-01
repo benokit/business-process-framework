@@ -126,6 +126,11 @@
         }
     },
     {
+        "id": "state-machine",
+        "kind": "kind",
+        "data": { "shape": "@entity-states-model" }
+    },
+    {
         "id": "state",
         "kind": "states-trait",
         "data": { "configuration": "@entity-states-model" }

@@ -5,7 +5,8 @@ An insurance application built on the [framework](../implementation/README.md). 
 ## Contents
 
 - **Parties**: searchable, with a `parties-by-type-search-query` search query at `POST /parties/search-by-type`.
-- **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a model that allows updates only in draft and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type whose lifecycle is composed from the construction one with `/ref` of a path and `/merge`: they add the state `suspended`, the transition `suspend` and `cancel` from it.
+- **Construction contracts**: an entity class with a numbered business key, a policyholder relation, a model that allows updates only in draft and a `contract-activated` event. Marine contracts ([marine.eson](contracts/marine.eson)) are another contract type of the same class: its lifecycle is the class's (`fixed`) united with what the type adds, the state `suspended`, the transition `suspend` and `cancel` from it.
+- **Approvals** ([approvals.eson](approvals/approvals.eson)): the state machine `approval-state-machine` is an element of its own (kind `state-machine`) that two entity types take as their state configuration with `/ref`. `expense-claim` uses it as it is; `leave-request` adds the state `cancelled` and the transition `cancel` with `/merge`.
 - **Security**: [roles](security/roles.eson) (see [Roles](#roles)) and [row access](#row-access).
 
 ## Contract terms and amendments

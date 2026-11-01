@@ -1,0 +1,41 @@
+[
+    {
+        "id": "approval-state-machine",
+        "kind": "state-machine",
+        "data": {
+            "states": { "status": { "draft": true, "submitted": true, "approved": true, "rejected": true } },
+            "transitions": {
+                "submit": { "status": { "draft": "submitted" } },
+                "approve": { "status": { "submitted": "approved" } },
+                "reject": { "status": { "submitted": "rejected" } }
+            },
+            "initialStates": { "default": { "status": "draft" } }
+        }
+    },
+    {
+        "id": "expense-claim",
+        "kind": "stateful-entity-type",
+        "/data": {
+            "traits": {
+                "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number" } } },
+                "state": { "configuration": { "/ref": "approval-state-machine" } }
+            }
+        }
+    },
+    {
+        "id": "leave-request",
+        "kind": "stateful-entity-type",
+        "/data": {
+            "traits": {
+                "body": { "configuration": { "schema": { "!employee": "string", "!from": "string", "!to": "string" } } },
+                "state": { "configuration": { "/merge": [
+                    { "/ref": "approval-state-machine" },
+                    {
+                        "states": { "status": { "cancelled": true } },
+                        "transitions": { "cancel": { "status": { "draft": "cancelled", "submitted": "cancelled" } } }
+                    }
+                ] } }
+            }
+        }
+    }
+]
