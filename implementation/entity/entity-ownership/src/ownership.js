@@ -235,9 +235,9 @@ export const bindRows = ({ rows, principal }) => rows === true || rows === null 
 const PAGE = 200;
 
 const recordsOf = async entityType => {
-    const { total } = await invoke('entity-database', 'list', { entityType, limit: 1, offset: 0 });
+    const { total } = await invoke('list-entities', 'run', { entityType, limit: 1, offset: 0 });
     const offsets = Array.from({ length: Math.ceil(total / PAGE) }, (_, page) => page * PAGE);
-    return offsets.reduce(async (read, offset) => [...await read, ...(await invoke('entity-database', 'list', { entityType, limit: PAGE, offset })).items], Promise.resolve([]));
+    return offsets.reduce(async (read, offset) => [...await read, ...(await invoke('list-entities', 'run', { entityType, limit: PAGE, offset })).items], Promise.resolve([]));
 };
 
 export const derivedOwnership = ({ rule, record }) => applyMapping({ mapping: rule, input: { entityType: record.entityType, businessKey: record.businessKey, data: viewedRecord({ record }).data } });

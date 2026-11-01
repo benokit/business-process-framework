@@ -44,8 +44,7 @@
                 "create": { "input": "@any", "output": "@any", "implementation": { "invoke": "create-entity", "operation": "run" } },
                 "read": { "input": "@any", "output": "@any", "implementation": { "invoke": "read-entity", "operation": "run" } },
                 "update": { "input": "@any", "output": "@any", "implementation": { "invoke": "update-entity", "operation": "run" } },
-                "delete": { "input": "@any", "output": "@any", "implementation": { "invoke": "delete-entity", "operation": "run" } },
-                "list": { "input": "@any", "output": "@any", "implementation": { "invoke": "list-entities", "operation": "run" } }
+                "delete": { "input": "@any", "output": "@any", "implementation": { "invoke": "delete-entity", "operation": "run" } }
             }
         }
     },

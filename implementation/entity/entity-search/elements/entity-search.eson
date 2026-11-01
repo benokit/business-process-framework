@@ -56,7 +56,7 @@
                     "input": { "!entityType": "@ref/entity-type" },
                     "implementation": [
                         { "outputKey": "index", "set": { "$func/slot-values": { "element": "#.input.entityType", "slot": "searchIndex" } } },
-                        { "outputKey": "records", "inputMap": { "entityType": "#.input.entityType", "limit": 200 }, "invoke": "entity-database", "operation": "list" },
+                        { "outputKey": "records", "inputMap": { "entityType": "#.input.entityType", "limit": 200 }, "invoke": "list-entities", "operation": "run" },
                         { "inputMap": "#.records.items", "forEach": { "inputMap": { "index": "#.index", "record": { "$func/viewed-record": { "record": "#.item", "entityType": "#.input.entityType" } } }, "invoke": "#.self.id", "operation": "indexRecord" } },
                         { "set": null }
                     ]

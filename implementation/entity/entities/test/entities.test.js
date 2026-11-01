@@ -392,7 +392,7 @@ describe('entities', function () {
     });
 
     it('lists the records of a type in the store, which no entity type operation exposes', async () => {
-        const { items, total } = await invoke('entity-database', 'list', { entityType: ORDER, limit: 2 });
+        const { items, total } = await invoke('list-entities', 'run', { entityType: ORDER, limit: 2 });
         expect(await errorOf(invoke(ORDER, 'list', { limit: 2 }))).to.not.equal(null);
         expect(items).to.have.length(2);
         expect(total).to.be.at.least(4);
