@@ -67,6 +67,7 @@
         "data": {
             "target": "entity-type",
             "slot": "guards",
+            "on": ["read"],
             "value": {
                 "if": { "$func/denies-record": { "entityType": "#.self.id", "user": "#._ctx.user", "record": "#.input.before" } },
                 "then": {

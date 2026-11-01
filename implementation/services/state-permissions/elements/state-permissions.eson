@@ -61,13 +61,9 @@
             "target": "entity-type",
             "slot": "guards",
             "position": "last",
+            "on": ["create", "trait", "delete"],
             "value": {
-                "if": {
-                    "$and": [
-                        { "$neq": ["#.input.operation", "read"] },
-                        { "$func/denies-state": { "entityType": "#.self.id", "user": "#._ctx.user", "operation": "#._ctx.operation", "record": "#.input.before" } }
-                    ]
-                },
+                "if": { "$func/denies-state": { "entityType": "#.self.id", "user": "#._ctx.user", "operation": "#._ctx.operation", "record": "#.input.before" } },
                 "then": { "throw": { "code": "forbidden", "message": { "$str": ["no role of the user permits the operation on ", "#.self.id", " in this state"] } } }
             }
         }

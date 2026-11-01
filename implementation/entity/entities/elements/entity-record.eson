@@ -66,22 +66,24 @@
         "id": "entity-change",
         "kind": "schema",
         "data": {
-            "!operation=1": ["create", "trait", "delete", "read"],
-            "entityOperation": "string",
-            "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
-            "before": "@entity-record",
-            "after": "object"
+            "$data#1": [
+                { "!operation=": "create", "entityOperation": "string", "!after": "object" },
+                { "!operation=": "trait", "entityOperation": "string", "!before": "@entity-record", "!commands[]": { "!key": "string", "!command": "string", "!value": "@any" }, "after": "object" },
+                { "!operation=": "delete", "entityOperation": "string", "!before": "@entity-record" },
+                { "!operation=": "read", "entityOperation": "string", "!before": "@entity-record" }
+            ]
         }
     },
     {
         "id": "viewed-entity-change",
         "kind": "schema",
         "data": {
-            "!operation=1": ["create", "trait", "delete", "read"],
-            "entityOperation": "string",
-            "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
-            "before": "@viewed-entity-record",
-            "after": "object"
+            "$data#1": [
+                { "!operation=": "create", "entityOperation": "string", "!after": "object" },
+                { "!operation=": "trait", "entityOperation": "string", "!before": "@viewed-entity-record", "!commands[]": { "!key": "string", "!command": "string", "!value": "@any" }, "after": "object" },
+                { "!operation=": "delete", "entityOperation": "string", "!before": "@viewed-entity-record" },
+                { "!operation=": "read", "entityOperation": "string", "!before": "@viewed-entity-record" }
+            ]
         }
     }
 ]

@@ -12,11 +12,11 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 
 | Operation | Input | Output |
 |---|---|---|
-| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the `guards` run on the loaded record (private `load`) as a change `{ operation: "read", before: record }` |
+| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the fills of `guards` that are on `read` run on the loaded record (private `load`, which every write passes through too) as a change `{ operation: "read", before: record }` |
 | `create` | `businessKey?`, `traits` (input per trait, `body` among them) | record |
 | `update` | `businessKey`, `revision`, `value` | record; checks `value` against `<id>/body/schema` and writes the trait `body` |
 | `delete` | `businessKey`, `revision` | the deleted record |
-| `applyChange` (private) | `change`, `revision?` | record; the write path of every write operation: guards, then the [derivation](#derived-traits) of the traits (not on `delete`), then in one transaction the store write the change implies (`create` writes `after` as derived; `trait` sets the key of each of its `commands` and of the derived commands to the command's `value` on `before`, in one revision; `delete` removes `before`) through the interceptors, and the reactions |
+| `applyChange` (private) | `change`, `revision?` | record; the write path of every write operation: the guards on the operation of the change, then the [derivation](#derived-traits) of the traits (not on `delete`), then in one transaction the store write the change implies (`create` writes `after` as derived; `trait` sets the key of each of its `commands` and of the derived commands to the command's `value` on `before`, in one revision; `delete` removes `before`) through the interceptors, and the reactions |
 | `derive` | `businessKey`, `revision?` | record; applies the [derivation](#derived-traits) to the stored record and writes the commands it gives as one `trait` change; the record as it is, without a new revision, when nothing is stale (a backfill after a rule changed) |
 | `applyTraitOperations` (private) | `businessKey`, `revision?`, `entityOperation`, `operations` (`[{ key, operation, input }]`) | record; runs the trait operation of each item against the record as it is and writes their commands as one `trait` change (`invalid` for a key given twice, a key without a trait, or a trait without the operation). The nodes `traitOperation` and `traitOperations` call it |
 | `initialTraitValues` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
@@ -60,11 +60,19 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 |---|---|---|---|
 | `traits` | many | `{ trait?, key?, configuration }` | see [Traits](#traits) |
 | `businessKey` | one | method: create input (`traits.body` is the business data) → key | on `create` without `businessKey`; the most specific fill wins |
-| `guards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only | before the transaction |
+| `guards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only; discriminator `operation`, a fill says with `on` which operations it judges ([slots](../../core/README.md#slots)) | before the transaction |
 | `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored; see [what an interceptor may change](#what-an-interceptor-may-change) | inside the transaction |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
-A change is `{ operation: create | trait | delete | read, entityOperation?, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`. `entityOperation` names the operation of the entity type that causes a `trait` or `delete` change (`update`, `putSegment`, `delete`, …), so that a guard can decide on what the entity exposes and not on the trait it ends in.
+A change is one of four variants by its `operation` (`entity-change`): `create` carries `after` (`businessKey`, `data`), `trait` the `before` record and the written `commands` (`{ key, command, value }`), `delete` and `read` the `before` record; reactions see `after` as the written record. The input of a guard fill that is `on` some operations has only their fields, so a guard `on: ["read"]` that reads `commands` is reported by `validate()`. `entityOperation` (any variant) names the operation of the entity type that causes a `trait` or `delete` change (`update`, `putSegment`, `delete`, …), so that a guard can decide on what the entity exposes and not on the trait it ends in.
+
+### Order of a write
+
+1. `load` reads the record and runs the guards `on` `read`: whether a record is visible is decided here, once, for `read`, `derive` and every write, before anything computes on it (a hidden record is `not-found`, never an `invalid` from a trait operation).
+2. The operation computes its commands (trait operations) and calls `applyChange`.
+3. `applyChange` checks the `revision`, runs the guards `on` the operation of the change (`create`, `trait` or `delete`), folds the [derivation](#derived-traits), then in one transaction writes through the interceptors and runs the reactions.
+
+A guard without `on` judges every operation, so it runs in step 1 and again in step 3.
 
 ### What an interceptor may change
 

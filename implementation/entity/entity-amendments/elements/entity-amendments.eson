@@ -67,6 +67,7 @@
         "data": {
             "target": "versioned-entity-type",
             "slot": "guards",
+            "on": ["trait"],
             "value": [
                 { "outputKey": "ledger", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "amendment-ledger" } } },
                 {
@@ -128,8 +129,9 @@
         "data": {
             "target": "amendment-entity-type",
             "slot": "guards",
+            "on": ["create"],
             "value": {
-                "if": { "$and": [{ "$eq": ["#.input.operation", "create"] }, { "$negate": "#._ctx.amending" }] },
+                "if": { "$negate": "#._ctx.amending" },
                 "then": { "throw": { "code": "forbidden", "message": "amendments are proposed through the entity they amend" } }
             }
         }

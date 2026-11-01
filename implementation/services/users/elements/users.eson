@@ -27,6 +27,7 @@
         "data": {
             "target": "user",
             "slot": "guards",
+            "on": ["create", "trait"],
             "value": [
                 { "outputKey": "body", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "body" } } },
                 {

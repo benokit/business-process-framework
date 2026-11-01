@@ -150,6 +150,14 @@ const elements = [
             then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', value: { amount: 2 } }, invoke: ORDER, operation: 'update' }
         }
     }),
+    fill('hide-hidden-order', ORDER, 'guards', {
+        if: { $eq: ['#.input.before.businessKey', 'o-hidden'] },
+        then: { throw: { code: 'not-found', message: 'hidden' } }
+    }, { on: ['read'] }),
+    fill('keep-kept-order', ORDER, 'guards', {
+        if: { $eq: ['#.input.before.businessKey', 'o-kept'] },
+        then: { throw: { code: 'conflict', message: 'kept' } }
+    }, { on: ['delete'] }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
@@ -218,6 +226,24 @@ describe('entities', function () {
     it('runs guards before the write', async () => {
         expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-neg', traits: { body: { amount: -1 } } }))).message).to.equal('amount must be positive');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-neg' }))).code).to.equal('not-found');
+    });
+
+    it('judges the visibility of a record where it is loaded, before a write computes anything on it', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-hidden', traits: { body: { amount: 1 } } });
+        const errors = await Promise.all([
+            errorOf(invoke(ORDER, 'read', { businessKey: 'o-hidden' })),
+            errorOf(invoke(ORDER, 'update', { businessKey: 'o-hidden', revision: 1, value: { amount: 'x' } })),
+            errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-hidden', revision: 1, key: 'other', command: 'x', value: {} })),
+            errorOf(invoke(ORDER, 'delete', { businessKey: 'o-hidden', revision: 1 }))
+        ]);
+        expect(errors.map(error => error.code)).to.deep.equal(['not-found', 'not-found', 'not-found', 'not-found']);
+    });
+
+    it('runs a guard only on the operations it is on', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-kept', traits: { body: { amount: 1 } } });
+        expect((await invoke(ORDER, 'read', { businessKey: 'o-kept' })).businessKey).to.equal('o-kept');
+        expect((await invoke(ORDER, 'update', { businessKey: 'o-kept', revision: 1, value: { amount: 2 } })).revision).to.equal(2);
+        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-kept', revision: 2 }))).message).to.equal('kept');
     });
 
     it('rolls the write back when a reaction fails', async () => {

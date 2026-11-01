@@ -171,6 +171,7 @@
         "data": {
             "target": "entity-type",
             "slot": "guards",
+            "on": ["trait", "delete"],
             "value": {
                 "if": { "$func/state-forbids-operation": { "entityType": "#.self.id", "entityOperation": "#.input.entityOperation", "state": "#.input.before.data.state" } },
                 "then": {
