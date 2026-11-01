@@ -77,12 +77,41 @@
         }
     },
     {
+        "id": "body-put-input",
+        "kind": "schema",
+        "data": { "!value": "object" }
+    },
+    {
+        "id": "body-amend-input",
+        "kind": "schema",
+        "data": { "!validFrom": "@date", "!patch": "[object]" }
+    },
+    {
+        "id": "body-remove-input",
+        "kind": "schema",
+        "data": { "!validFrom": "@date" }
+    },
+    {
+        "id": "body-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "update": {
+                    "input": { "$data#&": ["@entity-revision-input", "@body-put-input"] },
+                    "output": "@viewed-entity-record",
+                    "implementation": { "exposes": { "key": "body", "operation": "put" } }
+                }
+            }
+        }
+    },
+    {
         "id": "body-trait",
         "kind": "kind",
         "data": {
             "extends": "entity-trait",
             "operations": {
-                "put": { "input": "@trait-operation-input", "output": "@trait-command" }
+                "put": { "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-put-input" }] }, "output": "@trait-command" }
             }
         }
     },
@@ -137,7 +166,7 @@
                     ]
                 },
                 "amend": {
-                    "input": "@trait-operation-input",
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-amend-input" }] },
                     "output": "@trait-command",
                     "implementation": [
                         {
@@ -151,7 +180,7 @@
                     ]
                 },
                 "remove": {
-                    "input": "@trait-operation-input",
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-remove-input" }] },
                     "output": "@trait-command",
                     "implementation": { "set": { "command": "remove", "value": { "$func/remove-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom" } } } }
                 }

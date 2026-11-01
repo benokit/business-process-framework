@@ -7,8 +7,8 @@ const PARTY = `party-${run}`;
 const CONTRACT = `contract-${run}`;
 
 const elements = [
-    { id: PARTY, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
-    { id: CONTRACT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!holder': 'string', broker: 'string' } } } } } },
+    { id: PARTY, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
+    { id: CONTRACT, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!holder': 'string', broker: 'string' } } } } } },
     { id: `holder-${run}`, kind: 'slot-fill', data: { target: CONTRACT, slot: 'relations', value: { set: { relations: [{ targetEntityType: PARTY, targetEntityBusinessKey: '#.input.data.body.holder', relationType: 'holder' }] } } } },
     {
         id: `broker-${run}`,

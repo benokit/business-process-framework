@@ -14,7 +14,7 @@ export const record = ({ input, _ctx }) => {
 
 const elements = [
     { id: ORDER, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
-    { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } },
+    { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } },
     { id: `${ORDER}-group`, kind: 'slot-fill', data: { target: ORDER, slot: 'eventGroup', value: 'all-orders' } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } } } } },
     { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record', effects: ['irreversible'] } } } }

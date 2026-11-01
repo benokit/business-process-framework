@@ -309,14 +309,6 @@
                         }
                     ]
                 },
-                "update": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
-                    "output": "@viewed-entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
-                        "traitOperation": { "key": "body", "operation": "put" }
-                    }
-                },
                 "delete": {
                     "input": { "!businessKey": "string", "!revision": "number" },
                     "output": "@viewed-entity-record",

@@ -5,6 +5,11 @@
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "value": "@any", "input": "@any" }
     },
     {
+        "id": "entity-revision-input",
+        "kind": "schema",
+        "data": { "!businessKey": "string", "!revision": "number" }
+    },
+    {
         "id": "trait-command",
         "kind": "schema",
         "data": { "!command": "string", "!value": "@any" }
@@ -97,6 +102,29 @@
                     "operation": "applyTraitOperations"
                 }
             ]
+        }
+    },
+    {
+        "id": "exposed-trait-operation",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "exposes",
+            "within": "entity-type",
+            "node": { "!exposes": { "!key": "string", "!operation": "string" } },
+            "implementation": {
+                "inputMap": {
+                    "businessKey": "#.input.businessKey",
+                    "revision": "#.input.revision",
+                    "entityOperation": "#.operation",
+                    "operations": [{
+                        "key": "#.node.exposes.key",
+                        "operation": "#.node.exposes.operation",
+                        "input": { "$omit": { "keys": ["businessKey", "revision"], "object": "#.input" } }
+                    }]
+                },
+                "invoke": "#.self.id",
+                "operation": "applyTraitOperations"
+            }
         }
     }
 ]

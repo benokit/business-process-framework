@@ -104,7 +104,7 @@
                     ]
                 },
                 "transition": {
-                    "input": "@trait-operation-input",
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@state-transition-input" }] },
                     "output": "@trait-command",
                     "implementation": [
                         {
@@ -136,18 +136,20 @@
         "data": { "configuration": "@entity-states-model" }
     },
     {
+        "id": "state-transition-input",
+        "kind": "schema",
+        "data": { "!transition": "@entity-transition" }
+    },
+    {
         "id": "stateful-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "entity-type",
+            "extends": "body-entity-type",
             "operations": {
                 "transition": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!transition": "@entity-transition" },
+                    "input": { "$data#&": ["@entity-revision-input", "@state-transition-input"] },
                     "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "transition": "#.input.transition" } },
-                        "traitOperation": { "key": "state", "operation": "transition" }
-                    }
+                    "implementation": { "exposes": { "key": "state", "operation": "transition" } }
                 }
             }
         }

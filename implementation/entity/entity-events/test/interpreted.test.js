@@ -4,7 +4,7 @@ import { boot, interpret, invoke, packageElements } from '@business-framework/co
 const ORDER = 'order';
 
 const elements = [
-    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: 'positive-amount', kind: 'slot-fill', data: { target: ORDER, slot: 'guards', value: {
         if: { $lte: ['#.input.after.data.body.amount', 0] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }

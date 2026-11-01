@@ -85,9 +85,24 @@ const closedProblems = entityType => {
         .map(key => `traits.${key} is injected by ${injectors[key].map(({ source }) => source).join(', ')} and not declared by ${kind}`);
 };
 
+const FRAMEWORK_OPERATIONS = ['initialize', 'derive'];
+
+const exposureProblems = (entityType, operation, { key, operation: traitOperation }) => {
+    const use = traitsOf(entityType)[key];
+    const where = `operation '${operation}' of ${entityType} exposes '${traitOperation}' of '${key}'`;
+    if (use === undefined) return [`${where}, but ${entityType} has no trait '${key}'`];
+    if (FRAMEWORK_OPERATIONS.includes(traitOperation)) return [`${where}, which only the framework calls`];
+    return traitOperation in resolveKind(getElement(use.trait).kind).operations ? [] : [`${where}, but trait '${use.trait}' has no such operation`];
+};
+
+const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
+    .filter(([, { implementation }]) => implementation?.exposes !== undefined)
+    .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
+
 export const traitProblems = entityType => {
     const fills = fillContributions(entityType);
     return [
+        ...exposedOperationProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
         ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),
         ...closedProblems(entityType),

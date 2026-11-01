@@ -20,7 +20,7 @@ const lifecycle = {
 const elements = [
     { id: ORDER, kind: 'stateful-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: lifecycle } } },
-    { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
+    { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
 ];
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states'];

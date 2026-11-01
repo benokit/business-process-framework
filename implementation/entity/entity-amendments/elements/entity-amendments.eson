@@ -8,31 +8,27 @@
             "slots": { "amendmentTypes": { "cardinality": "many", "value": "@ref/amendment-entity-type" } },
             "operations": {
                 "applyAmendment": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!validFrom": "@date", "!patch": "[object]" },
+                    "input": { "$data#&": ["@entity-revision-input", "@body-amend-input"] },
                     "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "validFrom": "#.input.validFrom", "patch": "#.input.patch" } },
-                        "traitOperation": { "key": "body", "operation": "amend" }
-                    }
+                    "implementation": { "exposes": { "key": "body", "operation": "amend" } }
                 },
                 "revertAmendment": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!validFrom": "@date" },
+                    "input": { "$data#&": ["@entity-revision-input", "@body-remove-input"] },
                     "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "validFrom": "#.input.validFrom" } },
-                        "traitOperation": { "key": "body", "operation": "remove" }
-                    }
+                    "implementation": { "exposes": { "key": "body", "operation": "remove" } }
                 },
                 "writeLedger": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!command": "string", "!value": "object" },
+                    "input": { "$data#&": ["@entity-revision-input", "@ledger-write-input"] },
                     "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "command": "#.input.command", "value": "#.input.value" } },
-                        "traitOperation": { "key": "amendment-ledger", "operation": "write" }
-                    }
+                    "implementation": { "exposes": { "key": "amendment-ledger", "operation": "write" } }
                 }
             }
         }
+    },
+    {
+        "id": "ledger-write-input",
+        "kind": "schema",
+        "data": { "!command": "string", "!value": "object" }
     },
     {
         "id": "ledger-trait",
@@ -44,7 +40,7 @@
                     "implementation": { "set": { "last": 0, "open": null } }
                 },
                 "write": {
-                    "input": "@trait-operation-input",
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@ledger-write-input" }] },
                     "output": "@trait-command",
                     "implementation": { "set": { "command": "#.input.input.command", "value": "#.input.input.value" } }
                 }

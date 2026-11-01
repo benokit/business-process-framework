@@ -68,7 +68,7 @@ const elements = [
         id: WRITING,
         kind: 'kind',
         data: {
-            extends: 'entity-type',
+            extends: 'body-entity-type',
             operations: {
                 writeTraits: {
                     input: { '!businessKey': 'string', '!revision': 'number', '!amount': 'number', '!note': 'string' },
@@ -120,13 +120,13 @@ const elements = [
     prefixed(TAG),
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
-    { id: MASKING, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
+    { id: MASKING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
     { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
     fill('tagged-second', TAGGED, 'traits', { trait: TAG, key: 'second', configuration: { prefix: 'b: ' } }),
-    { id: NOTED, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
+    { id: NOTED, kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
@@ -163,7 +163,7 @@ const elements = [
         then: { throw: 'unlucky amount' }
     }),
     { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
-    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type' } },
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'body-entity-type' } },
     { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { traits: { body: { configuration: { schema: { '$data#&': [`@${CONTRACT_BODY}`, { '!project': 'string' }] } } } } } },
     fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $str: ['C-', '#.input.traits.body.holder'] } }),
     fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $str: ['CON-', '#.input.traits.body.project'] } }),
@@ -407,6 +407,26 @@ describe('entities', function () {
     it('unites the configuration of a trait from the kind chain, the data and the fills', async () => {
         expect((await invoke(CONFIGURED, 'create', { businessKey: 'c-1', traits: { body: {} } })).data[NOTE]).to.equal('class: new');
         expect((await invoke(SPECIALISED, 'create', { businessKey: 'c-1', traits: { body: {} } })).data[NOTE]).to.equal('class: new!');
+    });
+
+    it('reports an exposed trait operation that the entity type cannot run in validate()', async () => {
+        const exposing = operation => ({ input: '@entity-revision-input', output: '@entity-record', implementation: { exposes: { key: NOTE, operation } } });
+        const broken = [
+            { id: `unbodied-${run}`, kind: 'body-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'p' } } } } },
+            { id: `exposing-${run}`, kind: 'kind', data: { extends: 'entity-type', operations: { vanish: exposing('vanish'), refresh: exposing('derive') } } },
+            { id: `exposed-${run}`, kind: `exposing-${run}`, data: { traits: { [NOTE]: { configuration: { prefix: 'p' } } } } }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
+        const messages = validate().flatMap(problem => problem.data.messages ?? []);
+        expect(messages).to.include.members([
+            `operation 'update' of unbodied-${run} exposes 'put' of 'body', but unbodied-${run} has no trait 'body'`,
+            `operation 'vanish' of exposed-${run} exposes 'vanish' of '${NOTE}', but trait '${NOTE}' has no such operation`,
+            `operation 'refresh' of exposed-${run} exposes 'derive' of '${NOTE}', which only the framework calls`
+        ]);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
+        await migrate();
     });
 
     it('reports invalid trait uses in validate()', async () => {

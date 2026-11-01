@@ -8,7 +8,7 @@ const PROJECT = `project-${run}`;
 const INDEX = `projects-${run}`;
 
 const elements = [
-    { id: PROJECT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
+    { id: PROJECT, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
     {
         kind: 'slot-fill',
         data: {

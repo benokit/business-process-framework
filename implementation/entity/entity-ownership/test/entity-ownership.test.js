@@ -12,7 +12,7 @@ const elements = [
     {
         id: REGIONAL,
         kind: 'kind',
-        data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', 'departments[]': 'string' } } } } } }
+        data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', 'departments[]': 'string' } } } } } }
     },
     {
         id: CONTRACT,
@@ -29,7 +29,7 @@ const elements = [
         kind: REGIONAL,
         data: { traits: { body: { configuration: { schema: { '!size': 'number' } } }, ownership: { configuration: { rule: { region: '#.data.body.size' } } } } }
     },
-    { id: PLAIN, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } }
+    { id: PLAIN, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } }
 ];
 
 const packages = ['security', 'integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-ownership'];
