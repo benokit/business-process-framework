@@ -12,7 +12,7 @@ const elements = [
         kind: 'versioned-entity-type',
         data: {
             traits: {
-                body: { configuration: { schema: { '!holder': 'string', '!startDate': '@date', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } },
+                body: { trait: 'versioned-body', configuration: { schema: { '!holder': 'string', '!startDate': '@date', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } },
                 state: {
                     configuration: {
                         states: { status: { draft: true, active: true } },

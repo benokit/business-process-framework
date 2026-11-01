@@ -5,6 +5,8 @@ import { validateValue } from '@business-framework/core/schemas';
 
 const cardinalityOf = trait => getElement(trait).data.cardinality ?? 'one';
 
+const keyOf = trait => getElement(trait).data.key ?? trait;
+
 const isTrait = trait => isInstanceOf({ element: trait, kind: 'entity-trait' });
 
 const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
@@ -15,7 +17,7 @@ const dataContributions = entityType => Object.entries(selfOf(getElement(entityT
     .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: entityType }));
 
 const fillContributions = entityType => fillsOf(selfOf(getElement(entityType)), 'traits').fills
-    .map(({ id, data: { target, value: { trait, key, configuration } } }) => ({ key: key ?? trait, trait, configuration, target, source: id ?? target }));
+    .map(({ id, data: { target, value: { trait, key, configuration } } }) => ({ key: key ?? (trait !== undefined && isTrait(trait) ? keyOf(trait) : trait), trait, configuration, target, source: id ?? target }));
 
 const unitedWith = ({ configuration, conflicts }, contribution, key) => {
     try {
@@ -28,9 +30,16 @@ const unitedWith = ({ configuration, conflicts }, contribution, key) => {
 
 const unionOf = (key, contributions) => contributions.reduce((united, contribution) => unitedWith(united, contribution, key), { configuration: {}, conflicts: [] });
 
+const isAlternativeTo = key => trait => trait !== key && isTrait(trait) && keyOf(trait) === key;
+
+const traitsOfKey = (key, contributions) => {
+    const named = [...new Set(contributions.map(({ trait }) => trait ?? (isTrait(key) ? key : undefined)).filter(trait => trait !== undefined))].sort();
+    return named.some(isAlternativeTo(key)) ? named.filter(trait => trait !== key) : named;
+};
+
 const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
     .map(([key, contributions]) => {
-        const traits = [...new Set(contributions.map(({ trait }) => trait ?? (isTrait(key) ? key : undefined)).filter(trait => trait !== undefined))].sort();
+        const traits = traitsOfKey(key, contributions);
         return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
     });
 
@@ -41,7 +50,7 @@ const configurationProblems = (trait, configuration) => validateValue({ schemaId
 
 const cardinalityProblems = ({ key, trait }) => cardinalityOf(trait) === 'many'
     ? (key === trait ? [`trait '${trait}' needs a key`] : [])
-    : (key === trait ? [] : [`trait '${trait}' has cardinality one and takes no key`]);
+    : (key === keyOf(trait) ? [] : [`trait '${trait}' has cardinality one and takes no key`]);
 
 const optionalAndRequired = (value, path = []) => isObject(value)
     ? [

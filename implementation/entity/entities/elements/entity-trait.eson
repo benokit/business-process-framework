@@ -13,7 +13,7 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"] },
+            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping" },
             "operations": {
                 "initialize": { "input": { "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any" }, "output": "@any" }
             },

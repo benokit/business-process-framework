@@ -91,21 +91,9 @@ export const removeVersion = ({ timeline, validFrom }) => {
     return { ...without(timeline, last), [previous]: applyAll(timeline[last], [timeline[previous]]) };
 };
 
-const isVersioned = use => isInstanceOf({ element: use.trait, kind: 'body-trait' }) && use.configuration.versioned !== undefined;
+export const bodyAt = ({ timeline, at }) => resolveVersion({ timeline, at }).data;
 
-export const resolvedRecord = ({ record, entityType, at }) => {
-    const versioned = Object.entries(traitsOf(record.entityType ?? entityType)).filter(([, use]) => isVersioned(use)).map(([key]) => key);
-    return versioned.length === 0
-        ? record
-        : { ...record, data: { ...record.data, ...Object.fromEntries(versioned.map(key => [key, resolveVersion({ timeline: record.data[key], at }).data])) } };
-};
-
-export const resolvedChange = ({ change, entityType }) => Object.fromEntries(Object.entries(change)
-    .map(([key, value]) => [key, ['before', 'after'].includes(key) && value?.data !== undefined ? resolvedRecord({ record: value, entityType }) : value]));
-
-export const recordVersions = ({ record }) => Object.fromEntries(Object.entries(traitsOf(record.entityType))
-    .filter(([, use]) => isVersioned(use))
-    .map(([key]) => [key, lastKey(record.data[key])]));
+const isVersioned = ({ trait }) => isInstanceOf({ element: trait, kind: 'versioned-body-trait' });
 
 const propertiesNamed = (schema, name) => {
     if (schema === null || typeof schema !== 'object') return [];

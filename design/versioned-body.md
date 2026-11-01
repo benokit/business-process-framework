@@ -50,9 +50,9 @@ A process that changes a versioned entity is a separate entity with its own stat
 
 ## 6. Events, validation
 
-- An entity event carries `versions`, the map from each versioned key to the start of its last version after the write (`undated` for a body without a date), beside `commands`: a consumer learns which version the write produced, and for a `remove` the version now current.
+- An entity event carries the `commands` of the write, so a consumer learns that a version changed (`amend`, `remove`), not which date it has: that is a read. The event once carried `versions`, the start of the last version per versioned key; no consumer used it and only the last version can change, so it went (R6.15).
 - `validate()` reports a pointer that is no field of the body schema and a field that is not a date, so a typo can't turn every body into `undated` silently.
-- The stored record (what `entity-database` returns, the timeline) and the record an operation returns (the body of the last version) share the schema `entity-record`. Code outside `entity-type` that reads the store directly gets the timeline: it should read `data.state`, the ledger and the like, which are not versioned, or go through `read`.
+- The stored record (what `entity-database` returns, the timeline, schema `entity-record`) and the record an operation returns (the body of the last version, schema `viewed-entity-record`) are two schemas, the second produced by the views of the traits ([entities](../implementation/entity/entities/README.md#traits)). Code outside `entity-type` that reads the store directly gets the timeline: it should read `data.state`, the ledger and the like, which are not versioned, or go through `read`.
 
 ## 7. Decided, and left out
 

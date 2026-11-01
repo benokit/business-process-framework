@@ -1,4 +1,4 @@
 [
-    { "id": "nameless", "kind": "entity-type", "data": { "schema": {} } },
+    { "id": "nameless", "kind": "entity-type", "data": { "traits": { "body": {} } } },
     { "kind": "slot-fill", "data": { "target": "entity-type", "slot": "nonsense", "value": {} } }
 ]

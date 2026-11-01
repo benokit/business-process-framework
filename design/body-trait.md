@@ -1,6 +1,6 @@
 # `body` as a trait, and trait configuration as kind data
 
-Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/entity/entities/README.md), keyed traits in [entities](../implementation/entity/entities/README.md), the versioned mode of `body` in [versioned-body](versioned-body.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md).
+Status: **implemented** (R6.6 to R6.10): the first form (§5) replaced `bodySchema`, R6.10 replaced its precedence rules with the model in §2 to §4. It completes P17 ([postulates.md](postulates.md)) and F22 ([critique.md](critique.md)). The traits are in [entities](../implementation/entity/entities/README.md), keyed traits in [entities](../implementation/entity/entities/README.md), the versioned mode of `body` in [versioned-body](versioned-body.md), `fixed` in [kind-settings](kind-settings.md) §2, the composition algebra in [data-composition](data-composition.md). **R6.15** changed two things in this text: `entity-type` fixes no trait (no `fixed.traits.body`; an entity may have no body), and the versioned mode is the trait `versioned-body`, which takes over the key `body` by declaring it ([entities](../implementation/entity/entities/README.md#traits)).
 
 ## 1. Problem
 
@@ -37,7 +37,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
               "state":    { "configuration": { "states": { "status": { "draft": true, "issued": true, "active": true, "cancelled": true } },
                                                "transitions": { "issue": { "status": { "draft": "issued" } }, … },
                                                "initialStates": { "default": { "status": "draft" } } } },
-              "body":     { "configuration": { "versioned": { "validFrom": "/startDate" } } } } } } }
+              "body":     { "trait": "versioned-body", "configuration": { "versioned": { "validFrom": "/startDate" } } } } } } }
 
 { "id": "marine", "kind": "insurance-contract-type",
   "data": { "traits": {
@@ -72,7 +72,7 @@ The effective use of a key is the **deep union of every contribution**, as `fixe
 | Schema | the trait's `load` registers `<entityType>/body/schema` per use |
 | `create` | `initialize` asserts `traits.body` against the schema and returns it |
 | Write | the operation `update({ businessKey, revision, value })` of the entity type runs the operation `put` of the trait on the key `body`, which checks the value; the `PUT` endpoint calls it |
-| Required | declared by `fixed.traits.body` of `entity-type`; `entity-record.data` is any object |
+| Required | by no one: an entity type declares `body` (and the schema) when it has business data; `entity-record.data` is any object (R6.15) |
 | Events and changes | a body change is a `trait` change with `key: body`, `command: put`; there is no change operation or event type `update` |
 
 `create` takes `traits` only; the HTTP `POST` maps `body` onto `traits.body`. Consumers (`users`, `oauth`, authorization) still read `data.body`.

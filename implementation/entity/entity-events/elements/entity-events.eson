@@ -52,7 +52,6 @@
                             "id": "#.record.id",
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
-                            "versions": "#.input.versions",
                             "commands": { "$map": { "over": { "$coalesce": ["#.input.commands", []] }, "fn": { "key": "#.key", "command": "#.command" } } }
                         },
                         "subject": "#.record.entityType",

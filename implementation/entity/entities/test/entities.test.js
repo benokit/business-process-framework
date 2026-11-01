@@ -16,6 +16,9 @@ const TAGGED = `tagged-${run}`;
 const CONFIGURED = `configured-${run}`;
 const NOTED = `noted-${run}`;
 const SPECIALISED = `specialised-${run}`;
+const MASKED = `masked-${run}`;
+const MASKING = `masking-${run}`;
+const BODYLESS = `bodyless-${run}`;
 
 const prefixed = id => ({
     id: `${id}-trait`,
@@ -82,6 +85,10 @@ const elements = [
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(TAG),
+    prefixed(MASKED),
+    { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
+    { id: MASKING, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
+    { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
@@ -90,7 +97,7 @@ const elements = [
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
-    { id: VERSIONED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } } } } },
+    { id: VERSIONED, kind: WRITING, data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } } } } },
     { id: ORDER, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'guards', {
@@ -146,6 +153,18 @@ describe('entities', function () {
         expect(created).to.include({ entityType: ORDER, businessKey: 'o-1', revision: 1 });
         expect(created.data).to.deep.equal({ body: { amount: 5, note: 'stamped' }, [NOTE]: 'order: new' });
         expect(await invoke(ORDER, 'read', { businessKey: 'o-1' })).to.deep.equal(created);
+    });
+
+    it('creates an entity without a body', async () => {
+        const created = await invoke(BODYLESS, 'create', { businessKey: 'b-1' });
+        expect(created.data).to.deep.equal({ [NOTE]: 'plain: new' });
+        expect(await invoke(BODYLESS, 'read', { businessKey: 'b-1' })).to.deep.equal(created);
+    });
+
+    it('shows the value of a trait through its view, given the reader\'s at', async () => {
+        await invoke(MASKING, 'create', { businessKey: 'm-1', traits: { body: {} } });
+        expect((await invoke(MASKING, 'read', { businessKey: 'm-1' })).data[MASKED]).to.equal('secret: new');
+        expect((await invoke(MASKING, 'read', { businessKey: 'm-1', at: 'public' })).data[MASKED]).to.equal('***');
     });
 
     it('passes trait input on create', async () => {
@@ -315,7 +334,7 @@ describe('entities', function () {
 
     it('reports invalid trait uses in validate()', async () => {
         const broken = [
-            { id: `schemaless-${run}`, kind: 'entity-type', data: {} },
+            { id: `schemaless-${run}`, kind: 'entity-type', data: { traits: { body: {} } } },
             { id: `bad-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, unknown: {}, [NOTE]: { configuration: { prefix: 1 } } } } },
             { id: `dual-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { holder: 'string', '!holder': 'string' } } } } } },
             { id: `conflicting-${run}`, kind: CONTRACT_CLASS, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -328,8 +347,8 @@ describe('entities', function () {
             fill('body-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'body', configuration: { prefix: 'p' } }),
             fill('dotted-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'first.one', configuration: { prefix: 'p' } }),
             fill('repeated-tag', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'again' } }),
-            { id: `undated-field-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { startDate: 'string:^x$' }, versioned: { validFrom: '/startDate' } } } } } },
-            { id: `missing-field-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { startDate: 'string' }, versioned: { validFrom: '/begin' } } } } } }
+            { id: `undated-field-${run}`, kind: 'entity-type', data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { startDate: 'string:^x$' }, versioned: { validFrom: '/startDate' } } } } } },
+            { id: `missing-field-${run}`, kind: 'entity-type', data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { startDate: 'string' }, versioned: { validFrom: '/begin' } } } } } }
         ];
         await stop();
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });

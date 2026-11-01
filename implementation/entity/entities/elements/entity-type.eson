@@ -4,13 +4,12 @@
         "kind": "kind",
         "data": {
             "shape": { "traits{}": "@entity-trait-entry" },
-            "fixed": { "traits": { "body": {} } },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" },
                 "businessKey": { "cardinality": "one", "value": "@method", "input": "@entity-type/create/input" },
-                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@entity-change" },
+                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change" },
                 "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
-                "reactions": { "cardinality": "many", "value": "@method", "input": "@entity-change" }
+                "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
             },
             "operations": {
                 "load": {
@@ -27,7 +26,7 @@
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
                             "forEach": {
-                                "inputMap": { "$func/resolved-change": { "change": { "operation": "read", "before": "#.record" }, "entityType": "#.self.id" } },
+                                "inputMap": { "$func/viewed-change": { "change": { "operation": "read", "before": "#.record" }, "entityType": "#.self.id" } },
                                 "execute": "#.item"
                             }
                         },
@@ -36,10 +35,10 @@
                 },
                 "read": {
                     "input": { "!businessKey": "string", "revision": "number", "at": "string" },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": [
                         { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision" }, "invoke": "#.self.id", "operation": "load" },
-                        { "set": { "$func/resolved-record": { "record": "#.record", "at": "#.input.at" } } }
+                        { "set": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id", "at": "#.input.at" } } }
                     ]
                 },
                 "initialTraitValues": {
@@ -73,7 +72,7 @@
                 "applyChange": {
                     "private": true,
                     "input": { "!change": "@entity-change", "revision": "number" },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": [
                         {
                             "if": { "$and": ["#.input.revision", { "$neq": ["#.input.revision", "#.input.change.before.revision"] }] },
@@ -86,7 +85,7 @@
                         },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards" } },
-                            "forEach": { "inputMap": { "$func/resolved-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
+                            "forEach": { "inputMap": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
                         },
                         {
                             "outputKey": "store",
@@ -110,15 +109,15 @@
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                                     "forEach": {
                                         "inputMap": {
-                                            "$func/resolved-change": {
-                                                "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record", "versions": { "$func/record-versions": { "record": "#.record" } } }] }] },
+                                            "$func/viewed-change": {
+                                                "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] },
                                                 "entityType": "#.self.id"
                                             }
                                         },
                                         "execute": "#.item"
                                     }
                                 },
-                                { "return": { "$func/resolved-record": { "record": "#.record" } } }
+                                { "return": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id" } } }
                             ]
                         }
                     ]
@@ -131,7 +130,7 @@
                         "!entityOperation": "string",
                         "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" }
                     },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": [
                         { "outputKey": "keys", "set": { "$map": { "over": "#.input.operations", "fn": "#.key" } } },
                         {
@@ -188,7 +187,7 @@
                 },
                 "create": {
                     "input": { "businessKey": "string", "traits": "object" },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": [
                         {
                             "outputKey": "traits",
@@ -218,7 +217,7 @@
                 },
                 "update": {
                     "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": {
                         "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
                         "traitOperation": { "key": "body", "operation": "put" }
@@ -226,7 +225,7 @@
                 },
                 "delete": {
                     "input": { "!businessKey": "string", "!revision": "number" },
-                    "output": "@entity-record",
+                    "output": "@viewed-entity-record",
                     "implementation": [
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
                         {

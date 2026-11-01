@@ -48,7 +48,7 @@
                             "operations": { "update": { "status": { "draft": true } }, "applyAmendment": { "status": { "active": true } } }
                         }
                     },
-                    "body": { "configuration": { "versioned": { "validFrom": "/startDate" } } },
+                    "body": { "trait": "versioned-body", "configuration": { "versioned": { "validFrom": "/startDate" } } },
                     "ownership": {
                         "configuration": {
                             "dimensions": { "!region": "string", "!confidential": "boolean" },

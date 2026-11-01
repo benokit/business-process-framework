@@ -12,6 +12,36 @@
         }
     },
     {
+        "id": "viewed-entity-record",
+        "kind": "schema",
+        "data": {
+            "!id": "string",
+            "!entityType": "string",
+            "!businessKey": "string",
+            "!revision": "number",
+            "!data": "object",
+            "!timestampUtc": "string"
+        }
+    },
+    {
+        "id": "viewed-record",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!record": "@entity-record", "entityType": "string", "at": "@any" }, "output": "@viewed-entity-record" },
+            "module": "@business-framework/entities/views",
+            "export": "viewedRecord"
+        }
+    },
+    {
+        "id": "viewed-change",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@viewed-entity-change" },
+            "module": "@business-framework/entities/views",
+            "export": "viewedChange"
+        }
+    },
+    {
         "id": "change-command",
         "kind": "pure-function",
         "data": {
@@ -27,8 +57,18 @@
             "entityOperation": "string",
             "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
             "before": "@entity-record",
-            "after": "object",
-            "versions": "object"
+            "after": "object"
+        }
+    },
+    {
+        "id": "viewed-entity-change",
+        "kind": "schema",
+        "data": {
+            "!operation=1": ["create", "trait", "delete", "read"],
+            "entityOperation": "string",
+            "commands[]": { "!key": "string", "!command": "string", "!value": "@any" },
+            "before": "@viewed-entity-record",
+            "after": "object"
         }
     }
 ]

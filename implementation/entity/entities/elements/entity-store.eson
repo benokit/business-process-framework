@@ -8,7 +8,7 @@
         "id": "create-entity",
         "kind": "query",
         "data": {
-            "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": { "!body": "object" } },
+            "input": { "!entityType": "string", "!businessKey": "string:^.+$", "!data": "object" },
             "output": "@entity-record",
             "errors": ["conflict"]
         }
