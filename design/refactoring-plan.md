@@ -37,7 +37,6 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | ID | Step | Refs | Done when | Status |
 |---|---|---|---|---|
 | R6.18 | `entityOperation` a reference to an operation of the entity type, checked by `validate()` and found by `refs` (the change is already a one-of by `operation`) | F66 | Renaming an operation listed in a state model is reported; a guard reading `after` on a `delete` is reported | draft |
-| R6.19 | Typed operations on `entity-store`; the `body` requirement leaves `create-entity`; paging of `list` | F59 | A second store implements the typed contract | draft |
 | R6.20 | Decide what a trait command is (stored or metadata of the change) and record it in the owner | F60 | The decision is in [entities](../implementation/entity/entities/README.md#traits) and F60 is removed | draft |
 | R6.21 | Permission state and operations by state move out of the state trait's package, to what reads them | F66, R6.18 | `entity-states` holds the state machine and the move restriction | draft |
 | R6.22 | The reference date `validAt` of F54 as a context key read by `read` as the default of `at` | F54 | A replay with a fixed date reads the version in force on it; without the key nothing changes | draft |
