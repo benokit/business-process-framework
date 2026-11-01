@@ -9,30 +9,12 @@
         }
     },
     {
-        "id": "ownership-rule",
+        "id": "derived-ownership",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "string", "output": "@any" },
+            "signature": { "input": { "!rule": "@any", "!record": "@any" }, "output": "object" },
             "module": "@business-framework/entity-ownership/ownership",
-            "export": "ownershipRule"
-        }
-    },
-    {
-        "id": "record-after-write",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "!operation": "string", "!input": "object" }, "output": "@any" },
-            "module": "@business-framework/entity-ownership/ownership",
-            "export": "recordAfterWrite"
-        }
-    },
-    {
-        "id": "with-ownership",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "!operation": "string", "!input": "object", "!ownership": "object" }, "output": "object" },
-            "module": "@business-framework/entity-ownership/ownership",
-            "export": "withOwnership"
+            "export": "derivedOwnership"
         }
     },
     {
@@ -60,23 +42,6 @@
             "signature": { "input": "string", "output": "@any" },
             "module": "@business-framework/entity-ownership/ownership",
             "export": "ownershipExplanation"
-        }
-    },
-    {
-        "id": "owned-entity-type",
-        "kind": "kind",
-        "data": {
-            "extends": "entity-type",
-            "operations": {
-                "deriveOwnership": {
-                    "input": { "!businessKey": "string", "!revision": "number", "!value": "object" },
-                    "output": "@entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "input": { "value": "#.input.value" } },
-                        "traitOperation": { "key": "ownership", "operation": "derive" }
-                    }
-                }
-            }
         }
     },
     {
@@ -122,9 +87,21 @@
                     ]
                 },
                 "derive": {
-                    "input": "@trait-operation-input",
-                    "output": "@trait-command",
-                    "implementation": { "set": { "command": "derive", "value": "#.input.input.value" } }
+                    "input": "@trait-derive-input",
+                    "output": "@trait-derivation",
+                    "implementation": [
+                        { "outputKey": "ownership", "set": { "$func/derived-ownership": { "rule": "#.input.configuration.rule", "record": "#.input.record" } } },
+                        {
+                            "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/ownership/dimensions"] }, "value": "#.ownership" },
+                            "invoke": "ajv",
+                            "operation": "assert"
+                        },
+                        {
+                            "if": { "$eq": ["#.ownership", { "$get": { "object": "#.input.record.data", "path": "#.input.key" } }] },
+                            "then": { "set": null },
+                            "else": { "set": { "command": "derive", "value": "#.ownership" } }
+                        }
+                    ]
                 }
             }
         }
@@ -160,39 +137,5 @@
         "id": "entity-ownership-schemas-loader",
         "kind": "ownership-schemas-loader",
         "data": {}
-    },
-    {
-        "id": "derive-ownership",
-        "kind": "slot-fill",
-        "data": {
-            "target": "entity-type",
-            "slot": "interceptors",
-            "position": "last",
-            "value": [
-                { "outputKey": "rule", "set": { "$func/ownership-rule": "#.self.id" } },
-                { "outputKey": "record", "set": { "$func/record-after-write": "#.input" } },
-                {
-                    "if": { "$and": ["#.rule", "#.record"] },
-                    "then": [
-                        {
-                            "outputKey": "ownership",
-                            "set": { "$func/apply-mapping": { "mapping": "#.rule", "input": "#.record" } }
-                        },
-                        {
-                            "inputMap": { "schemaId": { "$str": ["#.self.id", "/ownership/dimensions"] }, "value": "#.ownership" },
-                            "invoke": "ajv",
-                            "operation": "assert"
-                        },
-                        {
-                            "inputMap": {
-                                "$merge": ["#.input", { "input": { "$func/with-ownership": { "operation": "#.input.operation", "input": "#.input.input", "ownership": "#.ownership" } } }]
-                            },
-                            "next": true
-                        }
-                    ],
-                    "else": { "next": true }
-                }
-            ]
-        }
     }
 ]

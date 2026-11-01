@@ -32,6 +32,34 @@ const prefixed = id => ({
     }
 });
 
+const TOTAL = `total-${run}`;
+const DOUBLE = `double-${run}`;
+const DERIVING = `deriving-${run}`;
+
+const derived = (id, compute) => ({
+    id: `${id}-trait`,
+    kind: 'kind',
+    data: {
+        extends: 'entity-trait',
+        operations: {
+            initialize: { implementation: { set: 0 } },
+            rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } },
+            derive: {
+                input: '@trait-derive-input',
+                output: '@trait-derivation',
+                implementation: [
+                    { outputKey: 'computed', set: compute },
+                    {
+                        if: { $eq: ['#.computed', { $get: { object: '#.input.record.data', path: '#.input.key' } }] },
+                        then: { set: null },
+                        else: { set: { command: 'derive', value: '#.computed' } }
+                    }
+                ]
+            }
+        }
+    }
+});
+
 const WRITING = `writing-${run}`;
 const VERSIONED = `versioned-${run}`;
 
@@ -82,6 +110,11 @@ const elements = [
             }
         }
     },
+    derived(TOTAL, '#.input.record.data.body.amount'),
+    { id: TOTAL, kind: `${TOTAL}-trait`, data: { configuration: {} } },
+    derived(DOUBLE, { $multiply: [2, { $get: { object: '#.input.record.data', path: TOTAL } }] }),
+    { id: DOUBLE, kind: `${DOUBLE}-trait`, data: { configuration: {} } },
+    { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {} }, [DOUBLE]: { configuration: {} } } } },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(TAG),
@@ -216,6 +249,24 @@ describe('entities', function () {
         expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 2, amount: 'x', note: 'refused' }))).code).to.equal('invalid');
         const unchanged = await invoke(ORDER, 'read', { businessKey: 'o-multi' });
         expect([unchanged.revision, unchanged.data.body.amount, unchanged.data[NOTE]]).to.deep.equal([2, 2, 'changed']);
+    });
+
+    describe('derived traits', () => {
+        it('derive in the order of the traits, each seeing the output of the one before, on create and on a write', async () => {
+            const created = await invoke(DERIVING, 'create', { businessKey: 'd-1', traits: { body: { amount: 3 } } });
+            expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
+            const updated = await invoke(DERIVING, 'update', { businessKey: 'd-1', revision: 1, value: { amount: 5 } });
+            expect([updated.revision, updated.data[TOTAL], updated.data[DOUBLE]]).to.deep.equal([2, 5, 10]);
+        });
+
+        it('leave a collision with the command of a caller to the trait', async () => {
+            const written = await invoke(DERIVING, 'writeTrait', { businessKey: 'd-1', revision: 2, key: TOTAL, command: 'rewrite', value: 99 });
+            expect([written.revision, written.data[TOTAL], written.data[DOUBLE]]).to.deep.equal([3, 5, 10]);
+        });
+
+        it('write nothing when nothing is stale', async () => {
+            expect((await invoke(DERIVING, 'derive', { businessKey: 'd-1' })).revision).to.equal(3);
+        });
     });
 
     it('refuses a write that changes a trait twice', async () => {

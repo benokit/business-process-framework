@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { get } from 'lodash-es';
 import { CoreError, findElement, getElement, invoke } from '@business-framework/core';
 import { applyMapping } from '@business-framework/core/mappings';
-import { hasOperation, isInstanceOf, selvesOf } from '@business-framework/core/kinds';
+import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { standardOf } from '@business-framework/core/schemas';
 import { mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
@@ -34,20 +34,6 @@ export const ownershipSchemas = () => ownedTypes().map(({ id, use }) => ({
 }));
 
 export const ownershipRule = entityType => ownershipUseOf(entityType)?.configuration.rule ?? null;
-
-const recordsAfterWrite = {
-    create: ({ entityType, businessKey, data }) => viewedRecord({ record: { entityType, businessKey, data } }),
-    update: ({ before, values }) => viewedRecord({ record: { entityType: before.entityType, businessKey: before.businessKey, data: { ...before.data, ...values } } })
-};
-
-export const recordAfterWrite = ({ operation, input }) => recordsAfterWrite[operation]?.(input) ?? null;
-
-const writesOwnership = {
-    create: ({ input, ownership }) => ({ ...input, data: { ...input.data, ownership } }),
-    update: ({ input, ownership }) => isDeepStrictEqual(input.before.data.ownership, ownership) ? input : { ...input, derived: { ownership } }
-};
-
-export const withOwnership = ({ operation, input, ownership }) => writesOwnership[operation]?.({ input, ownership }) ?? input;
 
 const traitType = ({ trait, configuration }) => isInstanceOf({ element: trait, kind: 'body-trait' }) && configuration.schema !== undefined ? standardOf(configuration.schema) : {};
 
@@ -254,17 +240,15 @@ const recordsOf = async entityType => {
     return offsets.reduce(async (read, offset) => [...await read, ...(await invoke('entity-database', 'list', { entityType, limit: PAGE, offset })).items], Promise.resolve([]));
 };
 
-const derivedOwnership = (rule, record) => applyMapping({ mapping: rule, input: { entityType: record.entityType, businessKey: record.businessKey, data: viewedRecord({ record }).data } });
+export const derivedOwnership = ({ rule, record }) => applyMapping({ mapping: rule, input: { entityType: record.entityType, businessKey: record.businessKey, data: viewedRecord({ record }).data } });
 
 export const backfillOwnership = async ({ input: { entityType } }) => {
     const rule = ownershipRule(entityType);
     if (rule === null) throw new CoreError('invalid', `${entityType} has no ownership trait`);
-    if (!hasOperation({ element: entityType, operation: 'deriveOwnership' })) throw new CoreError('invalid', `${entityType} exposes no deriveOwnership operation`);
     const stale = (await recordsOf(entityType))
-        .map(record => ({ record, ownership: derivedOwnership(rule, record) }))
-        .filter(({ record, ownership }) => !isDeepStrictEqual(record.data.ownership, ownership));
-    await stale.reduce((written, { record, ownership }) => written.then(() => invoke(entityType, 'deriveOwnership', {
-        businessKey: record.businessKey, revision: record.revision, value: ownership
+        .filter(record => !isDeepStrictEqual(record.data.ownership, derivedOwnership({ rule, record })));
+    await stale.reduce((written, record) => written.then(() => invoke(entityType, 'derive', {
+        businessKey: record.businessKey, revision: record.revision
     })), Promise.resolve());
     return { updated: stale.length };
 };

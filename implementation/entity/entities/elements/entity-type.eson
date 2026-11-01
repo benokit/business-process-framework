@@ -88,12 +88,30 @@
                             "forEach": { "inputMap": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
                         },
                         {
+                            "outputKey": "derivation",
+                            "if": { "$neq": ["#.input.change.operation", "delete"] },
+                            "then": {
+                                "inputMap": {
+                                    "businessKey": { "$if": [{ "$eq": ["#.input.change.operation", "create"] }, "#.input.change.after.businessKey", "#.input.change.before.businessKey"] },
+                                    "data": {
+                                        "$if": [
+                                            { "$eq": ["#.input.change.operation", "create"] },
+                                            "#.input.change.after.data",
+                                            { "$merge": ["#.input.change.before.data", { "$func/command-values": "#.input.change.commands" }] }
+                                        ]
+                                    }
+                                },
+                                "invoke": "#.self.id",
+                                "operation": "deriveData"
+                            }
+                        },
+                        {
                             "outputKey": "store",
                             "set": {
                                 "$cond": [
-                                    [{ "$eq": ["#.input.change.operation", "create"] }, { "operation": "create", "input": { "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "data": "#.input.change.after.data" } }],
+                                    [{ "$eq": ["#.input.change.operation", "create"] }, { "operation": "create", "input": { "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "data": "#.derivation.data" } }],
                                     [{ "$eq": ["#.input.change.operation", "delete"] }, { "operation": "delete", "input": { "before": "#.input.change.before" } }],
-                                    ["else", { "operation": "update", "input": { "before": "#.input.change.before", "values": { "$mapValues": { "of": { "$toDictionary": { "by": "#.key", "collection": "#.input.change.commands" } }, "fn": "#.value" } } } }]
+                                    ["else", { "operation": "update", "input": { "before": "#.input.change.before", "values": { "$func/command-values": { "$concat": ["#.input.change.commands", "#.derivation.commands"] } } } }]
                                 ]
                             }
                         },
@@ -119,6 +137,82 @@
                                 },
                                 { "return": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id" } } }
                             ]
+                        }
+                    ]
+                },
+                "deriveData": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "!data": "object" },
+                    "output": "@derived-data",
+                    "implementation": [
+                        { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "data": "#.input.data", "keys": { "$keys": "#.traits" } },
+                            "invoke": "#.self.id",
+                            "operation": "deriveFrom"
+                        }
+                    ]
+                },
+                "deriveFrom": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "!data": "object", "!keys[]": "string" },
+                    "output": "@derived-data",
+                    "implementation": {
+                        "if": { "$eq": [{ "$count": { "collection": "#.input.keys" } }, 0] },
+                        "then": { "set": { "data": "#.input.data", "commands": [] } },
+                        "else": [
+                            { "outputKey": "key", "set": { "$head": "#.input.keys" } },
+                            { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
+                            { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.key" } } },
+                            {
+                                "outputKey": "derivation",
+                                "if": { "$func/has-operation": { "element": "#.use.trait", "operation": "derive" } },
+                                "then": {
+                                    "inputMap": {
+                                        "trait": "#.use.trait",
+                                        "request": {
+                                            "entityType": "#.self.id",
+                                            "key": "#.key",
+                                            "configuration": "#.use.configuration",
+                                            "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" }
+                                        }
+                                    },
+                                    "invoke": "entity-trait-operator",
+                                    "operation": "derive"
+                                }
+                            },
+                            { "outputKey": "own", "set": { "$if": ["#.derivation", [{ "key": "#.key", "command": "#.derivation.command", "value": "#.derivation.value" }], []] } },
+                            {
+                                "outputKey": "rest",
+                                "inputMap": {
+                                    "businessKey": "#.input.businessKey",
+                                    "data": { "$merge": ["#.input.data", { "$func/command-values": "#.own" }] },
+                                    "keys": { "$tail": "#.input.keys" }
+                                },
+                                "invoke": "#.self.id",
+                                "operation": "deriveFrom"
+                            },
+                            { "set": { "data": "#.rest.data", "commands": { "$concat": ["#.own", "#.rest.commands"] } } }
+                        ]
+                    }
+                },
+                "derive": {
+                    "input": { "!businessKey": "string", "revision": "number" },
+                    "output": "@viewed-entity-record",
+                    "implementation": [
+                        { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision" }, "invoke": "#.self.id", "operation": "load" },
+                        { "outputKey": "derivation", "inputMap": { "businessKey": "#.input.businessKey", "data": "#.before.data" }, "invoke": "#.self.id", "operation": "deriveData" },
+                        {
+                            "if": { "$eq": [{ "$count": { "collection": "#.derivation.commands" } }, 0] },
+                            "then": { "set": { "$func/viewed-record": { "record": "#.before", "entityType": "#.self.id" } } },
+                            "else": {
+                                "inputMap": {
+                                    "change": { "operation": "trait", "entityOperation": "#.operation", "commands": "#.derivation.commands", "before": "#.before" },
+                                    "revision": "#.input.revision"
+                                },
+                                "invoke": "#.self.id",
+                                "operation": "applyChange"
+                            }
                         }
                     ]
                 },

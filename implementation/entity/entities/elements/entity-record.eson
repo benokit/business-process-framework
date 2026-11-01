@@ -50,6 +50,19 @@
         }
     },
     {
+        "id": "derived-data",
+        "kind": "schema",
+        "data": { "!data": "object", "!commands[]": { "!key": "string", "!command": "string", "!value": "@any" } }
+    },
+    {
+        "id": "command-values",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "[@any]", "output": "object" },
+            "mapping": { "$mapValues": { "of": { "$toDictionary": { "by": "#.key", "collection": "#" } }, "fn": "#.value" } }
+        }
+    },
+    {
         "id": "entity-change",
         "kind": "schema",
         "data": {

@@ -10,10 +10,25 @@
         "data": { "!command": "string", "!value": "@any" }
     },
     {
+        "id": "trait-derive-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!record": { "!entityType": "string", "!businessKey": "string", "!data": "object" } }
+    },
+    {
+        "id": "trait-derivation",
+        "kind": "schema",
+        "data": { "$data#": ["@trait-command", "null"] }
+    },
+    {
         "id": "trait-operator",
         "kind": "kind",
         "data": {
             "operations": {
+                "derive": {
+                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-derive-input" },
+                    "output": "@trait-derivation",
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "derive" }
+                },
                 "run": {
                     "input": { "!trait": "@ref/entity-trait", "!operation": "string", "!request": "@trait-operation-input" },
                     "output": "@trait-command",

@@ -15,7 +15,7 @@ An entity's data is the values of its traits. `create` writes all of them in one
 - **Not a context.** A builder that makes `traitOperation` defer when it sits in some block would give one node two meanings by where it stands, and the effect of the node (a write) would no longer be readable from the node. The list is declared in one place and the write happens at that node.
 - **Guards** run once per change, not once per command, and decide on `before`, `entityOperation` and the `commands`. A guard that cares about one trait finds its command with `$func/change-command`.
 - **Reactions** run once per change with `after` and the same `commands`. One revision publishes one event, which lists the commands.
-- **Interceptors** see the store write `{ before, values, derived? }`. `values` is the map from key to the new value of every command; `derived` keeps its meaning (a value computed from the write lands in the same revision).
+- **Interceptors** see the store write `{ before, values }`. `values` is the map from key to the new value of every command, the derived commands of a trait's `derive` among them ([derived traits](../implementation/entity/entities/README.md#derived-traits)).
 - **One revision, one transaction.** The store write is a single statement that applies at `before.revision`, so the change is atomic without anything wrapped around it.
 
 ## Changed contracts
@@ -23,7 +23,7 @@ An entity's data is the values of its traits. `create` writes all of them in one
 | | Before | After |
 |---|---|---|
 | `entity-change` (operation `trait`) | `key`, `command`, `value` | `commands[]` of `{ key, command, value }` |
-| store `update` | `{ before, key, value, derived? }` | `{ before, values, derived? }` |
+| store `update` | `{ before, key, value, derived? }` | `{ before, values }` |
 | entity event | `key`, `command` | `commands[]` of `{ key, command }` |
 
 ## Not decided here
