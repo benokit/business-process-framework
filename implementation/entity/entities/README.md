@@ -61,10 +61,14 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 | `traits` | many | `{ trait?, key?, configuration }` | see [Traits](#traits) |
 | `businessKey` | one | method: create input (`traits.body` is the business data) → key | on `create` without `businessKey`; the most specific fill wins |
 | `guards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only | before the transaction |
-| `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored | inside the transaction |
+| `interceptors` | many | middleware around the store write: `#.input` is `{ operation, input }` (the store operation and its input), `next` writes; a changed `input` is written, a changed `operation` is ignored; see [what an interceptor may change](#what-an-interceptor-may-change) | inside the transaction |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
 A change is `{ operation: create | trait | delete | read, entityOperation?, key?, command?, value?, before?, after? }`: `create` carries `after` (`businessKey`, `data`), `trait` the written `key`, its `value` and the `command`. `entityOperation` names the operation of the entity type that causes a `trait` or `delete` change (`update`, `putSegment`, `delete`, …), so that a guard can decide on what the entity exposes and not on the trait it ends in.
+
+### What an interceptor may change
+
+Interceptors run after the [derivation](#derived-traits), so a derive sees the record the traits produced and not what an interceptor writes after it. An interceptor that changes a trait value in `input` stores a value no trait operation, guard or derive saw: the schema check of the trait is skipped, and a derived fact (ownership) that reads the value stays as it was derived from the old one. Keep interceptors to what wraps the write (measuring, tracing, rejecting, adding columns of the store); to adjust a value before it is stored, write it with a trait operation or compute it in a `derive`.
 
 ## Storage
 
