@@ -98,3 +98,24 @@ describe('interfaces', () => {
         expect(codes()).to.deep.equal(['ambiguous-binding']);
     });
 });
+
+describe('references in an operation input', () => {
+    const copier = kind('copier', {
+        operations: {
+            copy: operation({ set: '#.input' }, { '!source': '@ref/store', 'targets[]': '@ref/store', 'nested': { 'store': '@ref/store' }, 'other': 'string' })
+        }
+    });
+
+    it('reach the body as ids, at every position the contract types as a reference', async () => {
+        await bootWith(store, element('disk', 'disk-store'), copier, element('the-copier', 'copier'));
+        const input = { source: { instanceOf: 'store' }, targets: ['disk', { instanceOf: 'store' }], nested: { store: { instanceOf: 'store' } }, other: 'x' };
+        expect(await invoke('the-copier', 'copy', input)).to.deep.equal({ source: 'disk', targets: ['disk', 'disk'], nested: { store: 'disk' }, other: 'x' });
+        expect(input.source).to.deep.equal({ instanceOf: 'store' });
+    });
+
+    it('fail in invoke, before the body, when no instance can be found', async () => {
+        await bootWith(store, copier, element('the-copier', 'copier'));
+        const error = await invoke('the-copier', 'copy', { source: { instanceOf: 'store' }, targets: [], nested: { store: 'disk' } }).catch(e => e);
+        expect(error.code).to.equal('no-instance');
+    });
+});

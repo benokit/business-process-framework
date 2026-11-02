@@ -46,14 +46,21 @@ const referenceType = memo(kind => findElement(kind)?.kind === 'kind'
         { type: 'object', properties: { instanceOf: { type: 'string', enum: idsOf(instancesOf('kind').filter(({ id }) => extendsKind(id, kind))) } }, required: ['instanceOf'] })
     : ANY);
 
-const typeOf = (schema, seen = []) => {
+const resolvedReferenceType = kind => {
+    if (findElement(kind)?.kind !== 'kind') return ANY;
+    const ids = idsOf(instancesOf(kind));
+    return ids.length === 0 ? STRING : { type: 'string', enum: ids };
+};
+
+const typeOf = (schema, seen = [], resolved = false) => {
     if (!isPlainObject(schema)) return schema === false ? NEVER : ANY;
     const referenced = typeof schema.$ref === 'string' ? REFERENCE.exec(schema.$ref)?.[2] : undefined;
-    if (referenced !== undefined) return referenceType(referenced);
+    if (referenced !== undefined) return resolved ? resolvedReferenceType(referenced) : referenceType(referenced);
+    if (resolved && schema.$ref === schemaRef('ref')) return STRING;
     if (typeof schema.$ref === 'string') {
-        return schema.$ref.startsWith('#') || seen.includes(schema.$ref) ? ANY : typeOf(storedSchema(schema.$ref), [...seen, schema.$ref]);
+        return schema.$ref.startsWith('#') || seen.includes(schema.$ref) ? ANY : typeOf(storedSchema(schema.$ref), [...seen, schema.$ref], resolved);
     }
-    const nested = part => typeOf(part, seen);
+    const nested = part => typeOf(part, seen, resolved);
     const { allOf, anyOf: any, oneOf, properties, items, prefixItems, additionalProperties, ...rest } = schema;
     const own = {
         ...rest,
@@ -80,6 +87,8 @@ const closedType = type => {
 };
 
 const schemaType = memo(id => closedType(typeOf({ $ref: schemaRef(id) })));
+
+const resolvedSchemaType = memo(id => closedType(typeOf({ $ref: schemaRef(id) }, [], true)));
 
 const compactType = schema => schema === undefined ? ANY : closedType(typeOf(standardOf(schema)));
 
@@ -250,9 +259,9 @@ const OPERATION = /^operations\.([^.]+)\.implementation$/;
 
 const HOOK = /^lifecycle\.(load|start|stop)$/;
 
-const contractInput = (kindId, name) => {
+const contractInput = (kindId, name, resolved = false) => {
     const operation = resolveKind(kindId).operations[name];
-    return operation?.input === undefined ? ANY : schemaType(`${operation.owner}/${name}/input`);
+    return operation?.input === undefined ? ANY : (resolved ? resolvedSchemaType : schemaType)(`${operation.owner}/${name}/input`);
 };
 
 export const operationInputType = ({ element, operation }) => {
@@ -267,7 +276,7 @@ const methodStart = (author, path) => {
     if (author.kind === 'kind') {
         const self = selfType(author.id);
         const operation = OPERATION.exec(path)?.[1];
-        const input = operation ? contractInput(author.id, operation) : HOOK.test(path) ? NULL : ANY;
+        const input = operation ? contractInput(author.id, operation, true) : HOOK.test(path) ? NULL : ANY;
         return { kind: author.id, scope: { input, self, _ctx, ...operation && { operation: STRING } } };
     }
     if (extendsKind(kindOf(author), 'execution-node-template') && path === 'implementation') {

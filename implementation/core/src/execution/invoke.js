@@ -1,6 +1,6 @@
 import { getElement } from '../registry.js';
 import { resolveKind, selfOf } from '../kinds.js';
-import { check } from '../schemas.js';
+import { check, resolveReferencesIn } from '../schemas.js';
 import { fail, framing } from '../errors.js';
 import { resolveReference } from '../references.js';
 import { runMethod } from './pipeline.js';
@@ -22,8 +22,10 @@ export const invoke = async (reference, operationName, input, _ctx = Object.free
         fail('unimplemented-operation', `${where} is declared by ${operation.owner} and not implemented`, { element: elementId, operation: operationName });
     }
     return framing.around(async () => {
-        check(contractId(operation.owner, operationName, 'input'), input, where);
-        const output = await (stub ? stub({ input, _ctx }) : runMethod(operation.implementation, { input, self, _ctx, operation: operationName }));
+        const inputContract = contractId(operation.owner, operationName, 'input');
+        check(inputContract, input, where);
+        const resolved = resolveReferencesIn({ schemaId: inputContract, value: input, resolve: resolveReference });
+        const output = await (stub ? stub({ input: resolved, _ctx }) : runMethod(operation.implementation, { input: resolved, self, _ctx, operation: operationName }));
         if (operation.output !== undefined) check(contractId(operation.owner, operationName, 'output'), output, where);
         return output;
     }, where);

@@ -186,37 +186,36 @@
                     "output": "@entity-record",
                     "implementation": {
                         "inTransaction": [
-                            { "outputKey": "entityType", "set": { "$func/resolve-reference": "#.input.entityType" } },
                             {
                             "outputKey": "record",
-                            "inputMap": { "entityType": "#.entityType", "businessKey": "#.input.businessKey" },
+                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" },
                             "invoke": "entity-database",
                             "operation": "read"
                         },
                             {
-                                "if": { "$func/state-forbids-operation": { "entityType": "#.entityType", "entityOperation": "applyAmendment", "state": "#.record.data.state" } },
-                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.entityType", " ", "#.record.businessKey", " can't be amended in its current state"] } } }
+                                "if": { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "applyAmendment", "state": "#.record.data.state" } },
+                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " can't be amended in its current state"] } } }
                             },
                             {
                                 "if": {
                                     "$negate": {
                                         "$includes": {
-                                            "collection": { "$func/slot-values": { "element": "#.entityType", "slot": "amendmentTypes" } },
+                                            "collection": { "$func/slot-values": { "element": "#.input.entityType", "slot": "amendmentTypes" } },
                                             "value": "#.input.amendmentType"
                                         }
                                     }
                                 },
-                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.entityType", " has no amendment of type ", "#.input.amendmentType"] } } }
+                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no amendment of type ", "#.input.amendmentType"] } } }
                             },
                             {
                                 "if": "#.record.data.amendment-ledger.open",
-                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.entityType", " ", "#.record.businessKey", " has the open amendment ", "#.record.data.amendment-ledger.open"] } } }
+                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " has the open amendment ", "#.record.data.amendment-ledger.open"] } } }
                             },
                             { "outputKey": "number", "set": { "$sum": ["#.record.data.amendment-ledger.last", 1] } },
                             { "outputKey": "amendmentKey", "set": { "$str": ["#.record.businessKey", "-", { "$printf": { "template": "%03d", "args": ["#.number"] } }] } },
                             {
                                 "inputMap": {
-                                    "entityType": "#.entityType",
+                                    "entityType": "#.input.entityType",
                                     "businessKey": "#.record.businessKey",
                                     "revision": "#.record.revision",
                                     "command": "open",
@@ -227,7 +226,7 @@
                             },
                             {
                                 "outputKey": "amendment",
-                                "withContext": { "amending": { "amendedType": "#.entityType", "amendedKey": "#.input.businessKey" } },
+                                "withContext": { "amending": { "amendedType": "#.input.entityType", "amendedKey": "#.input.businessKey" } },
                                 "do": {
                                     "inputMap": {
                                         "businessKey": "#.amendmentKey",
@@ -236,7 +235,7 @@
                                                 "$merge": [
                                                     { "$coalesce": ["#.input.data", {}] },
                                                     {
-                                                        "amendedType": "#.entityType",
+                                                        "amendedType": "#.input.entityType",
                                                         "amendedKey": "#.input.businessKey",
                                                         "effectiveFrom": "#.input.effectiveFrom",
                                                         "patch": "#.input.patch"

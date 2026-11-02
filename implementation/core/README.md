@@ -54,7 +54,7 @@ Besides the bootstrap kinds:
 | `clock` | `now()` → ISO time, an effect |
 | `entry-point` | manages `trace`, starts last ([Lifecycle](#lifecycle)) |
 | `ajv` | the schema registry: `add` schemas, `assert` `{ schemaId, value }` (throws `invalid` with the errors, else returns the value) |
-| `$func/slot-values`, `apply-mapping`, `schema-validate`, `is-instance-of`, `resolve-reference` | pure functions over slots, mappings, schemas, kinds and references (`resolve-reference` gives the id that an id or `{ instanceOf }` stands for) |
+| `$func/slot-values`, `apply-mapping`, `schema-validate`, `is-instance-of` | pure functions over slots, mappings, schemas and kinds |
 | `$func/settings` | `id` → the effective [settings](#settings) of an element |
 | `$func/has-operation` | `{ element, operation }`; true for an unknown element, which the reference check reports |
 | `$func/changes-of` | `{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"` ([Effects](#effects)) |
@@ -152,6 +152,8 @@ Callers should depend on what something does, not on what implements it, so a da
 ```
 
 Where an element is expected (`invoke`, and data fields typed `@element-ref` or `@ref/<kind>`), a string is always that element. References are typed like paths: `@ref` is any element; `@ref/<kind>` (generated for every kind) an instance of the kind, or `{ instanceOf }` of the kind or a subkind; `@ref/kind` a kind; `@ref/kind/<kind>` a kind that is or extends `<kind>`. `validate()` checks every typed reference in element data, slot fills and template nodes. `{ "instanceOf": "<kind>" }` is whichever instance implements the kind, subkinds included: the instance a `binding` names, else the only instance; none or several unbound instances fail at the call (`no-instance`, `ambiguous-reference`).
+
+A position of an operation's input that the contract types `@ref` or `@ref/<kind>` reaches the body resolved: after the contract check `invoke` replaces `{ instanceOf }` with the id of the instance (`no-instance` and `ambiguous-reference` come from `invoke`, before the body), and the data flow types it, in the body, as the ids of the kind's instances (a caller may still pass either form). References in element data and slot fills stay as written.
 
 ```json
 { "invoke": { "instanceOf": "message-outbox" }, "operation": "put" }

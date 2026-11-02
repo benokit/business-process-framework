@@ -132,4 +132,11 @@ describe('data flow', () => {
         await bootWith(kind('ranged', { shape: { '!min': 'number' }, lifecycle: { validate: { $if: [{ $gt: ['#.self.data.min', '#.selff.data.min'] }, ['x'], []] } } }));
         expect(problemsOf()).to.deep.equal([['unknown-path', 'lifecycle.validate.$if[0].$gt[1]']]);
     });
+
+    it('types a reference input as an id in the body, also when the kind has no instance', async () => {
+        await bootWith(
+            element('id-of', 'pure-function', { signature: { input: { '!id': 'string' }, output: 'string' }, mapping: '#.id' }),
+            kind('shop', { operations: { open: operation({ set: { '$func/id-of': { id: '#.input.store' } } }, { '!store': '@ref/shop' }, 'string') } }));
+        expect(problemsOf()).to.deep.equal([]);
+    });
 });

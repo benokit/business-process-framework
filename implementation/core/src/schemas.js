@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { compactToStandard } from '@benokit/js-cjsl';
-import { isPlainObject, mapValues, uniqBy } from 'lodash-es';
+import { cloneDeep, isPlainObject, mapValues, set, uniqBy } from 'lodash-es';
 import { onReset } from './registry.js';
 import { fail } from './errors.js';
 
@@ -9,9 +9,12 @@ const newAjv = () => new Ajv({ allErrors: true });
 let ajv = newAjv();
 let checking = false;
 
+const withReferences = new Map();
+
 onReset(() => {
     ajv = newAjv();
     checking = false;
+    withReferences.clear();
 });
 
 const uri = id => `/${id}`;
@@ -69,6 +72,33 @@ const positionsAt = (schema, value, path) => {
 };
 
 export const positionsIn = ({ schemaId, value, path = '' }) => uniqBy(positionsAt(storedSchema(uri(schemaId)), value, path), 'path');
+
+const mentionsReference = (schema, seen = new Set()) => {
+    if (Array.isArray(schema)) return schema.some(part => mentionsReference(part, seen));
+    if (!isPlainObject(schema)) return false;
+    if (typeof schema.$ref !== 'string') return Object.values(schema).some(part => mentionsReference(part, seen));
+    const typed = typedAt(schema.$ref);
+    if (typed) return typed.type === 'ref';
+    if (seen.has(schema.$ref)) return false;
+    seen.add(schema.$ref);
+    return mentionsReference(storedSchema(schema.$ref), seen);
+};
+
+const hasReferences = schemaId => {
+    if (!checking) return mentionsReference(storedSchema(uri(schemaId)));
+    if (!withReferences.has(schemaId)) withReferences.set(schemaId, mentionsReference(storedSchema(uri(schemaId))));
+    return withReferences.get(schemaId);
+};
+
+const isInstanceOfReference = value => isPlainObject(value) && Object.keys(value).length === 1 && typeof value.instanceOf === 'string';
+
+export const resolveReferencesIn = ({ schemaId, value, resolve }) => {
+    if (!hasReferences(schemaId)) return value;
+    const objects = positionsIn({ schemaId, value }).filter(({ type, kind, code }) => type === 'ref' && kind !== 'kind' && isInstanceOfReference(code));
+    if (objects.length === 0) return value;
+    const resolved = cloneDeep(value);
+    return objects.reduce((result, { path, code }) => path === '' ? resolve(code) : set(result, path, resolve(code)), resolved);
+};
 
 export const propertiesOf = schemaId => Object.keys(storedSchema(uri(schemaId))?.properties ?? {});
 
