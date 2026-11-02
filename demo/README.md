@@ -29,7 +29,7 @@ How an amendment goes:
 
 ### State permissions
 
-Who may do a transition can depend on the state it is done from. Which states are locked for editing is a rule of the process, declared in the model as `operations`; this is about who may act. The contract's state is its permission state (the default with one dimension). The `underwriter-actor` may discard and issue contracts and may `cancel` one only while it is `issued`; cancelling an active one needs the administrator, whose grants name no state. `npx bpf explain construction ../demo` shows the roles per permission state.
+Who may do a transition can depend on the state it is done from. Which states are locked for editing is a rule of the process, declared in the model as `operations`; this is about who may act. The contract's state is its process state (the default with one dimension). The `underwriter-actor` may discard and issue contracts and may `cancel` one only while it is `issued`; cancelling an active one needs the administrator, whose grants name no state. The same holds for operations that are not transitions: the process doesn't restrict `delete` of a contract, the permission does (the underwriter may delete a contract only while it is `draft`, the administrator at any state). `npx bpf explain construction ../demo` shows the roles per process state.
 
 ### Row access
 

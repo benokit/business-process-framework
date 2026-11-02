@@ -12,7 +12,7 @@
             "transitions": { "*": { "*": { "*": "string" } } },
             "initialStates{}": "{string}",
             "operations": { "*": { "*": { "*": "boolean" } } },
-            "permissionDimension": "string"
+            "processDimension": "string"
         }
     },
     {
@@ -43,30 +43,30 @@
         }
     },
     {
-        "id": "permission-state",
+        "id": "process-state",
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!entityType": "string", "!state": "object" }, "output": "@any" },
             "module": "@business-framework/entity-states/states",
-            "export": "permissionState"
+            "export": "processState"
         }
     },
     {
-        "id": "permission-state-names",
+        "id": "process-state-names",
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "[string]" },
             "module": "@business-framework/entity-states/states",
-            "export": "permissionStateNames"
+            "export": "processStateNames"
         }
     },
     {
-        "id": "permission-states-of-type",
+        "id": "process-states-of-type",
         "kind": "pure-function",
         "data": {
             "signature": { "input": "string", "output": "[string]" },
             "module": "@business-framework/entity-states/states",
-            "export": "permissionStatesOfType"
+            "export": "processStatesOfType"
         }
     },
     {

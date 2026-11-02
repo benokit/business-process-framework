@@ -40,15 +40,16 @@ Besides transitions, the model says in which states the operations an entity exp
 - The fill `refuse-operations-outside-their-states` (slot `guards`) refuses an operation outside its states with `conflict`. It judges the record as it is and decides on the `entityOperation` of the change.
 - A subtype edits it with the data algebra, like `states` and `transitions`. `validate()` reports a name that is no public operation of the entity type (or one of `read`, `create`, `transition`), and states a dimension doesn't declare.
 - Who may do an operation the states allow is a [permission](../../services/state-permissions/README.md), apart from this.
+- `operations` and `processDimension` are part of the model. A slot `operationStates` keyed by operation name (own package), `locks` on state declarations and lock dimensions were each tried against the demo: each touched more places to express the demo's rules than the one entry here, and none checked more than `validate()` does here.
 
-## Permission states
+## Process states
 
-One state dimension of a model is its **permission state**: the value that [state-permissions](../../services/state-permissions/README.md) grants name. `permissionDimension` names it; it defaults to the only dimension of the model, otherwise to `status`.
+One state dimension of a model is its **process state**: the value that [state-permissions](../../services/state-permissions/README.md) grants name. `processDimension` names it; it defaults to the only dimension of the model, otherwise to `status`.
 
 ```json
 "states": { "status": { "draft": true, "issued": true }, "payment": { "open": true, "paid": true } },
-"permissionDimension": "payment"
+"processDimension": "payment"
 ```
 
-- `validate()` reports a permission dimension the model doesn't declare, which includes a model with several dimensions and none named `status`.
-- `$func/permission-state` gives the permission state of a record's state for an entity type, `$func/permission-state-names` the union of the states of the permission dimensions of every entity type.
+- `validate()` reports a process dimension the model doesn't declare, which includes a model with several dimensions and none named `status`.
+- `$func/process-state` gives the process state of a record's state for an entity type, `$func/process-state-names` the union of the states of the process dimensions of every entity type.

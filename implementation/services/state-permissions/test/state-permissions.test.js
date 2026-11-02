@@ -72,12 +72,12 @@ describe('state-permissions', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('lets a role modify a record in the permission states it is granted', async () => {
+    it('lets a role modify a record in the process states it is granted', async () => {
         expect((await call('author', 'POST', `/entities/${DOCUMENT}`, { body: { businessKey: 'd-1', body: { title: 'first' } } })).status).to.equal(201);
         expect((await update('author', 'd-1', 'second')).status).to.equal(200);
     });
 
-    it('refuses a modification in a permission state the role is not granted, and allows what the state allows', async () => {
+    it('refuses a modification in a process state the role is not granted, and allows what the state allows', async () => {
         expect((await transition('author', 'd-1', 'submit')).status).to.equal(200);
         expect((await update('author', 'd-1', 'third')).status).to.equal(403);
         expect((await call('author', 'GET', `/entities/${DOCUMENT}/d-1`)).body.data.body.title).to.equal('second');
@@ -88,7 +88,7 @@ describe('state-permissions', function () {
         expect((await transition('approver', 'd-1', 'approve')).status).to.equal(200);
     });
 
-    it('explains which roles may modify in each permission state', () => {
+    it('explains which roles may modify in each process state', () => {
         expect(statePermissionExplanation(DOCUMENT)).to.deep.equal({ statePermissions: {
             draft: { update: ['author-role'], submit: ['author-role'], approve: ['approver-role'] },
             submitted: { submit: ['author-role'], approve: ['approver-role'] },
@@ -105,7 +105,7 @@ describe('state-permissions', function () {
 describe('state-permissions validation', function () {
     const invalid = [
         ...elements.filter(({ id }) => id !== `${DOCUMENT}-lifecycle`),
-        { id: `${DOCUMENT}-lifecycle`, kind: 'slot-fill', data: { target: DOCUMENT, slot: 'traits', value: { trait: 'state', configuration: { ...lifecycle, permissionDimension: 'payment' } } } },
+        { id: `${DOCUMENT}-lifecycle`, kind: 'slot-fill', data: { target: DOCUMENT, slot: 'traits', value: { trait: 'state', configuration: { ...lifecycle, processDimension: 'payment' } } } },
         ...grant('stray', [{ area: 'entities', resource: DOCUMENT, action: 'update', state: 'vanished' }, { area: 'entities', resource: DOCUMENT, action: 'read', state: 'draft' }])
     ];
 
@@ -113,9 +113,9 @@ describe('state-permissions validation', function () {
 
     after(stop);
 
-    it('reports a permission dimension that is no state dimension, and grants naming a state no entity type declares or on a read', () => {
+    it('reports a process dimension that is no state dimension, and grants naming a state no entity type declares or on a read', () => {
         const problems = validate().map(problem => problem.message ?? problem);
-        expect(problems.join('\n')).to.include('the permission dimension payment is no state dimension')
+        expect(problems.join('\n')).to.include('the process dimension payment is no state dimension')
             .and.to.include('stray-actor: grants state vanished, which no entity type it grants declares')
             .and.to.include('stray-actor: grants state with the action read, which no read checks');
     });

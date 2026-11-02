@@ -4,7 +4,8 @@
         "kind": "actor",
         "data": {
             "grants": [
-                { "area": "entities", "resource": "insurance-contract-type" },
+                { "area": "entities", "resource": "insurance-contract-type", "action": ["query", "create", "update"] },
+                { "area": "entities", "resource": "insurance-contract-type", "action": "delete", "state": "draft" },
                 { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue"] },
                 { "area": "states", "resource": "insurance-contract-type", "action": "cancel", "state": "issued" },
                 { "area": "entities", "resource": "party", "action": ["query", "create", "update"] },

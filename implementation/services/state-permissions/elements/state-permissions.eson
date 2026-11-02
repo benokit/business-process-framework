@@ -6,7 +6,7 @@
             "target": "authorization",
             "slot": "dimensions",
             "after": ["action-dimension"],
-            "value": { "name": "state", "values": { "$func/permission-state-names": null } }
+            "value": { "name": "state", "values": { "$func/process-state-names": null } }
         }
     },
     {

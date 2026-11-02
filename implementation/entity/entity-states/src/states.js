@@ -39,15 +39,15 @@ const initialProblems = (model, name, dimension, value) => !restrictsInitial(mod
     ? []
     : [`initial state '${name}' starts ${dimension} in ${value}, which the dimension does not allow`];
 
-const DEFAULT_PERMISSION_DIMENSION = 'status';
+const DEFAULT_PROCESS_DIMENSION = 'status';
 
-const permissionDimensionOf = model => model.permissionDimension
-    ?? (Object.keys(model.states).length === 1 ? Object.keys(model.states)[0] : DEFAULT_PERMISSION_DIMENSION);
+const processDimensionOf = model => model.processDimension
+    ?? (Object.keys(model.states).length === 1 ? Object.keys(model.states)[0] : DEFAULT_PROCESS_DIMENSION);
 
-const permissionStatesOf = model => Object.keys(model.states[permissionDimensionOf(model)] ?? {});
+const processStatesOf = model => Object.keys(model.states[processDimensionOf(model)] ?? {});
 
-const permissionDimensionProblems = model => model.states[permissionDimensionOf(model)] === undefined
-    ? [`the permission dimension ${permissionDimensionOf(model)} is no state dimension`]
+const processDimensionProblems = model => model.states[processDimensionOf(model)] === undefined
+    ? [`the process dimension ${processDimensionOf(model)} is no state dimension`]
     : [];
 
 const NOT_GOVERNED = ['read', 'create', 'transition'];
@@ -64,7 +64,7 @@ const operationsProblems = (model, entityType) => Object.entries(model.operation
 
 const checkStatesModel = (model, entityType) => [
     ...operationsProblems(model, entityType),
-    ...permissionDimensionProblems(model),
+    ...processDimensionProblems(model),
     ...Object.keys(model.states).flatMap(dimension => movesProblems(model, dimension)),
     ...Object.entries(model.transitions ?? {}).flatMap(([name, dimensions]) => Object.entries(dimensions)
         .flatMap(([dimension, edges]) => Object.entries(edges)
@@ -95,15 +95,15 @@ const statesConfigurations = () => selvesOf('entity-type').flatMap(({ id }) => s
 export const transitionNames = () => [...new Set(statesConfigurations()
     .flatMap(configuration => Object.keys(configuration.transitions ?? {})))].sort();
 
-export const permissionStateNames = () => [...new Set(statesConfigurations()
-    .flatMap(permissionStatesOf))].sort();
+export const processStateNames = () => [...new Set(statesConfigurations()
+    .flatMap(processStatesOf))].sort();
 
-export const permissionState = ({ entityType, state }) => {
+export const processState = ({ entityType, state }) => {
     const [model] = statesConfigurationOf(entityType);
-    return model === undefined ? null : state[permissionDimensionOf(model)] ?? null;
+    return model === undefined ? null : state[processDimensionOf(model)] ?? null;
 };
 
-export const permissionStatesOfType = entityType => statesConfigurationOf(entityType).flatMap(permissionStatesOf);
+export const processStatesOfType = entityType => statesConfigurationOf(entityType).flatMap(processStatesOf);
 
 export const transitionsOfType = entityType => statesConfigurationOf(entityType).flatMap(model => Object.keys(model.transitions ?? {}));
 
