@@ -73,7 +73,7 @@
         "id": "state-forbids-operation",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!entityType": "string", "entityOperation": "string", "state": "object" }, "output": "boolean" },
+            "signature": { "input": { "!entityType": "string", "entityOperation": "@entity-operation", "state": "object" }, "output": "boolean" },
             "module": "@business-framework/entity-states/states",
             "export": "forbidsOperation"
         }

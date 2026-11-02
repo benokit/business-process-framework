@@ -329,5 +329,32 @@
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
         }
+    },
+    {
+        "id": "entity-operation-names",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entities/operations",
+            "export": "entityOperationNames"
+        }
+    },
+    {
+        "id": "entity-operation-registry",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "id": "entity-operation", "schema": { "\\$data=1": { "$func/entity-operation-names": null } } },
+                    "invoke": "ajv",
+                    "operation": "add"
+                }
+            }
+        }
+    },
+    {
+        "id": "entities-operation-registry",
+        "kind": "entity-operation-registry",
+        "data": {}
     }
 ]

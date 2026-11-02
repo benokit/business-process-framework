@@ -5,6 +5,7 @@
   "exports": {
     "./package.json": "./package.json",
     "./traits": "./src/traits.js",
+    "./operations": "./src/operations.js",
     "./body": "./src/body.js",
     "./patch": "./src/patch.js",
     "./versions": "./src/versions.js",

@@ -7,6 +7,7 @@ const run = Date.now();
 const ORDER = `order-${run}`;
 const NOTE = `note-${run}`;
 const TICKET = `ticket-${run}`;
+const CHECK = `check-${run}`;
 
 const lifecycle = {
     states: { status: { draft: true, confirmed: true, cancelled: true } },
@@ -78,6 +79,19 @@ describe('entity-states', function () {
         expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-1', revision: confirmed.revision }))).code).to.equal('conflict');
         const cancelled = await transition('o-1', 'cancel', confirmed.revision);
         expect((await invoke(ORDER, 'delete', { businessKey: 'o-1', revision: cancelled.revision })).businessKey).to.equal('o-1');
+    });
+
+    it('reports an operation literal that no entity type has, in a pipeline that asks whether a state forbids it', async () => {
+        const asking = name => ({ id: `${CHECK}-${name}`, kind: 'kind', data: { operations: { run: { input: '@any', output: 'boolean', implementation: [{ set: { '$func/state-forbids-operation': { entityType: ORDER, entityOperation: name, state: { status: 'confirmed' } } } }] } } } });
+        const instance = name => ({ id: `${CHECK}-${name}-instance`, kind: `${CHECK}-${name}`, data: {} });
+        await stop();
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, asking('update'), instance('update'), asking('updat'), instance('updat')] });
+        const problems = validate();
+        expect(problems.map(problem => problem.code)).to.deep.equal(['type-mismatch']);
+        expect(problems[0].message).to.include(`${CHECK}-updat operations.run.implementation[0].set.$func/state-forbids-operation.entityOperation: the argument.entityOperation is "updat"`);
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+        await start();
+        await migrate();
     });
 
     it('leaves entity types without a states model stateless', async () => {
