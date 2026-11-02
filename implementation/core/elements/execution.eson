@@ -53,6 +53,15 @@
         }
     },
     {
+        "id": "resolve-reference",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@element-ref", "output": "string" },
+            "module": "@business-framework/core/references",
+            "export": "resolveReference"
+        }
+    },
+    {
         "id": "has-operation",
         "kind": "pure-function",
         "data": {

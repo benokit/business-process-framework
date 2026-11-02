@@ -95,6 +95,14 @@ describe('entity-amendments', function () {
         expect((await read('a-1')).data['amendment-ledger']).to.deep.equal({ last: 1, open: 'a-1-001' });
     });
 
+    it('proposes an amendment for an entity type named by an instanceOf reference', async () => {
+        await policy('a-ref');
+        const proposed = await invoke('entity-amendments', 'propose', {
+            entityType: { instanceOf: 'versioned-entity-type' }, businessKey: 'a-ref', amendmentType: RAISE, effectiveFrom: '2026-07-01', patch: premium(110), data: { reason: 'indexation' }
+        });
+        expect([proposed.businessKey, proposed.data.body.amendedType]).to.deep.equal(['a-ref-001', POLICY]);
+    });
+
     it('allows one open amendment, which is closed by activating or cancelling it, and numbers them without gaps', async () => {
         await policy('a-2');
         const first = await propose('a-2', '2026-07-01', 110);

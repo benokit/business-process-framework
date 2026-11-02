@@ -54,7 +54,7 @@ Besides the bootstrap kinds:
 | `clock` | `now()` → ISO time, an effect |
 | `entry-point` | manages `trace`, starts last ([Lifecycle](#lifecycle)) |
 | `ajv` | the schema registry: `add` schemas, `assert` `{ schemaId, value }` (throws `invalid` with the errors, else returns the value) |
-| `$func/slot-values`, `apply-mapping`, `schema-validate`, `is-instance-of` | pure functions over slots, mappings, schemas and kinds |
+| `$func/slot-values`, `apply-mapping`, `schema-validate`, `is-instance-of`, `resolve-reference` | pure functions over slots, mappings, schemas, kinds and references (`resolve-reference` gives the id that an id or `{ instanceOf }` stands for) |
 | `$func/settings` | `id` → the effective [settings](#settings) of an element |
 | `$func/has-operation` | `{ element, operation }`; true for an unknown element, which the reference check reports |
 | `$func/changes-of` | `{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"` ([Effects](#effects)) |
