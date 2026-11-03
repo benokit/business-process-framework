@@ -26,6 +26,8 @@ const BASE = `base-${run}`;
 const TWICE = `twice-${run}`;
 const GROUP = `group-${run}`;
 const GROUPED = `grouped-${run}`;
+const VEIL = `veil-${run}`;
+const VEILING = `veiling-${run}`;
 
 const prefixed = id => ({
     id: `${id}-trait`,
@@ -173,6 +175,8 @@ const elements = [
         data: { configuration: {}, traits: { [BASE]: { configuration: {} }, [TWICE]: { configuration: {} }, [VETO]: { configuration: { reason: 'nested veto' } } } }
     },
     { id: GROUPED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [GROUP]: { configuration: {} } } } },
+    { id: VEIL, kind: 'composite-trait', data: { configuration: {}, traits: { [MASKED]: { configuration: { prefix: 'inner: ' } } } } },
+    { id: VEILING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VEIL]: { configuration: {} } } } },
     { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -265,6 +269,12 @@ describe('entities', function () {
         await invoke(MASKING, 'create', { businessKey: 'm-1', traits: { body: {} } });
         expect((await invoke(MASKING, 'read', { businessKey: 'm-1' })).data[MASKED]).to.equal('secret: new');
         expect((await invoke(MASKING, 'read', { businessKey: 'm-1', at: 'public' })).data[MASKED]).to.equal('***');
+    });
+
+    it('shows a trait inside a composite through its own view', async () => {
+        await invoke(VEILING, 'create', { businessKey: 'v-1', traits: { body: {} } });
+        expect((await invoke(VEILING, 'read', { businessKey: 'v-1' })).data[VEIL]).to.deep.equal({ [MASKED]: 'inner: new' });
+        expect((await invoke(VEILING, 'read', { businessKey: 'v-1', at: 'public' })).data[VEIL]).to.deep.equal({ [MASKED]: '***' });
     });
 
     it('passes trait input on create', async () => {

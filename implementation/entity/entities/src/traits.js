@@ -45,7 +45,7 @@ const resolve = entityType => Object.entries(Object.groupBy([...dataContribution
         return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
     });
 
-export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
+export const traitsOf = memo(entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }])));
 
 const keyOfKind = memo(signature => {
     const [entityType, kind] = JSON.parse(signature);
