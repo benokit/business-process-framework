@@ -13,6 +13,7 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
+            "extends": "trait-container",
             "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping", "identity": "boolean" },
             "lifecycle": {
                 "load": {

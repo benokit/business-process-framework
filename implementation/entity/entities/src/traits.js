@@ -67,6 +67,15 @@ export const hookedKeysOf = ({ entityType, operation }) => Object.entries(traits
     .filter(([, { trait }]) => hasOperation({ element: trait, operation }))
     .map(([key]) => key);
 
+const scopedRecord = (record, key) => ({ ...record, data: record.data?.[key] ?? {} });
+
+export const scopedChange = ({ change, key }) => ({
+    ...change,
+    ...(change.before ? { before: scopedRecord(change.before, key) } : {}),
+    ...(change.after ? { after: scopedRecord(change.after, key) } : {}),
+    ...(change.commands ? { commands: change.commands.filter(command => command.key === key) } : {})
+});
+
 export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
     .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
     .map(([key]) => key);
@@ -125,11 +134,14 @@ const exposureProblems = (entityType, operation, { key, operation: traitOperatio
     return traitOperation in resolveKind(getElement(use.trait).kind).operations ? [] : [`${where}, but trait '${use.trait}' has no such operation`];
 };
 
-const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
+const exposedOperationProblems = entityType => !isEntityType(entityType) ? [] : Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
     .filter(([, { implementation }]) => implementation?.exposes !== undefined)
     .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
 
+const isEntityType = element => isInstanceOf({ element, kind: 'entity-type' });
+
 const identityProblems = entityType => {
+    if (!isEntityType(entityType)) return [];
     const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;
     return count === 1 ? [] : [`${entityType} has ${count} traits that give the business key, needs one`];
 };

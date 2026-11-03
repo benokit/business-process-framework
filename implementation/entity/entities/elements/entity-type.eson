@@ -21,7 +21,7 @@
                             "invoke": "entity-database",
                             "operation": "read"
                         },
-                        { "inputMap": { "change": { "operation": "read", "before": "#.record" } }, "invoke": "#.self.id", "operation": "guardTraits" },
+                        { "inputMap": { "change": { "$func/viewed-change": { "change": { "operation": "read", "before": "#.record" }, "entityType": "#.self.id" } } }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "read" } },
                             "forEach": {
@@ -54,7 +54,7 @@
                                 }
                             }
                         },
-                        { "inputMap": { "change": "#.input.change" }, "invoke": "#.self.id", "operation": "guardTraits" },
+                        { "inputMap": { "change": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } } }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "#.input.change.operation" } },
                             "forEach": { "inputMap": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
@@ -96,7 +96,14 @@
                                     "action": { "inputMap": "#.input.input", "invoke": "entity-database", "operation": "#.store.operation" }
                                 },
                                 {
-                                    "inputMap": { "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] } },
+                                    "inputMap": {
+                                        "change": {
+                                            "$func/viewed-change": {
+                                                "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] },
+                                                "entityType": "#.self.id"
+                                            }
+                                        }
+                                    },
                                     "invoke": "#.self.id",
                                     "operation": "reactTraits"
                                 },

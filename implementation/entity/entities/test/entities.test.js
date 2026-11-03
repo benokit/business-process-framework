@@ -22,6 +22,10 @@ const BODYLESS = `bodyless-${run}`;
 const VETO = `veto-${run}`;
 const ECHO = `echo-${run}`;
 const HOOKED = `hooked-${run}`;
+const BASE = `base-${run}`;
+const TWICE = `twice-${run}`;
+const GROUP = `group-${run}`;
+const GROUPED = `grouped-${run}`;
 
 const prefixed = id => ({
     id: `${id}-trait`,
@@ -155,6 +159,20 @@ const elements = [
     },
     { id: ECHO, kind: `${ECHO}-trait`, data: { configuration: { '!reason': 'string' } } },
     { id: HOOKED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
+    {
+        id: `${BASE}-trait`,
+        kind: 'kind',
+        data: { extends: 'valued-entity-trait', operations: { initialize: { implementation: { set: { $coalesce: ['#.input.input', 4] } } } } }
+    },
+    { id: BASE, kind: `${BASE}-trait`, data: { configuration: {} } },
+    derived(TWICE, { $multiply: [2, { $get: { object: '#.input.record.data', path: BASE } }] }),
+    { id: TWICE, kind: `${TWICE}-trait`, data: { configuration: {} } },
+    {
+        id: GROUP,
+        kind: 'composite-trait',
+        data: { configuration: {}, traits: { [BASE]: { configuration: {} }, [TWICE]: { configuration: {} }, [VETO]: { configuration: { reason: 'nested veto' } } } }
+    },
+    { id: GROUPED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [GROUP]: { configuration: {} } } } },
     { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -297,6 +315,18 @@ describe('entities', function () {
         expect((await errorOf(invoke(HOOKED, 'delete', { businessKey: 'h-1', revision: 1 }))).message).to.equal('deletion vetoed');
         expect((await errorOf(invoke(HOOKED, 'create', { businessKey: 'boom', traits: { body: {} } }))).message).to.equal('reaction hook failed');
         expect((await errorOf(invoke(HOOKED, 'read', { businessKey: 'boom' }))).code).to.equal('not-found');
+    });
+
+    it('holds the traits of a composite trait in its value, derived and hidden from the record', async () => {
+        const created = await invoke(GROUPED, 'create', { businessKey: 'g-1', traits: { body: {}, [GROUP]: { [BASE]: 5 } } });
+        expect(created.data[GROUP]).to.deep.equal({ [BASE]: 5, [TWICE]: 10, [VETO]: true });
+        expect(Object.keys(created.data).sort()).to.deep.equal(['body', 'business-key', GROUP].sort());
+        expect((await invoke(GROUPED, 'create', { businessKey: 'g-2', traits: { body: {} } })).data[GROUP]).to.deep.equal({ [BASE]: 4, [TWICE]: 8, [VETO]: true });
+    });
+
+    it('lets a trait inside a composite refuse a change, seeing the scope of its container', async () => {
+        await invoke(GROUPED, 'create', { businessKey: 'g-3', traits: { body: {} } });
+        expect((await errorOf(invoke(GROUPED, 'delete', { businessKey: 'g-3', revision: 1 }))).message).to.equal('nested veto');
     });
 
     it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {
@@ -484,6 +514,32 @@ describe('entities', function () {
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...writing] });
         const messages = validate().flatMap(problem => problem.data.messages ?? []);
         expect(messages.some(message => message.startsWith(`trait 'writing-hook-${run}': its guard may only read and trace, but has write: `))).to.equal(true);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
+        await migrate();
+    });
+
+    it('reports an invalid trait inside a composite, and a nested guard that writes', async () => {
+        const nested = [
+            { id: `broken-group-${run}`, kind: 'composite-trait', data: { configuration: {}, traits: { [NOTE]: { configuration: { prefix: 1 } }, 'writing-hook': { trait: `writing-hook-${run}`, configuration: {} } } } },
+            {
+                id: `writing-hook-${run}-trait`,
+                kind: 'kind',
+                data: {
+                    extends: 'valued-entity-trait',
+                    operations: {
+                        initialize: { implementation: { set: true } },
+                        guard: { input: '@trait-hook-input', implementation: { inputMap: { businessKey: 'o-raced', revision: 1, value: { amount: 2 } }, invoke: ORDER, operation: 'update' } }
+                    }
+                }
+            },
+            { id: `writing-hook-${run}`, kind: `writing-hook-${run}-trait`, data: { configuration: {} } }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...nested] });
+        const messages = validate().filter(problem => problem.data.element === `broken-group-${run}`).flatMap(problem => problem.data.messages ?? []);
+        expect(messages).to.include.members([`trait '${NOTE}': configuration/prefix must be string`]);
+        expect(messages.some(message => message.includes('its guard may only read and trace'))).to.equal(true);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
         await migrate();
