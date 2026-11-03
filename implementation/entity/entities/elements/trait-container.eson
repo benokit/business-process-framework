@@ -12,18 +12,14 @@
                     "private": true,
                     "input": { "!change": "@entity-change" },
                     "implementation": [
-                        { "outputKey": "uses", "set": { "$func/entity-traits": "#.self.id" } },
                         { "outputKey": "change", "set": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } } },
                         {
                             "inputMap": { "$func/entity-hooked-keys": { "entityType": "#.self.id", "operation": "guard" } },
                             "forEach": [
-                                { "outputKey": "use", "set": { "$get": { "object": "#.uses", "path": "#.item" } } },
+                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
                                 {
-                                    "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "request": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" }
-                                    },
-                                    "invoke": "entity-trait-operator",
+                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
+                                    "invoke": "#.use.trait",
                                     "operation": "guard"
                                 }
                             ]
@@ -34,18 +30,14 @@
                     "private": true,
                     "input": { "!change": "@entity-change" },
                     "implementation": [
-                        { "outputKey": "uses", "set": { "$func/entity-traits": "#.self.id" } },
                         { "outputKey": "change", "set": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } } },
                         {
                             "inputMap": { "$func/entity-hooked-keys": { "entityType": "#.self.id", "operation": "react" } },
                             "forEach": [
-                                { "outputKey": "use", "set": { "$get": { "object": "#.uses", "path": "#.item" } } },
+                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
                                 {
-                                    "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "request": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" }
-                                    },
-                                    "invoke": "entity-trait-operator",
+                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
+                                    "invoke": "#.use.trait",
                                     "operation": "react"
                                 }
                             ]
@@ -61,18 +53,17 @@
                             "outputKey": "values",
                             "inputMap": { "$func/entity-valued-keys": "#.self.id" },
                             "forEach": [
-                                { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.item" } } },
+                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
                                 {
                                     "outputKey": "value",
                                     "inputMap": {
-                                        "trait": "#.use.trait",
                                         "entityType": "#.self.id",
                                         "key": "#.item",
                                         "configuration": "#.use.configuration",
                                         "input": { "$get": { "object": "#.input.traits", "path": "#.item" } },
                                         "create": "#.input.create"
                                     },
-                                    "invoke": "entity-trait-initializer",
+                                    "invoke": "#.use.trait",
                                     "operation": "initialize"
                                 },
                                 { "set": { "key": "#.item", "value": "#.value" } }
@@ -104,21 +95,18 @@
                         "else": [
                             { "outputKey": "key", "set": { "$head": "#.input.keys" } },
                             { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                            { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.key" } } },
+                            { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.key" } } },
                             {
                                 "outputKey": "derivation",
                                 "if": { "$func/has-operation": { "element": "#.use.trait", "operation": "derive" } },
                                 "then": {
                                     "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "request": {
-                                            "entityType": "#.self.id",
-                                            "key": "#.key",
-                                            "configuration": "#.use.configuration",
-                                            "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" }
-                                        }
+                                        "entityType": "#.self.id",
+                                        "key": "#.key",
+                                        "configuration": "#.use.configuration",
+                                        "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" }
                                     },
-                                    "invoke": "entity-trait-operator",
+                                    "invoke": "#.use.trait",
                                     "operation": "derive"
                                 }
                             },

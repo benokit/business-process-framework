@@ -59,6 +59,23 @@ describe('data flow', () => {
         expect(problemsOf({ warnings: true })).to.deep.include(['impossible-comparison', `${PATH}[3].set.$eq`]);
     });
 
+    it('types the output of an invoke with a computed target by the kinds the target can name and warns of an operation none has', async () => {
+        await bootWith(
+            kind('pricing', { operations: { status: operation({ set: { state: 'open' } }, '@any', { '!state=1': ['open', 'closed'] }) } }),
+            element('the-pricing', 'pricing'),
+            kind('runner', { operations: { run: operation([
+                { outputKey: 'status', invoke: '#.input.pricing', operation: 'status' },
+                { set: { $eq: ['#.status.state', 'archived'] } },
+                { invoke: '#.input.pricing', operation: 'refund' }
+            ], { '!pricing': '@ref/pricing' }) } }),
+            element('the-runner', 'runner'));
+        expect(problemsOf()).to.deep.equal([]);
+        expect(problemsOf({ warnings: true })).to.deep.include.members([
+            ['impossible-comparison', `${PATH}[1].set.$eq`],
+            ['unknown-operation', `${PATH}[2].operation`]
+        ]);
+    });
+
     it("runs a wrapper's pipeline in the enclosing scope and a template's method in a scope of its own", async () => {
         await bootWith(
             element('around-wrapper', 'execution-node-wrapper', { keyword: 'around', node: { '!around': '@method' }, implementation: { next: true } }),

@@ -162,7 +162,7 @@
                             "outputKey": "commands",
                             "inputMap": "#.input.operations",
                             "forEach": [
-                                { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.item.key" } } },
+                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item.key" } } },
                                 {
                                     "if": { "$negate": "#.use" },
                                     "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.item.key"] } } }
@@ -174,18 +174,14 @@
                                 {
                                     "outputKey": "command",
                                     "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "operation": "#.item.operation",
-                                        "request": {
-                                            "entityType": "#.self.id",
-                                            "key": "#.item.key",
-                                            "configuration": "#.use.configuration",
-                                            "value": { "$get": { "object": "#.before.data", "path": "#.item.key" } },
-                                            "input": "#.item.input"
-                                        }
+                                        "entityType": "#.self.id",
+                                        "key": "#.item.key",
+                                        "configuration": "#.use.configuration",
+                                        "value": { "$get": { "object": "#.before.data", "path": "#.item.key" } },
+                                        "input": "#.item.input"
                                     },
-                                    "invoke": "entity-trait-operator",
-                                    "operation": "run"
+                                    "invoke": "#.use.trait",
+                                    "operation": "#.item.operation"
                                 },
                                 { "set": { "key": "#.item.key", "command": "#.command.command", "value": "#.command.value" } }
                             ]

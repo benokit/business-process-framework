@@ -34,26 +34,13 @@
         }
     },
     {
-        "id": "trait-initializer",
-        "kind": "kind",
+        "id": "entity-trait-use-of",
+        "kind": "pure-function",
         "data": {
-            "operations": {
-                "initialize": {
-                    "input": { "!trait": "@ref/entity-trait", "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any", "create": "@any" },
-                    "output": "@any",
-                    "implementation": {
-                        "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key", "configuration": "#.input.configuration", "input": "#.input.input", "create": "#.input.create" },
-                        "invoke": "#.input.trait",
-                        "operation": "initialize"
-                    }
-                }
-            }
+            "signature": { "input": { "!entityType": "string", "!key": "string" }, "output": { "$data#": ["@entity-trait-use", "null"] } },
+            "module": "@business-framework/entities/traits",
+            "export": "traitUseOf"
         }
-    },
-    {
-        "id": "entity-trait-initializer",
-        "kind": "trait-initializer",
-        "data": {}
     },
     {
         "id": "entity-traits",

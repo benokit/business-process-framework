@@ -30,37 +30,6 @@
         "data": { "$data#": ["@trait-command", "null"] }
     },
     {
-        "id": "trait-operator",
-        "kind": "kind",
-        "data": {
-            "operations": {
-                "derive": {
-                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-derive-input" },
-                    "output": "@trait-derivation",
-                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "derive" }
-                },
-                "guard": {
-                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-hook-input" },
-                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "guard" }
-                },
-                "react": {
-                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-hook-input" },
-                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "react" }
-                },
-                "run": {
-                    "input": { "!trait": "@ref/entity-trait", "!operation": "string", "!request": "@trait-operation-input" },
-                    "output": "@trait-command",
-                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "#.input.operation" }
-                }
-            }
-        }
-    },
-    {
-        "id": "entity-trait-operator",
-        "kind": "trait-operator",
-        "data": {}
-    },
-    {
         "id": "trait-operation",
         "kind": "execution-node-template",
         "data": {

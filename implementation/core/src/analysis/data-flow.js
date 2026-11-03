@@ -147,12 +147,26 @@ const invokedKind = (walk, target) => {
     return element && kindOf(element);
 };
 
-const outputOf = (walk, node) => {
-    const kind = invokedKind(walk, node.invoke);
-    const name = literalOf(node.operation);
-    const operation = kind && name && resolveKind(kind).operations[name];
-    return operation?.output === undefined ? ANY : schemaType(`${operation.owner}/${name}/output`);
+const namesOfType = type => {
+    const names = (type.anyOf ?? [type]).map(namesIn);
+    return names.includes(undefined) ? undefined : [...new Set(names.flat())];
 };
+
+const invokedKinds = (walk, node, target) => {
+    const kind = invokedKind(walk, node.invoke);
+    return kind ? [kind] : [...new Set((namesOfType(target) ?? []).map(findElement).filter(Boolean).map(kindOf))];
+};
+
+const outputOf = (kinds, name) => {
+    const operations = kinds.map(kind => resolveKind(kind).operations[name]).filter(Boolean);
+    return operations.length === 0 || operations.some(({ output }) => output === undefined) ? ANY
+        : anyOf(...operations.map(({ owner }) => schemaType(`${owner}/${name}/output`)));
+};
+
+const unknownOperation = (walk, kinds, name, path) =>
+    kinds.length > 0 && name && !kinds.some(kind => name in resolveKind(kind).operations)
+        ? [problem(walk.at, path, 'unknown-operation', `none of ${kinds.join(', ')} has an operation '${name}'`, { severity: 'warning' })]
+        : [];
 
 const itemOf = type => infer({ $head: '#' }, { input: type }).type;
 
@@ -192,7 +206,10 @@ const NODES = {
         const target = expression(walk, closed(scope), node.invoke, `${path}.invoke`);
         walk.targets?.set(node, walk.targets.has(node) ? anyOf(walk.targets.get(node), target) : target);
         expression(walk, closed(scope), node.operation, `${path}.operation`);
-        return outputOf(walk, node);
+        const kinds = invokedKinds(walk, node, target);
+        const name = literalOf(node.operation);
+        if (!invokedKind(walk, node.invoke)) walk.problems.push(...unknownOperation(walk, kinds, name, `${path}.operation`));
+        return outputOf(kinds, name);
     },
     execute: (walk, node, scope, input, path) => {
         expression(walk, closed(scope), node.execute, `${path}.execute`);
@@ -355,6 +372,5 @@ const namesIn = member => {
 
 export const invokedNames = node => {
     const type = targetTypes().get(node);
-    const names = type && (type.anyOf ?? [type]).map(namesIn);
-    return names && !names.includes(undefined) ? [...new Set(names.flat())] : undefined;
+    return type && namesOfType(type);
 };

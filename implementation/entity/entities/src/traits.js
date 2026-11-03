@@ -47,6 +47,11 @@ const resolve = entityType => Object.entries(Object.groupBy([...dataContribution
 
 export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
 
+export const traitUseOf = ({ entityType, key }) => {
+    const use = traitsOf(entityType)[key];
+    return use ? { ...use, key } : null;
+};
+
 const keyOfKind = memo(signature => {
     const [entityType, kind] = JSON.parse(signature);
     return Object.entries(traitsOf(entityType)).find(([, { trait }]) => isTrait(trait) && isInstanceOf({ element: trait, kind }))?.[0] ?? null;
