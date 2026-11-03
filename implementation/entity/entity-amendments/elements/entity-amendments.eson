@@ -5,7 +5,7 @@
         "data": {
             "extends": "stateful-body-entity-type",
             "fixed": { "traits": { "amendment-ledger": {} } },
-            "slots": { "amendmentTypes": { "cardinality": "many", "value": "@ref/amendment-entity-type" } },
+            "slots": { "amendmentTypes": { "cardinality": "many", "value": { "$data#": ["@ref/amendment-entity-type", "@amendment-fill-declaration"] } } },
             "operations": {
                 "applyAmendment": {
                     "input": { "$data#&": ["@entity-revision-input", "@body-amend-input"] },
@@ -24,6 +24,58 @@
                 }
             }
         }
+    },
+    {
+        "id": "amendment-fill-declaration",
+        "kind": "schema",
+        "data": { "!type": "@ref/amendment-entity-type", "open": "@mapping", "apply": "@mapping", "input": "@ref/schema" }
+    },
+    {
+        "id": "amendment-fill",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!amendmentType": "string" }, "output": { "$data#": ["null", "@amendment-fill-shape"] } },
+            "mapping": {
+                "$let": {
+                    "found": {
+                        "$find": {
+                            "collection": { "$func/slot-values": { "element": "#.entityType", "slot": "amendmentTypes" } },
+                            "as": "fill",
+                            "predicate": { "$or": [{ "$eq": ["@fill", "#.amendmentType"] }, { "$eq": ["@fill.type", "#.amendmentType"] }] }
+                        }
+                    }
+                },
+                "$if": [
+                    "@found",
+                    {
+                        "type": "#.amendmentType",
+                        "open": { "$coalesce": ["@found.open", { "$literal": "#.input" }] },
+                        "apply": { "$coalesce": ["@found.apply", { "$literal": "#.amendment.data.body" }] },
+                        "input": "@found.input"
+                    },
+                    null
+                ]
+            }
+        }
+    },
+    {
+        "id": "amendment-fill-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entity-amendments/fills",
+            "export": "amendmentFillProblems"
+        }
+    },
+    {
+        "id": "amendment-fill-shape",
+        "kind": "schema",
+        "data": { "!type": "string", "!open": "@mapping", "!apply": "@mapping", "input": { "$data#": ["null", "@ref/schema"] } }
+    },
+    {
+        "id": "amendment-version",
+        "kind": "schema",
+        "data": { "!validFrom": "@date", "!body": "object" }
     },
     {
         "id": "ledger-write-input",
@@ -51,6 +103,31 @@
         "id": "amendment-ledger",
         "kind": "ledger-trait",
         "data": { "configuration": { "*": "never" } }
+    },
+    {
+        "id": "link-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        { "inputMap": { "schemaId": "amendment-link-value", "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
+                        { "set": "#.input.input" }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "amendment-link",
+        "kind": "link-trait",
+        "data": { "configuration": { "*": "never" } }
+    },
+    {
+        "id": "amendment-link-value",
+        "kind": "schema",
+        "data": { "!amendedType": "@ref/versioned-entity-type", "!amendedKey": "string", "!amendedRevision": "integer", "!effectiveFrom": "@date", "*": "never" }
     },
     {
         "id": "amendment-ledger-value",
@@ -88,7 +165,17 @@
         "kind": "kind",
         "data": {
             "extends": "stateful-body-entity-type",
-            "fixed": { "traits": { "state": { "configuration": {
+            "operations": {
+                "preview": {
+                    "input": { "!businessKey": "string" },
+                    "output": "@amendment-version",
+                    "implementation": [
+                        { "outputKey": "amendment", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "inputMap": { "entityType": "#.amendment.data.amendment-link.amendedType", "amendment": "#.amendment" }, "invoke": "entity-amendments", "operation": "preview" }
+                    ]
+                }
+            },
+            "fixed": { "traits": { "amendment-link": {}, "state": { "configuration": {
                 "states": {
                     "versionStatus": {
                         "pending": { "initial": true, "to": ["applied", "discarded"] },
@@ -101,22 +188,12 @@
         }
     },
     {
-        "id": "amendment-entity-body",
-        "kind": "schema",
-        "data": {
-            "!amendedType": "@ref/versioned-entity-type",
-            "!amendedKey": "string",
-            "!effectiveFrom": "@date",
-            "!patch": "@any"
-        }
-    },
-    {
         "id": "amendment-entity-amended",
         "kind": "slot-fill",
         "data": {
             "target": "amendment-entity-type",
             "slot": "relations",
-            "value": { "set": { "relations": [{ "targetEntityType": "#.input.data.body.amendedType", "targetEntityBusinessKey": "#.input.data.body.amendedKey", "relationType": "amends" }] } }
+            "value": { "set": { "relations": [{ "targetEntityType": "#.input.data.amendment-link.amendedType", "targetEntityBusinessKey": "#.input.data.amendment-link.amendedKey", "relationType": "amends" }] } }
         }
     },
     {
@@ -140,7 +217,7 @@
             "slot": "reactions",
             "value": {
                 "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "pending"] }, { "$eq": ["#.input.after.data.state.versionStatus", "applied"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
+                "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
             }
         }
     },
@@ -152,7 +229,7 @@
             "slot": "reactions",
             "value": {
                 "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "applied"] }, { "$eq": ["#.input.after.data.state.versionStatus", "discarded"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
+                "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
             }
         }
     },
@@ -164,7 +241,7 @@
             "slot": "reactions",
             "value": {
                 "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "pending"] }, { "$eq": ["#.input.after.data.state.versionStatus", "discarded"] }] },
-                "then": { "inputMap": { "entityType": "#.input.after.data.body.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
+                "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
             }
         }
     },
@@ -172,6 +249,7 @@
         "id": "entity-amendment-process",
         "kind": "kind",
         "data": {
+            "lifecycle": { "validate": { "$func/amendment-fill-problems": null } },
             "context": { "manages": { "amending": { "!amendedType": "string", "!amendedKey": "string" } } },
             "operations": {
                 "propose": {
@@ -180,40 +258,39 @@
                         "!businessKey": "string",
                         "!amendmentType": "@ref/amendment-entity-type",
                         "!effectiveFrom": "@date",
-                        "!patch": "@any",
-                        "data": "object"
+                        "input": "@any"
                     },
                     "output": "@entity-record",
                     "implementation": {
                         "inTransaction": [
                             {
-                            "outputKey": "record",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" },
-                            "invoke": "entity-database",
-                            "operation": "read"
-                        },
+                                "outputKey": "record",
+                                "inputMap": { "businessKey": "#.input.businessKey" },
+                                "invoke": "#.input.entityType",
+                                "operation": "read"
+                            },
                             {
                                 "if": { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "applyAmendment", "state": "#.record.data.state" } },
                                 "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " can't be amended in its current state"] } } }
                             },
+                            { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendmentType" } } },
                             {
-                                "if": {
-                                    "$negate": {
-                                        "$includes": {
-                                            "collection": { "$func/slot-values": { "element": "#.input.entityType", "slot": "amendmentTypes" } },
-                                            "value": "#.input.amendmentType"
-                                        }
-                                    }
-                                },
+                                "if": { "$negate": "#.fill" },
                                 "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no amendment of type ", "#.input.amendmentType"] } } }
+                            },
+                            {
+                                "if": "#.fill.input",
+                                "then": { "inputMap": { "schemaId": "#.fill.input", "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" }
                             },
                             {
                                 "if": "#.record.data.amendment-ledger.open",
                                 "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " has the open amendment ", "#.record.data.amendment-ledger.open"] } } }
                             },
+                            { "outputKey": "body", "set": { "$func/apply-mapping": { "mapping": "#.fill.open", "input": { "entity": "#.record", "input": "#.input.input" } } } },
                             { "outputKey": "number", "set": { "$sum": ["#.record.data.amendment-ledger.last", 1] } },
                             { "outputKey": "amendmentKey", "set": { "$str": ["#.record.businessKey", "-", { "$printf": { "template": "%03d", "args": ["#.number"] } }] } },
                             {
+                                "outputKey": "ledgered",
                                 "inputMap": {
                                     "entityType": "#.input.entityType",
                                     "businessKey": "#.record.businessKey",
@@ -231,16 +308,12 @@
                                     "inputMap": {
                                         "businessKey": "#.amendmentKey",
                                         "traits": {
-                                            "body": {
-                                                "$merge": [
-                                                    { "$coalesce": ["#.input.data", {}] },
-                                                    {
-                                                        "amendedType": "#.input.entityType",
-                                                        "amendedKey": "#.input.businessKey",
-                                                        "effectiveFrom": "#.input.effectiveFrom",
-                                                        "patch": "#.input.patch"
-                                                    }
-                                                ]
+                                            "body": "#.body",
+                                            "amendment-link": {
+                                                "amendedType": "#.input.entityType",
+                                                "amendedKey": "#.input.businessKey",
+                                                "amendedRevision": "#.ledgered.revision",
+                                                "effectiveFrom": "#.input.effectiveFrom"
                                             }
                                         }
                                     },
@@ -267,7 +340,7 @@
                     "implementation": [
                         {
                             "outputKey": "record",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.body.amendedKey" },
+                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.amendment-link.amendedKey" },
                             "invoke": "entity-database",
                             "operation": "read"
                         },
@@ -288,22 +361,37 @@
                         }
                     ]
                 },
+                "preview": {
+                    "input": { "!entityType": "@ref/versioned-entity-type", "!amendment": "@entity-record" },
+                    "output": "@amendment-version",
+                    "implementation": [
+                        { "outputKey": "record", "inputMap": { "businessKey": "#.input.amendment.data.amendment-link.amendedKey" }, "invoke": "#.input.entityType", "operation": "read" },
+                        { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendment.entityType" } } },
+                        { "outputKey": "body", "set": { "$func/apply-mapping": { "mapping": "#.fill.apply", "input": { "body": "#.record.data.body", "amendment": "#.input.amendment" } } } },
+                        { "set": { "validFrom": "#.input.amendment.data.amendment-link.effectiveFrom", "body": "#.body" } }
+                    ]
+                },
                 "apply": {
                     "input": { "!entityType": "@ref/versioned-entity-type", "!amendment": "@entity-record" },
                     "output": "@entity-record",
                     "implementation": [
                         {
                             "outputKey": "record",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.body.amendedKey" },
-                            "invoke": "entity-database",
+                            "inputMap": { "businessKey": "#.input.amendment.data.amendment-link.amendedKey" },
+                            "invoke": "#.input.entityType",
                             "operation": "read"
                         },
+                        {
+                            "if": { "$neq": ["#.record.revision", "#.input.amendment.data.amendment-link.amendedRevision"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " has changed since the amendment ", "#.input.amendment.businessKey", " was proposed"] } } }
+                        },
+                        { "outputKey": "version", "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment" }, "invoke": "#.self.id", "operation": "preview" },
                         {
                             "inputMap": {
                                 "businessKey": "#.record.businessKey",
                                 "revision": "#.record.revision",
-                                "validFrom": "#.input.amendment.data.body.effectiveFrom",
-                                "patch": "#.input.amendment.data.body.patch"
+                                "validFrom": "#.version.validFrom",
+                                "body": "#.version.body"
                             },
                             "invoke": "#.input.entityType",
                             "operation": "applyAmendment"
@@ -317,7 +405,7 @@
                     "implementation": [
                         {
                             "outputKey": "record",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.body.amendedKey" },
+                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.amendment-link.amendedKey" },
                             "invoke": "entity-database",
                             "operation": "read"
                         },
@@ -325,7 +413,7 @@
                             "inputMap": {
                                 "businessKey": "#.record.businessKey",
                                 "revision": "#.record.revision",
-                                "validFrom": "#.input.amendment.data.body.effectiveFrom"
+                                "validFrom": "#.input.amendment.data.amendment-link.effectiveFrom"
                             },
                             "invoke": "#.input.entityType",
                             "operation": "revertAmendment"

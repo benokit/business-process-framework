@@ -20,11 +20,11 @@
     {
         "id": "premium-adjustment",
         "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "$data#&": ["@amendment-entity-body", { "!reason": "string", "!changes": { "!premium": "number" } }] } } } } }
+        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!premium": "number" } } } } } }
     },
     {
         "id": "extension",
         "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "$data#&": ["@amendment-entity-body", { "!reason": "string", "!changes": { "!endDate": "@date" } }] } } } } }
+        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
     }
 ]

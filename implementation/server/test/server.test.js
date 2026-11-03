@@ -210,10 +210,10 @@ describe('server with the demo', function () {
         expect((await propose(marine, 'premium-adjustment', '2026-07-01', { premium: 1100 }, underwriter)).status).to.equal(201);
 
         const contract = await activeContract(underwriter, administrator);
-        const direct = { businessKey: `direct-${run}`, body: { amendedType: 'construction', amendedKey: contract.businessKey, effectiveFrom: '2026-07-01', reason: 'x', changes: { premium: 1 }, patch: [] } };
+        const direct = { businessKey: `direct-${run}`, body: { reason: 'x', changes: { premium: 1 } } };
         expect((await propose(contract, 'premium-adjustment', '2026-07-01', { premium: 1 }, viewer)).status).to.equal(403);
         const created = await call('POST', '/entities/premium-adjustment', direct, administrator);
-        expect([created.status, created.body.error.message]).to.deep.equal([403, 'amendments are proposed through the entity they amend']);
+        expect([created.status, created.body.error.message]).to.deep.equal([400, "value doesn't match amendment-link-value"]);
     });
 
     it('refuses to activate an amendment that starts before the current terms or ends them before they start, and cancels one that never took effect', async () => {

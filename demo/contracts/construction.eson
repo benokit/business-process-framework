@@ -35,12 +35,12 @@
     {
         "id": "construction-premium-adjustment",
         "kind": "slot-fill",
-        "data": { "target": "construction", "slot": "amendmentTypes", "value": "premium-adjustment" }
+        "data": { "target": "construction", "slot": "amendmentTypes", "value": { "type": "premium-adjustment", "apply": { "$func/change-version": "#" } } }
     },
     {
         "id": "construction-extension",
         "kind": "slot-fill",
-        "data": { "target": "construction", "slot": "amendmentTypes", "value": "extension" }
+        "data": { "target": "construction", "slot": "amendmentTypes", "value": { "type": "extension", "apply": { "$func/change-version": "#" } } }
     },
     {
         "id": "construction-policyholder",

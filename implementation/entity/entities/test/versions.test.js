@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { UNDATED, amendedBody, appendVersion, removeVersion, replaceVersions, resolveVersion, startVersions } from '../src/versions.js';
+import { UNDATED, appendVersion, datedBody, patchedBody, removeVersion, replaceVersions, resolveVersion, startVersions } from '../src/versions.js';
 
 const configuration = { versioned: { validFrom: '/startDate' } };
 
@@ -16,7 +16,9 @@ const contract = (startDate, premium) => ({ ...(startDate && { startDate }), pre
 
 const set = changes => Object.entries(changes).map(([key, value]) => ({ op: 'add', path: `/${key}`, value }));
 
-const amend = (timeline, validFrom, changes) => appendVersion({ timeline, validFrom, body: amendedBody({ timeline, configuration, validFrom, patch: set(changes) }) });
+const amended = ({ timeline, validFrom, patch }) => datedBody({ configuration, validFrom, body: patchedBody({ body: resolveVersion({ timeline }).data, patch }) });
+
+const amend = (timeline, validFrom, changes) => appendVersion({ timeline, validFrom, body: amended({ timeline, validFrom, patch: set(changes) }) });
 
 describe('versions', () => {
     const first = startVersions({ configuration, body: contract('2025-01-01', 100) });
@@ -33,15 +35,15 @@ describe('versions', () => {
     });
 
     it('sets the date of an amended version in its body, keeping the rest', () => {
-        expect(amendedBody({ timeline, configuration, validFrom: '2027-01-01', patch: set({ premium: 1 }) })).to.deep.equal(contract('2027-01-01', 1));
+        expect(amended({ timeline, configuration, validFrom: '2027-01-01', patch: set({ premium: 1 }) })).to.deep.equal(contract('2027-01-01', 1));
     });
 
     it('transforms the last version by any JSON Patch, and refuses one that does not apply', () => {
         const nested = startVersions({ configuration, body: { startDate: '2025-01-01', cover: { fire: 1, flood: 2 }, tags: ['a'] } });
         const patch = [{ op: 'remove', path: '/cover/flood' }, { op: 'copy', from: '/cover/fire', path: '/cover/storm' }, { op: 'move', from: '/tags', path: '/labels' }, { op: 'test', path: '/cover/fire', value: 1 }];
-        expect(amendedBody({ timeline: nested, configuration, validFrom: '2026-01-01', patch })).to.deep.equal({ startDate: '2026-01-01', cover: { fire: 1, storm: 1 }, labels: ['a'] });
+        expect(amended({ timeline: nested, configuration, validFrom: '2026-01-01', patch })).to.deep.equal({ startDate: '2026-01-01', cover: { fire: 1, storm: 1 }, labels: ['a'] });
         expect([[{ op: 'remove', path: '/nothing' }], [{ op: 'test', path: '/cover/fire', value: 2 }], [{ op: 'jump' }], { cover: 1 }]
-            .map(bad => codeOf(() => amendedBody({ timeline: nested, configuration, validFrom: '2026-01-01', patch: bad })))).to.deep.equal(['invalid', 'invalid', 'invalid', 'invalid']);
+            .map(bad => codeOf(() => amended({ timeline: nested, configuration, validFrom: '2026-01-01', patch: bad })))).to.deep.equal(['invalid', 'invalid', 'invalid', 'invalid']);
     });
 
     it('resolves the version valid at a date, the last without one', () => {

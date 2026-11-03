@@ -52,17 +52,17 @@ export const resolveVersion = ({ timeline, at }) => {
     return { validFrom: keys[found], data: applyAll(timeline[keys.at(-1)], patches) };
 };
 
-const patched = (document, patch) => {
-    if (!Array.isArray(patch)) throw invalid('an amendment is a JSON Patch, an array of operations');
+export const patchedBody = ({ body, patch }) => {
+    if (!Array.isArray(patch)) throw invalid('a patch is a JSON Patch, an array of operations');
     try {
-        return jsonPatch.applyPatch(structuredClone(document), patch, true).newDocument;
+        return jsonPatch.applyPatch(structuredClone(body), patch, true).newDocument;
     } catch (error) {
         throw invalid(`the patch doesn't apply: ${error.message}`);
     }
 };
 
-export const amendedBody = ({ timeline, configuration, validFrom, patch }) => jsonPatch.applyOperation(
-    patched(resolveVersion({ timeline }).data, patch),
+export const datedBody = ({ configuration, validFrom, body }) => jsonPatch.applyOperation(
+    structuredClone(body),
     { op: 'add', path: configuration.versioned.validFrom, value: checkedDate(validFrom) },
     false,
     false

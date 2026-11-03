@@ -56,10 +56,13 @@ const referenceAt = ref => {
 
 const typedAt = ref => CODE.has(ref) ? { type: ref.slice(1) } : referenceAt(ref);
 
+const isInstanceOfReference = value => isPlainObject(value) && Object.keys(value).length === 1 && typeof value.instanceOf === 'string';
+
 const positionsAt = (schema, value, path) => {
     if (!isPlainObject(schema) || value === undefined) return [];
     if (schema.$ref !== undefined) {
         const typed = typedAt(schema.$ref);
+        if (typed?.type === 'ref') return typeof value === 'string' || isInstanceOfReference(value) ? [{ ...typed, code: value, path }] : [];
         return typed ? [{ ...typed, code: value, path }] : positionsAt(storedSchema(schema.$ref), value, path);
     }
     const alternatives = [...schema.allOf ?? [], ...schema.anyOf ?? [], ...schema.oneOf ?? []];
@@ -89,8 +92,6 @@ const hasReferences = schemaId => {
     if (!withReferences.has(schemaId)) withReferences.set(schemaId, mentionsReference(storedSchema(uri(schemaId))));
     return withReferences.get(schemaId);
 };
-
-const isInstanceOfReference = value => isPlainObject(value) && Object.keys(value).length === 1 && typeof value.instanceOf === 'string';
 
 export const resolveReferencesIn = ({ schemaId, value, resolve }) => {
     if (!hasReferences(schemaId)) return value;

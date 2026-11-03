@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./fills": "./src/fills.js"
   },
   "scripts": {
     "test": "mocha --exit"

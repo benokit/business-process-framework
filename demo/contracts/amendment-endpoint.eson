@@ -14,6 +14,14 @@
         }
     },
     {
+        "id": "change-version",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "mapping": { "$func/patched-body": { "body": "#.body", "patch": { "$func/changes-patch": "#.amendment.data.body.changes" } } }
+        }
+    },
+    {
         "id": "entity-amendment-endpoint",
         "kind": "http-endpoint",
         "data": {
@@ -26,8 +34,7 @@
                 "businessKey": "#.params.businessKey",
                 "amendmentType": "#.body.amendmentType",
                 "effectiveFrom": "#.body.effectiveFrom",
-                "patch": { "$func/changes-patch": "#.body.changes" },
-                "data": { "reason": "#.body.reason", "changes": "#.body.changes" }
+                "input": { "reason": "#.body.reason", "changes": "#.body.changes" }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

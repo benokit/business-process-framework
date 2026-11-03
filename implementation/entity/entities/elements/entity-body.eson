@@ -32,12 +32,21 @@
         }
     },
     {
-        "id": "amended-body",
+        "id": "dated-body",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "object" },
+            "signature": { "input": { "!configuration": "@any", "!validFrom": "@date", "!body": "object" }, "output": "object" },
             "module": "@business-framework/entities/versions",
-            "export": "amendedBody"
+            "export": "datedBody"
+        }
+    },
+    {
+        "id": "patched-body",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!body": "object", "!patch": "[object]" }, "output": "object" },
+            "module": "@business-framework/entities/versions",
+            "export": "patchedBody"
         }
     },
     {
@@ -84,7 +93,7 @@
     {
         "id": "body-amend-input",
         "kind": "schema",
-        "data": { "!validFrom": "@date", "!patch": "[object]" }
+        "data": { "!validFrom": "@date", "!body": "object" }
     },
     {
         "id": "body-remove-input",
@@ -171,7 +180,7 @@
                     "implementation": [
                         {
                             "outputKey": "body",
-                            "set": { "$func/amended-body": { "timeline": "#.input.value", "configuration": "#.input.configuration", "validFrom": "#.input.input.validFrom", "patch": "#.input.input.patch" } }
+                            "set": { "$func/dated-body": { "configuration": "#.input.configuration", "validFrom": "#.input.input.validFrom", "body": "#.input.input.body" } }
                         },
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.body" }, "invoke": "ajv", "operation": "assert" },
                         {
