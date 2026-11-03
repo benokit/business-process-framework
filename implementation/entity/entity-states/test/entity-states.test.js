@@ -48,8 +48,8 @@ describe('entity-states', function () {
 
     it('moves an entity without a body and gives it no update', async () => {
         const created = await invoke(TICKET, 'create', { businessKey: 't-1' });
-        expect(created.data).to.deep.equal({ state: { status: 'draft' } });
-        expect((await transition('t-1', 'confirm', 1, TICKET)).data).to.deep.equal({ state: { status: 'confirmed' } });
+        expect(created.data).to.deep.equal({ 'business-key': 't-1', state: { status: 'draft' } });
+        expect((await transition('t-1', 'confirm', 1, TICKET)).data).to.deep.equal({ 'business-key': 't-1', state: { status: 'confirmed' } });
         expect((await errorOf(invoke(TICKET, 'update', { businessKey: 't-1', revision: 2, value: {} }))).code).to.equal('unknown-operation');
     });
 
@@ -63,7 +63,7 @@ describe('entity-states', function () {
         await invoke(ORDER, 'create', { businessKey: 's-4', traits: { body: { amount: 7 } } });
         expect((await errorOf(transition('s-4', 'confirm'))).code).to.equal('invalid');
         const confirmed = await transition('s-4', 'confirm', 1);
-        expect([confirmed.revision, confirmed.data]).to.deep.equal([2, { body: { amount: 7 }, state: { status: 'confirmed' } }]);
+        expect([confirmed.revision, confirmed.data]).to.deep.equal([2, { 'business-key': 's-4', body: { amount: 7 }, state: { status: 'confirmed' } }]);
         expect((await errorOf(transition('s-4', 'confirm', 2))).code).to.equal('conflict');
         expect((await errorOf(transition('s-4', 'ship', 2))).code).to.equal('invalid');
     });
@@ -95,7 +95,7 @@ describe('entity-states', function () {
     });
 
     it('leaves entity types without a states model stateless', async () => {
-        expect((await invoke(NOTE, 'create', { businessKey: 'n-1', traits: { body: { text: 'hi' } } })).data).to.deep.equal({ body: { text: 'hi' } });
+        expect((await invoke(NOTE, 'create', { businessKey: 'n-1', traits: { body: { text: 'hi' } } })).data).to.deep.equal({ 'business-key': 'n-1', body: { text: 'hi' } });
         expect((await errorOf(transition('n-1', 'confirm', 1, NOTE))).code).to.equal('unknown-operation');
     });
 

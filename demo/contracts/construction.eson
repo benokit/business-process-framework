@@ -9,16 +9,8 @@
                 "!currency": "string",
                 "!region": "@region",
                 "confidential": "boolean"
-            }] } } } }
-        }
-    },
-    {
-        "id": "construction-business-key",
-        "kind": "slot-fill",
-        "data": {
-            "target": "construction",
-            "slot": "businessKey",
-            "value": [
+            }] } } },
+            "business-key": { "configuration": { "rule": [
                 { "outputKey": "seq", "nextFromSequence": "construction-seq" },
                 { "outputKey": "now", "invoke": "clock", "operation": "now" },
                 {
@@ -29,7 +21,7 @@
                         }
                     }
                 }
-            ]
+            ] } } }
         }
     },
     {

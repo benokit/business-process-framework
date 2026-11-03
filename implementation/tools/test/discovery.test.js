@@ -12,12 +12,11 @@ describe('discovery', () => {
 
     it('explains an instance with its kind chain, operations and slot fills in order', () => {
         const { kind, chain, source, operations, slots } = explain('construction');
-        expect([kind, chain]).to.deep.equal(['insurance-contract-type', ['entity-type', 'stateful-entity-type', 'stateful-body-entity-type', 'versioned-entity-type', 'insurance-contract-type']]);
+        expect([kind, chain]).to.deep.equal(['insurance-contract-type', ['entity-type', 'keyed-entity-type', 'stateful-entity-type', 'stateful-body-entity-type', 'versioned-entity-type', 'insurance-contract-type']]);
         expect(source).to.match(/demo\/contracts\/construction\.eson$/);
         expect(operations.find(op => op.name === 'create')).to.include({ declaredBy: 'entity-type', implementedBy: 'entity-type' });
         expect(slots.find(slot => slot.name === 'reactions').fills.map(fill => fill.id))
             .to.deep.equal(['refuse-uncovered-results', 'maintain-entity-relations', 'publish-entity-events', 'refuse-forbidden-initial-states', 'contract-activation-events', 'contract-terms-end-after-start']);
-        expect(slots.find(slot => slot.name === 'businessKey').fills.map(fill => fill.id)).to.deep.equal(['construction-business-key']);
     });
 
     it('explains the effects of each operation of an instance, with a trace', () => {

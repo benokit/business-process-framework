@@ -71,7 +71,7 @@
         "id": "ownership-trait",
         "kind": "kind",
         "data": {
-            "extends": "entity-trait",
+            "extends": "valued-entity-trait",
             "lifecycle": {
                 "validate": { "$func/ownership-problems": null },
                 "explain": { "$func/ownership-explanation": "#.element" }

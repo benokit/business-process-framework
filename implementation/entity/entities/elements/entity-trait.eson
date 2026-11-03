@@ -13,10 +13,7 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping" },
-            "operations": {
-                "initialize": { "input": { "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any" }, "output": "@any" }
-            },
+            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping", "identity": "boolean" },
             "lifecycle": {
                 "load": {
                     "inputMap": { "id": { "$str": ["#.self.id", "/configuration"] }, "schema": "#.self.data.configuration" },
@@ -27,15 +24,25 @@
         }
     },
     {
+        "id": "valued-entity-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "initialize": { "input": { "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any", "create": "@any" }, "output": "@any" }
+            }
+        }
+    },
+    {
         "id": "trait-initializer",
         "kind": "kind",
         "data": {
             "operations": {
                 "initialize": {
-                    "input": { "!trait": "@ref/entity-trait", "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any" },
+                    "input": { "!trait": "@ref/entity-trait", "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any", "create": "@any" },
                     "output": "@any",
                     "implementation": {
-                        "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key", "configuration": "#.input.configuration", "input": "#.input.input" },
+                        "inputMap": { "entityType": "#.input.entityType", "key": "#.input.key", "configuration": "#.input.configuration", "input": "#.input.input", "create": "#.input.create" },
                         "invoke": "#.input.trait",
                         "operation": "initialize"
                     }
@@ -64,6 +71,24 @@
             "signature": { "input": "string", "output": "[string]" },
             "module": "@business-framework/entities/traits",
             "export": "traitProblems"
+        }
+    },
+    {
+        "id": "entity-valued-keys",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entities/traits",
+            "export": "valuedKeysOf"
+        }
+    },
+    {
+        "id": "entity-identity-key",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "string" },
+            "module": "@business-framework/entities/traits",
+            "export": "identityKeyOf"
         }
     }
 ]

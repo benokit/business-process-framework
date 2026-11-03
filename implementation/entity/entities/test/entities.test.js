@@ -24,7 +24,7 @@ const prefixed = id => ({
     id: `${id}-trait`,
     kind: 'kind',
     data: {
-        extends: 'entity-trait',
+        extends: 'valued-entity-trait',
         operations: {
             initialize: { implementation: { set: { $str: ['#.input.configuration.prefix', { $coalesce: ['#.input.input', 'new'] }, { $coalesce: ['#.input.configuration.suffix', ''] }] } } },
             rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } }
@@ -40,7 +40,7 @@ const derived = (id, compute) => ({
     id: `${id}-trait`,
     kind: 'kind',
     data: {
-        extends: 'entity-trait',
+        extends: 'valued-entity-trait',
         operations: {
             initialize: { implementation: { set: 0 } },
             rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } },
@@ -121,7 +121,7 @@ const elements = [
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
     { id: MASKING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
-    { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
+    { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
@@ -164,9 +164,16 @@ const elements = [
     }),
     { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
     { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'body-entity-type' } },
-    { id: CONSTRUCTION, kind: CONTRACT_CLASS, data: { traits: { body: { configuration: { schema: { '$data#&': [`@${CONTRACT_BODY}`, { '!project': 'string' }] } } } } } },
-    fill('contract-key', CONTRACT_CLASS, 'businessKey', { set: { $str: ['C-', '#.input.traits.body.holder'] } }),
-    fill('construction-key', CONSTRUCTION, 'businessKey', { set: { $str: ['CON-', '#.input.traits.body.project'] } }),
+    {
+        id: CONSTRUCTION,
+        kind: CONTRACT_CLASS,
+        data: {
+            traits: {
+                body: { configuration: { schema: { '$data#&': [`@${CONTRACT_BODY}`, { '!project': 'string' }] } } },
+                'business-key': { configuration: { rule: { set: { $str: ['CON-', '#.input.traits.body.project'] } } } }
+            }
+        }
+    },
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),
     fill('construction-note', CONSTRUCTION, 'traits', { key: NOTE, configuration: { suffix: ' (construction)' } })
 ];
@@ -192,13 +199,13 @@ describe('entities', function () {
     it('creates with the body and initial trait values, and reads back', async () => {
         const created = await invoke(ORDER, 'create', { businessKey: 'o-1', traits: { body: { amount: 5 } } });
         expect(created).to.include({ entityType: ORDER, businessKey: 'o-1', revision: 1 });
-        expect(created.data).to.deep.equal({ body: { amount: 5, note: 'stamped' }, [NOTE]: 'order: new' });
+        expect(created.data).to.deep.equal({ 'business-key': 'o-1', body: { amount: 5, note: 'stamped' }, [NOTE]: 'order: new' });
         expect(await invoke(ORDER, 'read', { businessKey: 'o-1' })).to.deep.equal(created);
     });
 
     it('creates an entity without a body', async () => {
         const created = await invoke(BODYLESS, 'create', { businessKey: 'b-1' });
-        expect(created.data).to.deep.equal({ [NOTE]: 'plain: new' });
+        expect(created.data).to.deep.equal({ 'business-key': 'b-1', [NOTE]: 'plain: new' });
         expect(await invoke(BODYLESS, 'read', { businessKey: 'b-1' })).to.deep.equal(created);
     });
 
@@ -385,7 +392,7 @@ describe('entities', function () {
         expect(total).to.be.at.least(4);
     });
 
-    it('inherits schema, traits and slots from an entity class, with the most specific business key rule', async () => {
+    it('inherits schema, traits and slots from an entity class, with the business key rule of the entity type', async () => {
         const created = await invoke(CONSTRUCTION, 'create', { traits: { body: { holder: 'Ada', project: 'bridge' } } });
         expect([created.businessKey, created.data[NOTE]]).to.deep.equal(['CON-bridge', 'contract: new (construction)']);
         expect((await errorOf(invoke(CONSTRUCTION, 'create', { traits: { body: { project: 'no holder' } } }))).code).to.equal('invalid');

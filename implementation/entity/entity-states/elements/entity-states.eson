@@ -91,7 +91,7 @@
         "id": "states-trait",
         "kind": "kind",
         "data": {
-            "extends": "entity-trait",
+            "extends": "valued-entity-trait",
             "operations": {
                 "initialize": {
                     "implementation": [
@@ -144,7 +144,7 @@
         "id": "stateful-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "entity-type",
+            "extends": "keyed-entity-type",
             "operations": {
                 "transition": {
                     "input": { "$data#&": ["@entity-revision-input", "@state-transition-input"] },

@@ -6,7 +6,6 @@
             "shape": { "traits{}": "@entity-trait-entry" },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" },
-                "businessKey": { "cardinality": "one", "value": "@method", "input": "@entity-type/create/input" },
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
@@ -42,13 +41,13 @@
                     ]
                 },
                 "initialTraitValues": {
-                    "input": { "!traits": "object" },
+                    "input": { "!traits": "object", "create": "@any" },
                     "output": "object",
                     "implementation": [
                         { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
                         {
                             "outputKey": "values",
-                            "inputMap": { "$keys": "#.traits" },
+                            "inputMap": { "$func/entity-valued-keys": "#.self.id" },
                             "forEach": [
                                 { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.item" } } },
                                 {
@@ -58,7 +57,8 @@
                                         "entityType": "#.self.id",
                                         "key": "#.item",
                                         "configuration": "#.use.configuration",
-                                        "input": { "$get": { "object": "#.input.traits", "path": "#.item" } }
+                                        "input": { "$get": { "object": "#.input.traits", "path": "#.item" } },
+                                        "create": "#.input.create"
                                     },
                                     "invoke": "entity-trait-initializer",
                                     "operation": "initialize"
@@ -285,20 +285,16 @@
                     "implementation": [
                         {
                             "outputKey": "traits",
-                            "inputMap": { "traits": { "$coalesce": ["#.input.traits", {}] } },
+                            "inputMap": { "traits": { "$coalesce": ["#.input.traits", {}] }, "create": "#.input" },
                             "invoke": "#.self.id",
                             "operation": "initialTraitValues"
                         },
-                        { "outputKey": "businessKeyRule", "set": { "$func/slot-values": { "element": "#.self.id", "slot": "businessKey" } } },
+                        { "outputKey": "identityKey", "set": { "$func/entity-identity-key": "#.self.id" } },
                         {
                             "outputKey": "businessKey",
-                            "if": "#.input.businessKey",
-                            "then": { "set": "#.input.businessKey" },
-                            "else": {
-                                "if": "#.businessKeyRule",
-                                "then": { "execute": "#.businessKeyRule" },
-                                "else": { "throw": { "code": "invalid", "message": "businessKey is required" } }
-                            }
+                            "if": "#.identityKey",
+                            "then": { "set": { "$get": { "object": "#.traits", "path": "#.identityKey" } } },
+                            "else": { "throw": { "code": "invalid", "message": "businessKey is required" } }
                         },
                         {
                             "inputMap": {

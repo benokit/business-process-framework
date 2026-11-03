@@ -43,13 +43,13 @@ describe('entities-http', function () {
         const created = await call('POST', `/entities/${ORDER}`, { body: { businessKey: 'h-1', body: { amount: 1 } } });
         expect([created.status, created.etag]).to.deep.equal([201, '"1"']);
         const read = await call('GET', `/entities/${ORDER}/h-1`);
-        expect([read.status, read.body.data]).to.deep.equal([200, { body: { amount: 1 } }]);
+        expect([read.status, read.body.data]).to.deep.equal([200, { 'business-key': 'h-1', body: { amount: 1 } }]);
         const updated = await call('PUT', `/entities/${ORDER}/h-1`, { body: { body: { amount: 2 } }, headers: { 'if-match': read.etag } });
         expect([updated.status, updated.etag]).to.deep.equal([200, '"2"']);
         const stale = await call('PUT', `/entities/${ORDER}/h-1`, { body: { body: { amount: 3 } }, headers: { 'if-match': '"1"' } });
         expect(stale.status).to.equal(409);
         const past = await call('GET', `/entities/${ORDER}/h-1?revision=1`);
-        expect(past.body.data).to.deep.equal({ body: { amount: 1 } });
+        expect(past.body.data).to.deep.equal({ 'business-key': 'h-1', body: { amount: 1 } });
         expect((await call('DELETE', `/entities/${ORDER}/h-1`)).status).to.equal(400);
         expect((await call('DELETE', `/entities/${ORDER}/h-1`, { headers: { 'if-match': updated.etag } })).status).to.equal(200);
         expect((await call('GET', `/entities/${ORDER}/h-1`)).status).to.equal(404);
@@ -64,7 +64,7 @@ describe('entities-http', function () {
         const { port } = await invoke('http-server', 'address', null);
         expect((await fetch(`http://localhost:${port}/entities/${ORDER}`, { headers: { [ROLE_HEADER]: 'editor-role' } })).status).to.equal(404);
         const types = await call('GET', '/entity-types');
-        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { body: { trait: 'body', configuration: { schema: { '!amount': 'number' } } } } });
+        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { 'business-key': { trait: 'business-key', configuration: {} }, body: { trait: 'body', configuration: { schema: { '!amount': 'number' } } } } });
     });
 
     it('refuses elements that are not entity types', async () => {

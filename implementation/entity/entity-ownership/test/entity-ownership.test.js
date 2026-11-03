@@ -85,6 +85,6 @@ describe('entity-ownership', function () {
 
     it('leaves an entity type without the trait alone', async () => {
         const created = await invoke(PLAIN, 'create', { businessKey: 'p-1', traits: { body: { name: 'a' } } });
-        expect(created.data).to.deep.equal({ body: { name: 'a' } });
+        expect(created.data).to.deep.equal({ 'business-key': 'p-1', body: { name: 'a' } });
     });
 });

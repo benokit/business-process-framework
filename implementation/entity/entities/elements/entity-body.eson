@@ -104,7 +104,7 @@
         "id": "body-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "entity-type",
+            "extends": "keyed-entity-type",
             "operations": {
                 "update": {
                     "input": { "$data#&": ["@entity-revision-input", "@body-put-input"] },
@@ -118,7 +118,7 @@
         "id": "body-trait",
         "kind": "kind",
         "data": {
-            "extends": "entity-trait",
+            "extends": "valued-entity-trait",
             "operations": {
                 "put": { "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-put-input" }] }, "output": "@trait-command" }
             }

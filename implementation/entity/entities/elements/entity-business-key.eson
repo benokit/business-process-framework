@@ -1,0 +1,37 @@
+[
+    {
+        "id": "business-key-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        {
+                            "if": "#.input.create.businessKey",
+                            "then": { "set": "#.input.create.businessKey" },
+                            "else": {
+                                "if": "#.input.configuration.rule",
+                                "then": { "inputMap": "#.input.create", "execute": "#.input.configuration.rule" },
+                                "else": { "throw": { "code": "invalid", "message": "businessKey is required" } }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "business-key",
+        "kind": "business-key-trait",
+        "data": { "cardinality": "one", "identity": true, "configuration": { "rule": "@method" } }
+    },
+    {
+        "id": "keyed-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "fixed": { "traits": { "business-key": { "configuration": {} } } }
+        }
+    }
+]

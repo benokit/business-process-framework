@@ -86,7 +86,7 @@
         "id": "ledger-trait",
         "kind": "kind",
         "data": {
-            "extends": "entity-trait",
+            "extends": "valued-entity-trait",
             "operations": {
                 "initialize": {
                     "implementation": { "set": { "last": 0, "open": null } }
@@ -108,7 +108,7 @@
         "id": "link-trait",
         "kind": "kind",
         "data": {
-            "extends": "entity-trait",
+            "extends": "valued-entity-trait",
             "operations": {
                 "initialize": {
                     "implementation": [

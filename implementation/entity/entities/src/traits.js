@@ -1,5 +1,5 @@
 import { getElement } from '@business-framework/core';
-import { isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
+import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
 import { validateValue } from '@business-framework/core/schemas';
 
@@ -44,6 +44,14 @@ const resolve = entityType => Object.entries(Object.groupBy([...dataContribution
     });
 
 export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
+
+const isIdentity = ({ trait }) => isTrait(trait) && getElement(trait).data.identity === true;
+
+export const identityKeyOf = entityType => Object.entries(traitsOf(entityType)).find(([, use]) => isIdentity(use))?.[0] ?? null;
+
+export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
+    .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
+    .map(([key]) => key);
 
 const configurationProblems = (trait, configuration) => validateValue({ schemaId: `${trait}/configuration`, value: configuration }).errors
     .map(error => `trait '${trait}': configuration${error.instancePath} ${error.message}`);
@@ -99,9 +107,15 @@ const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf
     .filter(([, { implementation }]) => implementation?.exposes !== undefined)
     .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
 
+const identityProblems = entityType => {
+    const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;
+    return count === 1 ? [] : [`${entityType} has ${count} traits that give the business key, needs one`];
+};
+
 export const traitProblems = entityType => {
     const fills = fillContributions(entityType);
     return [
+        ...identityProblems(entityType),
         ...exposedOperationProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
         ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),

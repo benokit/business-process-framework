@@ -28,7 +28,7 @@ describe('users', function () {
     it('creates users as entities, keyed by subject and active', async () => {
         const subject = `ada-${run}`;
         const created = await invoke('user', 'create', { traits: { body: { subject, username: 'ada', email: 'ada@test' } } });
-        expect([created.businessKey, created.revision, created.data]).to.deep.equal([subject, 1, { body: { subject, username: 'ada', email: 'ada@test' }, state: { status: 'active' } }]);
+        expect([created.businessKey, created.revision, created.data]).to.deep.equal([subject, 1, { 'business-key': subject, body: { subject, username: 'ada', email: 'ada@test' }, state: { status: 'active' } }]);
     });
 
     it('holds only declared roles', async () => {

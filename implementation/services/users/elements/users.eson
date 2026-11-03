@@ -4,6 +4,7 @@
         "kind": "stateful-body-entity-type",
         "data": {
             "traits": {
+                "business-key": { "configuration": { "rule": { "set": "#.input.traits.body.subject" } } },
                 "body": { "configuration": { "schema": { "!subject": "string", "username": "string", "email": "string", "roles[]": "string", "access[]": "string", "*": "@any" } } },
                 "state": { "configuration": {
                     "states": { "status": { "active": true, "suspended": true } },
@@ -57,10 +58,5 @@
                 }
             ]
         }
-    },
-    {
-        "id": "subject-is-business-key",
-        "kind": "slot-fill",
-        "data": { "target": "user", "slot": "businessKey", "value": { "set": "#.input.traits.body.subject" } }
     }
 ]
