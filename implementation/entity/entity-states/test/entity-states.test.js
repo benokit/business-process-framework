@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
-import { applyTransition } from '../src/states.js';
+import { applyTransition, stateMoved } from '../src/states.js';
 import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
 
 const run = Date.now();
@@ -171,5 +171,11 @@ describe('entity-states', function () {
         };
         expect(applyTransition({ model: multi, state: multi.initialStates.default, transition: 'close' })).to.deep.equal({ status: 'closed', payment: 'settled' });
         expect(applyTransition({ model: multi, state: multi.initialStates.paid, transition: 'close' })).to.equal(null);
+    });
+
+    it('tells whether a dimension of the state moved from one value to another', () => {
+        const at = status => ({ entityType: ORDER, data: { state: { status } } });
+        const moved = (before, after) => stateMoved({ before, after, dimension: 'status', from: 'draft', to: 'confirmed' });
+        expect([moved(at('draft'), at('confirmed')), moved(at('draft'), at('draft')), moved(at('confirmed'), at('confirmed')), moved(null, at('confirmed'))]).to.deep.equal([true, false, false, false]);
     });
 });

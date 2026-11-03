@@ -24,7 +24,7 @@
                     "implementation": [
                         { "outputKey": "document", "inputMap": "#.input.record", "execute": "#.input.index.mapping" },
                         {
-                            "inputMap": { "document": { "$merge": ["#.document", { "id": "#.input.record.id" }, { "$if": ["#.input.record.data.ownership", { "ownership": "#.input.record.data.ownership" }, {}] }] } },
+                            "inputMap": { "document": { "$merge": ["#.document", { "id": "#.input.record.id" }, { "$let": { "ownership": { "$func/entity-trait-value": { "record": "#.input.record", "kind": "ownership-trait" } } }, "$if": ["@ownership", { "ownership": "@ownership" }, {}] }] } },
                             "invoke": "#.input.index.index",
                             "operation": "insertDocument"
                         }

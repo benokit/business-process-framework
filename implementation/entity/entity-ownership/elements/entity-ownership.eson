@@ -137,5 +137,14 @@
         "id": "entity-ownership-schemas-loader",
         "kind": "ownership-schemas-loader",
         "data": {}
+    },
+    {
+        "id": "record-ownership",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entity-ownership/ownership",
+            "export": "ownershipOf"
+        }
     }
 ]

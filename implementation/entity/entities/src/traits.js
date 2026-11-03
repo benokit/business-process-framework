@@ -1,6 +1,7 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
+import { memo } from '@business-framework/core/registry';
 import { validateValue } from '@business-framework/core/schemas';
 
 const cardinalityOf = trait => getElement(trait).data.cardinality ?? 'one';
@@ -44,6 +45,18 @@ const resolve = entityType => Object.entries(Object.groupBy([...dataContribution
     });
 
 export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
+
+const keyOfKind = memo(signature => {
+    const [entityType, kind] = JSON.parse(signature);
+    return Object.entries(traitsOf(entityType)).find(([, { trait }]) => isTrait(trait) && isInstanceOf({ element: trait, kind }))?.[0] ?? null;
+});
+
+export const traitKeyOf = ({ entityType, kind }) => keyOfKind(JSON.stringify([entityType, kind]));
+
+export const traitValueOf = ({ record, kind }) => {
+    const key = record ? traitKeyOf({ entityType: record.entityType, kind }) : null;
+    return key === null ? null : record.data[key] ?? null;
+};
 
 const isIdentity = ({ trait }) => isTrait(trait) && getElement(trait).data.identity === true;
 

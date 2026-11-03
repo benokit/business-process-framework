@@ -13,6 +13,10 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 { "id": "order", "kind": "stateful-entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
 ```
 
+## Reading the state of a record
+
+Other packages read the state through the trait, wherever it sits ([entities](../entities/README.md#traits)): `$func/record-state` gives the state of a record (`null` without the trait) and `$func/state-moved` `{ before, after, dimension, from, to }` tells whether a write moved a dimension from one value to another (`before` is `null` on a create, so it is false). A reaction that waits for a move, such as those of [amendments](../entity-amendments/README.md), uses it.
+
 ## Restricting the moves of a dimension
 
 A state is `true` (no restriction) or `{ initial?: true, to?: [<state>] }`. The kind that introduces a dimension declares its graph there, in its `fixed` configuration, so that no subkind or instance can change it (the data algebra reports it as a conflict naming the owner) and every process that uses the dimension moves along it:

@@ -1,7 +1,7 @@
 import { findElement } from '@business-framework/core';
 import { isInstanceOf, kindChainOf, selvesOf } from '@business-framework/core/kinds';
 import { permits } from '@business-framework/authorization/authorization';
-import { processState, processStatesOfType, transitionsOfType } from '@business-framework/entity-states/states';
+import { processState, processStatesOfType, stateOf, transitionsOfType } from '@business-framework/entity-states/states';
 
 const SYSTEM = 'system';
 
@@ -12,7 +12,7 @@ const isGoverned = ({ entityType, user, operation }) => user !== undefined && us
 
 export const deniesState = ({ entityType, user, operation, record }) => {
     if (!record || !isGoverned({ entityType, user, operation })) return false;
-    const state = processState({ entityType, state: record.data.state ?? {} });
+    const state = processState({ entityType, state: stateOf({ ...record, entityType }) ?? {} });
     return state !== null && !permits({ operation: { ...operation, state }, roles: user.roles ?? [] });
 };
 

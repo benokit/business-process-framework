@@ -1,6 +1,6 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, selvesOf } from '@business-framework/core/kinds';
-import { traitsOf } from '@business-framework/entities/traits';
+import { traitsOf, traitValueOf } from '@business-framework/entities/traits';
 
 export const applyTransition = ({ model, state, transition }) => {
     const targets = Object.entries(model.transitions?.[transition] ?? {}).map(([dimension, edges]) => [dimension, edges[state[dimension]]]);
@@ -113,3 +113,7 @@ export const forbidsOperation = ({ entityType, entityOperation, state }) => {
     const [model] = statesConfigurationOf(entityType);
     return entityOperation !== undefined && model !== undefined && state !== undefined && !allows(model, entityOperation, state);
 };
+
+export const stateOf = record => traitValueOf({ record, kind: 'states-trait' });
+
+export const stateMoved = ({ before, after, dimension, from, to }) => stateOf(before)?.[dimension] === from && stateOf(after)?.[dimension] === to;

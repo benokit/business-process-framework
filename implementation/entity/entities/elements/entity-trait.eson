@@ -90,5 +90,23 @@
             "module": "@business-framework/entities/traits",
             "export": "identityKeyOf"
         }
+    },
+    {
+        "id": "entity-trait-key",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!kind": "string" }, "output": "string" },
+            "module": "@business-framework/entities/traits",
+            "export": "traitKeyOf"
+        }
+    },
+    {
+        "id": "entity-trait-value",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!record": "@any", "!kind": "string" }, "output": "@any" },
+            "module": "@business-framework/entities/traits",
+            "export": "traitValueOf"
+        }
     }
 ]

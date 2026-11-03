@@ -1,7 +1,7 @@
 import { findElement, getElement } from '@business-framework/core';
 import { extendsKind, isInstanceOf, kindChainOf, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { applyMapping } from '@business-framework/core/mappings';
-import { bindRows, ownershipRule } from '@business-framework/entity-ownership/ownership';
+import { bindRows, ownershipOf, ownershipRule } from '@business-framework/entity-ownership/ownership';
 
 const SYSTEM = 'system';
 
@@ -44,12 +44,12 @@ const isGoverned = ({ entityType, user }) => user !== undefined && user !== null
 
 const coverageOf = ({ entityType, user }) => bindRows({ rows: rowAccess({ entityType, profiles: user.access ?? [] }), principal: user });
 
-const covers = (rows, record) => typeof rows === 'boolean' ? rows : applyMapping({ mapping: rows, input: { ownership: record.data.ownership } });
+const covers = (rows, record) => typeof rows === 'boolean' ? rows : applyMapping({ mapping: rows, input: { ownership: ownershipOf(record) ?? undefined } });
 
 export const deniesRecord = ({ entityType, user, record }) => {
     if (!record || !isGoverned({ entityType, user })) return false;
     const rows = coverageOf({ entityType, user });
-    return rows === null || !covers(rows, record);
+    return rows === null || !covers(rows, { ...record, entityType });
 };
 
 export const searchRows = ({ entityType, user }) => {

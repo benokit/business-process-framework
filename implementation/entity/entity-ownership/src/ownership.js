@@ -5,6 +5,7 @@ import { applyMapping } from '@business-framework/core/mappings';
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { standardOf } from '@business-framework/core/schemas';
 import { mappingType } from '@business-framework/core/data-flow';
+import { traitKeyOf, traitValueOf } from '@business-framework/entities/traits';
 import { traitsOf } from '@business-framework/entities/traits';
 import { viewedRecord } from '@business-framework/entities/views';
 
@@ -12,10 +13,13 @@ const PRIMITIVES = ['string', 'number', 'integer', 'boolean'];
 
 const LOWERCASE = 'string:^[^\\p{Lu}]*$';
 
-const ownershipUseOf = entityType => {
-    const use = traitsOf(entityType).ownership;
-    return use !== undefined && isInstanceOf({ element: use.trait, kind: 'ownership-trait' }) ? use : undefined;
-};
+const OWNERSHIP_KIND = 'ownership-trait';
+
+const ownershipKeyOf = entityType => traitKeyOf({ entityType, kind: OWNERSHIP_KIND });
+
+const ownershipUseOf = entityType => traitsOf(entityType)[ownershipKeyOf(entityType)];
+
+export const ownershipOf = record => traitValueOf({ record, kind: OWNERSHIP_KIND });
 
 const ownedTypes = () => selvesOf('entity-type').map(({ id }) => ({ id, use: ownershipUseOf(id) })).filter(({ use }) => use !== undefined);
 
@@ -246,7 +250,7 @@ export const backfillOwnership = async ({ input: { entityType } }) => {
     const rule = ownershipRule(entityType);
     if (rule === null) throw new CoreError('invalid', `${entityType} has no ownership trait`);
     const stale = (await recordsOf(entityType))
-        .filter(record => !isDeepStrictEqual(record.data.ownership, derivedOwnership({ rule, record })));
+        .filter(record => !isDeepStrictEqual(ownershipOf(record) ?? undefined, derivedOwnership({ rule, record })));
     await stale.reduce((written, record) => written.then(() => invoke(entityType, 'derive', {
         businessKey: record.businessKey, revision: record.revision
     })), Promise.resolve());

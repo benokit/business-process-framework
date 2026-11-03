@@ -227,5 +227,14 @@
         "id": "entity-bodies",
         "kind": "entity-body-writer",
         "data": {}
+    },
+    {
+        "id": "record-body",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entities/body",
+            "export": "bodyOf"
+        }
     }
 ]

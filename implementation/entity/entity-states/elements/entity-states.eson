@@ -194,7 +194,7 @@
             "slot": "guards",
             "on": ["trait", "delete"],
             "value": {
-                "if": { "$func/state-forbids-operation": { "entityType": "#.self.id", "entityOperation": "#.input.entityOperation", "state": "#.input.before.data.state" } },
+                "if": { "$func/state-forbids-operation": { "entityType": "#.self.id", "entityOperation": "#.input.entityOperation", "state": { "$func/record-state": "#.input.before" } } },
                 "then": {
                     "throw": {
                         "code": "conflict",
@@ -202,6 +202,24 @@
                     }
                 }
             }
+        }
+    },
+    {
+        "id": "record-state",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entity-states/states",
+            "export": "stateOf"
+        }
+    },
+    {
+        "id": "state-moved",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!before": "@any", "!after": "@any", "!dimension": "string", "!from": "string", "!to": "string" }, "output": "boolean" },
+            "module": "@business-framework/entity-states/states",
+            "export": "stateMoved"
         }
     }
 ]

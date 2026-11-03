@@ -216,7 +216,7 @@
             "target": "amendment-entity-type",
             "slot": "reactions",
             "value": {
-                "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "pending"] }, { "$eq": ["#.input.after.data.state.versionStatus", "applied"] }] },
+                "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "versionStatus", "from": "pending", "to": "applied" } },
                 "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "apply" }
             }
         }
@@ -228,7 +228,7 @@
             "target": "amendment-entity-type",
             "slot": "reactions",
             "value": {
-                "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "applied"] }, { "$eq": ["#.input.after.data.state.versionStatus", "discarded"] }] },
+                "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "versionStatus", "from": "applied", "to": "discarded" } },
                 "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "revert" }
             }
         }
@@ -240,7 +240,7 @@
             "target": "amendment-entity-type",
             "slot": "reactions",
             "value": {
-                "if": { "$and": [{ "$eq": ["#.input.before.data.state.versionStatus", "pending"] }, { "$eq": ["#.input.after.data.state.versionStatus", "discarded"] }] },
+                "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "versionStatus", "from": "pending", "to": "discarded" } },
                 "then": { "inputMap": { "entityType": "#.input.after.data.amendment-link.amendedType", "amendment": "#.input.after" }, "invoke": "entity-amendments", "operation": "close" }
             }
         }
@@ -270,7 +270,7 @@
                                 "operation": "read"
                             },
                             {
-                                "if": { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "applyAmendment", "state": "#.record.data.state" } },
+                                "if": { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "applyAmendment", "state": { "$func/record-state": "#.record" } } },
                                 "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " can't be amended in its current state"] } } }
                             },
                             { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendmentType" } } },
@@ -367,7 +367,7 @@
                     "implementation": [
                         { "outputKey": "record", "inputMap": { "businessKey": "#.input.amendment.data.amendment-link.amendedKey" }, "invoke": "#.input.entityType", "operation": "read" },
                         { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendment.entityType" } } },
-                        { "outputKey": "body", "set": { "$func/apply-mapping": { "mapping": "#.fill.apply", "input": { "body": "#.record.data.body", "amendment": "#.input.amendment" } } } },
+                        { "outputKey": "body", "set": { "$func/apply-mapping": { "mapping": "#.fill.apply", "input": { "body": { "$func/record-body": "#.record" }, "amendment": "#.input.amendment" } } } },
                         { "set": { "validFrom": "#.input.amendment.data.amendment-link.effectiveFrom", "body": "#.body" } }
                     ]
                 },

@@ -64,20 +64,22 @@
                             "cache": "user-cache",
                             "key": "#.input.businessKey"
                         },
+                        { "outputKey": "userBody", "set": { "$func/record-body": "#.user" } },
+                        { "outputKey": "userState", "set": { "$func/record-state": "#.user" } },
                         {
-                            "if": { "$or": [{ "$negate": "#.user" }, { "$eq": ["#.user.data.state.status", "suspended"] }] },
+                            "if": { "$or": [{ "$negate": "#.user" }, { "$eq": ["#.userState.status", "suspended"] }] },
                             "then": { "next": true },
                             "else": {
                                 "withContext": {
                                     "user": {
                                         "$merge": [
-                                            { "$omit": { "keys": ["subject"], "object": "#.user.data.body" } },
+                                            { "$omit": { "keys": ["subject"], "object": "#.userBody" } },
                                             {
                                                 "userId": "#.user.businessKey",
-                                                "username": "#.user.data.body.username",
-                                                "email": "#.user.data.body.email",
-                                                "roles": { "$coalesce": ["#.user.data.body.roles", []] },
-                                                "access": { "$coalesce": ["#.user.data.body.access", []] }
+                                                "username": "#.userBody.username",
+                                                "email": "#.userBody.email",
+                                                "roles": { "$coalesce": ["#.userBody.roles", []] },
+                                                "access": { "$coalesce": ["#.userBody.access", []] }
                                             }
                                         ]
                                     }
