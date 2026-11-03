@@ -3,9 +3,8 @@
         "id": "entity-type",
         "kind": "kind",
         "data": {
-            "shape": { "traits{}": "@entity-trait-entry" },
+            "extends": "trait-container",
             "slots": {
-                "traits": { "cardinality": "many", "value": "@entity-trait-use" },
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
@@ -22,6 +21,7 @@
                             "invoke": "entity-database",
                             "operation": "read"
                         },
+                        { "inputMap": { "change": { "operation": "read", "before": "#.record" } }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "read" } },
                             "forEach": {
@@ -40,35 +40,6 @@
                         { "set": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id", "at": "#.input.at" } } }
                     ]
                 },
-                "initialTraitValues": {
-                    "input": { "!traits": "object", "create": "@any" },
-                    "output": "object",
-                    "implementation": [
-                        { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                        {
-                            "outputKey": "values",
-                            "inputMap": { "$func/entity-valued-keys": "#.self.id" },
-                            "forEach": [
-                                { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.item" } } },
-                                {
-                                    "outputKey": "value",
-                                    "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "entityType": "#.self.id",
-                                        "key": "#.item",
-                                        "configuration": "#.use.configuration",
-                                        "input": { "$get": { "object": "#.input.traits", "path": "#.item" } },
-                                        "create": "#.input.create"
-                                    },
-                                    "invoke": "entity-trait-initializer",
-                                    "operation": "initialize"
-                                },
-                                { "set": { "key": "#.item", "value": "#.value" } }
-                            ]
-                        },
-                        { "set": { "$mapValues": { "of": { "$toDictionary": { "by": "#.key", "collection": "#.values" } }, "fn": "#.value" } } }
-                    ]
-                },
                 "applyChange": {
                     "private": true,
                     "input": { "!change": "@entity-change", "revision": "number" },
@@ -83,6 +54,7 @@
                                 }
                             }
                         },
+                        { "inputMap": { "change": "#.input.change" }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
                             "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "#.input.change.operation" } },
                             "forEach": { "inputMap": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
@@ -124,6 +96,11 @@
                                     "action": { "inputMap": "#.input.input", "invoke": "entity-database", "operation": "#.store.operation" }
                                 },
                                 {
+                                    "inputMap": { "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] } },
+                                    "invoke": "#.self.id",
+                                    "operation": "reactTraits"
+                                },
+                                {
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                                     "forEach": {
                                         "inputMap": {
@@ -139,62 +116,6 @@
                             ]
                         }
                     ]
-                },
-                "deriveData": {
-                    "private": true,
-                    "input": { "!businessKey": "string", "!data": "object" },
-                    "output": "@derived-data",
-                    "implementation": [
-                        { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                        {
-                            "inputMap": { "businessKey": "#.input.businessKey", "data": "#.input.data", "keys": { "$keys": "#.traits" } },
-                            "invoke": "#.self.id",
-                            "operation": "deriveFrom"
-                        }
-                    ]
-                },
-                "deriveFrom": {
-                    "private": true,
-                    "input": { "!businessKey": "string", "!data": "object", "!keys[]": "string" },
-                    "output": "@derived-data",
-                    "implementation": {
-                        "if": { "$eq": [{ "$count": { "collection": "#.input.keys" } }, 0] },
-                        "then": { "set": { "data": "#.input.data", "commands": [] } },
-                        "else": [
-                            { "outputKey": "key", "set": { "$head": "#.input.keys" } },
-                            { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                            { "outputKey": "use", "set": { "$get": { "object": "#.traits", "path": "#.key" } } },
-                            {
-                                "outputKey": "derivation",
-                                "if": { "$func/has-operation": { "element": "#.use.trait", "operation": "derive" } },
-                                "then": {
-                                    "inputMap": {
-                                        "trait": "#.use.trait",
-                                        "request": {
-                                            "entityType": "#.self.id",
-                                            "key": "#.key",
-                                            "configuration": "#.use.configuration",
-                                            "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" }
-                                        }
-                                    },
-                                    "invoke": "entity-trait-operator",
-                                    "operation": "derive"
-                                }
-                            },
-                            { "outputKey": "own", "set": { "$if": ["#.derivation", [{ "key": "#.key", "command": "#.derivation.command", "value": "#.derivation.value" }], []] } },
-                            {
-                                "outputKey": "rest",
-                                "inputMap": {
-                                    "businessKey": "#.input.businessKey",
-                                    "data": { "$merge": ["#.input.data", { "$func/command-values": "#.own" }] },
-                                    "keys": { "$tail": "#.input.keys" }
-                                },
-                                "invoke": "#.self.id",
-                                "operation": "deriveFrom"
-                            },
-                            { "set": { "data": "#.rest.data", "commands": { "$concat": ["#.own", "#.rest.commands"] } } }
-                        ]
-                    }
                 },
                 "derive": {
                     "input": { "!businessKey": "string", "revision": "number" },

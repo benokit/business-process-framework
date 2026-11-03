@@ -10,6 +10,11 @@
         "data": { "!businessKey": "string", "!revision": "number" }
     },
     {
+        "id": "trait-hook-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!change": "@viewed-entity-change" }
+    },
+    {
         "id": "trait-command",
         "kind": "schema",
         "data": { "!command": "string", "!value": "@any" }
@@ -33,6 +38,14 @@
                     "input": { "!trait": "@ref/entity-trait", "!request": "@trait-derive-input" },
                     "output": "@trait-derivation",
                     "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "derive" }
+                },
+                "guard": {
+                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-hook-input" },
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "guard" }
+                },
+                "react": {
+                    "input": { "!trait": "@ref/entity-trait", "!request": "@trait-hook-input" },
+                    "implementation": { "inputMap": "#.input.request", "invoke": "#.input.trait", "operation": "react" }
                 },
                 "run": {
                     "input": { "!trait": "@ref/entity-trait", "!operation": "string", "!request": "@trait-operation-input" },

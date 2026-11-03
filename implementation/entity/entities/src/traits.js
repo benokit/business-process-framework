@@ -1,6 +1,7 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
+import { changesOf } from '@business-framework/core/effects';
 import { memo } from '@business-framework/core/registry';
 import { validateValue } from '@business-framework/core/schemas';
 
@@ -62,6 +63,10 @@ const isIdentity = ({ trait }) => isTrait(trait) && getElement(trait).data.ident
 
 export const identityKeyOf = entityType => Object.entries(traitsOf(entityType)).find(([, use]) => isIdentity(use))?.[0] ?? null;
 
+export const hookedKeysOf = ({ entityType, operation }) => Object.entries(traitsOf(entityType))
+    .filter(([, { trait }]) => hasOperation({ element: trait, operation }))
+    .map(([key]) => key);
+
 export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
     .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
     .map(([key]) => key);
@@ -106,6 +111,10 @@ const closedProblems = entityType => {
         .map(key => `traits.${key} is injected by ${injectors[key].map(({ source }) => source).join(', ')} and not declared by ${kind}`);
 };
 
+const guardHookProblems = entityType => Object.values(traitsOf(entityType))
+    .filter(({ trait }) => isTrait(trait) && hasOperation({ element: trait, operation: 'guard' }))
+    .flatMap(({ trait }) => changesOf({ element: trait, operation: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
+
 const FRAMEWORK_OPERATIONS = ['initialize', 'derive'];
 
 const exposureProblems = (entityType, operation, { key, operation: traitOperation }) => {
@@ -129,6 +138,7 @@ export const traitProblems = entityType => {
     const fills = fillContributions(entityType);
     return [
         ...identityProblems(entityType),
+        ...guardHookProblems(entityType),
         ...exposedOperationProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
         ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),

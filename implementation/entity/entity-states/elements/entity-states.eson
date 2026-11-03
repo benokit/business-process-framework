@@ -93,6 +93,23 @@
         "data": {
             "extends": "valued-entity-trait",
             "operations": {
+                "guard": {
+                    "input": "@trait-hook-input",
+                    "implementation": {
+                        "if": {
+                            "$and": [
+                                { "$or": [{ "$eq": ["#.input.change.operation", "trait"] }, { "$eq": ["#.input.change.operation", "delete"] }] },
+                                { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "#.input.change.entityOperation", "state": { "$get": { "object": "#.input.change.before.data", "path": "#.input.key" } } } }
+                            ]
+                        },
+                        "then": {
+                            "throw": {
+                                "code": "conflict",
+                                "message": { "$str": ["#.input.entityType", " doesn't allow ", "#.input.change.entityOperation", " in its current state"] }
+                            }
+                        }
+                    }
+                },
                 "initialize": {
                     "implementation": [
                         { "outputKey": "state", "set": { "$func/initial-state": { "model": "#.input.configuration", "name": "#.input.input" } } },
@@ -185,24 +202,6 @@
         "id": "entity-states",
         "kind": "entity-state-machine",
         "data": {}
-    },
-    {
-        "id": "refuse-operations-outside-their-states",
-        "kind": "slot-fill",
-        "data": {
-            "target": "entity-type",
-            "slot": "guards",
-            "on": ["trait", "delete"],
-            "value": {
-                "if": { "$func/state-forbids-operation": { "entityType": "#.self.id", "entityOperation": "#.input.entityOperation", "state": { "$func/record-state": "#.input.before" } } },
-                "then": {
-                    "throw": {
-                        "code": "conflict",
-                        "message": { "$str": ["#.self.id", " doesn't allow ", "#.input.entityOperation", " in its current state"] }
-                    }
-                }
-            }
-        }
     },
     {
         "id": "record-state",

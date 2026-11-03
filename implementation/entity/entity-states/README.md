@@ -41,7 +41,7 @@ Besides transitions, the model says in which states the operations an entity exp
 "operations": { "update": { "status": { "draft": true } }, "delete": { "status": { "draft": true, "cancelled": true } } }
 ```
 
-- The fill `refuse-operations-outside-their-states` (slot `guards`) refuses an operation outside its states with `conflict`. It judges the record as it is and decides on the `entityOperation` of the change.
+- The `guard` of the `state` trait ([hooks](../entities/README.md#hooks-of-a-trait)) refuses an operation outside its states with `conflict`. It judges the record as it is and decides on the `entityOperation` of the change.
 - A subtype edits it with the data algebra, like `states` and `transitions`. `validate()` reports a name that is no public operation of the entity type (or one of `read`, `create`, `transition`), and states a dimension doesn't declare.
 - Who may do an operation the states allow is a [permission](../../services/state-permissions/README.md), apart from this.
 - `operations` and `processDimension` are part of the model. A slot `operationStates` keyed by operation name (own package), `locks` on state declarations and lock dimensions were each tried against the demo: each touched more places to express the demo's rules than the one entry here, and none checked more than `validate()` does here.

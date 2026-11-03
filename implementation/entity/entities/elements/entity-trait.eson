@@ -108,5 +108,14 @@
             "module": "@business-framework/entities/traits",
             "export": "traitValueOf"
         }
+    },
+    {
+        "id": "entity-hooked-keys",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!operation": "string" }, "output": "[string]" },
+            "module": "@business-framework/entities/traits",
+            "export": "hookedKeysOf"
+        }
     }
 ]

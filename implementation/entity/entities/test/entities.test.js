@@ -19,6 +19,9 @@ const SPECIALISED = `specialised-${run}`;
 const MASKED = `masked-${run}`;
 const MASKING = `masking-${run}`;
 const BODYLESS = `bodyless-${run}`;
+const VETO = `veto-${run}`;
+const ECHO = `echo-${run}`;
+const HOOKED = `hooked-${run}`;
 
 const prefixed = id => ({
     id: `${id}-trait`,
@@ -121,6 +124,37 @@ const elements = [
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
     { id: MASKING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
+    {
+        id: `${VETO}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'valued-entity-trait',
+            operations: {
+                initialize: { implementation: { set: true } },
+                guard: {
+                    input: '@trait-hook-input',
+                    implementation: { if: { $eq: ['#.input.change.operation', 'delete'] }, then: { throw: { code: 'conflict', message: '#.input.configuration.reason' } } }
+                }
+            }
+        }
+    },
+    { id: VETO, kind: `${VETO}-trait`, data: { configuration: { '!reason': 'string' } } },
+    {
+        id: `${ECHO}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'valued-entity-trait',
+            operations: {
+                initialize: { implementation: { set: true } },
+                react: {
+                    input: '@trait-hook-input',
+                    implementation: { if: { $eq: [{ $get: { object: '#.input.change.after', path: 'businessKey' } }, 'boom'] }, then: { throw: '#.input.configuration.reason' } }
+                }
+            }
+        }
+    },
+    { id: ECHO, kind: `${ECHO}-trait`, data: { configuration: { '!reason': 'string' } } },
+    { id: HOOKED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
     { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
     { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -256,6 +290,13 @@ describe('entities', function () {
     it('rolls the write back when a reaction fails', async () => {
         expect((await errorOf(invoke(ORDER, 'create', { businessKey: 'o-13', traits: { body: { amount: 13 } } }))).message).to.equal('unlucky amount');
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-13' }))).code).to.equal('not-found');
+    });
+
+    it('runs the guard and reaction hooks of its traits', async () => {
+        await invoke(HOOKED, 'create', { businessKey: 'h-1', traits: { body: {} } });
+        expect((await errorOf(invoke(HOOKED, 'delete', { businessKey: 'h-1', revision: 1 }))).message).to.equal('deletion vetoed');
+        expect((await errorOf(invoke(HOOKED, 'create', { businessKey: 'boom', traits: { body: {} } }))).message).to.equal('reaction hook failed');
+        expect((await errorOf(invoke(HOOKED, 'read', { businessKey: 'boom' }))).code).to.equal('not-found');
     });
 
     it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {
@@ -418,6 +459,31 @@ describe('entities', function () {
             `operation 'vanish' of exposed-${run} exposes 'vanish' of '${NOTE}', but trait '${NOTE}' has no such operation`,
             `operation 'refresh' of exposed-${run} exposes 'derive' of '${NOTE}', which only the framework calls`
         ]);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
+        await migrate();
+    });
+
+    it('reports a guard hook of a trait that writes', async () => {
+        const writing = [
+            {
+                id: `writing-hook-${run}-trait`,
+                kind: 'kind',
+                data: {
+                    extends: 'valued-entity-trait',
+                    operations: {
+                        initialize: { implementation: { set: true } },
+                        guard: { input: '@trait-hook-input', implementation: { inputMap: { businessKey: 'o-raced', revision: 1, value: { amount: 2 } }, invoke: ORDER, operation: 'update' } }
+                    }
+                }
+            },
+            { id: `writing-hook-${run}`, kind: `writing-hook-${run}-trait`, data: { configuration: {} } },
+            { id: `hooking-${run}`, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`writing-hook-${run}`]: { configuration: {} } } } }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...writing] });
+        const messages = validate().flatMap(problem => problem.data.messages ?? []);
+        expect(messages.some(message => message.startsWith(`trait 'writing-hook-${run}': its guard may only read and trace, but has write: `))).to.equal(true);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
         await migrate();
