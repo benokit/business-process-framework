@@ -1,11 +1,11 @@
 import { get, isPlainObject } from 'lodash-es';
-import { allElements, findElement } from './registry.js';
-import { instancesOf, resolveKind, selfOf } from './kinds.js';
-import { fillsOf } from './slots.js';
-import { isKindReference, resolveReference } from './references.js';
+import { allElements, findElement } from '../registry.js';
+import { instancesOf, resolveKind, selfOf } from '../kinds.js';
+import { fillsOf } from '../slots.js';
+import { isKindReference, resolveReference } from '../references.js';
 import { formOf, pipelinesOf, templatePositions } from './code.js';
-import { EFFECTS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
-import { fail } from './errors.js';
+import { EFFECTS, nodeForms, PIPELINE_KEYS } from '../execution/nodes/forms.js';
+import { fail } from '../errors.js';
 import { invokedNames } from './data-flow.js';
 
 const LATER = 'later:';

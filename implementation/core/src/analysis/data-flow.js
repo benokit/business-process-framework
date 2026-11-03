@@ -1,11 +1,11 @@
 import { infer, typed } from 'lambdajson-js';
 import { isPlainObject, mapValues, uniqBy } from 'lodash-es';
-import { allElements, findElement, kindOf, lazy, memo } from './registry.js';
-import { extendsKind, instancesOf, resolveKind } from './kinds.js';
-import { schemaRef, standardOf, storedSchema } from './schemas.js';
+import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
+import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
+import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
-import { isKindReference } from './references.js';
-import { valuesOf } from './discriminators.js';
+import { isKindReference } from '../references.js';
+import { valuesOf } from '../discriminators.js';
 
 const ANY = {};
 const NULL = { type: 'null' };

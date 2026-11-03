@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { validate } from '../src/index.js';
-import { bootWith, element, kind, low, operation, runner } from './helpers.js';
+import { validate } from '../../src/index.js';
+import { bootWith, element, kind, low, operation, runner } from '../helpers.js';
 
 const problemsOf = async (implementation, options) => {
     await bootWith(runner(implementation));

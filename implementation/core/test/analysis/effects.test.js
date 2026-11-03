@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { validate } from '../src/index.js';
-import { effectsOf, effectTracesOf } from '../src/effect-inference.js';
-import { bootWith, element, kind, low, operation } from './helpers.js';
+import { validate } from '../../src/index.js';
+import { effectsOf, effectTracesOf } from '../../src/analysis/effect-inference.js';
+import { bootWith, element, kind, low, operation } from '../helpers.js';
 
 const store = [
     kind('store', {

@@ -12,9 +12,9 @@
     "./mappings": "./src/mappings.js",
     "./settings": "./src/settings.js",
     "./clock": "./src/effects/clock.js",
-    "./introspection": "./src/introspection.js",
-    "./effects": "./src/effect-inference.js",
-    "./data-flow": "./src/data-flow.js",
+    "./introspection": "./src/analysis/introspection.js",
+    "./effects": "./src/analysis/effect-inference.js",
+    "./data-flow": "./src/analysis/data-flow.js",
     "./registry": "./src/registry.js"
   },
   "scripts": {

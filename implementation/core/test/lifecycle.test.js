@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { start, stop, validate } from '../src/index.js';
-import { explanationsOf } from '../src/introspection.js';
+import { explanationsOf } from '../src/analysis/introspection.js';
 import { calls } from './fixtures/effects.js';
 import { bootWith, element, kind, low } from './helpers.js';
 

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { validate } from '../src/index.js';
-import { bootWith, element, kind, operation, runner } from './helpers.js';
+import { validate } from '../../src/index.js';
+import { bootWith, element, kind, operation, runner } from '../helpers.js';
 
 const PATH = 'operations.run.implementation';
 

@@ -1,6 +1,6 @@
 import path from 'path';
 import { getElement } from '@business-framework/core';
-import { availableSettings } from '@business-framework/core/settings';
+import { availableSettings } from '@business-framework/core/introspection';
 import { effectTracesOf, explanationsOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
 
 const relative = file => file && path.relative(process.cwd(), file);

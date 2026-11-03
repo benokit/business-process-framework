@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { invoke, start, validate } from '../src/index.js';
-import { availableSettings } from '../src/settings.js';
+import { availableSettings } from '../src/analysis/settings.js';
 import { bootWith, element, kind, operation } from './helpers.js';
 
 const RETRY = {

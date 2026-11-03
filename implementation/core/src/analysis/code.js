@@ -1,15 +1,15 @@
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { isPlainObject, omit } from 'lodash-es';
-import { findElement, kindOf } from './registry.js';
-import { extendsKind, resolveKind } from './kinds.js';
-import { positionsIn, propertiesOf, validateValue } from './schemas.js';
-import { managedBy } from './context.js';
-import { domainOf, isFilterable } from './discriminators.js';
-import { findTemplate } from './execution/templates.js';
-import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from './execution/nodes/forms.js';
-import { isKindReference } from './references.js';
-import { fail } from './errors.js';
+import { findElement, kindOf } from '../registry.js';
+import { extendsKind, resolveKind } from '../kinds.js';
+import { positionsIn, propertiesOf, validateValue } from '../schemas.js';
+import { managedBy } from '../context.js';
+import { domainOf, isFilterable } from '../discriminators.js';
+import { findTemplate } from '../execution/templates.js';
+import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from '../execution/nodes/forms.js';
+import { isKindReference } from '../references.js';
+import { fail } from '../errors.js';
 
 export const targetKind = target => {
     const element = findElement(target);
