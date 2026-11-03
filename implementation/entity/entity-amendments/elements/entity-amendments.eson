@@ -91,6 +91,26 @@
                 "initialize": {
                     "implementation": { "set": { "last": 0, "open": null } }
                 },
+                "guard": {
+                    "input": "@trait-hook-input",
+                    "implementation": [
+                        { "outputKey": "ledger", "set": { "$func/change-command": { "commands": "#.input.change.commands", "key": "#.input.key" } } },
+                        {
+                            "if": "#.ledger",
+                            "then": [
+                                {
+                                    "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.ledger.command" } } },
+                                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.ledger.command"] } } }
+                                },
+                                { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.ledger.value" } } },
+                                {
+                                    "if": { "$negate": "#.check.isValid" },
+                                    "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "write": {
                     "input": { "$data#&": ["@trait-operation-input", { "!input": "@ledger-write-input" }] },
                     "output": "@trait-command",
@@ -133,32 +153,6 @@
         "id": "amendment-ledger-value",
         "kind": "schema",
         "data": { "!last": "integer", "!open": { "$data#": ["string", "null"] } }
-    },
-    {
-        "id": "versioned-entity-ledger-writes",
-        "kind": "slot-fill",
-        "data": {
-            "target": "versioned-entity-type",
-            "slot": "guards",
-            "on": ["trait"],
-            "value": [
-                { "outputKey": "ledger", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "amendment-ledger" } } },
-                {
-                    "if": "#.ledger",
-                    "then": [
-                        {
-                            "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.ledger.command" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.ledger.command"] } } }
-                        },
-                        { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.ledger.value" } } },
-                        {
-                            "if": { "$negate": "#.check.isValid" },
-                            "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
-                        }
-                    ]
-                }
-            ]
-        }
     },
     {
         "id": "amendment-entity-type",
