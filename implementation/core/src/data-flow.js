@@ -269,7 +269,11 @@ export const operationInputType = ({ element, operation }) => {
     return found ? contractInput(kindOf(found), operation) : ANY;
 };
 
-export const mappingType = (code, input) => infer(code, { input, primitives: pureFunctions() });
+const EXPECTED = '$func/expected';
+
+export const mappingType = (code, input, expected) => expected === undefined
+    ? infer(code, { input, primitives: pureFunctions() })
+    : infer({ [EXPECTED]: code }, { input, primitives: { ...pureFunctions(), [EXPECTED]: typed(argument => argument, { takes: expected, returns: ANY }) } });
 
 const methodStart = (author, path) => {
     const _ctx = contextType();

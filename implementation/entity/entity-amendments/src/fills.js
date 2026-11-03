@@ -32,13 +32,15 @@ const recordType = entityType => ({
 
 const inputType = input => input === undefined ? {} : standardOf(getElement(input).data);
 
-const mappingProblems = (code, scope, label) => mappingType(code, scope).problems
-    .filter(problem => problem.code === 'unknown-path')
+const CHECKED = ['unknown-path', 'type-mismatch', 'missing-property', 'unknown-property'];
+
+const mappingProblems = (code, scope, expected, label) => mappingType(code, scope, expected).problems
+    .filter(problem => CHECKED.includes(problem.code))
     .map(problem => `${label} ${problem.message}`);
 
 const fillProblems = (entityType, { type, open, apply, input }) => [
-    ...open === undefined ? [] : mappingProblems(open, { type: 'object', properties: { entity: recordType(entityType), input: inputType(input) }, additionalProperties: false }, `${entityType}: the open mapping of ${type}`),
-    ...apply === undefined ? [] : mappingProblems(apply, { type: 'object', properties: { body: bodyType(entityType), amendment: recordType(type) }, additionalProperties: false }, `${entityType}: the apply mapping of ${type}`)
+    ...open === undefined ? [] : mappingProblems(open, { type: 'object', properties: { entity: recordType(entityType), input: inputType(input) }, additionalProperties: false }, bodyType(type), `${entityType}: the open mapping of ${type}`),
+    ...apply === undefined ? [] : mappingProblems(apply, { type: 'object', properties: { body: bodyType(entityType), amendment: recordType(type) }, additionalProperties: false }, bodyType(entityType), `${entityType}: the apply mapping of ${type}`)
 ];
 
 export const amendmentFillProblems = () => selvesOf('versioned-entity-type')

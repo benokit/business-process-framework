@@ -225,6 +225,26 @@ describe('entity-amendments', function () {
         expect(messages.join('\n')).to.include('the open mapping of ' + RAISE).and.to.include('why').and.to.include('owner').and.to.include('the apply mapping of ' + RAISE).and.to.include('since').and.to.include('nope');
     });
 
+    it('reports a mapping of a fill whose result does not fit the body it produces', async () => {
+        const broken = {
+            id: `${POLICY}-misshaped`,
+            kind: 'slot-fill',
+            data: {
+                target: POLICY,
+                slot: 'amendmentTypes',
+                value: { type: RAISE, open: { reason: 5 }, apply: { holder: 'Ada', premium: 'high', nope: 1 } }
+            }
+        };
+        await stop();
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
+        const messages = validate().map(problem => problem.message).join('\n');
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+        await start();
+        await migrate();
+        expect(messages).to.include('the open mapping of ' + RAISE).and.to.include('reason').and.to.include('changes')
+            .and.to.include('the apply mapping of ' + RAISE).and.to.include('premium').and.to.include('startDate').and.to.include('nope');
+    });
+
     it('refuses an amendment created other than through the entity it amends, and a ledger write that is no command of it', async () => {
         const direct = await errorOf(invoke(RAISE, 'create', { businessKey: 'direct', traits: { body: { reason: 'x', changes: { premium: 1 } }, 'amendment-link': { amendedType: POLICY, amendedKey: 'a-5', amendedRevision: 1, effectiveFrom: '2026-07-01' } } }));
         expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'amendments are proposed through the entity they amend']);
