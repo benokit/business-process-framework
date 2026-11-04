@@ -3,6 +3,7 @@
         "id": "construction",
         "kind": "insurance-contract-type",
         "data": {
+            "characteristics": { "lineOfBusiness": "construction" },
             "traits": { "body": { "configuration": { "schema": { "$data#&": ["@contract-terms", {
                 "!policyholder": "string",
                 "!project": "string",

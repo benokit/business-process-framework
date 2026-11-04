@@ -92,7 +92,7 @@
                     "if": { "$eq": ["#.transition.command", "activate"] },
                     "then": {
                         "inputMap": {
-                            "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey" },
+                            "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey", "lineOfBusiness": { "$get": { "object": { "$func/entity-characteristics": "#.self.id" }, "path": "lineOfBusiness" } } },
                             "group": "#.input.after.businessKey"
                         },
                         "publish": "contract-events"

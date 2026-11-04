@@ -197,7 +197,7 @@ const elements = [
         then: { throw: 'unlucky amount' }
     }),
     { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
-    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'body-entity-type' } },
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'body-entity-type', fixed: { characteristics: { lineOfBusiness: 'marine' } } } },
     {
         id: CONSTRUCTION,
         kind: CONTRACT_CLASS,
@@ -208,6 +208,10 @@ const elements = [
             }
         }
     },
+    fill('keep-marine-contracts', CONTRACT_CLASS, 'guards', {
+        if: { $eq: [{ $get: { object: { '$func/entity-characteristics': '#.self.id' }, path: 'lineOfBusiness' } }, 'marine'] },
+        then: { throw: { code: 'conflict', message: 'marine contracts are kept' } }
+    }, { on: ['delete'] }),
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),
     fill('construction-note', CONSTRUCTION, 'traits', { key: NOTE, configuration: { suffix: ' (construction)' } })
 ];
@@ -437,6 +441,12 @@ describe('entities', function () {
         const created = await invoke(CONSTRUCTION, 'create', { traits: { body: { holder: 'Ada', project: 'bridge' } } });
         expect([created.businessKey, created.data[NOTE]]).to.deep.equal(['CON-bridge', 'contract: new (construction)']);
         expect((await errorOf(invoke(CONSTRUCTION, 'create', { traits: { body: { project: 'no holder' } } }))).code).to.equal('invalid');
+    });
+
+    it('gives a guard the static characteristics of the kind, which no record stores', async () => {
+        const created = await invoke(CONSTRUCTION, 'create', { traits: { body: { holder: 'Ada', project: 'tunnel' } } });
+        expect(created.data).to.not.have.property('lineOfBusiness');
+        expect((await errorOf(invoke(CONSTRUCTION, 'delete', { businessKey: created.businessKey, revision: created.revision }))).code).to.equal('conflict');
     });
 
     it('unites the configuration of a trait from the kind chain, the data and the fills', async () => {

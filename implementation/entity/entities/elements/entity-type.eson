@@ -4,6 +4,7 @@
         "kind": "kind",
         "data": {
             "extends": "trait-container",
+            "shape": { "characteristics{}": "@any" },
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
@@ -241,6 +242,15 @@
             "lifecycle": {
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
+        }
+    },
+    {
+        "id": "entity-characteristics",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": { "*": "@any" } },
+            "module": "@business-framework/entities/characteristics",
+            "export": "characteristicsOf"
         }
     },
     {
