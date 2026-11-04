@@ -1,6 +1,6 @@
 # Entity
 
-The entity store and the traits and features built on it: states, versions, amendments, ownership, row access, events, relations, search.
+The entity store and the traits and features built on it: states, validations, versions, amendments, ownership, row access, events, relations, search.
 
 | Package | Description |
 | --- | --- |
@@ -12,3 +12,4 @@ The entity store and the traits and features built on it: states, versions, amen
 | [entity-row-access](entity-row-access/README.md) | Access permissions: access profiles say which rows a user reaches; guards, reactions and a search filter apply them |
 | [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
 | [entity-states](entity-states/README.md) | The `state` trait: states models and transitions |
+| [entity-validations](entity-validations/README.md) | The `validation` trait: the errors of business validations, applied at every change, and the validity dimension of the states |

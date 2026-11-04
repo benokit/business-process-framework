@@ -17,9 +17,31 @@
         "kind": "stateful-body-entity-type",
         "/data": {
             "traits": {
-                "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number" } } },
-                "state": { "configuration": { "/ref": "approval-state-machine" } }
+                "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number", "justification": "string" } } },
+                "validation": { "configuration": {} },
+                "state": { "configuration": { "/merge": [
+                    { "/ref": "approval-state-machine" },
+                    { "transitions": { "submit": { "validity": { "valid": true } } } }
+                ] } }
             }
+        }
+    },
+    {
+        "id": "expense-claim-amount-validation",
+        "kind": "slot-fill",
+        "data": {
+            "target": "expense-claim",
+            "slot": "validations",
+            "value": { "$if": [{ "$gt": ["#.data.body.amount", 0] }, {}, { "amount": "must be positive" }] }
+        }
+    },
+    {
+        "id": "expense-claim-justification-validation",
+        "kind": "slot-fill",
+        "data": {
+            "target": "expense-claim",
+            "slot": "validations",
+            "value": { "$if": [{ "$or": [{ "$lte": ["#.data.body.amount", 1000] }, "#.data.body.justification"] }, {}, { "justification": "is required above 1000" }] }
         }
     },
     {

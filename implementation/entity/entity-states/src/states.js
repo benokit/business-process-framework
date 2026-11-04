@@ -3,7 +3,7 @@ import { hasOperation, isInstanceOf, resolveKind, selfOf, selvesOf } from '@busi
 import { traitsOf, traitValueOf } from '@business-framework/entities/traits';
 
 export const applyTransition = ({ model, state, transition }) => {
-    const targets = Object.entries(model.transitions?.[transition] ?? {}).map(([dimension, edges]) => [dimension, edges[state[dimension]]]);
+    const targets = Object.entries(model.transitions?.[transition] ?? {}).map(([dimension, edges]) => [dimension, edges[state[dimension]] === true ? state[dimension] : edges[state[dimension]]]);
     return targets.length > 0 && targets.every(([, target]) => target !== undefined) ? { ...state, ...Object.fromEntries(targets) } : null;
 };
 
@@ -70,8 +70,10 @@ const checkStatesModel = (model, entityType) => [
         .flatMap(([dimension, edges]) => Object.entries(edges)
             .flatMap(([source, target]) => [
                 ...undeclared(model, dimension, source, `transition '${name}'`),
-                ...undeclared(model, dimension, target, `transition '${name}'`),
-                ...moveProblems(model, name, dimension, source, target)
+                ...target === true ? [] : [
+                    ...undeclared(model, dimension, target, `transition '${name}'`),
+                    ...moveProblems(model, name, dimension, source, target)
+                ]
             ]))),
     ...Object.entries(model.initialStates ?? {}).flatMap(([name, state]) => Object.entries(state)
         .flatMap(([dimension, value]) => [

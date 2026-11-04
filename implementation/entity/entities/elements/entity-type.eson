@@ -69,7 +69,7 @@
                                         "$if": [
                                             { "$eq": ["#.input.change.operation", "create"] },
                                             "#.input.change.after.data",
-                                            { "$merge": ["#.input.change.before.data", { "$func/command-values": "#.input.change.commands" }] }
+                                            { "$func/data-with-commands": { "data": "#.input.change.before.data", "commands": "#.input.change.commands" } }
                                         ]
                                     }
                                 },

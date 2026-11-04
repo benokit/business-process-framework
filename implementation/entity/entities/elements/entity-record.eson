@@ -63,6 +63,15 @@
         }
     },
     {
+        "id": "data-with-commands",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!data": "object", "!commands": "[@any]" }, "output": "object" },
+            "module": "@business-framework/entities/traits",
+            "export": "dataWithCommands"
+        }
+    },
+    {
         "id": "entity-change",
         "kind": "schema",
         "data": {

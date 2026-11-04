@@ -9,7 +9,7 @@
         "kind": "schema",
         "data": {
             "!states{}": "{@entity-state-declaration}",
-            "transitions": { "*": { "*": { "*": "string" } } },
+            "transitions": { "*": { "*": { "*": { "$data#": ["string", "boolean"] } } } },
             "initialStates{}": "{string}",
             "operations": { "*": { "*": { "*": "boolean" } } },
             "processDimension": "string"

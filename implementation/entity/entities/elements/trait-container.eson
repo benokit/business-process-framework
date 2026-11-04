@@ -110,12 +110,20 @@
                                     "operation": "derive"
                                 }
                             },
-                            { "outputKey": "own", "set": { "$if": ["#.derivation", [{ "key": "#.key", "command": "#.derivation.command", "value": "#.derivation.value" }], []] } },
+                            {
+                                "outputKey": "own",
+                                "set": {
+                                    "$concat": [
+                                        { "$if": ["#.derivation.command", [{ "key": "#.key", "command": "#.derivation.command", "value": "#.derivation.value" }], []] },
+                                        { "$coalesce": ["#.derivation.writes", []] }
+                                    ]
+                                }
+                            },
                             {
                                 "outputKey": "rest",
                                 "inputMap": {
                                     "businessKey": "#.input.businessKey",
-                                    "data": { "$merge": ["#.input.data", { "$func/command-values": "#.own" }] },
+                                    "data": { "$func/data-with-commands": { "data": "#.input.data", "commands": "#.own" } },
                                     "keys": { "$tail": "#.input.keys" }
                                 },
                                 "invoke": "#.self.id",

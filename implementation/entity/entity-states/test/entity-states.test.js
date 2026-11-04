@@ -173,6 +173,15 @@ describe('entity-states', function () {
         expect(applyTransition({ model: multi, state: multi.initialStates.paid, transition: 'close' })).to.equal(null);
     });
 
+    it('keeps the state of a dimension whose target is true, and only from the listed sources', () => {
+        const guarded = {
+            states: { status: { open: true, closed: true }, validity: { valid: true, invalid: true } },
+            transitions: { close: { status: { open: 'closed' }, validity: { valid: true } } }
+        };
+        expect(applyTransition({ model: guarded, state: { status: 'open', validity: 'valid' }, transition: 'close' })).to.deep.equal({ status: 'closed', validity: 'valid' });
+        expect(applyTransition({ model: guarded, state: { status: 'open', validity: 'invalid' }, transition: 'close' })).to.equal(null);
+    });
+
     it('tells whether a dimension of the state moved from one value to another', () => {
         const at = status => ({ entityType: ORDER, data: { state: { status } } });
         const moved = (before, after) => stateMoved({ before, after, dimension: 'status', from: 'draft', to: 'confirmed' });

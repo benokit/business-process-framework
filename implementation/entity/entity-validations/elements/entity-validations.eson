@@ -1,0 +1,82 @@
+[
+    {
+        "id": "entity-validation-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!businessKey": "string", "!data": "object" }
+    },
+    {
+        "id": "entity-validation-errors",
+        "kind": "schema",
+        "data": { "*": "string" }
+    },
+    {
+        "id": "entity-validations-slot",
+        "kind": "slot-declaration",
+        "data": { "target": "entity-type", "slot": "validations", "cardinality": "many", "value": "@mapping", "input": "@entity-validation-input" }
+    },
+    {
+        "id": "validation-writes",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!record": "@any", "!key": "string", "!errors": "@entity-validation-errors" }, "output": "[@any]" },
+            "module": "@business-framework/entity-validations/validations",
+            "export": "validationWrites"
+        }
+    },
+    {
+        "id": "validation-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[string]" },
+            "module": "@business-framework/entity-validations/validations",
+            "export": "validationProblems"
+        }
+    },
+    {
+        "id": "validation-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "lifecycle": { "validate": { "$func/validation-problems": null } },
+            "operations": {
+                "initialize": {
+                    "implementation": [
+                        {
+                            "if": "#.input.input",
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " derives ", "#.input.key", " from its data and takes no input"] } } }
+                        },
+                        { "set": {} }
+                    ]
+                },
+                "derive": {
+                    "input": "@trait-derive-input",
+                    "output": "@trait-derivation",
+                    "implementation": [
+                        {
+                            "outputKey": "errors",
+                            "set": {
+                                "$merge": {
+                                    "$map": {
+                                        "over": { "$func/slot-values": { "element": "#.input.entityType", "slot": "validations" } },
+                                        "as": "rule",
+                                        "fn": { "$func/apply-mapping": { "mapping": "@rule", "input": "#.input.record" } }
+                                    }
+                                }
+                            }
+                        },
+                        { "set": { "writes": { "$func/validation-writes": { "record": "#.input.record", "key": "#.input.key", "errors": "#.errors" } } } }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "validation",
+        "kind": "validation-trait",
+        "data": {
+            "cardinality": "one",
+            "configuration": {},
+            "provides": [{ "trait": "state", "configuration": { "states": { "validity": { "valid": true, "invalid": true } } } }]
+        }
+    }
+]
