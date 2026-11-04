@@ -209,7 +209,7 @@ const elements = [
         }
     },
     fill('keep-marine-contracts', CONTRACT_CLASS, 'guards', {
-        if: { $eq: [{ $get: { object: { '$func/entity-characteristics': '#.self.id' }, path: 'lineOfBusiness' } }, 'marine'] },
+        if: { $eq: [{ '$func/entity-characteristic': { entityType: '#.self.id', name: 'lineOfBusiness' } }, 'marine'] },
         then: { throw: { code: 'conflict', message: 'marine contracts are kept' } }
     }, { on: ['delete'] }),
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),

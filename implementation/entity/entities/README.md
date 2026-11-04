@@ -70,7 +70,7 @@ The `state` trait is [entity-states](../entity-states/README.md).
 
 ## Characteristics
 
-`characteristics` of an entity type (`{ <name>: value }`, in its data or in the `fixed.characteristics` of its kind chain) are static facts about the type that no record stores: a contract class says `"fixed": { "characteristics": { "lineOfBusiness": "marine" } }` and every instance has it. The values of the chain and the instance are united as `fixed` values are (the same name with another value is a `fixed-conflict`). Code that decides on them reads `{ "$func/entity-characteristics": "<entity type id>" }`. Every call the driver makes (guards, trait hooks, `derive`, views, validations, search rows) knows its entity type (`#.self.id`, `entityType`), and the function is pure, so it is valid in mappings too.
+`characteristics` of an entity type (`{ <name>: value }`, in its data or in the `fixed.characteristics` of its kind chain) are static facts about the type that no record stores: a contract class says `"fixed": { "characteristics": { "lineOfBusiness": "marine" } }` and every instance has it. The values of the chain and the instance are united as `fixed` values are (the same name with another value is a `fixed-conflict`). Code that decides on one reads `{ "$func/entity-characteristic": { "entityType": "#.self.id", "name": "lineOfBusiness" } }` (`null` when the type has none); `$func/entity-characteristics` gives them all. Every call the driver makes (guards, trait hooks, `derive`, views, validations, search rows) knows its entity type (`#.self.id`, `entityType`), and the function is pure, so it is valid in mappings too.
 
 ## Slots
 

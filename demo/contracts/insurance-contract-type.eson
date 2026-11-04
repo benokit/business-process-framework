@@ -75,6 +75,21 @@
         }
     },
     {
+        "id": "contract-sum-insured-within-line-limit",
+        "kind": "slot-fill",
+        "data": {
+            "target": "insurance-contract-type",
+            "slot": "reactions",
+            "value": [
+                { "outputKey": "limit", "set": { "$func/entity-characteristic": { "entityType": "#.self.id", "name": "maxSumInsured" } } },
+                {
+                    "if": { "$and": ["#.limit", { "$gt": ["#.input.after.data.body.sumInsured", "#.limit"] }] },
+                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the sum insured exceeds the limit of ", "#.limit", " of the line of business"] } } }
+                }
+            ]
+        }
+    },
+    {
         "id": "contract-events",
         "kind": "message-channel",
         "data": { "broker": "default-nats-broker", "topology": "topic", "name": "contract-events", "publisher": { "transactionalOutbox": true } }
@@ -92,7 +107,7 @@
                     "if": { "$eq": ["#.transition.command", "activate"] },
                     "then": {
                         "inputMap": {
-                            "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey", "lineOfBusiness": { "$get": { "object": { "$func/entity-characteristics": "#.self.id" }, "path": "lineOfBusiness" } } },
+                            "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey", "lineOfBusiness": { "$func/entity-characteristic": { "entityType": "#.self.id", "name": "lineOfBusiness" } } },
                             "group": "#.input.after.businessKey"
                         },
                         "publish": "contract-events"

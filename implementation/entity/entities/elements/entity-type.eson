@@ -254,6 +254,15 @@
         }
     },
     {
+        "id": "entity-characteristic",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!name": "string" }, "output": "@any" },
+            "module": "@business-framework/entities/characteristics",
+            "export": "characteristicOf"
+        }
+    },
+    {
         "id": "entity-operation-names",
         "kind": "pure-function",
         "data": {
