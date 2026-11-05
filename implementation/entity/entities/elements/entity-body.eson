@@ -93,12 +93,12 @@
     {
         "id": "body-amend-input",
         "kind": "schema",
-        "data": { "!validFrom": "@date", "!body": "object" }
+        "data": { "!validFrom": "@date", "!ref": "string", "!body": "object" }
     },
     {
         "id": "body-remove-input",
         "kind": "schema",
-        "data": { "!validFrom": "@date" }
+        "data": { "!validFrom": "@date", "!ref": "string" }
     },
     {
         "id": "body-entity-type",
@@ -184,14 +184,14 @@
                         },
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.body" }, "invoke": "ajv", "operation": "assert" },
                         {
-                            "set": { "command": "amend", "value": { "$func/append-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "body": "#.body" } } }
+                            "set": { "command": "amend", "value": { "$func/append-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "ref": "#.input.input.ref", "body": "#.body" } } }
                         }
                     ]
                 },
                 "remove": {
                     "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-remove-input" }] },
                     "output": "@trait-command",
-                    "implementation": { "set": { "command": "remove", "value": { "$func/remove-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom" } } } }
+                    "implementation": { "set": { "command": "remove", "value": { "$func/remove-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "ref": "#.input.input.ref" } } } }
                 }
             }
         }

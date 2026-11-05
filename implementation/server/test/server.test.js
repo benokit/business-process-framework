@@ -106,7 +106,7 @@ describe('server with the demo', function () {
 
     const read = async (record, token) => (await call('GET', `/entities/${record.entityType}/${record.businessKey}`, null, token)).body;
 
-    const periodsOf = async contract => Object.keys((await invoke('entity-database', 'read', { entityType: contract.entityType, businessKey: contract.businessKey })).data.body).sort();
+    const periodsOf = async contract => (await invoke('entity-database', 'read', { entityType: contract.entityType, businessKey: contract.businessKey })).data.body.map(({ validFrom }) => validFrom);
 
     const ledgerOf = async (contract, token) => (await read(contract, token)).data['amendment-ledger'];
 

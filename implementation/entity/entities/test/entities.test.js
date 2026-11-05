@@ -96,14 +96,14 @@ const elements = [
                     }
                 },
                 amend: {
-                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string', '!body': 'object' },
+                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string', '!ref': 'string', '!body': 'object' },
                     output: '@entity-record',
-                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom', body: '#.input.body' } }, traitOperation: { key: 'body', operation: 'amend' } }
+                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom', ref: '#.input.ref', body: '#.input.body' } }, traitOperation: { key: 'body', operation: 'amend' } }
                 },
                 unamend: {
-                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string' },
+                    input: { '!businessKey': 'string', '!revision': 'number', '!validFrom': 'string', '!ref': 'string' },
                     output: '@entity-record',
-                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom' } }, traitOperation: { key: 'body', operation: 'remove' } }
+                    implementation: { inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', input: { validFrom: '#.input.validFrom', ref: '#.input.ref' } }, traitOperation: { key: 'body', operation: 'remove' } }
                 },
                 writeTrait: {
                     input: { '!businessKey': 'string', '!revision': 'number', '!key': 'string', '!command': 'string', '!value': '@any' },
@@ -358,8 +358,8 @@ describe('entities', function () {
 
         it('is stored as versions keyed by its date and read as the last one, or the one valid at a date', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-1', traits: { body: body('2025-01-01', 100) } });
-            await invoke(VERSIONED, 'amend', { businessKey: 'v-1', revision: 1, validFrom: '2025-07-01', body: body('2025-07-01', 110) });
-            expect(Object.keys((await stored('v-1')).data.body).sort()).to.deep.equal(['2025-01-01', '2025-07-01']);
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-1', revision: 1, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 110) });
+            expect((await stored('v-1')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01', '2025-07-01']);
             expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1' })).data.body).to.deep.equal(body('2025-07-01', 110));
             expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1', at: '2025-03-01' })).data.body).to.deep.equal(body('2025-01-01', 100));
             expect((await invoke(VERSIONED, 'read', { businessKey: 'v-1', revision: 1 })).data.body).to.deep.equal(body('2025-01-01', 100));
@@ -369,41 +369,44 @@ describe('entities', function () {
         it('checks the whole body, including an amended one, against the schema', async () => {
             expect((await errorOf(invoke(VERSIONED, 'create', { businessKey: 'v-2', traits: { body: { owner: 'Ada', premium: 'high' } } }))).code).to.equal('invalid');
             await invoke(VERSIONED, 'create', { businessKey: 'v-2', traits: { body: body('2025-01-01', 100) } });
-            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-2', revision: 1, validFrom: '2025-07-01', body: body('2025-07-01', 'high') }))).code).to.equal('invalid');
+            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-2', revision: 1, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 'high') }))).code).to.equal('invalid');
         });
 
         it('lets update correct a body of one version, its date included, and refuses it once amended', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-3', traits: { body: body('2025-01-01', 100) } });
             const corrected = await invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 1, value: body('2025-02-01', 90) });
             expect([corrected.revision, corrected.data.body]).to.deep.equal([2, body('2025-02-01', 90)]);
-            expect(Object.keys((await stored('v-3')).data.body)).to.deep.equal(['2025-02-01']);
-            await invoke(VERSIONED, 'amend', { businessKey: 'v-3', revision: 2, validFrom: '2025-07-01', body: body('2025-07-01', 95) });
+            expect((await stored('v-3')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-02-01']);
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-3', revision: 2, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 95) });
             expect((await errorOf(invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 3, value: body('2025-02-01', 1) }))).code).to.equal('conflict');
         });
 
-        it('amends from the date of the last version or later, and removes only the last one', async () => {
+        it('amends from the date of the last version or later, and removes only the last one, by its ref', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-4', traits: { body: body('2025-01-01', 100) } });
-            await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 1, validFrom: '2025-07-01', body: body('2025-07-01', 110) });
-            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, validFrom: '2025-03-01', body: body('2025-03-01', 110) }))).code).to.equal('conflict');
-            const replaced = await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, validFrom: '2025-07-01', body: body('2025-07-01', 115) });
-            expect([replaced.revision, replaced.data.body]).to.deep.equal([3, body('2025-07-01', 115)]);
-            expect(Object.keys((await stored('v-4')).data.body).sort()).to.deep.equal(['2025-01-01', '2025-07-01']);
-            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, validFrom: '2025-01-01' }))).code).to.equal('conflict');
-            const removed = await invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, validFrom: '2025-07-01' });
+            await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 1, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 110) });
+            expect((await errorOf(invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, ref: 'a-2', validFrom: '2025-03-01', body: body('2025-03-01', 110) }))).code).to.equal('conflict');
+            const second = await invoke(VERSIONED, 'amend', { businessKey: 'v-4', revision: 2, ref: 'a-2', validFrom: '2025-07-01', body: body('2025-07-01', 115) });
+            expect([second.revision, second.data.body]).to.deep.equal([3, body('2025-07-01', 115)]);
+            expect((await stored('v-4')).data.body.map(({ validFrom, ref }) => [validFrom, ref])).to.deep.equal([['2025-01-01', undefined], ['2025-07-01', 'a-1'], ['2025-07-01', 'a-2']]);
+            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, ref: 'a-1', validFrom: '2025-07-01' }))).code).to.equal('conflict');
+            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, ref: 'a-2', validFrom: '2025-01-01' }))).code).to.equal('conflict');
+            const restored = await invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 3, ref: 'a-2', validFrom: '2025-07-01' });
+            expect(restored.data.body).to.deep.equal(body('2025-07-01', 110));
+            const removed = await invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 4, ref: 'a-1', validFrom: '2025-07-01' });
             expect(removed.data.body).to.deep.equal(body('2025-01-01', 100));
-            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 4, validFrom: '2025-01-01' }))).code).to.equal('invalid');
+            expect((await errorOf(invoke(VERSIONED, 'unamend', { businessKey: 'v-4', revision: 5, ref: 'a-1', validFrom: '2025-01-01' }))).code).to.equal('conflict');
         });
 
         it('keys a body without a date by a marker that the first date replaces', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-5', traits: { body: body(undefined, 100) } });
-            expect(Object.keys((await stored('v-5')).data.body)).to.deep.equal(['undated']);
+            expect((await stored('v-5')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['undated']);
             await invoke(VERSIONED, 'update', { businessKey: 'v-5', revision: 1, value: body('2025-01-01', 100) });
-            expect(Object.keys((await stored('v-5')).data.body)).to.deep.equal(['2025-01-01']);
+            expect((await stored('v-5')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01']);
         });
 
         it('returns the body of the last version from every write', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-6', traits: { body: body('2025-01-01', 100) } });
-            const amended = await invoke(VERSIONED, 'amend', { businessKey: 'v-6', revision: 1, validFrom: '2025-07-01', body: body('2025-07-01', 110) });
+            const amended = await invoke(VERSIONED, 'amend', { businessKey: 'v-6', revision: 1, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 110) });
             expect(amended.data.body).to.deep.equal(body('2025-07-01', 110));
         });
     });

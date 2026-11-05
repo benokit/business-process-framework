@@ -18,20 +18,20 @@ const set = changes => Object.entries(changes).map(([key, value]) => ({ op: 'add
 
 const amended = ({ timeline, validFrom, patch }) => datedBody({ configuration, validFrom, body: patchedBody({ body: resolveVersion({ timeline }).data, patch }) });
 
-const amend = (timeline, validFrom, changes) => appendVersion({ timeline, validFrom, body: amended({ timeline, validFrom, patch: set(changes) }) });
+const amend = (timeline, validFrom, changes, ref = 'a-1') => appendVersion({ timeline, validFrom, ref, body: amended({ timeline, validFrom, patch: set(changes) }) });
 
 describe('versions', () => {
     const first = startVersions({ configuration, body: contract('2025-01-01', 100) });
     const timeline = amend(amend(first, '2025-07-01', { premium: 110 }), '2026-03-01', { premium: 120 });
 
     it('keys a version by the date the body holds at the pointer', () => {
-        expect(first).to.deep.equal({ '2025-01-01': contract('2025-01-01', 100) });
+        expect(first).to.deep.equal([{ validFrom: '2025-01-01', body: contract('2025-01-01', 100) }]);
     });
 
     it('stores the last version in full and earlier ones as backward patches', () => {
-        expect(timeline['2026-03-01']).to.deep.equal(contract('2026-03-01', 120));
-        expect(timeline['2025-07-01']).to.be.an('array');
-        expect(timeline['2025-01-01']).to.be.an('array');
+        expect(timeline.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01', '2025-07-01', '2026-03-01']);
+        expect(timeline.at(-1).body).to.deep.equal(contract('2026-03-01', 120));
+        expect(timeline.slice(0, -1).map(({ body }) => body)).to.satisfy(patches => patches.every(Array.isArray));
     });
 
     it('sets the date of an amended version in its body, keeping the rest', () => {
@@ -54,13 +54,19 @@ describe('versions', () => {
         expect(codeOf(() => resolveVersion({ timeline, at: '2024-12-31' }))).to.equal('not-found');
     });
 
-    it('replaces the last version by an amendment at its date, keeping every earlier one', () => {
-        const replaced = amend(timeline, '2026-03-01', { premium: 130 });
-        expect(Object.keys(replaced).sort()).to.deep.equal(['2025-01-01', '2025-07-01', '2026-03-01']);
-        expect(resolveVersion({ timeline: replaced }).data).to.deep.equal(contract('2026-03-01', 130));
-        expect(resolveVersion({ timeline: replaced, at: '2025-12-31' }).data).to.deep.equal(contract('2025-07-01', 110));
-        expect(resolveVersion({ timeline: replaced, at: '2025-03-01' }).data).to.deep.equal(contract('2025-01-01', 100));
-        expect(amend(first, '2025-01-01', { premium: 90 })).to.deep.equal({ '2025-01-01': contract('2025-01-01', 90) });
+    it('keeps the version of each amendment at the same date, the later one shadowing the earlier', () => {
+        const twice = amend(timeline, '2026-03-01', { premium: 130 }, 'a-2');
+        expect(twice.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01', '2025-07-01', '2026-03-01', '2026-03-01']);
+        expect(resolveVersion({ timeline: twice }).data).to.deep.equal(contract('2026-03-01', 130));
+        expect(resolveVersion({ timeline: twice, at: '2025-12-31' }).data).to.deep.equal(contract('2025-07-01', 110));
+        expect(resolveVersion({ timeline: twice, at: '2025-03-01' }).data).to.deep.equal(contract('2025-01-01', 100));
+    });
+
+    it('restores the version of the first amendment when the second at the same date is removed', () => {
+        const restored = removeVersion({ timeline: amend(timeline, '2026-03-01', { premium: 130 }, 'a-2'), validFrom: '2026-03-01', ref: 'a-2' });
+        expect(restored).to.deep.equal(timeline);
+        expect(restored.at(-1).ref).to.equal('a-1');
+        expect(resolveVersion({ timeline: restored }).data).to.deep.equal(contract('2026-03-01', 120));
     });
 
     it('refuses an amendment before the last version, and dates that do not exist', () => {
@@ -69,19 +75,20 @@ describe('versions', () => {
     });
 
     it('removes the last version only, restoring the previous one in full', () => {
-        const removed = removeVersion({ timeline, validFrom: '2026-03-01' });
-        expect(removed['2025-07-01']).to.deep.equal(contract('2025-07-01', 110));
-        expect(Object.keys(removed).sort()).to.deep.equal(['2025-01-01', '2025-07-01']);
-        expect(codeOf(() => removeVersion({ timeline, validFrom: '2025-07-01' }))).to.equal('conflict');
+        const removed = removeVersion({ timeline, validFrom: '2026-03-01', ref: 'a-1' });
+        expect(removed.at(-1)).to.deep.equal({ validFrom: '2025-07-01', ref: 'a-1', body: contract('2025-07-01', 110) });
+        expect(removed.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01', '2025-07-01']);
+        expect(codeOf(() => removeVersion({ timeline, validFrom: '2025-07-01', ref: 'a-1' }))).to.equal('conflict');
+        expect(codeOf(() => removeVersion({ timeline, validFrom: '2026-03-01', ref: 'a-2' }))).to.equal('conflict');
         expect(codeOf(() => removeVersion({ timeline: first, validFrom: '2025-01-01' }))).to.equal('invalid');
     });
 
     it('undoes an amendment with a remove', () => {
-        expect(resolveVersion({ timeline: removeVersion({ timeline: amend(first, '2026-01-01', { premium: 1 }), validFrom: '2026-01-01' }) }).data).to.deep.equal(contract('2025-01-01', 100));
+        expect(resolveVersion({ timeline: removeVersion({ timeline: amend(first, '2026-01-01', { premium: 1 }), validFrom: '2026-01-01', ref: 'a-1' }) }).data).to.deep.equal(contract('2025-01-01', 100));
     });
 
     it('replaces a body of one version, with another date, and refuses to replace a history', () => {
-        expect(replaceVersions({ timeline: first, configuration, body: contract('2025-02-01', 90) })).to.deep.equal({ '2025-02-01': contract('2025-02-01', 90) });
+        expect(replaceVersions({ timeline: first, configuration, body: contract('2025-02-01', 90) })).to.deep.equal([{ validFrom: '2025-02-01', body: contract('2025-02-01', 90) }]);
         expect(codeOf(() => replaceVersions({ timeline, configuration, body: contract('2025-02-01', 90) }))).to.equal('conflict');
     });
 
@@ -89,17 +96,17 @@ describe('versions', () => {
         const undated = startVersions({ configuration, body: contract(undefined, 100) });
 
         it('keys the body with the marker, before every date', () => {
-            expect(Object.keys(undated)).to.deep.equal([UNDATED]);
+            expect(undated.map(({ validFrom }) => validFrom)).to.deep.equal([UNDATED]);
             expect(resolveVersion({ timeline: undated, at: '1900-01-01' }).data.premium).to.equal(100);
         });
 
         it('is replaced when a date is given', () => {
-            expect(replaceVersions({ timeline: undated, configuration, body: contract('2025-01-01', 100) })).to.deep.equal({ '2025-01-01': contract('2025-01-01', 100) });
-            expect(amend(undated, '2025-01-01', { premium: 90 })).to.deep.equal({ '2025-01-01': contract('2025-01-01', 90) });
+            expect(replaceVersions({ timeline: undated, configuration, body: contract('2025-01-01', 100) })).to.deep.equal([{ validFrom: '2025-01-01', body: contract('2025-01-01', 100) }]);
+            expect(amend(undated, '2025-01-01', { premium: 90 })).to.deep.equal([{ validFrom: '2025-01-01', ref: 'a-1', body: contract('2025-01-01', 90) }]);
         });
 
         it('stays before the dated versions once given a version', () => {
-            const dated = { ...undated, ...{ '2025-01-01': contract('2025-01-01', 90) } };
+            const dated = [...undated, { validFrom: '2025-01-01', body: contract('2025-01-01', 90) }];
             expect(resolveVersion({ timeline: dated, at: '2024-01-01' }).validFrom).to.equal(UNDATED);
             expect(resolveVersion({ timeline: dated }).validFrom).to.equal('2025-01-01');
         });

@@ -27,7 +27,7 @@
                 "apply": [{
                     "key": "body",
                     "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
                 }]
             }
         }

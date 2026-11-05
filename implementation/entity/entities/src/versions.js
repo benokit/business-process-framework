@@ -18,11 +18,7 @@ const checkedDate = value => {
     return value;
 };
 
-const sortedKeys = timeline => Object.keys(timeline).sort((left, right) => (left === UNDATED ? -1 : right === UNDATED ? 1 : left < right ? -1 : left > right ? 1 : 0));
-
-const lastKey = timeline => sortedKeys(timeline).at(-1);
-
-const without = (timeline, key) => Object.fromEntries(Object.entries(timeline).filter(([other]) => other !== key));
+const lastOf = timeline => timeline.at(-1);
 
 const valueAt = (body, pointer) => {
     try {
@@ -37,19 +33,18 @@ const keyOf = ({ configuration, body }) => {
     return validFrom === undefined || validFrom === null ? UNDATED : checkedDate(validFrom);
 };
 
-export const startVersions = ({ configuration, body }) => ({ [keyOf({ configuration, body })]: body });
+export const startVersions = ({ configuration, body }) => [{ validFrom: keyOf({ configuration, body }), body }];
 
 export const replaceVersions = ({ timeline, configuration, body }) => {
-    if (Object.keys(timeline).length > 1) throw conflict('a body with several versions changes by amendments');
+    if (timeline.length > 1) throw conflict('a body with several versions changes by amendments');
     return startVersions({ configuration, body });
 };
 
 export const resolveVersion = ({ timeline, at }) => {
-    const keys = sortedKeys(timeline);
-    const found = at === undefined || at === null ? keys.length - 1 : keys.findLastIndex(key => key === UNDATED || key <= checkedDate(at));
+    const found = at === undefined || at === null ? timeline.length - 1 : timeline.findLastIndex(({ validFrom }) => validFrom === UNDATED || validFrom <= checkedDate(at));
     if (found < 0) throw new CoreError('not-found', `no version is valid at ${at}`);
-    const patches = keys.slice(found, -1).reverse().map(key => timeline[key]);
-    return { validFrom: keys[found], data: applyAll(timeline[keys.at(-1)], patches) };
+    const patches = timeline.slice(found, -1).reverse().map(({ body }) => body);
+    return { validFrom: timeline[found].validFrom, data: applyAll(lastOf(timeline).body, patches) };
 };
 
 export const patchedBody = ({ body, patch }) => {
@@ -68,27 +63,19 @@ export const datedBody = ({ configuration, validFrom, body }) => jsonPatch.apply
     false
 ).newDocument;
 
-const replacedLast = ({ timeline, last, body }) => {
-    const previous = sortedKeys(timeline).at(-2);
-    return previous === undefined
-        ? { [last]: body }
-        : { ...timeline, [previous]: compare(body, applyAll(timeline[last], [timeline[previous]])), [last]: body };
+export const appendVersion = ({ timeline, validFrom, ref, body }) => {
+    const last = lastOf(timeline);
+    if (last.validFrom === UNDATED) return [{ validFrom: checkedDate(validFrom), ref, body }];
+    if (checkedDate(validFrom) < last.validFrom) throw conflict(`${validFrom} is before the last version ${last.validFrom}`);
+    return [...timeline.slice(0, -1), { ...last, body: compare(body, last.body) }, { validFrom, ref, body }];
 };
 
-export const appendVersion = ({ timeline, validFrom, body }) => {
-    const last = lastKey(timeline);
-    if (last === UNDATED) return { [checkedDate(validFrom)]: body };
-    if (checkedDate(validFrom) < last) throw conflict(`${validFrom} is before the last version ${last}`);
-    if (validFrom === last) return replacedLast({ timeline, last, body });
-    return { ...timeline, [last]: compare(body, timeline[last]), [validFrom]: body };
-};
-
-export const removeVersion = ({ timeline, validFrom }) => {
-    const last = lastKey(timeline);
-    if (validFrom !== last) throw conflict(`${validFrom} is not the last version ${last}`);
-    const previous = sortedKeys(timeline).at(-2);
-    if (previous === undefined) throw invalid(`the only version ${last} can't be removed`);
-    return { ...without(timeline, last), [previous]: applyAll(timeline[last], [timeline[previous]]) };
+export const removeVersion = ({ timeline, validFrom, ref }) => {
+    const last = lastOf(timeline);
+    if (validFrom !== last.validFrom || ref !== last.ref) throw conflict(`${validFrom} of ${ref} is not the last version ${last.validFrom} of ${last.ref}`);
+    if (timeline.length === 1) throw invalid(`the only version ${last.validFrom} can't be removed`);
+    const previous = timeline.at(-2);
+    return [...timeline.slice(0, -2), { ...previous, body: applyAll(last.body, [previous.body]) }];
 };
 
 export const bodyAt = ({ timeline, at }) => resolveVersion({ timeline, at }).data;

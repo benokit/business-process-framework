@@ -67,7 +67,7 @@ const elements = [
                 apply: [{
                     key: 'body',
                     operation: 'amend',
-                    input: { validFrom: VALID_FROM, body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }] } } }
+                    input: { validFrom: VALID_FROM, ref: '#.amendment.businessKey', body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }] } } }
                 }]
             }
         }
@@ -82,11 +82,11 @@ const elements = [
                 type: END,
                 open: { reason: '#.input.reason' },
                 apply: [
-                    { key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'add', path: '/endDate', value: VALID_FROM }] } } } },
+                    { key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, ref: '#.amendment.businessKey', body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'add', path: '/endDate', value: VALID_FROM }] } } } },
                     { key: 'state', operation: 'transition', input: { transition: 'cancel' } }
                 ],
                 revert: [
-                    { key: 'body', operation: 'remove', input: { validFrom: VALID_FROM } },
+                    { key: 'body', operation: 'remove', input: { validFrom: VALID_FROM, ref: '#.amendment.businessKey' } },
                     { key: 'state', operation: 'transition', input: { transition: 'reactivate' } }
                 ]
             }
@@ -240,7 +240,7 @@ describe('entity-amendments', function () {
             data: {
                 target: POLICY,
                 slot: 'amendmentTypes',
-                value: { type: RAISE, input: `${RAISE}-input`, open: { reason: '#.input.why', changes: '#.input.changes', holder: '#.entity.data.body.owner' }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '#.link.since', body: { holder: '#.body.nope', premium: '#.amendment.data.amendment-link.since' } } }] }
+                value: { type: RAISE, input: `${RAISE}-input`, open: { reason: '#.input.why', changes: '#.input.changes', holder: '#.entity.data.body.owner' }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '#.link.since', ref: '#.amendment.businessKey', body: { holder: '#.body.nope', premium: '#.amendment.data.amendment-link.since' } } }] }
             }
         };
         await stop();
@@ -259,7 +259,7 @@ describe('entity-amendments', function () {
             data: {
                 target: POLICY,
                 slot: 'amendmentTypes',
-                value: { type: RAISE, open: { reason: 5 }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '2026-07-01', body: { holder: 'Ada', premium: 'high', nope: 1 } } }] }
+                value: { type: RAISE, open: { reason: 5 }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '2026-07-01', ref: '#.amendment.businessKey', body: { holder: 'Ada', premium: 'high', nope: 1 } } }] }
             }
         };
         await stop();
@@ -349,7 +349,7 @@ describe('entity-amendments', function () {
                         { key: 'ownership', operation: 'put', input: {} },
                         { key: 'body', operation: 'nope', input: {} }
                     ],
-                    revert: [{ key: 'body', operation: 'remove', input: { validFrom: '#.link.effectiveFrom' } }]
+                    revert: [{ key: 'body', operation: 'remove', input: { validFrom: '#.link.effectiveFrom', ref: '#.amendment.businessKey' } }]
                 }
             }
         };

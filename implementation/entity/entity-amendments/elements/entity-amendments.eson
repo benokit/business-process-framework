@@ -73,8 +73,8 @@
                     {
                         "type": "#.amendmentType",
                         "open": { "$coalesce": ["@found.open", { "$literal": "#.input" }] },
-                        "apply": { "$coalesce": ["@found.apply", { "$literal": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.effectiveFrom", "body": "#.amendment.data.body" } }] }] },
-                        "revert": { "$coalesce": ["@found.revert", { "$literal": [{ "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom" } }] }] },
+                        "apply": { "$coalesce": ["@found.apply", { "$literal": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": "#.amendment.data.body" } }] }] },
+                        "revert": { "$coalesce": ["@found.revert", { "$literal": [{ "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey" } }] }] },
                         "input": "@found.input"
                     },
                     null

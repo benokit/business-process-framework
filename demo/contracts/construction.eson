@@ -36,7 +36,7 @@
                 "apply": [{
                     "key": "body",
                     "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
                 }]
             }
         }
@@ -52,7 +52,7 @@
                 "apply": [{
                     "key": "body",
                     "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
                 }]
             }
         }
@@ -69,12 +69,12 @@
                     {
                         "key": "body",
                         "operation": "amend",
-                        "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                        "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
                     },
                     { "key": "state", "operation": "transition", "input": { "transition": "cancel" } }
                 ],
                 "revert": [
-                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom" } },
+                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey" } },
                     { "key": "state", "operation": "transition", "input": { "transition": "reactivate" } }
                 ]
             }
