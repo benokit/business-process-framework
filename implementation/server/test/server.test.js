@@ -253,13 +253,33 @@ describe('server with the demo', function () {
         expect([late.status, late.body.error.message]).to.deep.equal([409, "construction doesn't allow update in its current state"]);
     });
 
-    it('lets an underwriter cancel a contract only while it is issued, an administrator in any state', async () => {
+    it('lets an underwriter discard a contract that is draft or issued, and cancel an active one only through an administrator', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`canceller-${run}`, ['underwriter-role']), userWith(`canceller-admin-${run}`, ['administrator-role'])]);
+        const draft = await contractOf('construction', { project: 'dam' }, underwriter);
         const issued = (await move(await contractOf('construction', { project: 'dam' }, underwriter), 'issue', underwriter)).body;
         const active = await activeContract(underwriter, administrator);
+        expect((await move(draft, 'discard', underwriter)).body.data.state.status).to.equal('discarded');
+        expect((await move(issued, 'discard', underwriter)).body.data.state.status).to.equal('discarded');
         expect((await move(active, 'cancel', underwriter)).status).to.equal(403);
         expect((await move(active, 'cancel', administrator)).body.data.state.status).to.equal('cancelled');
-        expect((await move(issued, 'cancel', underwriter)).body.data.state.status).to.equal('cancelled');
+    });
+
+    it('cancels a contract by a cancellation amendment, which ends its terms and moves its status in one revision, and reactivates it when annulled', async () => {
+        const [underwriter, administrator] = await Promise.all([userWith(`ender-${run}`, ['underwriter-role']), userWith(`ender-admin-${run}`, ['administrator-role'])]);
+        const contract = await activeContract(underwriter, administrator);
+        const proposed = (await propose(contract, 'cancellation', '2026-07-01', { endDate: '2026-12-31' }, underwriter)).body;
+        const before = await read(contract, administrator);
+
+        const activated = await activate(proposed, underwriter, administrator);
+        expect(activated.body.data.state).to.deep.equal({ status: 'active', versionStatus: 'applied' });
+        const cancelled = await read(contract, administrator);
+        expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-12-31', before.revision + 2]);
+        expect((await propose(contract, 'premium-adjustment', '2026-09-01', { premium: 1 }, underwriter)).status).to.equal(409);
+
+        const annulled = await move(activated.body, 'annul', underwriter);
+        expect(annulled.body.data.state.status).to.equal('annulled');
+        const restored = await read(contract, administrator);
+        expect([restored.data.state.status, restored.data.body.endDate]).to.deep.equal(['active', contract.data.body.endDate]);
     });
 
     describe('row access', () => {

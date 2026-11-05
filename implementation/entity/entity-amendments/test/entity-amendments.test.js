@@ -6,7 +6,9 @@ const run = Date.now();
 const POLICY = `policy-${run}`;
 const RAISE = `raise-${run}`;
 const COPY = `copy-${run}`;
-const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number', '*': 'never' };
+const END = `end-${run}`;
+const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number', endDate: '@date', '*': 'never' };
+const VALID_FROM = '#.link.effectiveFrom';
 
 const amendmentType = (id, schema) => ({
     id,
@@ -39,8 +41,8 @@ const elements = [
                 body: { trait: 'versioned-body', configuration: { schema: BODY, versioned: { validFrom: '/startDate' } } },
                 state: {
                     configuration: {
-                        states: { status: { draft: true, active: true } },
-                        transitions: { activate: { status: { draft: 'active' } } },
+                        states: { status: { draft: true, active: true, cancelled: true } },
+                        transitions: { activate: { status: { draft: 'active' } }, cancel: { status: { active: 'cancelled' } }, reactivate: { status: { cancelled: 'active' } } },
                         initialStates: { default: { status: 'draft' } },
                         operations: { applyAmendment: { status: { active: true } } }
                     }
@@ -50,6 +52,7 @@ const elements = [
     },
     amendmentType(RAISE, { '!reason': 'string', '!changes': { '!premium': 'number' } }),
     amendmentType(COPY, BODY),
+    amendmentType(END, { '!reason': 'string' }),
     { id: `${RAISE}-input`, kind: 'schema', data: { '!reason': 'string', '!changes': { '!premium': 'number' }, '*': 'never' } },
     {
         id: `${POLICY}-raise`,
@@ -61,7 +64,31 @@ const elements = [
                 type: RAISE,
                 input: `${RAISE}-input`,
                 open: { reason: '#.input.reason', changes: '#.input.changes' },
-                apply: { '$func/patched-body': { body: '#.body', patch: [{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }] } }
+                apply: [{
+                    key: 'body',
+                    operation: 'amend',
+                    input: { validFrom: VALID_FROM, body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }] } } }
+                }]
+            }
+        }
+    },
+    {
+        id: `${POLICY}-end`,
+        kind: 'slot-fill',
+        data: {
+            target: POLICY,
+            slot: 'amendmentTypes',
+            value: {
+                type: END,
+                open: { reason: '#.input.reason' },
+                apply: [
+                    { key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, body: { '$func/patched-body': { body: '#.body', patch: [{ op: 'add', path: '/endDate', value: VALID_FROM }] } } } },
+                    { key: 'state', operation: 'transition', input: { transition: 'cancel' } }
+                ],
+                revert: [
+                    { key: 'body', operation: 'remove', input: { validFrom: VALID_FROM } },
+                    { key: 'state', operation: 'transition', input: { transition: 'reactivate' } }
+                ]
             }
         }
     },
@@ -213,7 +240,7 @@ describe('entity-amendments', function () {
             data: {
                 target: POLICY,
                 slot: 'amendmentTypes',
-                value: { type: RAISE, input: `${RAISE}-input`, open: { reason: '#.input.why', changes: '#.input.changes', holder: '#.entity.data.body.owner' }, apply: { holder: '#.body.nope', premium: '#.amendment.data.amendment-link.since' } }
+                value: { type: RAISE, input: `${RAISE}-input`, open: { reason: '#.input.why', changes: '#.input.changes', holder: '#.entity.data.body.owner' }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '#.link.since', body: { holder: '#.body.nope', premium: '#.amendment.data.amendment-link.since' } } }] }
             }
         };
         await stop();
@@ -222,7 +249,7 @@ describe('entity-amendments', function () {
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
         await start();
         await migrate();
-        expect(messages.join('\n')).to.include('the open mapping of ' + RAISE).and.to.include('why').and.to.include('owner').and.to.include('the apply mapping of ' + RAISE).and.to.include('since').and.to.include('nope');
+        expect(messages.join('\n')).to.include('the open mapping of ' + RAISE).and.to.include('why').and.to.include('owner').and.to.include('the apply of ' + RAISE).and.to.include('since').and.to.include('nope');
     });
 
     it('reports a mapping of a fill whose result does not fit the body it produces', async () => {
@@ -232,7 +259,7 @@ describe('entity-amendments', function () {
             data: {
                 target: POLICY,
                 slot: 'amendmentTypes',
-                value: { type: RAISE, open: { reason: 5 }, apply: { holder: 'Ada', premium: 'high', nope: 1 } }
+                value: { type: RAISE, open: { reason: 5 }, apply: [{ key: 'body', operation: 'amend', input: { validFrom: '2026-07-01', body: { holder: 'Ada', premium: 'high', nope: 1 } } }] }
             }
         };
         await stop();
@@ -242,7 +269,7 @@ describe('entity-amendments', function () {
         await start();
         await migrate();
         expect(messages).to.include('the open mapping of ' + RAISE).and.to.include('reason').and.to.include('changes')
-            .and.to.include('the apply mapping of ' + RAISE).and.to.include('premium').and.to.include('startDate').and.to.include('nope');
+            .and.to.include('the apply of ' + RAISE).and.to.include('premium').and.to.include('startDate').and.to.include('nope');
     });
 
     it('refuses an amendment created other than through the entity it amends, and a ledger write that is no command of it', async () => {
@@ -272,15 +299,67 @@ describe('entity-amendments', function () {
         expect(await read('a-8').then(({ data }) => [data.body.premium, data.body.startDate])).to.deep.equal([130, '2026-07-01']);
     });
 
-    it('previews the version an amendment adds, writing nothing', async () => {
+    it('previews the commands an amendment writes, writing nothing', async () => {
         await policy('a-9');
         const proposed = await propose('a-9', '2026-07-01', 110);
         const before = await read('a-9');
-        const version = await invoke(RAISE, 'preview', { businessKey: proposed.businessKey });
-        expect(version).to.deep.equal({ validFrom: '2026-07-01', body: { holder: 'Ada', startDate: '2026-01-01', premium: 110 } });
+        const commands = await invoke(RAISE, 'preview', { businessKey: proposed.businessKey });
+        expect(commands).to.have.length(1);
+        expect([commands[0].key, commands[0].command]).to.deep.equal(['body', 'amend']);
         expect(await read('a-9')).to.deep.equal(before);
         await activate(proposed);
         expect((await read('a-9')).data.body).to.deep.equal({ holder: 'Ada', startDate: '2026-07-01', premium: 110 });
+    });
+
+    it('moves the state in the same change as the body, and moves it back when the amendment is annulled', async () => {
+        await policy('a-11');
+        const before = await read('a-11');
+        const proposed = await propose('a-11', '2026-07-01', undefined, END, { reason: 'lapsed' });
+        const preview = await invoke(END, 'preview', { businessKey: proposed.businessKey });
+        expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel']]);
+        const ended = await activate(proposed);
+        const cancelled = await read('a-11');
+        expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-07-01', before.revision + 3]);
+        expect((await errorOf(propose('a-11', '2026-08-01', 120))).code).to.equal('conflict');
+        await move(ended, 'annul');
+        const reactivated = await read('a-11');
+        expect([reactivated.data.state.status, reactivated.data.body.endDate]).to.deep.equal(['active', undefined]);
+    });
+
+    it('rolls the activation back when the state cannot move', async () => {
+        await policy('a-12');
+        const proposed = await issue(await propose('a-12', '2026-07-01', undefined, END, { reason: 'lapsed' }));
+        const current = await read('a-12');
+        await invoke(POLICY, 'transition', { businessKey: 'a-12', revision: current.revision, transition: 'cancel' });
+        expect((await errorOf(move(proposed, 'activate'))).code).to.equal('conflict');
+        expect((await read('a-12')).data.body.endDate).to.equal(undefined);
+    });
+
+    it('reports a fill whose apply changes a trait that its revert leaves, names no trait of the entity or no operation of it', async () => {
+        const broken = {
+            id: `${POLICY}-unpaired`,
+            kind: 'slot-fill',
+            data: {
+                target: POLICY,
+                slot: 'amendmentTypes',
+                value: {
+                    type: END,
+                    apply: [
+                        { key: 'state', operation: 'transition', input: { transition: 'cancel' } },
+                        { key: 'ownership', operation: 'put', input: {} },
+                        { key: 'body', operation: 'nope', input: {} }
+                    ],
+                    revert: [{ key: 'body', operation: 'remove', input: { validFrom: '#.link.effectiveFrom' } }]
+                }
+            }
+        };
+        await stop();
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
+        const messages = validate().map(problem => problem.message).join('\n');
+        await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
+        await start();
+        await migrate();
+        expect(messages).to.include("changes 'state' and its revert doesn't").and.to.include("has no trait 'ownership'").and.to.include("has no such operation");
     });
 
     it('refuses to apply an amendment once the entity moved on from the revision it was proposed at', async () => {

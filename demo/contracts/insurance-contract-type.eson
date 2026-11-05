@@ -20,7 +20,8 @@
                             "transitions": {
                                 "discard": {
                                     "status": {
-                                        "draft": "discarded"
+                                        "draft": "discarded",
+                                        "issued": "discarded"
                                     }
                                 },
                                 "issue": {
@@ -35,8 +36,12 @@
                                 },
                                 "cancel": {
                                     "status": {
-                                        "issued": "cancelled",
                                         "active": "cancelled"
+                                    }
+                                },
+                                "reactivate": {
+                                    "status": {
+                                        "cancelled": "active"
                                     }
                                 }
                             },

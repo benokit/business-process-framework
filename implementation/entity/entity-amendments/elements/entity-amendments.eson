@@ -8,14 +8,22 @@
             "slots": { "amendmentTypes": { "cardinality": "many", "value": { "$data#": ["@ref/amendment-entity-type", "@amendment-fill-declaration"] } } },
             "operations": {
                 "applyAmendment": {
-                    "input": { "$data#&": ["@entity-revision-input", "@body-amend-input"] },
+                    "input": { "$data#&": ["@entity-revision-input", "@amendment-operations"] },
                     "output": "@entity-record",
-                    "implementation": { "exposes": { "key": "body", "operation": "amend" } }
+                    "implementation": { "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "entityOperation": "#.operation", "operations": "#.input.operations" }, "invoke": "#.self.id", "operation": "applyTraitOperations" }
                 },
                 "revertAmendment": {
-                    "input": { "$data#&": ["@entity-revision-input", "@body-remove-input"] },
+                    "input": { "$data#&": ["@entity-revision-input", "@amendment-operations"] },
                     "output": "@entity-record",
-                    "implementation": { "exposes": { "key": "body", "operation": "remove" } }
+                    "implementation": { "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "entityOperation": "#.operation", "operations": "#.input.operations" }, "invoke": "#.self.id", "operation": "applyTraitOperations" }
+                },
+                "previewAmendment": {
+                    "input": { "!businessKey": "string", "!operations[]": "@amendment-operation" },
+                    "output": "[@amendment-command]",
+                    "implementation": [
+                        { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
+                        { "inputMap": { "data": "#.record.data", "operations": "#.input.operations" }, "invoke": "#.self.id", "operation": "traitCommands" }
+                    ]
                 },
                 "writeLedger": {
                     "input": { "$data#&": ["@entity-revision-input", "@ledger-write-input"] },
@@ -28,7 +36,22 @@
     {
         "id": "amendment-fill-declaration",
         "kind": "schema",
-        "data": { "!type": "@ref/amendment-entity-type", "open": "@mapping", "apply": "@mapping", "input": "@ref/schema" }
+        "data": { "!type": "@ref/amendment-entity-type", "open": "@mapping", "apply[]": "@amendment-operation-use", "revert[]": "@amendment-operation-use", "input": "@ref/schema" }
+    },
+    {
+        "id": "amendment-operation-use",
+        "kind": "schema",
+        "data": { "!key": "string", "!operation": "string", "!input": "@mapping" }
+    },
+    {
+        "id": "amendment-operation",
+        "kind": "schema",
+        "data": { "!key": "string", "!operation": "string", "input": "@any" }
+    },
+    {
+        "id": "amendment-operations",
+        "kind": "schema",
+        "data": { "!operations[]": "@amendment-operation" }
     },
     {
         "id": "amendment-fill",
@@ -50,7 +73,8 @@
                     {
                         "type": "#.amendmentType",
                         "open": { "$coalesce": ["@found.open", { "$literal": "#.input" }] },
-                        "apply": { "$coalesce": ["@found.apply", { "$literal": "#.amendment.data.body" }] },
+                        "apply": { "$coalesce": ["@found.apply", { "$literal": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.effectiveFrom", "body": "#.amendment.data.body" } }] }] },
+                        "revert": { "$coalesce": ["@found.revert", { "$literal": [{ "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom" } }] }] },
                         "input": "@found.input"
                     },
                     null
@@ -70,12 +94,12 @@
     {
         "id": "amendment-fill-shape",
         "kind": "schema",
-        "data": { "!type": "string", "!open": "@mapping", "!apply": "@mapping", "input": { "$data#": ["null", "@ref/schema"] } }
+        "data": { "!type": "string", "!open": "@mapping", "!apply[]": "@amendment-operation-use", "!revert[]": "@amendment-operation-use", "input": { "$data#": ["null", "@ref/schema"] } }
     },
     {
-        "id": "amendment-version",
+        "id": "amendment-command",
         "kind": "schema",
-        "data": { "!validFrom": "@date", "!body": "object" }
+        "data": { "!key": "string", "!command": "string", "!value": "@any" }
     },
     {
         "id": "ledger-write-input",
@@ -162,7 +186,7 @@
             "operations": {
                 "preview": {
                     "input": { "!businessKey": "string" },
-                    "output": "@amendment-version",
+                    "output": "[@amendment-command]",
                     "implementation": [
                         { "outputKey": "amendment", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         { "inputMap": { "entityType": "#.amendment.data.amendment-link.amendedType", "amendment": "#.amendment" }, "invoke": "entity-amendments", "operation": "preview" }
@@ -355,14 +379,37 @@
                         }
                     ]
                 },
+                "operations": {
+                    "input": { "!entityType": "@ref/versioned-entity-type", "!amendment": "@entity-record", "!record": "@entity-record", "!direction=1": ["apply", "revert"] },
+                    "output": "[@amendment-operation]",
+                    "implementation": [
+                        { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendment.entityType" } } },
+                        {
+                            "outputKey": "scope",
+                            "set": { "body": { "$func/record-body": "#.input.record" }, "amendment": "#.input.amendment", "link": "#.input.amendment.data.amendment-link" }
+                        },
+                        {
+                            "set": {
+                                "$map": {
+                                    "over": { "$get": { "object": "#.fill", "path": "#.input.direction" } },
+                                    "as": "use",
+                                    "fn": {
+                                        "key": "@use.key",
+                                        "operation": "@use.operation",
+                                        "input": { "$func/apply-mapping": { "mapping": "@use.input", "input": "#.scope" } }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
                 "preview": {
                     "input": { "!entityType": "@ref/versioned-entity-type", "!amendment": "@entity-record" },
-                    "output": "@amendment-version",
+                    "output": "[@amendment-command]",
                     "implementation": [
                         { "outputKey": "record", "inputMap": { "businessKey": "#.input.amendment.data.amendment-link.amendedKey" }, "invoke": "#.input.entityType", "operation": "read" },
-                        { "outputKey": "fill", "set": { "$func/amendment-fill": { "entityType": "#.input.entityType", "amendmentType": "#.input.amendment.entityType" } } },
-                        { "outputKey": "body", "set": { "$func/apply-mapping": { "mapping": "#.fill.apply", "input": { "body": { "$func/record-body": "#.record" }, "amendment": "#.input.amendment" } } } },
-                        { "set": { "validFrom": "#.input.amendment.data.amendment-link.effectiveFrom", "body": "#.body" } }
+                        { "outputKey": "operations", "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment", "record": "#.record", "direction": "apply" }, "invoke": "#.self.id", "operation": "operations" },
+                        { "inputMap": { "businessKey": "#.record.businessKey", "operations": "#.operations" }, "invoke": "#.input.entityType", "operation": "previewAmendment" }
                     ]
                 },
                 "apply": {
@@ -379,14 +426,9 @@
                             "if": { "$neq": ["#.record.revision", "#.input.amendment.data.amendment-link.amendedRevision"] },
                             "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.record.businessKey", " has changed since the amendment ", "#.input.amendment.businessKey", " was proposed"] } } }
                         },
-                        { "outputKey": "version", "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment" }, "invoke": "#.self.id", "operation": "preview" },
+                        { "outputKey": "operations", "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment", "record": "#.record", "direction": "apply" }, "invoke": "#.self.id", "operation": "operations" },
                         {
-                            "inputMap": {
-                                "businessKey": "#.record.businessKey",
-                                "revision": "#.record.revision",
-                                "validFrom": "#.version.validFrom",
-                                "body": "#.version.body"
-                            },
+                            "inputMap": { "businessKey": "#.record.businessKey", "revision": "#.record.revision", "operations": "#.operations" },
                             "invoke": "#.input.entityType",
                             "operation": "applyAmendment"
                         },
@@ -399,16 +441,13 @@
                     "implementation": [
                         {
                             "outputKey": "record",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.amendment.data.amendment-link.amendedKey" },
-                            "invoke": "entity-database",
+                            "inputMap": { "businessKey": "#.input.amendment.data.amendment-link.amendedKey" },
+                            "invoke": "#.input.entityType",
                             "operation": "read"
                         },
+                        { "outputKey": "operations", "inputMap": { "entityType": "#.input.entityType", "amendment": "#.input.amendment", "record": "#.record", "direction": "revert" }, "invoke": "#.self.id", "operation": "operations" },
                         {
-                            "inputMap": {
-                                "businessKey": "#.record.businessKey",
-                                "revision": "#.record.revision",
-                                "validFrom": "#.input.amendment.data.amendment-link.effectiveFrom"
-                            },
+                            "inputMap": { "businessKey": "#.record.businessKey", "revision": "#.record.revision", "operations": "#.operations" },
                             "invoke": "#.input.entityType",
                             "operation": "revertAmendment"
                         }

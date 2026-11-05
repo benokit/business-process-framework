@@ -28,12 +28,57 @@
     {
         "id": "construction-premium-adjustment",
         "kind": "slot-fill",
-        "data": { "target": "construction", "slot": "amendmentTypes", "value": { "type": "premium-adjustment", "apply": { "$func/change-version": "#" } } }
+        "data": {
+            "target": "construction",
+            "slot": "amendmentTypes",
+            "value": {
+                "type": "premium-adjustment",
+                "apply": [{
+                    "key": "body",
+                    "operation": "amend",
+                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                }]
+            }
+        }
     },
     {
         "id": "construction-extension",
         "kind": "slot-fill",
-        "data": { "target": "construction", "slot": "amendmentTypes", "value": { "type": "extension", "apply": { "$func/change-version": "#" } } }
+        "data": {
+            "target": "construction",
+            "slot": "amendmentTypes",
+            "value": {
+                "type": "extension",
+                "apply": [{
+                    "key": "body",
+                    "operation": "amend",
+                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                }]
+            }
+        }
+    },
+    {
+        "id": "construction-cancellation",
+        "kind": "slot-fill",
+        "data": {
+            "target": "construction",
+            "slot": "amendmentTypes",
+            "value": {
+                "type": "cancellation",
+                "apply": [
+                    {
+                        "key": "body",
+                        "operation": "amend",
+                        "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                    },
+                    { "key": "state", "operation": "transition", "input": { "transition": "cancel" } }
+                ],
+                "revert": [
+                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom" } },
+                    { "key": "state", "operation": "transition", "input": { "transition": "reactivate" } }
+                ]
+            }
+        }
     },
     {
         "id": "construction-policyholder",

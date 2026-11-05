@@ -23,6 +23,11 @@
         "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!premium": "number" } } } } } }
     },
     {
+        "id": "cancellation",
+        "kind": "underwriting-amendment-type",
+        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
+    },
+    {
         "id": "extension",
         "kind": "underwriting-amendment-type",
         "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }

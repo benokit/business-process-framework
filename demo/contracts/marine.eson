@@ -19,6 +19,17 @@
     {
         "id": "marine-premium-adjustment",
         "kind": "slot-fill",
-        "data": { "target": "marine", "slot": "amendmentTypes", "value": { "type": "premium-adjustment", "apply": { "$func/change-version": "#" } } }
+        "data": {
+            "target": "marine",
+            "slot": "amendmentTypes",
+            "value": {
+                "type": "premium-adjustment",
+                "apply": [{
+                    "key": "body",
+                    "operation": "amend",
+                    "input": { "validFrom": "#.link.effectiveFrom", "body": { "$func/change-version": "#" } }
+                }]
+            }
+        }
     }
 ]
