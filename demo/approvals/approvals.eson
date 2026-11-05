@@ -18,10 +18,22 @@
         "/data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number", "justification": "string" } } },
-                "validation": { "configuration": {} },
+                "validation": { "configuration": { "onValidation": [{
+                    "key": "state",
+                    "operation": "transition",
+                    "input": { "transition": { "$if": [{ "$eq": [{ "$count": { "collection": { "$keys": "#.errors" } } }, 0] }, "markValid", "markInvalid"] } }
+                }] } },
                 "state": { "configuration": { "/merge": [
                     { "/ref": "approval-state-machine" },
-                    { "transitions": { "submit": { "validity": { "valid": true } } } }
+                    {
+                        "states": { "validity": { "valid": true, "invalid": true } },
+                        "transitions": {
+                            "markValid": { "validity": { "valid": "valid", "invalid": "valid" } },
+                            "markInvalid": { "validity": { "valid": "invalid", "invalid": "invalid" } },
+                            "submit": { "validity": { "valid": true } }
+                        },
+                        "initialStates": { "default": { "validity": "valid" } }
+                    }
                 ] } }
             }
         }

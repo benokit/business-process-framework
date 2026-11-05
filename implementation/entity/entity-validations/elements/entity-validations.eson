@@ -15,19 +15,19 @@
         "data": { "target": "entity-type", "slot": "validations", "cardinality": "many", "value": "@mapping", "input": "@entity-validation-input" }
     },
     {
-        "id": "validation-writes",
+        "id": "validation-derivation",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!record": "@any", "!key": "string", "!errors": "@entity-validation-errors" }, "output": "[@any]" },
+            "signature": { "input": { "!record": "@any", "!key": "string", "!errors": "@entity-validation-errors", "!operations": "[@any]" }, "output": "@trait-derivation" },
             "module": "@business-framework/entity-validations/validations",
-            "export": "validationWrites"
+            "export": "validationDerivation"
         }
     },
     {
         "id": "validation-problems",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "[string]" },
+            "signature": { "input": "string", "output": "[string]" },
             "module": "@business-framework/entity-validations/validations",
             "export": "validationProblems"
         }
@@ -37,7 +37,7 @@
         "kind": "kind",
         "data": {
             "extends": "valued-entity-trait",
-            "lifecycle": { "validate": { "$func/validation-problems": null } },
+            "lifecycle": { "validate": { "$func/validation-problems": "#.self.id" } },
             "operations": {
                 "initialize": {
                     "implementation": [
@@ -64,7 +64,22 @@
                                 }
                             }
                         },
-                        { "set": { "writes": { "$func/validation-writes": { "record": "#.input.record", "key": "#.input.key", "errors": "#.errors" } } } }
+                        {
+                            "set": {
+                                "$func/validation-derivation": {
+                                    "record": "#.input.record",
+                                    "key": "#.input.key",
+                                    "errors": "#.errors",
+                                    "operations": {
+                                        "$if": [
+                                            "#.input.configuration.onValidation",
+                                            { "$func/apply-mapping": { "mapping": "#.input.configuration.onValidation", "input": { "entityType": "#.input.entityType", "businessKey": "#.input.record.businessKey", "errors": "#.errors" } } },
+                                            []
+                                        ]
+                                    }
+                                }
+                            }
+                        }
                     ]
                 }
             }
@@ -75,8 +90,7 @@
         "kind": "validation-trait",
         "data": {
             "cardinality": "one",
-            "configuration": {},
-            "provides": [{ "trait": "state", "configuration": { "states": { "validity": { "valid": true, "invalid": true } } } }]
+            "configuration": { "onValidation": "@mapping" }
         }
     }
 ]

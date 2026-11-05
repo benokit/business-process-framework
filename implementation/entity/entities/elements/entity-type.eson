@@ -161,31 +161,9 @@
                         { "outputKey": "before", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
                         {
                             "outputKey": "commands",
-                            "inputMap": "#.input.operations",
-                            "forEach": [
-                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item.key" } } },
-                                {
-                                    "if": { "$negate": "#.use" },
-                                    "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.item.key"] } } }
-                                },
-                                {
-                                    "if": { "$negate": { "$func/has-operation": { "element": "#.use.trait", "operation": "#.item.operation" } } },
-                                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the trait under ", "#.item.key", " of ", "#.self.id", " has no operation ", "#.item.operation"] } } }
-                                },
-                                {
-                                    "outputKey": "command",
-                                    "inputMap": {
-                                        "entityType": "#.self.id",
-                                        "key": "#.item.key",
-                                        "configuration": "#.use.configuration",
-                                        "value": { "$get": { "object": "#.before.data", "path": "#.item.key" } },
-                                        "input": "#.item.input"
-                                    },
-                                    "invoke": "#.use.trait",
-                                    "operation": "#.item.operation"
-                                },
-                                { "set": { "key": "#.item.key", "command": "#.command.command", "value": "#.command.value" } }
-                            ]
+                            "inputMap": { "data": "#.before.data", "operations": "#.input.operations" },
+                            "invoke": "#.self.id",
+                            "operation": "traitCommands"
                         },
                         {
                             "inputMap": {
@@ -196,6 +174,38 @@
                             "operation": "applyChange"
                         }
                     ]
+                },
+                "traitCommands": {
+                    "private": true,
+                    "input": { "!data": "object", "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" } },
+                    "output": "[@any]",
+                    "implementation": {
+                        "inputMap": "#.input.operations",
+                        "forEach": [
+                            { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item.key" } } },
+                            {
+                                "if": { "$negate": "#.use" },
+                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait under the key ", "#.item.key"] } } }
+                            },
+                            {
+                                "if": { "$negate": { "$func/has-operation": { "element": "#.use.trait", "operation": "#.item.operation" } } },
+                                "then": { "throw": { "code": "invalid", "message": { "$str": ["the trait under ", "#.item.key", " of ", "#.self.id", " has no operation ", "#.item.operation"] } } }
+                            },
+                            {
+                                "outputKey": "command",
+                                "inputMap": {
+                                    "entityType": "#.self.id",
+                                    "key": "#.item.key",
+                                    "configuration": "#.use.configuration",
+                                    "value": { "$get": { "object": "#.input.data", "path": "#.item.key" } },
+                                    "input": "#.item.input"
+                                },
+                                "invoke": "#.use.trait",
+                                "operation": "#.item.operation"
+                            },
+                            { "set": { "key": "#.item.key", "command": "#.command.command", "value": "#.command.value" } }
+                        ]
+                    }
                 },
                 "create": {
                     "input": { "businessKey": "string", "traits": "object" },

@@ -5,20 +5,43 @@ import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/
 const run = Date.now();
 const INVOICE = `invoice-${run}`;
 const PLAIN = `plain-${run}`;
-const MOVING = `moving-${run}`;
+const STRAY = `stray-${run}`;
 
 const states = {
-    states: { status: { draft: true, issued: true } },
-    transitions: { issue: { status: { draft: 'issued' }, validity: { valid: true } } },
-    initialStates: { default: { status: 'draft' } }
+    states: { status: { draft: true, issued: true }, validity: { valid: true, invalid: true } },
+    transitions: {
+        markValid: { validity: { valid: 'valid', invalid: 'valid' } },
+        markInvalid: { validity: { valid: 'invalid', invalid: 'invalid' } },
+        issue: { status: { draft: 'issued' }, validity: { valid: true } }
+    },
+    initialStates: { default: { status: 'draft', validity: 'valid' } }
 };
 
-const traits = { body: { configuration: { schema: { '!amount': 'number', 'customer': 'string' } } }, validation: { configuration: {} }, state: { configuration: states } };
+const onValidation = [{
+    key: 'state',
+    operation: 'transition',
+    input: { transition: { $if: [{ $eq: [{ $count: { collection: { $keys: '#.errors' } } }, 0] }, 'markValid', 'markInvalid'] } }
+}];
+
+const traits = {
+    body: { configuration: { schema: { '!amount': 'number', 'customer': 'string' } } },
+    validation: { configuration: { onValidation } },
+    state: { configuration: states }
+};
 
 const elements = [
     { id: INVOICE, kind: 'stateful-body-entity-type', data: { traits } },
     { id: PLAIN, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, validation: { configuration: {} } } } },
-    { id: MOVING, kind: 'stateful-entity-type', data: { traits: { validation: { configuration: {} }, state: { configuration: { ...states, transitions: { fix: { status: { draft: 'draft' }, validity: { invalid: 'valid' } } } } } } } },
+    {
+        id: STRAY,
+        kind: 'body-entity-type',
+        data: {
+            traits: {
+                body: { configuration: { schema: { '!amount': 'number' } } },
+                validation: { configuration: { onValidation: [{ key: 'state', operation: 'transition', input: {} }, { key: 'body', operation: 'close', input: {} }, { key: 'body', operation: 'put', input: {} }] } }
+            }
+        }
+    },
     { id: `${PLAIN}-positive`, kind: 'slot-fill', data: { target: PLAIN, slot: 'validations', value: { $if: [{ $gt: ['#.data.body.amount', 0] }, {}, { amount: 'must be positive' }] } } },
     { id: `${INVOICE}-positive`, kind: 'slot-fill', data: { target: INVOICE, slot: 'validations', value: { $if: [{ $gt: ['#.data.body.amount', 0] }, {}, { amount: 'must be positive' }] } } },
     { id: `${INVOICE}-customer`, kind: 'slot-fill', data: { target: INVOICE, slot: 'validations', value: { $if: ['#.data.body.customer', {}, { customer: 'is required' }] } } }
@@ -38,20 +61,21 @@ describe('entity-validations', function () {
 
     after(stop);
 
-    it('reports a transition that moves the validity dimension and nothing else', () => {
+    it('reports a delegate that asks for a trait or an operation the entity type lacks', () => {
         const messages = validate().flatMap(({ data }) => data.messages ?? []);
-        expect(messages.filter(message => message.includes(MOVING))).to.have.length(1);
-        expect(messages.filter(message => !message.includes(MOVING))).to.deep.equal([]);
+        expect(messages.filter(message => message.includes(STRAY))).to.have.length(2);
+        expect(messages.filter(message => !message.includes(STRAY))).to.deep.equal([]);
     });
 
-    it('works without a state trait', async () => {
+    it('only stores the errors without a delegate', async () => {
         const created = await invoke(PLAIN, 'create', { businessKey: 'p-1', traits: { body: { amount: 0 } } });
         expect(created.data.validation).to.deep.equal({ amount: 'must be positive' });
         expect(created.data.state).to.equal(undefined);
     });
 
-    it('records the errors and marks the entity invalid on create', async () => {
+    it('records the errors and the delegate marks the entity invalid in the same revision', async () => {
         const created = await invoke(INVOICE, 'create', { businessKey: 'i-1', traits: { body: { amount: 0 } } });
+        expect(created.revision).to.equal(1);
         expect(created.data.validation).to.deep.equal({ amount: 'must be positive', customer: 'is required' });
         expect(created.data.state).to.deep.equal({ status: 'draft', validity: 'invalid' });
     });
@@ -61,9 +85,15 @@ describe('entity-validations', function () {
         const blocked = await errorOf(invoke(INVOICE, 'transition', { businessKey: 'i-2', revision: 1, transition: 'issue' }));
         expect(blocked.code).to.equal('conflict');
         const fixed = await invoke(INVOICE, 'update', { businessKey: 'i-2', revision: 1, value: { amount: 5, customer: 'acme' } });
-        expect([fixed.data.validation, fixed.data.state.validity]).to.deep.equal([{}, 'valid']);
+        expect([fixed.revision, fixed.data.validation, fixed.data.state.validity]).to.deep.equal([2, {}, 'valid']);
         const issued = await invoke(INVOICE, 'transition', { businessKey: 'i-2', revision: fixed.revision, transition: 'issue' });
         expect(issued.data.state).to.deep.equal({ status: 'issued', validity: 'valid' });
+    });
+
+    it('leaves the delegate alone while the errors stay the same', async () => {
+        const created = await invoke(INVOICE, 'create', { businessKey: 'i-4', traits: { body: { amount: 5, customer: 'acme' } } });
+        const updated = await invoke(INVOICE, 'update', { businessKey: 'i-4', revision: created.revision, value: { amount: 6, customer: 'acme' } });
+        expect([updated.revision, updated.data.state.validity]).to.deep.equal([2, 'valid']);
     });
 
     it('takes no validation as input', async () => {

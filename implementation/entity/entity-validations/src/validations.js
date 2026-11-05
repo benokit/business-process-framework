@@ -1,31 +1,18 @@
 import { isDeepStrictEqual } from 'node:util';
-import { selvesOf } from '@business-framework/core/kinds';
-import { traitKeyOf, traitsOf } from '@business-framework/entities/traits';
+import { hasOperation, selvesOf } from '@business-framework/core/kinds';
+import { traitsOf } from '@business-framework/entities/traits';
 
-const STATES_KIND = 'states-trait';
+export const validationDerivation = ({ record, key, errors, operations }) => isDeepStrictEqual(record.data[key], errors) ? null : { command: 'validate', value: errors, operations };
 
-const VALIDATION_KIND = 'validation-trait';
+const requestedBy = ({ onValidation }) => Array.isArray(onValidation) ? onValidation.filter(request => typeof request?.key === 'string' && typeof request?.operation === 'string') : [];
 
-const DIMENSION = 'validity';
-
-const validityOf = errors => Object.keys(errors).length === 0 ? 'valid' : 'invalid';
-
-const written = (record, key, value) => isDeepStrictEqual(record.data[key], value) ? [] : [{ key, command: 'validate', value }];
-
-export const validationWrites = ({ record, key, errors }) => {
-    const statesKey = traitKeyOf({ entityType: record.entityType, kind: STATES_KIND });
-    return [
-        ...written(record, key, errors),
-        ...statesKey === null ? [] : written(record, statesKey, { ...record.data[statesKey], [DIMENSION]: validityOf(errors) })
-    ];
+const requestProblems = (entityType, { key, operation }) => {
+    const use = traitsOf(entityType)[key];
+    return use === undefined
+        ? [`${entityType}: onValidation asks for the trait under '${key}', which the entity type doesn't have`]
+        : hasOperation({ element: use.trait, operation }) ? [] : [`${entityType}: onValidation asks for the operation '${operation}', which the trait under '${key}' doesn't have`];
 };
 
-const statesUseOf = entityType => traitsOf(entityType)[traitKeyOf({ entityType, kind: STATES_KIND })];
-
-const movesValidity = ([, dimensions]) => Object.entries(dimensions[DIMENSION] ?? {}).some(([source, target]) => target !== true && source !== target);
-
-export const validationProblems = () => selvesOf('entity-type')
-    .filter(({ id }) => traitKeyOf({ entityType: id, kind: VALIDATION_KIND }) !== null && statesUseOf(id) !== undefined)
-    .flatMap(({ id }) => Object.entries(statesUseOf(id).configuration.transitions ?? {})
-        .filter(movesValidity)
-        .map(([name]) => `${id}: transition '${name}' moves the dimension ${DIMENSION}, which the validations own`));
+export const validationProblems = trait => selvesOf('entity-type').flatMap(({ id }) => Object.values(traitsOf(id))
+    .filter(use => use.trait === trait)
+    .flatMap(({ configuration }) => requestedBy(configuration).flatMap(request => requestProblems(id, request))));

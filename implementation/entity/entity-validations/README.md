@@ -5,20 +5,32 @@ The `validation` [trait](../entities/README.md#traits): the business validations
 - The value of `data.validation` is a map from an error name to its message (`{ "amount": "must be positive" }`); `{}` is an entity without errors. Nothing here refuses a write: an entity with errors is stored, so a draft can be saved while it is incomplete.
 - The validations are the fills of the slot `validations` of `entity-type` (on every entity type, a class or one entity type). A fill is a mapping from `{ entityType, businessKey, data }`, the record as the write leaves it, to the errors it finds (`{}` for none); the errors of all the fills are merged, so a fill names the errors it can find and two fills that name the same error overwrite each other.
 - The `derive` of the trait applies the fills to the record as the write leaves it, on `create` and on every trait write, and gives a command only when the errors changed, so they land in the same revision ([derived traits](../entities/README.md#derived-traits)). Callers can't write it: `create` fails with `invalid` when `traits.validation` is given.
-- The trait takes no configuration (`"validation": { "configuration": {} }`) and brings everything else with it.
+- The trait writes nothing but its own key. What the errors cause is the configurator's decision: the configuration `onValidation` is a mapping, the delegate the `derive` calls when the errors changed, from `{ entityType, businessKey, errors }` to the trait operations to run (`[{ key, operation, input }]`, as `traitOperations` takes them). They run in the same derivation, so their commands land in the revision of the write, and a failure refuses it. Without a delegate the errors are only stored. `validate()` reports a literal request whose key the entity type has no trait for, or whose operation that trait doesn't have; a request that is computed, and the names inside its `input` (a transition, say), are not checked.
 
 ```json
 { "id": "invoice", "kind": "stateful-body-entity-type", "data": { "traits": { "validation": { "configuration": {} } } } }
 { "id": "invoice-amount-positive", "kind": "slot-fill", "data": { "target": "invoice", "slot": "validations", "value": { "$if": [{ "$gt": ["#.data.body.amount", 0] }, {}, { "amount": "must be positive" }] } } }
 ```
 
-## The validity dimension
+## Reacting to the errors
 
-On an entity type that has the [`state`](../entity-states/README.md) trait, the trait [provides](../entities/README.md#provided-traits) the dimension `validity` (`valid`, `invalid`) to the states model, and its `derive` writes it beside `data.validation`, in the same revision ([foreign writes](../entities/README.md#derived-traits)): `invalid` while there are errors, `valid` otherwise. A transition that lists the dimension among its sources is blocked with `conflict` while the entity has errors:
+A state dimension that follows the errors is the application's: its model declares the dimension and transitions that move it, and the delegate asks for the operation `transition` of the trait `state` ([entity-states](../entity-states/README.md)), which judges it against the state the write leaves. The trait knows nothing of the `state` trait.
 
 ```json
-"transitions": { "issue": { "status": { "draft": "issued" }, "validity": { "valid": true } } }
+"state": { "configuration": {
+    "states": { "status": { "draft": true, "issued": true }, "validity": { "valid": true, "invalid": true } },
+    "transitions": {
+        "markValid": { "validity": { "valid": "valid", "invalid": "valid" } },
+        "markInvalid": { "validity": { "valid": "invalid", "invalid": "invalid" } },
+        "issue": { "status": { "draft": "issued" }, "validity": { "valid": true } }
+    },
+    "initialStates": { "default": { "status": "draft", "validity": "valid" } }
+} },
+"validation": { "configuration": { "onValidation": [{
+    "key": "state",
+    "operation": "transition",
+    "input": { "transition": { "$if": [{ "$eq": [{ "$count": { "collection": { "$keys": "#.errors" } } }, 0] }, "markValid", "markInvalid"] } }
+}] } }
 ```
 
-- The dimension is the trait's: `validate()` reports a transition that moves it. An entity type without the `state` trait has no dimension and nothing else changes.
-- A model with the dimension has two dimensions, so name the process dimension (`processDimension`) unless it is called `status`.
+A state dimension is one way to model an invalid entity, idiomatic but not the only one. The delegate asks for any operations of any trait, none, or several, and sees the individual errors, so an entity type can flag, move a process state, write a field, or only store the errors, and one error can block while another only warns. What an error means is the entity type's decision, which is why the trait fixes none. Effects outside the entity belong to the `reactions` slot, which sees `data.validation`.

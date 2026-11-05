@@ -39,17 +39,7 @@ const traitsOfKey = (key, contributions) => {
     return named.some(isAlternativeTo(key)) ? named.filter(trait => trait !== key) : named;
 };
 
-const providedContributions = (contributions, keys) => [...new Set(contributions.map(({ trait, key }) => trait ?? key).filter(trait => trait !== undefined && isTrait(trait)))].sort()
-    .flatMap(provider => (getElement(provider).data.provides ?? [])
-        .map(({ trait, key, configuration }) => ({ key: key ?? keyOf(trait), trait, configuration, source: provider }))
-        .filter(({ key }) => keys.includes(key)));
-
-const contributionsOf = entityType => {
-    const own = [...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined);
-    return [...own, ...providedContributions(own, own.map(({ key }) => key))];
-};
-
-const resolve = entityType => Object.entries(Object.groupBy(contributionsOf(entityType), ({ key }) => key))
+const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
     .map(([key, contributions]) => {
         const traits = traitsOfKey(key, contributions);
         return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };

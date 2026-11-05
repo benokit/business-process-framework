@@ -27,7 +27,7 @@
     {
         "id": "trait-derivation",
         "kind": "schema",
-        "data": { "$data#": ["@trait-command", { "!writes[]": { "!key": "string", "!command": "string", "!value": "@any" } }, "null"] }
+        "data": { "$data#": [{ "$data#&": ["@trait-command", { "operations[]": { "!key": "string", "!operation": "string", "input": "@any" } }] }, "null"] }
     },
     {
         "id": "trait-operation",
