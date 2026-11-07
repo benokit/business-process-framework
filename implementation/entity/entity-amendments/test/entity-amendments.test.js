@@ -370,4 +370,28 @@ describe('entity-amendments', function () {
         expect((await errorOf(move(proposed, 'activate'))).code).to.equal('conflict');
         expect((await read('a-10')).data.body.holder).to.equal('Grace');
     });
+
+    it('keeps the link of an amendment: no trait operation writes it, an update of the amendment leaves it', async () => {
+        await policy('g-1');
+        const proposed = await propose('g-1', '2026-07-01', 110);
+        const rewrite = await errorOf(invoke(RAISE, 'applyTraitOperations', { businessKey: proposed.businessKey, revision: proposed.revision, entityOperation: 'update', operations: [{ key: 'amendment-link', operation: 'initialize', input: { ...proposed.data['amendment-link'], amendedKey: 'g-2' } }] }));
+        expect(rewrite.code).to.equal('private-operation');
+        await invoke(RAISE, 'update', { businessKey: proposed.businessKey, revision: proposed.revision, value: { reason: 'again', changes: { premium: 120 }, 'amendment-link': { ...proposed.data['amendment-link'], amendedKey: 'g-2' } } });
+        const stored = await invoke(RAISE, 'read', { businessKey: proposed.businessKey });
+        expect([stored.data.body.reason, stored.data['amendment-link']]).to.deep.equal(['again', proposed.data['amendment-link']]);
+    });
+
+    it('trusts the amendment record given to apply, and the entity the operations given to applyAmendment: only the absence of a route and authorization stand between a caller and them (design/generators.md)', async () => {
+        await policy('g-2');
+        await policy('g-3');
+        const pending = await propose('g-2', '2026-07-01', 112);
+        await invoke('entity-amendments', 'apply', { entityType: POLICY, amendment: pending });
+        expect([(await read('g-2')).data.body.premium, (await invoke(RAISE, 'read', { businessKey: pending.businessKey })).data.state.versionStatus]).to.deep.equal([112, 'pending']);
+        const forged = { ...pending, data: { ...pending.data, 'amendment-link': { ...pending.data['amendment-link'], amendedKey: 'g-3', amendedRevision: (await read('g-3')).revision } } };
+        expect((await errorOf(invoke('entity-amendments', 'apply', { entityType: POLICY, amendment: forged }))).code).to.equal('conflict');
+        expect((await read('g-3')).data.body.premium).to.equal(112);
+        const current = await read('g-3');
+        await invoke(POLICY, 'applyAmendment', { businessKey: 'g-3', revision: current.revision, operations: [{ key: 'body', operation: 'amend', input: { validFrom: '2026-09-01', ref: 'nobody', body: { holder: 'Eve', startDate: '2026-01-01', premium: 1 } } }] });
+        expect((await read('g-3', '2026-09-01')).data.body.premium).to.equal(1);
+    });
 });

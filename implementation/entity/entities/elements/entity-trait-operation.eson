@@ -15,6 +15,29 @@
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!change": "@viewed-entity-change" }
     },
     {
+        "id": "trait-message-input",
+        "kind": "schema",
+        "data": {
+            "!entityType": "string",
+            "!key": "string",
+            "!configuration": "@any",
+            "!sender": { "!entityType": "string", "!businessKey": "string", "!key": "string" },
+            "!message": "string",
+            "input": "@any",
+            "!record": "@entity-record"
+        }
+    },
+    {
+        "id": "trait-message-reply",
+        "kind": "schema",
+        "data": { "$data#": ["[@trait-message-operation]", "null"] }
+    },
+    {
+        "id": "trait-message-operation",
+        "kind": "schema",
+        "data": { "!key": "string", "!operation": "string", "input": "@any" }
+    },
+    {
         "id": "trait-command",
         "kind": "schema",
         "data": { "!command": "string", "!value": "@any" }
@@ -107,6 +130,46 @@
                 "invoke": "#.self.id",
                 "operation": "applyTraitOperations"
             }
+        }
+    },
+    {
+        "id": "trait-message-bus",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "deliver": {
+                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!trait": "string", "!message": "string", "input": "@any" },
+                    "output": "@viewed-entity-record",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "trait": "#.input.trait", "message": "#.input.message", "input": "#.input.input" },
+                        "invoke": "#.input.entityType",
+                        "operation": "deliver"
+                    }
+                }
+            }
+        }
+    },
+    { "id": "trait-messages", "kind": "trait-message-bus", "data": {} },
+    {
+        "id": "deliver-message",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "deliver",
+            "within": "entity-trait",
+            "node": { "!deliver": { "!entityType": "@mapping", "!businessKey": "@mapping", "!trait": "@mapping", "!message": "@mapping", "input": "@mapping" } },
+            "implementation": [
+                {
+                    "inputMap": {
+                        "entityType": { "$func/apply-mapping": { "mapping": "#.node.deliver.entityType", "input": "#" } },
+                        "businessKey": { "$func/apply-mapping": { "mapping": "#.node.deliver.businessKey", "input": "#" } },
+                        "trait": { "$func/apply-mapping": { "mapping": "#.node.deliver.trait", "input": "#" } },
+                        "message": { "$func/apply-mapping": { "mapping": "#.node.deliver.message", "input": "#" } },
+                        "input": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.node.deliver.input", null] }, "input": "#" } }
+                    },
+                    "invoke": "trait-messages",
+                    "operation": "deliver"
+                }
+            ]
         }
     }
 ]

@@ -1,0 +1,165 @@
+import { expect } from 'chai';
+import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
+
+const run = Date.now();
+const COUNTER = `counter-${run}`;
+const NOTIFIER = `notifier-${run}`;
+const SOURCE = `source-${run}`;
+const TARGET = `target-${run}`;
+const CLOSABLE = `closable-${run}`;
+const OUTSIDER = `outsider-${run}`;
+
+const deliverOnUpdate = {
+    input: '@trait-hook-input',
+    implementation: {
+        if: { $eq: ['#.input.change.entityOperation', 'update'] },
+        then: {
+            deliver: {
+                entityType: '#.input.configuration.targetType',
+                businessKey: '#.input.configuration.targetKey',
+                trait: COUNTER,
+                message: '#.input.configuration.message',
+                input: { by: '#.input.configuration.by' }
+            }
+        }
+    }
+};
+
+const elements = [
+    {
+        id: `${COUNTER}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'valued-entity-trait',
+            operations: {
+                initialize: { implementation: { set: 0 } },
+                add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', '#.input.input.by'] } } } },
+                receive: {
+                    input: '@trait-message-input',
+                    output: '@trait-message-reply',
+                    implementation: [
+                        { if: { $eq: ['#.input.message', 'refuse'] }, then: { throw: { code: 'conflict', message: 'the counter refuses' } } },
+                        {
+                            if: { $eq: ['#.input.message', 'add'] },
+                            then: { set: [{ key: '#.input.key', operation: 'add', input: { by: '#.input.input.by' } }] },
+                            else: { set: null }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    { id: COUNTER, kind: `${COUNTER}-trait`, data: { configuration: {} } },
+    {
+        id: `${NOTIFIER}-trait`,
+        kind: 'kind',
+        data: { extends: 'valued-entity-trait', operations: { initialize: { implementation: { set: true } }, react: deliverOnUpdate } }
+    },
+    { id: NOTIFIER, kind: `${NOTIFIER}-trait`, data: { configuration: { '!targetType': 'string', '!targetKey': 'string', '!message': 'string', '!by': 'number' } } },
+    {
+        id: CLOSABLE,
+        kind: 'stateful-body-entity-type',
+        data: {
+            traits: {
+                body: { configuration: { schema: {} } },
+                [COUNTER]: { configuration: {} },
+                state: {
+                    configuration: {
+                        states: { status: { open: true, closed: true } },
+                        transitions: { close: { status: { open: 'closed' } } },
+                        initialStates: { default: { status: 'open' } },
+                        operations: { [`${COUNTER}/add`]: { status: { open: true } } }
+                    }
+                }
+            }
+        }
+    },
+    { id: TARGET, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [COUNTER]: { configuration: {} } } } }
+];
+
+const notifier = (targetType, targetKey, message = 'add') => ({ configuration: { targetType, targetKey, message, by: 1 } });
+
+const sources = [
+    { id: `${SOURCE}-to-target`, extra: notifier(TARGET, 'target-1') },
+    { id: `${SOURCE}-refused`, extra: notifier(TARGET, 'target-1', 'refuse') },
+    { id: `${SOURCE}-itself`, extra: notifier(`${SOURCE}-itself`, 'itself-1') },
+    { id: `${SOURCE}-to-closable`, extra: notifier(CLOSABLE, 'closable-1') }
+].map(({ id, extra }) => ({ id, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!note': 'string' } } }, [COUNTER]: { configuration: {} }, [NOTIFIER]: extra } } }));
+
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states'].map(name => `@business-framework/${name}`);
+
+const errorOf = promise => promise.then(() => null, error => error);
+
+const counterOf = async (entityType, businessKey) => (await invoke(entityType, 'read', { businessKey })).data[COUNTER];
+
+describe('trait messages', function () {
+    before(async function () {
+        await skipWithoutPostgres(this);
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...sources] });
+        await start();
+        await migrate();
+        await invoke(TARGET, 'create', { businessKey: 'target-1', traits: { body: {} } });
+        await invoke(CLOSABLE, 'create', { businessKey: 'closable-1', traits: { body: {} } });
+    });
+
+    after(stop);
+
+    it('validates', () => {
+        expect(validate()).to.deep.equal([]);
+    });
+
+    it('changes another entity from a trait, in the transaction of the move that caused it', async () => {
+        const type = `${SOURCE}-to-target`;
+        const created = await invoke(type, 'create', { businessKey: 's-1', traits: { body: { note: 'a' } } });
+        await invoke(type, 'update', { businessKey: 's-1', revision: created.revision, value: { note: 'b' } });
+        expect(await counterOf(TARGET, 'target-1')).to.equal(1);
+    });
+
+    it('rolls the move back when the receiving trait refuses', async () => {
+        const type = `${SOURCE}-refused`;
+        const created = await invoke(type, 'create', { businessKey: 's-2', traits: { body: { note: 'a' } } });
+        const error = await errorOf(invoke(type, 'update', { businessKey: 's-2', revision: created.revision, value: { note: 'b' } }));
+        expect([error.code, error.message]).to.deep.equal(['conflict', 'the counter refuses']);
+        expect((await invoke(type, 'read', { businessKey: 's-2' })).data.body.note).to.equal('a');
+    });
+
+    it('lets a trait change its own entity', async () => {
+        const type = `${SOURCE}-itself`;
+        const created = await invoke(type, 'create', { businessKey: 'itself-1', traits: { body: { note: 'a' } } });
+        await invoke(type, 'update', { businessKey: 'itself-1', revision: created.revision, value: { note: 'b' } });
+        const record = await invoke(type, 'read', { businessKey: 'itself-1' });
+        expect([record.data.body.note, record.data[COUNTER]]).to.deep.equal(['b', 1]);
+    });
+
+    it('refuses a message from anyone but a trait', async () => {
+        const error = await errorOf(invoke(TARGET, 'deliver', { businessKey: 'target-1', trait: COUNTER, message: 'add', input: { by: 100 } }));
+        expect(error.code).to.equal('forbidden');
+        expect(await counterOf(TARGET, 'target-1')).to.equal(1);
+    });
+
+    it('lets the state model of the receiver say in which states a message is accepted', async () => {
+        const type = `${SOURCE}-to-closable`;
+        const created = await invoke(type, 'create', { businessKey: 's-3', traits: { body: { note: 'a' } } });
+        const updated = await invoke(type, 'update', { businessKey: 's-3', revision: created.revision, value: { note: 'b' } });
+        expect(await counterOf(CLOSABLE, 'closable-1')).to.equal(1);
+        const closable = await invoke(CLOSABLE, 'read', { businessKey: 'closable-1' });
+        await invoke(CLOSABLE, 'transition', { businessKey: 'closable-1', revision: closable.revision, transition: 'close' });
+        const error = await errorOf(invoke(type, 'update', { businessKey: 's-3', revision: updated.revision, value: { note: 'c' } }));
+        expect([error.code, error.message]).to.deep.equal(['conflict', `${CLOSABLE} doesn't allow ${COUNTER}/add in its current state`]);
+        expect(await counterOf(CLOSABLE, 'closable-1')).to.equal(1);
+    });
+
+    it('reports a message sent from a pipeline that is no trait', async () => {
+        const outside = [
+            { id: `${OUTSIDER}-kind`, kind: 'kind', data: { operations: { send: { input: '@any', implementation: { deliver: { entityType: TARGET, businessKey: 'target-1', trait: COUNTER, message: 'add' } } } } } },
+            { id: OUTSIDER, kind: `${OUTSIDER}-kind`, data: {} }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...sources, ...outside] });
+        expect(validate().filter(problem => problem.data.element === `${OUTSIDER}-kind`).map(problem => problem.code)).to.deep.equal(['node-outside-context']);
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...sources] });
+        await start();
+        await migrate();
+    });
+});
