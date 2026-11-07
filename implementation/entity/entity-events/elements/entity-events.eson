@@ -9,7 +9,9 @@
             "!businessKey": "string",
             "!revision": "number",
             "key": "string",
-            "command": "string"
+            "command": "string",
+            "origin": "object",
+            "by": "string"
         }
     },
     {
@@ -52,7 +54,9 @@
                             "id": "#.record.id",
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
-                            "commands": { "$map": { "over": { "$coalesce": ["#.input.commands", []] }, "fn": { "key": "#.key", "command": "#.command" } } }
+                            "commands": { "$map": { "over": { "$coalesce": ["#.input.commands", []] }, "fn": { "key": "#.key", "command": "#.command" } } },
+                            "origin": "#.input.origin",
+                            "by": "#._ctx.user.userId"
                         },
                         "subject": "#.record.entityType",
                         "messageId": { "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation"], "separator": "-" } },

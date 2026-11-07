@@ -11,7 +11,8 @@
   "dependencies": {
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
-    "@business-framework/messaging": "*"
+    "@business-framework/messaging": "*",
+    "@business-framework/security": "*"
   },
   "devDependencies": {
     "@business-framework/entity-states": "*",
