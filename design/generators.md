@@ -1,14 +1,14 @@
 # Generators: entities that generate entities
 
-Status: **agreed** (every question Q-G1 to Q-G10 is decided). This file owns the design of generalizing the `amendmentTypes` slot of [entity-amendments](../implementation/entity/entity-amendments/README.md); the work is [R6.28](refactoring-plan.md) and [R6.29](refactoring-plan.md), the finding [F68](critique.md). When built, the mechanism moves into the [entities README](../implementation/entity/entities/README.md) and the generators into the [entity-amendments README](../implementation/entity/entity-amendments/README.md), and this file keeps the reasoning.
+Status: **built** (R6.28 to R6.30; every question Q-G1 to Q-G11 is decided; the last section lists what building changed). This file owns the design of generalizing the `amendmentTypes` slot of [entity-amendments](../implementation/entity/entity-amendments/README.md); the work is [R6.28](refactoring-plan.md) and [R6.29](refactoring-plan.md), the finding [F68](critique.md). When built, the mechanism moves into the [entities README](../implementation/entity/entities/README.md) and the generators into the [entity-amendments README](../implementation/entity/entity-amendments/README.md), and this file keeps the reasoning.
 
 ## Idea
 
 An entity instance has generative capabilities: it can produce new instances of arbitrary kinds. A trait holds the **generative declarations**; each says which kind the new entity has, how its initial data is made, and which **private interaction interface** the new entity has back to the entity that generated it. An amendment is the special case in which the generated entity is an amendment, its interface is `apply` and `revert`, and the source is an entity with a versioned body.
 
-## What the amendment process is made of today
+## What the amendment process was made of (before R6.29)
 
-| Part | Generic? | Today |
+| Part | Generic? | Before |
 |---|---|---|
 | A slot of declarations `{ type, open, input, apply, revert }` filled by `slot-fill` elements | yes | `amendmentTypes` of `versioned-entity-type` |
 | `propose`: checks the source's state, finds the declaration, creates the entity | yes | operation of `entity-amendments` |
@@ -102,7 +102,9 @@ The generic `generator` knows no policy. What the amendment process adds is a **
 
 ## What guarantees that only the generating entity is interacted with
 
-### What holds today
+The two lists below describe the amendments as they were before R6.29; the requirements after them are met by the built design (the tests named in the last section pin them).
+
+### What held before R6.29
 
 Established by the tests `keeps the link of an amendment` and `trusts the amendment record given to apply` in [entity-amendments.test.js](../implementation/entity/entity-amendments/test/entity-amendments.test.js) and by reading [entity-amendments.eson](../implementation/entity/entity-amendments/elements/entity-amendments.eson):
 
@@ -110,14 +112,14 @@ Established by the tests `keeps the link of an amendment` and `trusts the amendm
 2. **The link is the identity.** The target of every reaction (`apply`, `revert`, `close`) is read from the link of the amendment that moved, not from a parameter. The trait `amendment-link` has only `initialize`; its other operations don't exist and `applyTraitOperations` is private, so no trait operation writes it, and an `update` of the amendment leaves it as it was (tested).
 3. **Checks on the source.** `apply` is a `conflict` if the revision of the source isn't the `amendedRevision` of the link; `close` is a `conflict` unless the amendment is the open one of the ledger; `body.remove` removes the version of its own `ref` only.
 
-### What does not hold today
+### What did not hold before R6.29
 
 Both tested, both unlike what the design above promises:
 
 - **`entity-amendments.apply` trusts the record it is given.** Given the stored but still pending amendment of `g-2`, it applies the version to the entity, and the amendment stays `pending`: the version is written without the move that should cause it. Given a record whose link names another entity (`g-3`) whose revision it also gives, it writes the version to that entity; then `close` fails with `conflict`, but the version stays: a call from outside the transition is not one transaction. The only protection is that no HTTP route exposes `apply`, `revert` and `close`, and the authorization of operations.
 - **`applyAmendment` of the source takes any list of trait operations.** Called directly, it amends the entity with an arbitrary `body.amend` that no amendment asked for (tested). The state model and authorization of operations are the only protection.
 
-### What the design requires
+### What the design requires, and what meets it
 
 1. **No record is given.** The effect is a message from the `generated` trait of the generated entity, whose identity is `_ctx.trait`; the `generator` trait reads the sender's stored record itself and takes the source from its link, so a caller can't give a record. It also checks that the sender is in the state the binding says (`versionStatus` is `applied` for `apply`), so a pending amendment can't apply.
 2. **The link is fixed.** Kept as it is today: a trait with no operation but `initialize`, which is private to the type.
