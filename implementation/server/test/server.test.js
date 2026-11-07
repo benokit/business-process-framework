@@ -8,6 +8,12 @@ import { skipWithoutIdentityProvider, tokenFor } from '../../services/oauth/test
 
 const DEMO = fileURLToPath(new URL('../../../demo', import.meta.url));
 const run = Date.now();
+const events = [];
+
+export const record = ({ input }) => {
+    events.push(input);
+    return null;
+};
 
 const call = async (method, path, body, token, headers = {}) => {
     const { port } = await invoke('http-server', 'address', null);
@@ -26,7 +32,10 @@ describe('server with the demo', function () {
         await skipWithoutPostgres(this);
         await skipWithoutMeilisearch(this);
         await skipWithoutIdentityProvider(this);
-        stop = await startServer({ paths: [DEMO], elements: [{ kind: 'app-config', data: { 'http-server': { port: 0 }, authenticate: { actAs: { administrator: `boss-${run}` } } } }] });
+        stop = await startServer({ paths: [DEMO], elements: [
+            { kind: 'app-config', data: { 'http-server': { port: 0 }, authenticate: { actAs: { administrator: `boss-${run}` } } } },
+            { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record', effects: ['irreversible'] } } } }
+        ] });
         await migrate();
     });
 
@@ -200,6 +209,14 @@ describe('server with the demo', function () {
             'invalid: construction has no trait generator with the entry write',
             'forbidden: a message is delivered by a trait'
         ]);
+    });
+
+    it('names the user who made a change in the event of it', async () => {
+        const underwriter = await userWith(`by-${run}`, ['underwriter-role']);
+        const contract = await contractOf('construction', { project: 'by' }, underwriter);
+        const deadline = Date.now() + 10000;
+        while (!events.some(event => event.businessKey === contract.businessKey) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+        expect(events.filter(event => event.businessKey === contract.businessKey).map(({ eventType, by }) => [eventType, by])).to.deep.equal([['create', `by-${run}`]]);
     });
 
     it('proposes amendments only through an active contract that allows their type', async () => {
