@@ -18,6 +18,7 @@
                 "!method=1": ["GET", "POST", "PUT", "PATCH", "DELETE"],
                 "!path": "string",
                 "!target": { "!element": "@ref", "!operation": "string" },
+                "body": "@schema",
                 "operation": "@mapping",
                 "public": "boolean",
                 "request": "@mapping",
@@ -41,6 +42,14 @@
                             "do": {
                                 "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "requestMiddleware" } },
                                 "action": [
+                                    {
+                                        "if": "#.self.data.body",
+                                        "then": {
+                                            "inputMap": { "schemaId": { "$str": ["#.self.id", "/body"] }, "value": "#.input.body" },
+                                            "invoke": "ajv",
+                                            "operation": "assert"
+                                        }
+                                    },
                                     {
                                         "outputKey": "output",
                                         "inputMap": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.self.data.request", { "$literal": "#.body" }] }, "input": "#.input" } },
@@ -73,12 +82,22 @@
                         },
                         {
                             "$cond": [
+                                [{ "$and": [{ "$not": "#.self.data.body" }, { "$neq": ["#.self.data.method", "GET"] }, { "$neq": ["#.self.data.method", "DELETE"] }] }, ["declares no body schema"]],
+                                ["else", []]
+                            ]
+                        },
+                        {
+                            "$cond": [
                                 [{ "$and": ["#.self.data.operation", "#.self.data.public"] }, ["declares both an operation and public"]],
                                 [{ "$or": ["#.self.data.operation", "#.self.data.public"] }, []],
                                 ["else", ["declares neither an operation nor public"]]
                             ]
                         }
                     ]
+                },
+                "load": {
+                    "if": "#.self.data.body",
+                    "then": { "inputMap": { "id": { "$str": ["#.self.id", "/body"] }, "schema": "#.self.data.body" }, "invoke": "ajv", "operation": "add" }
                 },
                 "start": {
                     "inputMap": { "method": "#.self.data.method", "path": "#.self.data.path", "endpoint": "#.self.id" },

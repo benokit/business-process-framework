@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="Helvetica,Arial,sans-serif" font-size="12">
+<style>.t{fill:#1f2937}.m{fill:#6b7280;font-size:11px}.b{font-weight:bold}.box{fill:#fff;stroke:#9ca3af;stroke-width:1.2}.hd{fill:#eef2ff;stroke:#6366f1;stroke-width:1.2}.gd{fill:#fef3c7;stroke:#d97706;stroke-width:1.2}.tx{fill:none;stroke:#9ca3af;stroke-dasharray:6 4}.ar{stroke:#4f46e5;stroke-width:1.5}.rt{stroke:#059669;stroke-width:1.5}</style>
+<defs><marker id="h" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#4b5563"/></marker></defs>
+<rect width="900" height="620" fill="#fafafa"/>
+<text x="20" y="28" class="t b" font-size="16">Trait messages: a trait changes its own or another entity from within</text>
+<text x="20" y="46" class="m">One transaction. A refusal or failure anywhere rolls the sender's move back.</text>
+<rect x="14" y="60" width="872" height="400" rx="10" class="tx"/><text x="26" y="78" class="m">transaction of the caller</text>
+<rect x="30" y="96" width="150" height="52" rx="7" class="box"/>
+<text x="105.0" y="114" text-anchor="middle" class="t b">hook / operation</text>
+<text x="105.0" y="130" text-anchor="middle" class="m">guard, react, put…</text>
+<rect x="30" y="166" width="150" height="52" rx="7" class="box"/>
+<text x="105.0" y="184" text-anchor="middle" class="t b">entry</text>
+<text x="105.0" y="200" text-anchor="middle" class="m">enter(businessKey, trait,</text>
+<text x="105.0" y="213" text-anchor="middle" class="m">entry, input)</text>
+<text x="105" y="240" text-anchor="middle" class="m" font-size="10">entry must be listed in "entries"</text>
+<text x="105" y="252" text-anchor="middle" class="m" font-size="10">else invalid</text>
+<rect x="230" y="120" width="170" height="110" rx="7" class="hd"/>
+<text x="315.0" y="138" text-anchor="middle" class="t b">sender trait</text>
+<text x="315.0" y="154" text-anchor="middle" class="m">runs with context</text>
+<text x="315.0" y="167" text-anchor="middle" class="m">trait = {entityType,</text>
+<text x="315.0" y="180" text-anchor="middle" class="m">businessKey, key}</text>
+<text x="315.0" y="193" text-anchor="middle" class="m">(bound by trait-container)</text>
+<path d="M180 122 L230 146" class="ar" fill="none" marker-end="url(#h)"/>
+<path d="M180 192 L230 196" class="ar" fill="none" marker-end="url(#h)"/>
+<rect x="450" y="120" width="150" height="110" rx="7" class="gd"/>
+<text x="525.0" y="138" text-anchor="middle" class="t b">node deliver</text>
+<text x="525.0" y="154" text-anchor="middle" class="m">entityType, businessKey,</text>
+<text x="525.0" y="167" text-anchor="middle" class="m">trait, message, input?</text>
+<text x="525.0" y="180" text-anchor="middle" class="m">valid only in a trait</text>
+<text x="525.0" y="193" text-anchor="middle" class="m">pipeline; else</text>
+<text x="525.0" y="206" text-anchor="middle" class="m">node-outside-context</text>
+<path d="M400 175 L450 175" class="ar" fill="none" marker-end="url(#h)"/>
+<rect x="650" y="120" width="220" height="110" rx="7" class="gd"/>
+<text x="760.0" y="138" text-anchor="middle" class="t b">trait-container.deliver</text>
+<text x="760.0" y="154" text-anchor="middle" class="m">forbidden without the</text>
+<text x="760.0" y="167" text-anchor="middle" class="m">context trait</text>
+<text x="760.0" y="180" text-anchor="middle" class="m">calls receive of the</text>
+<text x="760.0" y="193" text-anchor="middle" class="m">target trait</text>
+<path d="M600 175 L650 175" class="ar" fill="none" marker-end="url(#h)"/>
+<rect x="650" y="290" width="220" height="100" rx="7" class="hd"/>
+<text x="760.0" y="308" text-anchor="middle" class="t b">target trait.receive</text>
+<text x="760.0" y="324" text-anchor="middle" class="m">{entityType, key, configuration,</text>
+<text x="760.0" y="337" text-anchor="middle" class="m">sender, message, input, record}</text>
+<text x="760.0" y="350" text-anchor="middle" class="m">record = target as stored</text>
+<path d="M760 230 L760 290" class="ar" fill="none" marker-end="url(#h)"/>
+<text x="768" y="262" class="m" font-size="10">call</text>
+<rect x="380" y="290" width="220" height="100" rx="7" class="box"/>
+<text x="490.0" y="308" text-anchor="middle" class="t b">returns</text>
+<text x="490.0" y="324" text-anchor="middle" class="m">throw: refuse</text>
+<text x="490.0" y="337" text-anchor="middle" class="m">[{ key, operation, input }]</text>
+<text x="490.0" y="350" text-anchor="middle" class="m">or null (nothing to write)</text>
+<path d="M650 340 L600 340" class="rt" fill="none" marker-end="url(#h)"/>
+<rect x="30" y="290" width="300" height="100" rx="7" class="gd"/>
+<text x="180.0" y="308" text-anchor="middle" class="t b">applyChange</text>
+<text x="180.0" y="324" text-anchor="middle" class="m">at the revision just read</text>
+<text x="180.0" y="337" text-anchor="middle" class="m">operation: trait</text>
+<text x="180.0" y="350" text-anchor="middle" class="m">entityOperation: &lt;trait key&gt;/&lt;message&gt;</text>
+<text x="180.0" y="363" text-anchor="middle" class="m">origin: { sender, trait, message }</text>
+<path d="M380 340 L330 340" class="rt" fill="none" marker-end="url(#h)"/>
+<text x="30" y="412" class="t b" font-size="11">Gates:</text>
+<text x="30" y="428" class="m">guards of the target's traits and the state model decide on "&lt;trait key&gt;/&lt;message&gt;"</text>
+<text x="30" y="442" class="m">(operations: { "generator/settle": { status: { open: true } } }); a state that does not accept it gives conflict.</text>
+<text x="470" y="412" class="t b" font-size="11">Skipped:</text>
+<text x="470" y="428" class="m">what belongs to a caller: authorization and the HTTP surface.</text>
+<rect x="14" y="478" width="872" height="124" rx="10" class="box"/><text x="26" y="498" class="t b">Example: generated entity acts back on its source (entity-generation)</text>
+<rect x="40" y="512" width="160" height="70" rx="7" class="hd"/>
+<text x="120.0" y="530" text-anchor="middle" class="t b">source (generator)</text>
+<text x="120.0" y="546" text-anchor="middle" class="m">entry generate creates</text>
+<text x="120.0" y="559" text-anchor="middle" class="m">the generated entity</text>
+<rect x="380" y="512" width="160" height="70" rx="7" class="hd"/>
+<text x="460.0" y="530" text-anchor="middle" class="t b">generated</text>
+<text x="460.0" y="546" text-anchor="middle" class="m">trait generated: link,</text>
+<text x="460.0" y="559" text-anchor="middle" class="m">bindings move to effect</text>
+<rect x="700" y="512" width="160" height="70" rx="7" class="hd"/>
+<text x="780.0" y="530" text-anchor="middle" class="t b">source.receive</text>
+<text x="780.0" y="546" text-anchor="middle" class="m">checks link and state,</text>
+<text x="780.0" y="559" text-anchor="middle" class="m">returns effect items</text>
+<path d="M200 537 L380 537" class="ar" fill="none" marker-end="url(#h)"/>
+<text x="245" y="528" class="m" font-size="10">create via entry</text>
+<path d="M540 547 L700 547" class="ar" fill="none" marker-end="url(#h)"/>
+<text x="555" y="538" class="m" font-size="10">react: deliver message</text>
+<text x="700" y="598" class="m" font-size="10">written as one change in the move's transaction</text>
+</svg>

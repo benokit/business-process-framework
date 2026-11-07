@@ -4,25 +4,44 @@
         "kind": "insurance-contract-type",
         "data": {
             "characteristics": { "lineOfBusiness": "construction", "maxSumInsured": 50000000 },
-            "traits": { "body": { "configuration": { "schema": { "$data#&": ["@contract-terms", {
-                "!policyholder": "string",
-                "!project": "string",
-                "!currency": "string",
-                "!region": "@region",
-                "confidential": "boolean"
-            }] } } },
-            "business-key": { "configuration": { "rule": [
-                { "outputKey": "seq", "nextFromSequence": "construction-seq" },
-                { "outputKey": "now", "invoke": "clock", "operation": "now" },
-                {
-                    "set": {
-                        "$join": {
-                            "strings": ["CON", { "$head": { "$split": { "string": "#.now", "separator": "-" } } }, { "$printf": { "template": "%04d", "args": ["#.seq"] } }],
-                            "separator": "-"
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "$data#&": [
+                                "@contract-terms",
+                                {
+                                    "!policyholder": "string",
+                                    "!project": "string",
+                                    "!currency": "string",
+                                    "!region": "@region",
+                                    "confidential": "boolean"
+                                }
+                            ]
                         }
                     }
+                },
+                "business-key": {
+                    "configuration": {
+                        "rule": [
+                            { "outputKey": "seq", "nextFromSequence": "construction-seq" },
+                            { "outputKey": "now", "invoke": "clock", "operation": "now" },
+                            {
+                                "set": {
+                                    "$join": {
+                                        "strings": [
+                                            "CON",
+                                            { "$head": { "$split": { "string": "#.now", "separator": "-" } } },
+                                            { "$printf": { "template": "%04d", "args": ["#.seq"] } }
+                                        ],
+                                        "separator": "-"
+                                    }
+                                }
+                            }
+                        ]
+                    }
                 }
-            ] } } }
+            }
         }
     },
     {
@@ -37,21 +56,60 @@
                     "declarations": {
                         "premium-adjustment": {
                             "type": "premium-adjustment",
-                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
+                            "effects": {
+                                "apply": [
+                                    {
+                                        "key": "body",
+                                        "operation": "amend",
+                                        "input": {
+                                            "validFrom": "#.link.context.effectiveFrom",
+                                            "ref": "#.generated.businessKey",
+                                            "body": { "$func/change-version": "#" }
+                                        }
+                                    }
+                                ]
+                            }
                         },
                         "extension": {
                             "type": "extension",
-                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
+                            "effects": {
+                                "apply": [
+                                    {
+                                        "key": "body",
+                                        "operation": "amend",
+                                        "input": {
+                                            "validFrom": "#.link.context.effectiveFrom",
+                                            "ref": "#.generated.businessKey",
+                                            "body": { "$func/change-version": "#" }
+                                        }
+                                    }
+                                ]
+                            }
                         },
                         "cancellation": {
                             "type": "cancellation",
                             "effects": {
                                 "apply": [
-                                    { "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } },
+                                    {
+                                        "key": "body",
+                                        "operation": "amend",
+                                        "input": {
+                                            "validFrom": "#.link.context.effectiveFrom",
+                                            "ref": "#.generated.businessKey",
+                                            "body": { "$func/change-version": "#" }
+                                        }
+                                    },
                                     { "key": "state", "operation": "transition", "input": { "transition": "cancel" } }
                                 ],
                                 "revert": [
-                                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey" } },
+                                    {
+                                        "key": "body",
+                                        "operation": "remove",
+                                        "input": {
+                                            "validFrom": "#.link.context.effectiveFrom",
+                                            "ref": "#.generated.businessKey"
+                                        }
+                                    },
                                     { "key": "state", "operation": "transition", "input": { "transition": "reactivate" } }
                                 ]
                             }
@@ -67,7 +125,17 @@
         "data": {
             "target": "construction",
             "slot": "relations",
-            "value": { "set": { "relations": [{ "targetEntityType": "party", "targetEntityBusinessKey": "#.input.data.body.policyholder", "relationType": "policyholder" }] } }
+            "value": {
+                "set": {
+                    "relations": [
+                        {
+                            "targetEntityType": "party",
+                            "targetEntityBusinessKey": "#.input.data.body.policyholder",
+                            "relationType": "policyholder"
+                        }
+                    ]
+                }
+            }
         }
     }
 ]

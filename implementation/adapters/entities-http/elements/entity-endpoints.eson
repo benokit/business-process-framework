@@ -17,6 +17,7 @@
             "method": "POST",
             "path": "/entities/:entityType",
             "target": { "element": "entities", "operation": "create" },
+            "body": { "businessKey": "string", "traits": "object", "body": "@any", "*": "never" },
             "operation": { "area": "entities", "resource": "#.input.entityType", "action": "create" },
             "request": {
                 "entityType": "#.params.entityType",
@@ -47,6 +48,7 @@
             "method": "PUT",
             "path": "/entities/:entityType/:businessKey",
             "target": { "element": "entities", "operation": "update" },
+            "body": { "!body": "@any", "*": "never" },
             "operation": { "area": "entities", "resource": "#.input.entityType", "action": "update" },
             "request": {
                 "entityType": "#.params.entityType",

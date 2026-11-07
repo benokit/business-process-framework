@@ -14,7 +14,7 @@ const echo = {
     }
 };
 
-const endpoint = (id, method, path, target, extra = {}) => ({ id, kind: 'http-endpoint', data: { method, path, target: { element: 'the-echo', operation: target }, public: true, ...extra } });
+const endpoint = (id, method, path, target, extra = {}) => ({ id, kind: 'http-endpoint', data: { method, path, target: { element: 'the-echo', operation: target }, public: true, body: '@any', ...extra } });
 
 const fill = (id, value, order = {}) => ({ id, kind: 'slot-fill', data: { target: 'http-endpoint', slot: 'requestMiddleware', value, ...order } });
 
@@ -29,6 +29,7 @@ const elements = [
     }),
     endpoint('correlated', 'GET', '/correlation', 'correlation'),
     endpoint('strict', 'POST', '/strict', 'strict'),
+    endpoint('shaped', 'POST', '/shaped', 'echo', { body: { '!name': 'string', tagged: 'boolean', '*': 'never' } }),
     endpoint('failing', 'GET', '/fail', 'fail'),
     fill('tag-request', { inputMap: { $merge: ['#.input', { body: { tagged: true } }] }, next: true }),
     fill('block-forbidden', { if: { $eq: ['#.input.headers.x-block', 'yes'] }, then: { set: { status: 403, body: { error: 'blocked' } } }, else: { next: true } }, { position: 'first' })
@@ -87,6 +88,13 @@ describe('http-server', () => {
         expect([failing.status, failing.body.error.message]).to.deep.equal([500, 'broken']);
     });
 
+    it('rejects a body that does not match the body schema of the endpoint', async () => {
+        const accepted = await call('/shaped', { method: 'POST', body: { name: 'a' } });
+        const missing = await call('/shaped', { method: 'POST', body: {} });
+        const extra = await call('/shaped', { method: 'POST', body: { name: 'a', other: 1 } });
+        expect([accepted.status, missing.status, missing.body.error.code, extra.status]).to.deep.equal([200, 400, 'invalid', 400]);
+    });
+
     it('answers an error with its correlation and no route', async () => {
         const { body } = await call('/fail', { headers: { 'x-correlation-id': 'c-2' } });
         expect(body).to.deep.equal({ error: { code: 'error', message: 'broken', correlation: 'c-2' } });
@@ -116,10 +124,20 @@ describe('http-endpoint validation', () => {
             paths: [packageElements('@business-framework/http-server')],
             elements: [writer, { id: 'the-writer', kind: 'writer', data: {} },
                 { id: 'unsafe', kind: 'http-endpoint', data: { method: 'GET', path: '/unsafe', target: { element: 'the-writer', operation: 'save' }, public: true } },
-                { id: 'safe', kind: 'http-endpoint', data: { method: 'POST', path: '/safe', target: { element: 'the-writer', operation: 'save' }, public: true } }]
+                { id: 'safe', kind: 'http-endpoint', data: { method: 'POST', path: '/safe', target: { element: 'the-writer', operation: 'save' }, public: true, body: '@any' } }]
         });
         expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
             ['invalid-element', 'unsafe: a GET target changes state, write: low address']
+        ]);
+    });
+
+    it('reports a POST, PUT or PATCH endpoint without a body schema', async () => {
+        await boot({
+            paths: [packageElements('@business-framework/http-server')],
+            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} }, endpoint('bare', 'POST', '/bare', 'echo', { body: undefined }), endpoint('read', 'GET', '/read', 'echo', { body: undefined })]
+        });
+        expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
+            ['invalid-element', 'bare: declares no body schema']
         ]);
     });
 

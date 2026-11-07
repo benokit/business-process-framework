@@ -82,6 +82,7 @@
             "method": "POST",
             "path": "/parties/search-by-type",
             "target": { "element": "parties-by-type-search-query", "operation": "run" },
+            "body": { "!partyType": "string", "generalSearch": "string", "offset": "number", "limit": "number", "*": "never" },
             "operation": { "area": "entities", "resource": "party", "action": "search" },
             "request": "#.body"
         }

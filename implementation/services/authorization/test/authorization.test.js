@@ -25,7 +25,7 @@ const documents = [
 ];
 
 const endpoint = (id, method, operation, data) => ({
-    id, kind: 'http-endpoint', data: { method, path: `/${id}`, target: { element: 'documents', operation }, ...data }
+    id, kind: 'http-endpoint', data: { method, path: `/${id}`, target: { element: 'documents', operation }, body: '@any', ...data }
 });
 
 const readEndpoint = endpoint('read-document', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.type', action: 'read' } });

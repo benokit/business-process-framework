@@ -28,6 +28,7 @@
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/amendments",
             "target": { "element": "trait-messages", "operation": "enter" },
+            "body": { "!amendmentType": "string", "!effectiveFrom": "@date", "!reason": "string", "!changes": "object", "*": "never" },
             "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "propose" },
             "request": {
                 "entityType": "#.params.entityType",
