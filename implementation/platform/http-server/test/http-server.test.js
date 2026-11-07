@@ -131,10 +131,10 @@ describe('http-endpoint validation', () => {
         ]);
     });
 
-    it('reports a POST, PUT or PATCH endpoint without a body schema', async () => {
+    it('reports a POST, PUT or PATCH endpoint that maps its request without a body schema', async () => {
         await boot({
             paths: [packageElements('@business-framework/http-server')],
-            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} }, endpoint('bare', 'POST', '/bare', 'echo', { body: undefined }), endpoint('read', 'GET', '/read', 'echo', { body: undefined })]
+            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} }, endpoint('bare', 'POST', '/bare', 'echo', { body: undefined, request: '#.body' }), endpoint('passed', 'POST', '/passed', 'echo', { body: undefined }), endpoint('read', 'GET', '/read', 'echo', { body: undefined })]
         });
         expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
             ['invalid-element', 'bare: declares no body schema']

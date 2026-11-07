@@ -12,7 +12,7 @@ An endpoint is only a mapping between a request and an operation of an element, 
 
 A failure is answered with `{ error: { code, message, correlation } }` and logged to stderr with the correlation and the route of the error ([frames](../../core/README.md)); the route never leaves the server.
 
-Every endpoint that takes a body (`POST`, `PUT`, `PATCH`) declares its `body`, the payload schema (CJSL, registered as `<endpoint id>/body`), and the request is refused with `invalid` (400) unless its body matches it. It is checked after the request middleware, before `request` maps it, and is the contract a client reads; `validate()` reports such an endpoint without it. A schema with `"*": "never"` is closed, so a field nobody reads is refused.
+Every endpoint that takes a body (`POST`, `PUT`, `PATCH`) and maps it with `request` declares its `body`, the payload schema (CJSL, registered as `<endpoint id>/body`), and the request is refused with `invalid` (400) unless its body matches it. It is checked after the request middleware, before `request` maps it, and is the contract a client reads; `validate()` reports such an endpoint without it. Without a `request` the body is the input of the target, whose input schema is the contract and validates it, so no `body` is needed. A schema with `"*": "never"` is closed, so a field nobody reads is refused.
 
 The target's operation must exist, and a `GET` endpoint's target changes nothing: `validate()` reports one with `write` or `irreversible` [effects](../../core/README.md#effects), with the trace.
 

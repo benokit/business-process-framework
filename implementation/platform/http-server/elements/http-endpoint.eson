@@ -82,7 +82,7 @@
                         },
                         {
                             "$cond": [
-                                [{ "$and": [{ "$not": "#.self.data.body" }, { "$neq": ["#.self.data.method", "GET"] }, { "$neq": ["#.self.data.method", "DELETE"] }] }, ["declares no body schema"]],
+                                [{ "$and": ["#.self.data.request", { "$not": "#.self.data.body" }, { "$neq": ["#.self.data.method", "GET"] }, { "$neq": ["#.self.data.method", "DELETE"] }] }, ["declares no body schema"]],
                                 ["else", []]
                             ]
                         },
