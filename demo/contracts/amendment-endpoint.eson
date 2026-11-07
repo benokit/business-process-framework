@@ -18,7 +18,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "object" },
-            "mapping": { "$func/patched-body": { "body": "#.body", "patch": { "$func/changes-patch": "#.amendment.data.body.changes" } } }
+            "mapping": { "$func/patched-body": { "body": { "$func/record-body": "#.source" }, "patch": { "$func/changes-patch": "#.generated.data.body.changes" } } }
         }
     },
     {
@@ -27,14 +27,18 @@
         "data": {
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/amendments",
-            "target": { "element": "entity-amendments", "operation": "propose" },
+            "target": { "element": "trait-messages", "operation": "enter" },
             "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "propose" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
-                "amendmentType": "#.body.amendmentType",
-                "effectiveFrom": "#.body.effectiveFrom",
-                "input": { "reason": "#.body.reason", "changes": "#.body.changes" }
+                "trait": "generator",
+                "entry": "generate",
+                "input": {
+                    "generator": "#.body.amendmentType",
+                    "input": { "reason": "#.body.reason", "changes": "#.body.changes" },
+                    "context": { "effectiveFrom": "#.body.effectiveFrom" }
+                }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

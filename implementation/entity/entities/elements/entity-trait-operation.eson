@@ -28,6 +28,11 @@
         }
     },
     {
+        "id": "trait-entry-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!businessKey": "string", "input": "@any", "!record": "@entity-record" }
+    },
+    {
         "id": "trait-message-reply",
         "kind": "schema",
         "data": { "$data#": ["[@trait-message-operation]", "null"] }
@@ -137,6 +142,24 @@
         "kind": "kind",
         "data": {
             "operations": {
+                "enter": {
+                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!trait": "string", "!entry": "string", "input": "@any" },
+                    "output": "@any",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "trait": "#.input.trait", "entry": "#.input.entry", "input": "#.input.input" },
+                        "invoke": "#.input.entityType",
+                        "operation": "enter"
+                    }
+                },
+                "previewOperations": {
+                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!operations[]": "@trait-message-operation" },
+                    "output": "[@any]",
+                    "implementation": {
+                        "inputMap": { "businessKey": "#.input.businessKey", "operations": "#.input.operations" },
+                        "invoke": "#.input.entityType",
+                        "operation": "previewOperations"
+                    }
+                },
                 "deliver": {
                     "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!trait": "string", "!message": "string", "input": "@any" },
                     "output": "@viewed-entity-record",

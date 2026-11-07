@@ -72,6 +72,11 @@ export const hookedKeysOf = ({ entityType, operation }) => Object.entries(traits
     .filter(([, { trait }]) => hasOperation({ element: trait, operation }))
     .map(([key]) => key);
 
+export const traitEntriesOf = ({ entityType, key }) => {
+    const use = traitsOf(entityType)[key];
+    return use === undefined ? [] : getElement(use.trait).data.entries ?? [];
+};
+
 export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
     .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
     .map(([key]) => key);
@@ -105,7 +110,7 @@ const useProblems = use => [
         : [`'${use.trait}' is not an entity trait`])
 ];
 
-const isRepeated = (fill, index, fills) => fills.findIndex(other => other.target === fill.target && other.key === fill.key) !== index;
+const isRepeated = (fill, index, fills) => fill.trait !== undefined && fills.findIndex(other => other.trait !== undefined && other.target === fill.target && other.key === fill.key) !== index;
 
 const closedProblems = entityType => {
     const kind = selfOf(getElement(entityType)).kind;

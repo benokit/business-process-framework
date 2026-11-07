@@ -26,57 +26,38 @@
         }
     },
     {
-        "id": "construction-premium-adjustment",
+        "id": "construction-amendments",
         "kind": "slot-fill",
         "data": {
             "target": "construction",
-            "slot": "amendmentTypes",
+            "slot": "traits",
             "value": {
-                "type": "premium-adjustment",
-                "apply": [{
-                    "key": "body",
-                    "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
-                }]
-            }
-        }
-    },
-    {
-        "id": "construction-extension",
-        "kind": "slot-fill",
-        "data": {
-            "target": "construction",
-            "slot": "amendmentTypes",
-            "value": {
-                "type": "extension",
-                "apply": [{
-                    "key": "body",
-                    "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
-                }]
-            }
-        }
-    },
-    {
-        "id": "construction-cancellation",
-        "kind": "slot-fill",
-        "data": {
-            "target": "construction",
-            "slot": "amendmentTypes",
-            "value": {
-                "type": "cancellation",
-                "apply": [
-                    {
-                        "key": "body",
-                        "operation": "amend",
-                        "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
-                    },
-                    { "key": "state", "operation": "transition", "input": { "transition": "cancel" } }
-                ],
-                "revert": [
-                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey" } },
-                    { "key": "state", "operation": "transition", "input": { "transition": "reactivate" } }
-                ]
+                "key": "generator",
+                "configuration": {
+                    "declarations": {
+                        "premium-adjustment": {
+                            "type": "premium-adjustment",
+                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
+                        },
+                        "extension": {
+                            "type": "extension",
+                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
+                        },
+                        "cancellation": {
+                            "type": "cancellation",
+                            "effects": {
+                                "apply": [
+                                    { "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } },
+                                    { "key": "state", "operation": "transition", "input": { "transition": "cancel" } }
+                                ],
+                                "revert": [
+                                    { "key": "body", "operation": "remove", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey" } },
+                                    { "key": "state", "operation": "transition", "input": { "transition": "reactivate" } }
+                                ]
+                            }
+                        }
+                    }
+                }
             }
         }
     },

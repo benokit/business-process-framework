@@ -50,7 +50,7 @@
                                     "status": "draft"
                                 }
                             },
-                            "operations": { "update": { "status": { "draft": true } }, "applyAmendment": { "status": { "active": true } } }
+                            "operations": { "update": { "status": { "draft": true } }, "generator/generate": { "status": { "active": true } }, "generator/apply": { "status": { "active": true } } }
                         }
                     },
                     "body": { "trait": "versioned-body", "configuration": { "versioned": { "validFrom": "/startDate" } } },

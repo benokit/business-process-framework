@@ -108,7 +108,7 @@ describe('server with the demo', function () {
 
     const periodsOf = async contract => (await invoke('entity-database', 'read', { entityType: contract.entityType, businessKey: contract.businessKey })).data.body.map(({ validFrom }) => validFrom);
 
-    const ledgerOf = async (contract, token) => (await read(contract, token)).data['amendment-ledger'];
+    const ledgerOf = async (contract, token) => (await read(contract, token)).data.generator;
 
     it('keeps a contract as one document with its start date, read as the last version or as of a date', async () => {
         const underwriter = await userWith(`planner-${run}`, ['underwriter-role']);
@@ -182,21 +182,23 @@ describe('server with the demo', function () {
         expect([winner.businessKey, await ledgerOf(contract, administrator)]).to.deep.equal([`${contract.businessKey}-001`, { last: 1, open: winner.businessKey }]);
     });
 
-    it('refuses writes to the ledger other than by its own commands, and exposes no write of a trait command', async () => {
+    it('exposes no write of the ledger or of a trait command, and starts only the entries of a trait', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`amender-w-${run}`, ['underwriter-role']), userWith(`approver-w-${run}`, ['administrator-role'])]);
         const contract = await activeContract(underwriter, administrator);
         const write = (operation, input) => invoke('construction', operation, { businessKey: contract.businessKey, revision: contract.revision, ...input })
             .then(() => 'accepted', error => `${error.code}: ${error.message}`);
         expect(await Promise.all([
             write('writeLedger', { command: 'reset', value: { last: 0, open: null } }),
-            write('writeLedger', { command: 'open', value: { last: 'many', open: null } }),
             write('writeTrait', { key: 'body', command: 'overwrite', value: {} }),
-            write('applyChange', { change: {} })
+            write('applyChange', { change: {} }),
+            write('enter', { trait: 'generator', entry: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
+            write('deliver', { trait: 'generator', message: 'apply' })
         ])).to.deep.equal([
-            'invalid: the amendment ledger has no command reset',
-            'invalid: the amendment ledger is { last, open }',
+            "unknown-operation: construction has no operation 'writeLedger'",
             "unknown-operation: construction has no operation 'writeTrait'",
-            'private-operation: construction.applyChange is private to construction'
+            'private-operation: construction.applyChange is private to construction',
+            'invalid: construction has no trait generator with the entry write',
+            'forbidden: a message is delivered by a trait'
         ]);
     });
 
@@ -213,7 +215,7 @@ describe('server with the demo', function () {
         const direct = { businessKey: `direct-${run}`, body: { reason: 'x', changes: { premium: 1 } } };
         expect((await propose(contract, 'premium-adjustment', '2026-07-01', { premium: 1 }, viewer)).status).to.equal(403);
         const created = await call('POST', '/entities/premium-adjustment', direct, administrator);
-        expect([created.status, created.body.error.message]).to.deep.equal([400, "value doesn't match amendment-link-value"]);
+        expect([created.status, created.body.error.message]).to.deep.equal([400, "value doesn't match generation-link-value"]);
     });
 
     it('refuses to activate an amendment that starts before the current terms or ends them before they start, and cancels one that never took effect', async () => {
@@ -273,7 +275,7 @@ describe('server with the demo', function () {
         const activated = await activate(proposed, underwriter, administrator);
         expect(activated.body.data.state).to.deep.equal({ status: 'active', versionStatus: 'applied' });
         const cancelled = await read(contract, administrator);
-        expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-12-31', before.revision + 2]);
+        expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-12-31', before.revision + 1]);
         expect((await propose(contract, 'premium-adjustment', '2026-09-01', { premium: 1 }, underwriter)).status).to.equal(409);
 
         const annulled = await move(activated.body, 'annul', underwriter);

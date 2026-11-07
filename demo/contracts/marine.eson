@@ -21,14 +21,17 @@
         "kind": "slot-fill",
         "data": {
             "target": "marine",
-            "slot": "amendmentTypes",
+            "slot": "traits",
             "value": {
-                "type": "premium-adjustment",
-                "apply": [{
-                    "key": "body",
-                    "operation": "amend",
-                    "input": { "validFrom": "#.link.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } }
-                }]
+                "key": "generator",
+                "configuration": {
+                    "declarations": {
+                        "premium-adjustment": {
+                            "type": "premium-adjustment",
+                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
+                        }
+                    }
+                }
             }
         }
     }

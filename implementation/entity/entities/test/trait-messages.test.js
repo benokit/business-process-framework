@@ -35,6 +35,11 @@ const elements = [
             operations: {
                 initialize: { implementation: { set: 0 } },
                 add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', '#.input.input.by'] } } } },
+                bump: {
+                    input: '@trait-entry-input',
+                    output: '@any',
+                    implementation: { deliver: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', trait: '#.input.key', message: 'add', input: { by: '#.input.input.by' } } }
+                },
                 receive: {
                     input: '@trait-message-input',
                     output: '@trait-message-reply',
@@ -50,7 +55,7 @@ const elements = [
             }
         }
     },
-    { id: COUNTER, kind: `${COUNTER}-trait`, data: { configuration: {} } },
+    { id: COUNTER, kind: `${COUNTER}-trait`, data: { entries: ['bump'], configuration: {} } },
     {
         id: `${NOTIFIER}-trait`,
         kind: 'kind',
@@ -69,7 +74,7 @@ const elements = [
                         states: { status: { open: true, closed: true } },
                         transitions: { close: { status: { open: 'closed' } } },
                         initialStates: { default: { status: 'open' } },
-                        operations: { [`${COUNTER}/add`]: { status: { open: true } } }
+                        operations: { [`${COUNTER}/add`]: { status: { open: true } }, [`${COUNTER}/bump`]: { status: { open: true } } }
                     }
                 }
             }
@@ -161,5 +166,22 @@ describe('trait messages', function () {
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...sources] });
         await start();
         await migrate();
+    });
+
+    it('starts a process of a trait from outside, as the trait and only through its entries', async () => {
+        const entered = await invoke(TARGET, 'enter', { businessKey: 'target-1', trait: COUNTER, entry: 'bump', input: { by: 10 } });
+        expect(entered.data[COUNTER]).to.equal(await counterOf(TARGET, 'target-1'));
+        const before = await counterOf(TARGET, 'target-1');
+        await invoke(TARGET, 'enter', { businessKey: 'target-1', trait: COUNTER, entry: 'bump', input: { by: 1 } });
+        expect(await counterOf(TARGET, 'target-1')).to.equal(before + 1);
+        const notEntry = await errorOf(invoke(TARGET, 'enter', { businessKey: 'target-1', trait: COUNTER, entry: 'add', input: { by: 1 } }));
+        expect(notEntry.code).to.equal('invalid');
+    });
+
+    it('lets the state model say in which states an entry may be started', async () => {
+        const closed = await invoke(CLOSABLE, 'read', { businessKey: 'closable-1' });
+        const error = await errorOf(invoke(CLOSABLE, 'enter', { businessKey: 'closable-1', trait: COUNTER, entry: 'bump', input: { by: 1 } }));
+        expect(closed.data.state.status).to.equal('closed');
+        expect([error.code, error.message]).to.deep.equal(['conflict', `${CLOSABLE} doesn't allow ${COUNTER}/bump in its current state`]);
     });
 });
