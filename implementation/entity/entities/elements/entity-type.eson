@@ -7,7 +7,6 @@
             "shape": { "characteristics{}": "@any" },
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
-                "interceptors": { "cardinality": "many", "value": "@method", "input": { "!operation": "string", "!input": "object" } },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
             },
             "operations": {
@@ -92,9 +91,9 @@
                             "inTransaction": [
                                 {
                                     "outputKey": "record",
-                                    "inputMap": "#.store",
-                                    "middleware": { "$func/slot-values": { "element": "#.self.id", "slot": "interceptors" } },
-                                    "action": { "inputMap": "#.input.input", "invoke": "entity-database", "operation": "#.store.operation" }
+                                    "inputMap": "#.store.input",
+                                    "invoke": "entity-database",
+                                    "operation": "#.store.operation"
                                 },
                                 {
                                     "inputMap": { "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] } },

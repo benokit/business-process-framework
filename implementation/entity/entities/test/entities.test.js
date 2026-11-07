@@ -171,12 +171,6 @@ const elements = [
         if: { $and: [{ $eq: ['#.input.operation', 'create'] }, { $lte: ['#.input.after.data.body.amount', 0] }] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
-    fill('stamp-note', ORDER, 'interceptors', {
-        if: { $eq: ['#.input.operation', 'create'] },
-        then: { inputMap: { $merge: ['#.input', { input: { data: { body: { note: 'stamped' } } } }] }, next: true },
-        else: { next: true }
-    }),
-    fill('change-operation', ORDER, 'interceptors', { inputMap: { $merge: ['#.input', { operation: 'delete' }] }, next: true }, { position: 'last' }),
     fill('change-concurrently', ORDER, 'guards', {
         if: { $eq: ['#.input.before.businessKey', 'o-raced'] },
         then: {
@@ -237,7 +231,7 @@ describe('entities', function () {
     it('creates with the body and initial trait values, and reads back', async () => {
         const created = await invoke(ORDER, 'create', { businessKey: 'o-1', traits: { body: { amount: 5 } } });
         expect(created).to.include({ entityType: ORDER, businessKey: 'o-1', revision: 1 });
-        expect(created.data).to.deep.equal({ 'business-key': 'o-1', body: { amount: 5, note: 'stamped' }, [NOTE]: 'order: new' });
+        expect(created.data).to.deep.equal({ 'business-key': 'o-1', body: { amount: 5 }, [NOTE]: 'order: new' });
         expect(await invoke(ORDER, 'read', { businessKey: 'o-1' })).to.deep.equal(created);
     });
 
