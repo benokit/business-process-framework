@@ -120,7 +120,7 @@ const guardHookProblems = entityType => Object.values(traitsOf(entityType))
     .filter(({ trait }) => isTrait(trait) && hasOperation({ element: trait, operation: 'guard' }))
     .flatMap(({ trait }) => changesOf({ element: trait, operation: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
 
-const FRAMEWORK_OPERATIONS = ['initialize', 'derive', 'guard', 'react', 'receive'];
+const FRAMEWORK_OPERATIONS = ['initialize', 'derive', 'guard', 'react'];
 
 const exposureProblems = (entityType, operation, { key, operation: traitOperation }, keyword) => {
     const use = traitsOf(entityType)[key];

@@ -10,17 +10,16 @@ const TARGET = `target-${run}`;
 const CLOSABLE = `closable-${run}`;
 const OUTSIDER = `outsider-${run}`;
 
-const deliverOnUpdate = {
+const writeOnUpdate = {
     input: '@trait-hook-input',
     implementation: {
         if: { $eq: ['#.input.change.entityOperation', 'update'] },
         then: {
-            deliver: {
+            writes: {
                 entityType: '#.input.configuration.targetType',
                 businessKey: '#.input.configuration.targetKey',
-                trait: COUNTER,
-                message: '#.input.configuration.message',
-                input: { by: '#.input.configuration.by' }
+                entityOperation: `${COUNTER}/add`,
+                operations: [{ key: COUNTER, operation: 'add', input: { by: '#.input.configuration.by' } }]
             }
         }
     }
@@ -34,23 +33,18 @@ const elements = [
             extends: 'valued-entity-trait',
             operations: {
                 initialize: { implementation: { set: 0 } },
-                add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', '#.input.input.by'] } } } },
+                add: {
+                    input: '@trait-operation-input',
+                    output: '@trait-command',
+                    implementation: [
+                        { if: { $lt: ['#.input.input.by', 0] }, then: { throw: { code: 'conflict', message: 'the counter refuses' } } },
+                        { set: { command: 'add', value: { $sum: ['#.input.value', '#.input.input.by'] } } }
+                    ]
+                },
                 bump: {
                     input: '@trait-process-input',
                     output: '@any',
-                    implementation: { deliver: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', trait: '#.input.key', message: 'add', input: { by: '#.input.input.by' } } }
-                },
-                receive: {
-                    input: '@trait-message-input',
-                    output: '@trait-message-reply',
-                    implementation: [
-                        { if: { $eq: ['#.input.message', 'refuse'] }, then: { throw: { code: 'conflict', message: 'the counter refuses' } } },
-                        {
-                            if: { $eq: ['#.input.message', 'add'] },
-                            then: { set: [{ key: '#.input.key', operation: 'add', input: { by: '#.input.input.by' } }] },
-                            else: { set: null }
-                        }
-                    ]
+                    implementation: { writes: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', entityOperation: { $str: ['#.input.key', '/add'] }, operations: [{ key: '#.input.key', operation: 'add', input: { by: '#.input.input.by' } }] } }
                 }
             }
         }
@@ -69,9 +63,9 @@ const elements = [
     {
         id: `${NOTIFIER}-trait`,
         kind: 'kind',
-        data: { extends: 'valued-entity-trait', operations: { initialize: { implementation: { set: true } }, react: deliverOnUpdate } }
+        data: { extends: 'valued-entity-trait', operations: { initialize: { implementation: { set: true } }, react: writeOnUpdate } }
     },
-    { id: NOTIFIER, kind: `${NOTIFIER}-trait`, data: { configuration: { '!targetType': 'string', '!targetKey': 'string', '!message': 'string', '!by': 'number' } } },
+    { id: NOTIFIER, kind: `${NOTIFIER}-trait`, data: { configuration: { '!targetType': 'string', '!targetKey': 'string', '!by': 'number' } } },
     {
         id: CLOSABLE,
         kind: `${COUNTER}-stateful-entity-type`,
@@ -93,11 +87,11 @@ const elements = [
     { id: TARGET, kind: `${COUNTER}-entity-type`, data: { traits: { body: { configuration: { schema: {} } }, [COUNTER]: { configuration: {} } } } }
 ];
 
-const notifier = (targetType, targetKey, message = 'add') => ({ configuration: { targetType, targetKey, message, by: 1 } });
+const notifier = (targetType, targetKey, by = 1) => ({ configuration: { targetType, targetKey, by } });
 
 const sources = [
     { id: `${SOURCE}-to-target`, extra: notifier(TARGET, 'target-1') },
-    { id: `${SOURCE}-refused`, extra: notifier(TARGET, 'target-1', 'refuse') },
+    { id: `${SOURCE}-refused`, extra: notifier(TARGET, 'target-1', -1) },
     { id: `${SOURCE}-itself`, extra: notifier(`${SOURCE}-itself`, 'itself-1') },
     { id: `${SOURCE}-to-closable`, extra: notifier(CLOSABLE, 'closable-1') }
 ].map(({ id, extra }) => ({ id, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!note': 'string' } } }, [COUNTER]: { configuration: {} }, [NOTIFIER]: extra } } }));
@@ -108,7 +102,7 @@ const errorOf = promise => promise.then(() => null, error => error);
 
 const counterOf = async (entityType, businessKey) => (await invoke(entityType, 'read', { businessKey })).data[COUNTER];
 
-describe('trait messages', function () {
+describe('trait writes', function () {
     before(async function () {
         await skipWithoutPostgres(this);
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...sources] });
@@ -124,14 +118,14 @@ describe('trait messages', function () {
         expect(validate()).to.deep.equal([]);
     });
 
-    it('changes another entity from a trait, in the transaction of the move that caused it', async () => {
+    it('writes another entity from a trait, in the transaction of the move that caused it', async () => {
         const type = `${SOURCE}-to-target`;
         const created = await invoke(type, 'create', { businessKey: 's-1', traits: { body: { note: 'a' } } });
         await invoke(type, 'update', { businessKey: 's-1', revision: created.revision, value: { note: 'b' } });
         expect(await counterOf(TARGET, 'target-1')).to.equal(1);
     });
 
-    it('rolls the move back when the receiving trait refuses', async () => {
+    it('rolls the move back when the trait operation refuses', async () => {
         const type = `${SOURCE}-refused`;
         const created = await invoke(type, 'create', { businessKey: 's-2', traits: { body: { note: 'a' } } });
         const error = await errorOf(invoke(type, 'update', { businessKey: 's-2', revision: created.revision, value: { note: 'b' } }));
@@ -139,7 +133,7 @@ describe('trait messages', function () {
         expect((await invoke(type, 'read', { businessKey: 's-2' })).data.body.note).to.equal('a');
     });
 
-    it('lets a trait change its own entity', async () => {
+    it('lets a trait write its own entity', async () => {
         const type = `${SOURCE}-itself`;
         const created = await invoke(type, 'create', { businessKey: 'itself-1', traits: { body: { note: 'a' } } });
         await invoke(type, 'update', { businessKey: 'itself-1', revision: created.revision, value: { note: 'b' } });
@@ -147,13 +141,13 @@ describe('trait messages', function () {
         expect([record.data.body.note, record.data[COUNTER]]).to.deep.equal(['b', 1]);
     });
 
-    it('refuses a message from anyone but a trait', async () => {
-        const error = await errorOf(invoke(TARGET, 'deliver', { businessKey: 'target-1', trait: COUNTER, message: 'add', input: { by: 100 } }));
+    it('refuses a write from anyone but a trait', async () => {
+        const error = await errorOf(invoke(TARGET, 'write', { businessKey: 'target-1', entityOperation: `${COUNTER}/add`, operations: [{ key: COUNTER, operation: 'add', input: { by: 100 } }] }));
         expect(error.code).to.equal('forbidden');
         expect(await counterOf(TARGET, 'target-1')).to.equal(1);
     });
 
-    it('lets the state model of the receiver say in which states a message is accepted', async () => {
+    it('lets the state model of the written entity say in which states a write is accepted', async () => {
         const type = `${SOURCE}-to-closable`;
         const created = await invoke(type, 'create', { businessKey: 's-3', traits: { body: { note: 'a' } } });
         const updated = await invoke(type, 'update', { businessKey: 's-3', revision: created.revision, value: { note: 'b' } });
@@ -165,9 +159,9 @@ describe('trait messages', function () {
         expect(await counterOf(CLOSABLE, 'closable-1')).to.equal(1);
     });
 
-    it('reports a message sent from a pipeline that is no trait', async () => {
+    it('reports a write from a pipeline that is no trait', async () => {
         const outside = [
-            { id: `${OUTSIDER}-kind`, kind: 'kind', data: { operations: { send: { input: '@any', implementation: { deliver: { entityType: TARGET, businessKey: 'target-1', trait: COUNTER, message: 'add' } } } } } },
+            { id: `${OUTSIDER}-kind`, kind: 'kind', data: { operations: { send: { input: '@any', implementation: { writes: { entityType: TARGET, businessKey: 'target-1', entityOperation: 'add', operations: [] } } } } } },
             { id: OUTSIDER, kind: `${OUTSIDER}-kind`, data: {} }
         ];
         await stop();

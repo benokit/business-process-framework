@@ -17,7 +17,7 @@
     {
         "id": "generator-configuration",
         "kind": "schema",
-        "data": { "declarations{}": "@generation-declaration", "*": "never" }
+        "data": { "declarations{}": "@generation-declaration", "key": "@mapping", "context": "@ref/schema", "effects": "@mapping", "*": "never" }
     },
     {
         "id": "generation-request",
@@ -28,21 +28,6 @@
         "id": "generation-start-input",
         "kind": "schema",
         "data": { "$data#&": [{ "!businessKey": "string" }, "@generation-request"] }
-    },
-    {
-        "id": "generation-preview-request",
-        "kind": "schema",
-        "data": { "!generatedType": "string", "!generated": "string", "!effect": "string" }
-    },
-    {
-        "id": "generation-preview-input",
-        "kind": "schema",
-        "data": { "$data#&": [{ "!businessKey": "string" }, "@generation-preview-request"] }
-    },
-    {
-        "id": "generation-admission",
-        "kind": "schema",
-        "data": { "!key": "string", "!revision": "integer" }
     },
     {
         "id": "fired-effects",
@@ -63,12 +48,36 @@
         }
     },
     {
-        "id": "binding-holds",
+        "id": "generation-operations",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "binding": "@any", "!record": "@any" }, "output": "boolean" },
+            "signature": {
+                "input": { "!configuration": "object", "!declaration": "object", "!effect": "string", "!scope": "object" },
+                "output": "[@trait-operation-use]"
+            },
             "module": "@business-framework/entity-generation/generation",
-            "export": "bindingHolds"
+            "export": "generationOperations"
+        }
+    },
+    {
+        "id": "linked-generation-operations",
+        "kind": "pure-function",
+        "data": {
+            "signature": {
+                "input": { "!source": "@entity-record", "!generated": "@any", "!effect": "string" },
+                "output": "[@trait-operation-use]"
+            },
+            "module": "@business-framework/entity-generation/generation",
+            "export": "linkedGenerationOperations"
+        }
+    },
+    {
+        "id": "generation-key",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!configuration": "object", "!source": "@any", "!request": "@generation-request" }, "output": { "$data#": ["string", "null"] } },
+            "module": "@business-framework/entity-generation/generation",
+            "export": "generationKey"
         }
     },
     {
@@ -99,11 +108,20 @@
                     "input": "@generation-start-input",
                     "output": "@any",
                     "implementation": { "starts": { "key": "generator", "operation": "generate" } }
-                },
+                }
+            }
+        }
+    },
+    {
+        "id": "generated-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "stateful-body-entity-type",
+            "operations": {
                 "preview": {
-                    "input": "@generation-preview-input",
+                    "input": { "!businessKey": "string", "!effect": "string" },
                     "output": "[@any]",
-                    "implementation": { "starts": { "key": "generator", "operation": "preview" } }
+                    "implementation": { "starts": { "key": "generated", "operation": "preview" } }
                 }
             }
         }
@@ -121,15 +139,6 @@
                         "invoke": "#.input.entityType",
                         "operation": "generate"
                     }
-                },
-                "preview": {
-                    "input": { "$data#&": [{ "!entityType": "@ref/generating-entity-type" }, "@generation-preview-input"] },
-                    "output": "[@any]",
-                    "implementation": {
-                        "inputMap": { "$omit": { "keys": ["entityType"], "object": "#.input" } },
-                        "invoke": "#.input.entityType",
-                        "operation": "preview"
-                    }
                 }
             }
         }
@@ -142,57 +151,6 @@
             "extends": "entity-trait",
             "lifecycle": { "validate": { "$func/generator-problems": "#.self.id" } },
             "operations": {
-                "admit": {
-                    "input": { "!entityType": "string", "!businessKey": "string", "!record": "@entity-record", "!request": "@generation-request" },
-                    "output": "@generation-admission"
-                },
-                "guardEffect": {
-                    "input": { "!entityType": "string", "!record": "@entity-record", "!generated": "@entity-record", "!link": "@generation-link-value", "!effect": "string" },
-                    "output": "@any"
-                },
-                "settle": {
-                    "input": { "!entityType": "string", "!record": "@entity-record", "!generated": "@entity-record", "!link": "@generation-link-value", "!effect": "string" },
-                    "output": "[@trait-message-operation]"
-                },
-                "effectsOf": {
-                    "input": { "!declaration": "@generation-declaration", "!effect": "string" },
-                    "output": "[@generation-operation-use]"
-                },
-                "ownMessage": {
-                    "input": "@trait-message-input",
-                    "output": "@trait-message-reply"
-                },
-                "operations": {
-                    "input": { "!entityType": "string", "!record": "@entity-record", "!generated": "@entity-record", "!configuration": "@any", "!effect": "string" },
-                    "output": "[@trait-message-operation]",
-                    "implementation": [
-                        { "outputKey": "link", "set": { "$get": { "object": "#.input.generated.data", "path": "generated" } } },
-                        {
-                            "if": { "$or": [{ "$negate": "#.link" }, { "$neq": ["#.link.sourceType", "#.input.entityType"] }, { "$neq": ["#.link.sourceKey", "#.input.record.businessKey"] }] },
-                            "then": { "throw": { "code": "forbidden", "message": { "$str": ["#.input.generated.businessKey", " wasn't generated by ", "#.input.record.businessKey"] } } }
-                        },
-                        { "outputKey": "declaration", "set": { "$get": { "object": "#.input.configuration.declarations", "path": "#.link.generator" } } },
-                        { "outputKey": "uses", "inputMap": { "declaration": "#.declaration", "effect": "#.input.effect" }, "invoke": "#.self.id", "operation": "effectsOf" },
-                        { "outputKey": "scope", "set": { "source": "#.input.record", "generated": "#.input.generated", "link": "#.link" } },
-                        {
-                            "outputKey": "items",
-                            "set": {
-                                "$map": {
-                                    "over": "#.uses",
-                                    "as": "use",
-                                    "fn": { "key": "@use.key", "operation": "@use.operation", "input": { "$func/apply-mapping": { "mapping": "@use.input", "input": "#.scope" } } }
-                                }
-                            }
-                        },
-                        {
-                            "outputKey": "extra",
-                            "inputMap": { "entityType": "#.input.entityType", "record": "#.input.record", "generated": "#.input.generated", "link": "#.link", "effect": "#.input.effect" },
-                            "invoke": "#.self.id",
-                            "operation": "settle"
-                        },
-                        { "set": { "$concat": ["#.items", "#.extra"] } }
-                    ]
-                },
                 "generate": {
                     "input": "@trait-process-input",
                     "output": "@any",
@@ -209,19 +167,48 @@
                             "then": { "inputMap": { "schemaId": "#.declaration.input", "value": "#.request.input" }, "invoke": "ajv", "operation": "assert" }
                         },
                         {
+                            "if": "#.input.configuration.context",
+                            "then": { "inputMap": { "schemaId": "#.input.configuration.context", "value": "#.request.context" }, "invoke": "ajv", "operation": "assert" }
+                        },
+                        {
                             "outputKey": "traits",
                             "set": { "$func/apply-mapping": { "mapping": { "$coalesce": ["#.declaration.open", { "$literal": { "body": "#.input" } }] }, "input": { "entity": "#.input.record", "input": "#.request.input" } } }
                         },
                         {
-                            "outputKey": "admitted",
-                            "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey", "record": "#.input.record", "request": "#.request" },
-                            "invoke": "#.self.id",
-                            "operation": "admit"
+                            "outputKey": "operations",
+                            "set": {
+                                "$func/generation-operations": {
+                                    "configuration": "#.input.configuration",
+                                    "declaration": "#.declaration",
+                                    "effect": "generate",
+                                    "scope": { "source": "#.input.record", "request": "#.request" }
+                                }
+                            }
+                        },
+                        {
+                            "outputKey": "source",
+                            "inputMap": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "entityOperation": { "$str": ["#.input.key", "/generate"] },
+                                "operations": "#.operations"
+                            },
+                            "writes": {
+                                "entityType": "#.input.entityType",
+                                "businessKey": "#.input.businessKey",
+                                "entityOperation": "#.input.entityOperation",
+                                "operations": "#.input.operations"
+                            }
+                        },
+                        { "outputKey": "key", "set": { "$func/generation-key": { "configuration": "#.input.configuration", "source": "#.source", "request": "#.request" } } },
+                        {
+                            "if": { "$negate": "#.key" },
+                            "then": { "throw": { "code": "invalid", "message": "a generated entity needs a key" } }
                         },
                         {
                             "inputMap": {
                                 "entityType": "#.declaration.type",
-                                "businessKey": "#.admitted.key",
+                                "businessKey": "#.key",
                                 "traits": {
                                     "$merge": [
                                         "#.traits",
@@ -229,7 +216,7 @@
                                             "generated": {
                                                 "sourceType": "#.input.entityType",
                                                 "sourceKey": "#.input.businessKey",
-                                                "sourceRevision": "#.admitted.revision",
+                                                "sourceRevision": "#.source.revision",
                                                 "generator": "#.request.generator",
                                                 "context": "#.request.context"
                                             }
@@ -241,84 +228,13 @@
                             "operation": "create"
                         }
                     ]
-                },
-                "preview": {
-                    "input": "@trait-process-input",
-                    "output": "[@any]",
-                    "implementation": [
-                        { "outputKey": "generated", "inputMap": { "entityType": "#.input.input.generatedType", "businessKey": "#.input.input.generated" }, "invoke": "entity-database", "operation": "read" },
-                        {
-                            "outputKey": "operations",
-                            "inputMap": { "entityType": "#.input.entityType", "record": "#.input.record", "generated": "#.generated", "configuration": "#.input.configuration", "effect": "#.input.input.effect" },
-                            "invoke": "#.self.id",
-                            "operation": "operations"
-                        },
-                        { "inputMap": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey", "operations": "#.operations" }, "invoke": "trait-messages", "operation": "previewOperations" }
-                    ]
-                },
-                "receive": {
-                    "input": "@trait-message-input",
-                    "output": "@trait-message-reply",
-                    "implementation": {
-                        "if": { "$and": [{ "$eq": ["#.input.sender.entityType", "#.input.entityType"] }, { "$eq": ["#.input.sender.businessKey", "#.input.record.businessKey"] }] },
-                        "then": { "inputMap": "#.input", "invoke": "#.self.id", "operation": "ownMessage" },
-                        "else": [
-                            { "outputKey": "generated", "inputMap": { "entityType": "#.input.sender.entityType", "businessKey": "#.input.sender.businessKey" }, "invoke": "entity-database", "operation": "read" },
-                            { "outputKey": "generatedUse", "set": { "$func/entity-trait-use-of": { "entityType": "#.generated.entityType", "key": "#.input.sender.key" } } },
-                            { "outputKey": "binding", "set": { "$get": { "object": { "$coalesce": ["#.generatedUse.configuration", {}] }, "path": "#.input.message" } } },
-                            {
-                                "if": { "$negate": { "$func/binding-holds": { "binding": "#.binding", "record": "#.generated" } } },
-                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.generated.businessKey", " isn't in the state that ", "#.input.message", " needs"] } } }
-                            },
-                            {
-                                "inputMap": { "entityType": "#.input.entityType", "record": "#.input.record", "generated": "#.generated", "link": "#.generated.data.generated", "effect": "#.input.message" },
-                                "invoke": "#.self.id",
-                                "operation": "guardEffect"
-                            },
-                            {
-                                "inputMap": { "entityType": "#.input.entityType", "record": "#.input.record", "generated": "#.generated", "configuration": "#.input.configuration", "effect": "#.input.message" },
-                                "invoke": "#.self.id",
-                                "operation": "operations"
-                            }
-                        ]
-                    }
-                }
-            }
-        }
-    },
-    {
-        "id": "plain-generator-trait",
-        "kind": "kind",
-        "data": {
-            "extends": "generator-trait",
-            "operations": {
-                "admit": {
-                    "implementation": [
-                        {
-                            "if": { "$negate": "#.input.request.key" },
-                            "then": { "throw": { "code": "invalid", "message": "a generated entity needs a key" } }
-                        },
-                        { "set": { "key": "#.input.request.key", "revision": "#.input.record.revision" } }
-                    ]
-                },
-                "guardEffect": {
-                    "implementation": { "set": null }
-                },
-                "settle": {
-                    "implementation": { "set": { "$literal": [] } }
-                },
-                "effectsOf": {
-                    "implementation": { "set": { "$coalesce": [{ "$get": { "object": "#.input.declaration.effects", "path": "#.input.effect" } }, { "$literal": [] }] } }
-                },
-                "ownMessage": {
-                    "implementation": { "throw": { "code": "invalid", "message": { "$str": ["the generator has no message ", "#.input.message", " from its own entity"] } } }
                 }
             }
         }
     },
     {
         "id": "generator",
-        "kind": "plain-generator-trait",
+        "kind": "generator-trait",
         "data": { "configuration": "@generator-configuration" }
     },
     {
@@ -354,15 +270,45 @@
                         { "outputKey": "fired", "set": { "$func/fired-effects": { "configuration": "#.input.configuration", "before": "#.input.change.before", "after": "#.input.change.after" } } },
                         {
                             "if": { "$gt": [{ "$count": { "collection": "#.fired" } }, 0] },
-                            "then": {
-                                "deliver": {
-                                    "entityType": { "$get": { "object": "#.input.change.after.data", "path": { "$str": ["#.input.key", ".sourceType"] } } },
-                                    "businessKey": { "$get": { "object": "#.input.change.after.data", "path": { "$str": ["#.input.key", ".sourceKey"] } } },
-                                    "trait": "generator",
-                                    "message": { "$get": { "object": { "$func/fired-effects": { "configuration": "#.input.configuration", "before": "#.input.change.before", "after": "#.input.change.after" } }, "path": "0" } }
+                            "then": [
+                                { "outputKey": "effect", "set": { "$head": "#.fired" } },
+                                { "outputKey": "link", "set": { "$get": { "object": "#.input.change.after.data", "path": "#.input.key" } } },
+                                { "outputKey": "stored", "inputMap": { "entityType": "#.link.sourceType", "businessKey": "#.link.sourceKey" }, "invoke": "entity-database", "operation": "read" },
+                                { "outputKey": "source", "set": { "$func/viewed-record": { "record": "#.stored", "entityType": "#.link.sourceType" } } },
+                                {
+                                    "outputKey": "operations",
+                                    "set": { "$func/linked-generation-operations": { "source": "#.source", "generated": "#.input.change.after", "effect": "#.effect" } }
+                                },
+                                {
+                                    "inputMap": {
+                                        "entityType": "#.link.sourceType",
+                                        "businessKey": "#.link.sourceKey",
+                                        "entityOperation": { "$str": ["generator/", "#.effect"] },
+                                        "operations": "#.operations"
+                                    },
+                                    "writes": {
+                                        "entityType": "#.input.entityType",
+                                        "businessKey": "#.input.businessKey",
+                                        "entityOperation": "#.input.entityOperation",
+                                        "operations": "#.input.operations"
+                                    }
                                 }
-                            }
+                            ]
                         }
+                    ]
+                },
+                "preview": {
+                    "input": "@trait-process-input",
+                    "output": "[@any]",
+                    "implementation": [
+                        { "outputKey": "link", "set": { "$get": { "object": "#.input.record.data", "path": "#.input.key" } } },
+                        { "outputKey": "stored", "inputMap": { "entityType": "#.link.sourceType", "businessKey": "#.link.sourceKey" }, "invoke": "entity-database", "operation": "read" },
+                                { "outputKey": "source", "set": { "$func/viewed-record": { "record": "#.stored", "entityType": "#.link.sourceType" } } },
+                        {
+                            "outputKey": "operations",
+                            "set": { "$func/linked-generation-operations": { "source": "#.source", "generated": "#.input.record", "effect": "#.input.input.effect" } }
+                        },
+                        { "inputMap": { "entityType": "#.link.sourceType", "businessKey": "#.link.sourceKey", "operations": "#.operations" }, "invoke": "trait-writes", "operation": "previewOperations" }
                     ]
                 }
             }

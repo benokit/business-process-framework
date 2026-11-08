@@ -105,7 +105,7 @@ describe('entity-states', function () {
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
         expect(validate().map(problem => problem.message)).to.deep.equal([[
             `state: ${NOTE}: has states and exposes no transition operation`,
-            `${NOTE}: operation 'amend' is no operation the entity type exposes nor a message of one of its traits (<trait key>/<message>), other than read, create, transition`,
+            `${NOTE}: operation 'amend' is no operation the entity type exposes nor a write of one of its traits (<trait key>/<name>), other than read, create, transition`,
             `${NOTE}: operation 'delete' uses undeclared state status=z`,
             `${NOTE}: initial state 'default' uses undeclared state status=b`
         ].join('; ')]);

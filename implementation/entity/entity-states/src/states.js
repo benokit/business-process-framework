@@ -1,6 +1,6 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, selvesOf } from '@business-framework/core/kinds';
-import { hookedKeysOf, traitsOf, traitValueOf } from '@business-framework/entities/traits';
+import { traitsOf, traitValueOf } from '@business-framework/entities/traits';
 
 export const applyTransition = ({ model, state, transition }) => {
     const targets = Object.entries(model.transitions?.[transition] ?? {}).map(([dimension, edges]) => [dimension, edges[state[dimension]] === true ? state[dimension] : edges[state[dimension]]]);
@@ -56,13 +56,13 @@ const exposedOperationsOf = entityType => Object.entries(resolveKind(selfOf(getE
     .filter(([name, operation]) => !operation.private && !NOT_GOVERNED.includes(name))
     .map(([name]) => name);
 
-const isMessageOf = (entityType, name) => {
+const isWriteOf = (entityType, name) => {
     const [key, message] = name.split('/');
-    return message !== undefined && hookedKeysOf({ entityType, operation: 'receive' }).includes(key);
+    return message !== undefined && key in traitsOf(entityType);
 };
 
 const operationsProblems = (model, entityType) => Object.entries(model.operations ?? {}).flatMap(([name, dimensions]) => [
-    ...exposedOperationsOf(entityType).includes(name) || isMessageOf(entityType, name) ? [] : [`operation '${name}' is no operation the entity type exposes nor a message of one of its traits (<trait key>/<message>), other than ${NOT_GOVERNED.join(', ')}`],
+    ...exposedOperationsOf(entityType).includes(name) || isWriteOf(entityType, name) ? [] : [`operation '${name}' is no operation the entity type exposes nor a write of one of its traits (<trait key>/<name>), other than ${NOT_GOVERNED.join(', ')}`],
     ...Object.entries(dimensions).flatMap(([dimension, states]) => Object.keys(states)
         .flatMap(state => undeclared(model, dimension, state, `operation '${name}'`)))
 ]);

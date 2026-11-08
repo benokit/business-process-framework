@@ -2,21 +2,34 @@ import { getElement } from '@business-framework/core';
 import { resolveKind, selvesOf } from '@business-framework/core/kinds';
 import { standardOf } from '@business-framework/core/schemas';
 import { mappingType } from '@business-framework/core/data-flow';
+import { applyMapping } from '@business-framework/core/mappings';
 import { traitsOf } from '@business-framework/entities/traits';
 import { stateOf } from '@business-framework/entity-states/states';
 
-const targetsOf = edges => Object.entries(edges).map(([from, to]) => to === true ? from : to);
-
 const movedAlong = (binding, before, after) => Object.entries(binding).every(([dimension, edges]) => Object.entries(edges)
     .some(([from, to]) => stateOf(before)?.[dimension] === from && stateOf(after)?.[dimension] === (to === true ? from : to)));
-
-const holdsIn = (binding, record) => Object.entries(binding).every(([dimension, edges]) => targetsOf(edges).includes(stateOf(record)?.[dimension]));
 
 export const firedEffects = ({ configuration, before, after }) => before === undefined || before === null
     ? []
     : Object.entries(configuration).filter(([, binding]) => movedAlong(binding, before, after)).map(([effect]) => effect);
 
-export const bindingHolds = ({ binding, record }) => binding === undefined || binding === null || holdsIn(binding, record);
+const GENERATOR_KEY = 'generator';
+
+const declaredOperations = ({ declaration, effect, scope }) => (declaration.effects?.[effect] ?? [])
+    .map(({ key, operation, input }) => ({ key, operation, input: applyMapping({ mapping: input, input: scope }) }));
+
+export const generationOperations = ({ configuration, declaration, effect, scope }) => applyMapping({
+    mapping: configuration.effects ?? '#.declared',
+    input: { ...scope, declaration, effect, declared: declaredOperations({ declaration, effect, scope }) }
+});
+
+export const linkedGenerationOperations = ({ source, generated, effect }) => {
+    const link = generated.data.generated;
+    const { configuration } = traitsOf(link.sourceType)[GENERATOR_KEY];
+    return generationOperations({ configuration, declaration: configuration.declarations[link.generator], effect, scope: { source, generated, link } });
+};
+
+export const generationKey = ({ configuration, source, request }) => applyMapping({ mapping: configuration.key ?? '#.request.key', input: { source, request } });
 
 const bodyType = entityType => {
     const schema = traitsOf(entityType).body?.configuration.schema;

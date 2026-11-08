@@ -10,130 +10,96 @@
         "data": { "!last": "integer", "!open": { "$data#": ["string", "null"] } }
     },
     {
-        "id": "ledger-write-input",
-        "kind": "schema",
-        "data": { "!command": "string", "!value": "object" }
-    },
-    {
-        "id": "amendment-generator-trait",
+        "id": "amendment-ledger-trait",
         "kind": "kind",
         "data": {
-            "extends": "generator-trait",
+            "extends": "valued-entity-trait",
             "operations": {
                 "initialize": {
-                    "input": { "!entityType": "string", "!key": "string", "!configuration": "@any", "input": "@any", "create": "@any" },
-                    "output": "@amendment-ledger-value",
                     "implementation": { "set": { "last": 0, "open": null } }
                 },
-                "guard": {
-                    "input": "@trait-hook-input",
-                    "implementation": [
-                        { "outputKey": "ledger", "set": { "$func/change-command": { "commands": "#.input.change.commands", "key": "#.input.key" } } },
-                        {
-                            "if": "#.ledger",
-                            "then": [
-                                {
-                                    "if": { "$negate": { "$includes": { "collection": ["open", "close"], "value": "#.ledger.command" } } },
-                                    "then": { "throw": { "code": "invalid", "message": { "$str": ["the amendment ledger has no command ", "#.ledger.command"] } } }
-                                },
-                                { "outputKey": "check", "set": { "$func/schema-validate": { "schemaId": "amendment-ledger-value", "value": "#.ledger.value" } } },
-                                {
-                                    "if": { "$negate": "#.check.isValid" },
-                                    "then": { "throw": { "code": "invalid", "message": "the amendment ledger is { last, open }" } }
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "write": {
-                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@ledger-write-input" }] },
+                "open": {
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": { "!source": "string", "!amendment": "string" } }] },
                     "output": "@trait-command",
-                    "implementation": { "set": { "command": "#.input.input.command", "value": "#.input.input.value" } }
-                },
-                "ownMessage": {
-                    "implementation": {
-                        "if": { "$eq": ["#.input.message", "ledger"] },
-                        "then": { "set": [{ "key": "#.input.key", "operation": "write", "input": "#.input.input" }] },
-                        "else": { "throw": { "code": "invalid", "message": { "$str": ["the amendment generator has no message ", "#.input.message"] } } }
-                    }
-                },
-                "admit": {
-                    "implementation": [
-                        { "inputMap": { "schemaId": "amendment-context", "value": "#.input.request.context" }, "invoke": "ajv", "operation": "assert" },
-                        {
-                            "if": "#.input.record.data.generator.open",
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.input.businessKey", " has the open amendment ", "#.input.record.data.generator.open"] } } }
-                        },
-                        {
-                            "outputKey": "sent",
-                            "deliver": {
-                                "entityType": "#.input.entityType",
-                                "businessKey": "#.input.businessKey",
-                                "trait": "generator",
-                                "message": "ledger",
-                                "input": {
-                                    "command": "open",
-                                    "value": {
-                                        "last": { "$sum": ["#.input.record.data.generator.last", 1] },
-                                        "open": { "$str": ["#.input.businessKey", "-", { "$printf": { "template": "%03d", "args": [{ "$sum": ["#.input.record.data.generator.last", 1] }] } }] }
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "set": {
-                                "key": { "$str": ["#.input.businessKey", "-", { "$printf": { "template": "%03d", "args": [{ "$sum": ["#.input.record.data.generator.last", 1] }] } }] },
-                                "revision": "#.sent.revision"
-                            }
-                        }
-                    ]
-                },
-                "guardEffect": {
                     "implementation": [
                         {
-                            "if": { "$and": [{ "$eq": ["#.input.effect", "apply"] }, { "$neq": ["#.input.record.revision", "#.input.link.sourceRevision"] }] },
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.input.record.businessKey", " has changed since the amendment ", "#.input.generated.businessKey", " was proposed"] } } }
+                            "if": "#.input.value.open",
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.input.input.source", " has the open amendment ", "#.input.value.open"] } } }
                         },
-                        {
-                            "if": { "$and": [{ "$includes": { "collection": ["apply", "close"], "value": "#.input.effect" } }, { "$neq": ["#.input.record.data.generator.open", "#.input.generated.businessKey"] }] },
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["amendment ", "#.input.generated.businessKey", " isn't the open amendment of ", "#.input.record.businessKey"] } } }
-                        }
+                        { "set": { "command": "open", "value": { "last": { "$sum": ["#.input.value.last", 1] }, "open": "#.input.input.amendment" } } }
                     ]
                 },
-                "settle": {
-                    "implementation": {
-                        "set": {
-                            "$if": [
-                                { "$includes": { "collection": ["apply", "close"], "value": "#.input.effect" } },
-                                [{ "key": "generator", "operation": "write", "input": { "command": "close", "value": { "last": "#.input.record.data.generator.last", "open": null } } }],
-                                { "$literal": [] }
-                            ]
-                        }
-                    }
-                },
-                "effectsOf": {
-                    "implementation": {
-                        "set": {
-                            "$coalesce": [
-                                { "$get": { "object": "#.input.declaration.effects", "path": "#.input.effect" } },
-                                {
-                                    "$cond": [
-                                        [{ "$eq": ["#.input.effect", "apply"] }, { "$literal": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": "#.generated.data.body" } }] }],
-                                        [{ "$eq": ["#.input.effect", "revert"] }, { "$literal": [{ "key": "body", "operation": "remove", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey" } }] }],
-                                        ["else", { "$literal": [] }]
-                                    ]
-                                }
-                            ]
-                        }
-                    }
+                "close": {
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": { "!source": "string", "!amendment": "string", "revision": "integer", "proposedAt": "integer" } }] },
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$and": ["#.input.input.proposedAt", { "$neq": ["#.input.input.revision", "#.input.input.proposedAt"] }] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["#.input.entityType", " ", "#.input.input.source", " has changed since the amendment ", "#.input.input.amendment", " was proposed"] } } }
+                        },
+                        {
+                            "if": { "$neq": ["#.input.value.open", "#.input.input.amendment"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["amendment ", "#.input.input.amendment", " isn't the open amendment of ", "#.input.input.source"] } } }
+                        },
+                        { "set": { "command": "close", "value": { "last": "#.input.value.last", "open": null } } }
+                    ]
                 }
             }
         }
-    }
-    ,
+    },
+    { "id": "amendment-ledger", "kind": "amendment-ledger-trait", "data": { "configuration": {} } },
+    {
+        "id": "amendment-effect-operations",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "object", "output": "[@trait-operation-use]" },
+            "mapping": {
+                "$cond": [
+                    [
+                        { "$eq": ["#.effect", "generate"] },
+                        [{
+                            "key": "amendment-ledger",
+                            "operation": "open",
+                            "input": {
+                                "source": "#.source.businessKey",
+                                "amendment": { "$str": ["#.source.businessKey", "-", { "$printf": { "template": "%03d", "args": [{ "$sum": ["#.source.data.amendment-ledger.last", 1] }] } }] }
+                            }
+                        }]
+                    ],
+                    [
+                        { "$eq": ["#.effect", "apply"] },
+                        {
+                            "$concat": [
+                                { "$if": [{ "$gt": [{ "$count": { "collection": "#.declared" } }, 0] }, "#.declared", [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": "#.generated.data.body" } }]] },
+                                [{
+                                    "key": "amendment-ledger",
+                                    "operation": "close",
+                                    "input": { "source": "#.source.businessKey", "amendment": "#.generated.businessKey", "revision": "#.source.revision", "proposedAt": "#.link.sourceRevision" }
+                                }]
+                            ]
+                        }
+                    ],
+                    [
+                        { "$eq": ["#.effect", "revert"] },
+                        { "$if": [{ "$gt": [{ "$count": { "collection": "#.declared" } }, 0] }, "#.declared", [{ "key": "body", "operation": "remove", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey" } }]] }
+                    ],
+                    [
+                        { "$eq": ["#.effect", "close"] },
+                        {
+                            "$concat": [
+                                "#.declared",
+                                [{ "key": "amendment-ledger", "operation": "close", "input": { "source": "#.source.businessKey", "amendment": "#.generated.businessKey" } }]
+                            ]
+                        }
+                    ],
+                    ["else", { "$literal": [] }]
+                ]
+            }
+        }
+    },
     {
         "id": "amendment-generator",
-        "kind": "amendment-generator-trait",
+        "kind": "generator-trait",
         "data": { "key": "generator", "pairs": [{ "changes": "apply", "undoneBy": "revert", "defaultKeys": ["body"] }], "configuration": "@generator-configuration" }
     },
     {
@@ -141,34 +107,26 @@
         "kind": "kind",
         "data": {
             "extends": "generating-entity-type",
-            "fixed": { "traits": { "generator": { "trait": "amendment-generator" } } }
+            "fixed": {
+                "traits": {
+                    "generator": {
+                        "trait": "amendment-generator",
+                        "configuration": {
+                            "key": "#.source.data.amendment-ledger.open",
+                            "context": "amendment-context",
+                            "effects": { "$func/amendment-effect-operations": "#" }
+                        }
+                    },
+                    "amendment-ledger": { "configuration": {} }
+                }
+            }
         }
     },
     {
         "id": "amendment-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "stateful-body-entity-type",
-            "operations": {
-                "preview": {
-                    "input": { "!businessKey": "string" },
-                    "output": "[@any]",
-                    "implementation": [
-                        { "outputKey": "amendment", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        {
-                            "inputMap": {
-                                "entityType": "#.amendment.data.generated.sourceType",
-                                "businessKey": "#.amendment.data.generated.sourceKey",
-                                "generatedType": "#.self.id",
-                                "generated": "#.input.businessKey",
-                                "effect": "apply"
-                            },
-                            "invoke": "entity-generation-gateway",
-                            "operation": "preview"
-                        }
-                    ]
-                }
-            },
+            "extends": "generated-entity-type",
             "fixed": {
                 "traits": {
                     "generated": {

@@ -24,8 +24,7 @@ const elements = [
             operations: {
                 initialize: { implementation: { set: 0 } },
                 add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', 1] } } } },
-                ping: { input: '@trait-process-input', output: '@any', implementation: { deliver: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', trait: '#.input.key', message: 'add' } } },
-                receive: { input: '@trait-message-input', output: '@trait-message-reply', implementation: { set: [{ key: '#.input.key', operation: 'add', input: {} }] } }
+                ping: { input: '@trait-process-input', output: '@any', implementation: { writes: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', entityOperation: { $str: ['#.input.key', '/add'] }, operations: [{ key: '#.input.key', operation: 'add', input: {} }] } } }
             }
         }
     },
@@ -89,7 +88,7 @@ describe('entity-events', function () {
         await invoke(PINGED, 'ping', { businessKey: 'p-1' });
         await eventually(() => received.some(event => event.entityType === PINGED && event.origin));
         const event = received.find(({ entityType, origin }) => entityType === PINGED && origin);
-        expect([event.eventType, event.origin]).to.deep.equal(['trait', { sender: { entityType: PINGED, businessKey: 'p-1', key: `${PINGED}-trait` }, trait: `${PINGED}-trait`, message: 'add' }]);
+        expect([event.eventType, event.origin]).to.deep.equal(['trait', { sender: { entityType: PINGED, businessKey: 'p-1', key: `${PINGED}-trait` }, entityOperation: `${PINGED}-trait/add` }]);
         expect(received.filter(({ entityType, origin }) => entityType === PINGED && !origin).map(({ eventType }) => eventType)).to.deep.equal(['create']);
     });
 });

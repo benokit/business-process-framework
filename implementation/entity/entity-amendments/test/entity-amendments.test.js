@@ -134,7 +134,7 @@ describe('entity-amendments', function () {
         expect((await errorOf(propose('a-1', '2026-07-01', 110, `${RAISE}-other`))).code).to.equal('invalid');
         const proposed = await propose('a-1', '2026-07-01', 110);
         expect([proposed.businessKey, proposed.data.state.status, proposed.data.body.reason]).to.deep.equal(['a-1-001', 'draft', 'indexation']);
-        expect((await read('a-1')).data.generator).to.deep.equal({ last: 1, open: 'a-1-001' });
+        expect((await read('a-1')).data['amendment-ledger']).to.deep.equal({ last: 1, open: 'a-1-001' });
     });
 
     it('allows one open amendment, which is closed by activating or cancelling it, and numbers them without gaps', async () => {
@@ -143,7 +143,7 @@ describe('entity-amendments', function () {
         expect((await errorOf(propose('a-2', '2026-08-01', 120))).code).to.equal('conflict');
         const cancelled = await move(await issue(first), 'cancel');
         expect(cancelled.data.state.status).to.equal('cancelled');
-        expect((await read('a-2')).data.generator).to.deep.equal({ last: 1, open: null });
+        expect((await read('a-2')).data['amendment-ledger']).to.deep.equal({ last: 1, open: null });
         expect((await read('a-2')).data.body.premium).to.equal(100);
         expect((await propose('a-2', '2026-08-01', 120)).businessKey).to.equal('a-2-002');
     });
@@ -153,7 +153,7 @@ describe('entity-amendments', function () {
         const raised = await activate(await propose('a-3', '2026-07-01', 110));
         expect(raised.data.state.status).to.equal('active');
         const amended = await read('a-3');
-        expect([amended.data.body.premium, amended.data.body.startDate, amended.data.generator]).to.deep.equal([110, '2026-07-01', { last: 1, open: null }]);
+        expect([amended.data.body.premium, amended.data.body.startDate, amended.data['amendment-ledger']]).to.deep.equal([110, '2026-07-01', { last: 1, open: null }]);
         expect((await read('a-3', '2026-03-01')).data.body.premium).to.equal(100);
 
         await move(raised, 'annul');
@@ -175,7 +175,7 @@ describe('entity-amendments', function () {
         const early = await issue(await propose('a-5', '2025-12-31', 90));
         expect((await errorOf(move(early, 'activate'))).code).to.equal('conflict');
         const unchanged = await read('a-5');
-        expect([unchanged.data.body.premium, unchanged.data.generator.open]).to.deep.equal([100, 'a-5-001']);
+        expect([unchanged.data.body.premium, unchanged.data['amendment-ledger'].open]).to.deep.equal([100, 'a-5-001']);
         expect((await invoke(RAISE, 'read', { businessKey: 'a-5-001' })).data.state.status).to.equal('issued');
     });
 
@@ -191,7 +191,7 @@ describe('entity-amendments', function () {
         expect(discarded.data.state).to.deep.equal({ status: 'cancelled', versionStatus: 'discarded' });
     });
 
-    it('refuses an amendment created other than through the entity it amends, and a ledger write that is no command of it', async () => {
+    it('refuses an amendment created other than through the entity it amends, and a start of a ledger write', async () => {
         const link = { sourceType: POLICY, sourceKey: 'a-5', sourceRevision: 1, generator: RAISE, context: { effectiveFrom: '2026-07-01' } };
         const direct = await errorOf(invoke(RAISE, 'create', { businessKey: 'direct', traits: { body: { reason: 'x', changes: { premium: 1 } }, generated: link } }));
         expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'a generated entity is created through the entity that generates it']);
@@ -222,8 +222,8 @@ describe('entity-amendments', function () {
         await policy('a-9');
         const proposed = await propose('a-9', '2026-07-01', 110);
         const before = await read('a-9');
-        const commands = await invoke(RAISE, 'preview', { businessKey: proposed.businessKey });
-        expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['generator', 'close']]);
+        const commands = await invoke(RAISE, 'preview', { businessKey: proposed.businessKey, effect: 'apply' });
+        expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['amendment-ledger', 'close']]);
         expect(await read('a-9')).to.deep.equal(before);
         await activate(proposed);
         expect((await read('a-9')).data.body).to.deep.equal({ holder: 'Ada', startDate: '2026-07-01', premium: 110 });
@@ -233,8 +233,8 @@ describe('entity-amendments', function () {
         await policy('a-11');
         const before = await read('a-11');
         const proposed = await propose('a-11', '2026-07-01', undefined, END, { reason: 'lapsed' });
-        const preview = await invoke(END, 'preview', { businessKey: proposed.businessKey });
-        expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['generator', 'close']]);
+        const preview = await invoke(END, 'preview', { businessKey: proposed.businessKey, effect: 'apply' });
+        expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['amendment-ledger', 'close']]);
         const ended = await activate(proposed);
         const cancelled = await read('a-11');
         expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-07-01', before.revision + 2]);
@@ -270,11 +270,11 @@ describe('entity-amendments', function () {
         expect([stored.data.body.reason, stored.data.generated]).to.deep.equal(['again', proposed.data.generated]);
     });
 
-    it('answers a message of an amendment that is not the amended entity\'s with forbidden, and takes no record from a caller', async () => {
+    it('accepts no write to an entity from anyone but a trait, and no start of a process of a trait that no kind declares', async () => {
         await policy('g-2');
         await policy('g-3');
         const pending = await propose('g-2', '2026-07-01', 112);
-        const stray = await errorOf(invoke(POLICY, 'deliver', { businessKey: 'g-3', trait: 'generator', message: 'apply' }));
+        const stray = await errorOf(invoke(POLICY, 'write', { businessKey: 'g-3', entityOperation: 'generator/apply', operations: [{ key: 'body', operation: 'remove', input: {} }] }));
         expect(stray.code).to.equal('forbidden');
         const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'generator', process: 'apply', entityOperation: 'apply', input: { amendment: pending } }));
         expect(direct.code).to.equal('private-operation');

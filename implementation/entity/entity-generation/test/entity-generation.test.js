@@ -99,10 +99,10 @@ describe('entity-generation', function () {
         expect([error.code, error.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow generate in its current state`]);
     });
 
-    it('answers a message of a generated entity that the entity did not generate with forbidden', async () => {
+    it('accepts a write to an entity from anyone but a trait', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-2', traits: { body: { total: 5 } } });
         const stray = await generate('o-2', { generator: 'payment', key: 'p-3', input: { amount: 5 } });
-        const error = await errorOf(invoke(ORDER, 'deliver', { businessKey: 'o-1', trait: 'generator', message: 'settle' }));
+        const error = await errorOf(invoke(ORDER, 'write', { businessKey: 'o-1', entityOperation: 'generator/settle', operations: [{ key: 'body', operation: 'put', input: { value: { total: 1, paid: true } } }] }));
         expect(error.code).to.equal('forbidden');
         expect(stray.data.generated.sourceKey).to.equal('o-2');
     });

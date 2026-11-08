@@ -117,7 +117,7 @@ describe('server with the demo', function () {
 
     const periodsOf = async contract => (await invoke('entity-database', 'read', { entityType: contract.entityType, businessKey: contract.businessKey })).data.body.map(({ validFrom }) => validFrom);
 
-    const ledgerOf = async (contract, token) => (await read(contract, token)).data.generator;
+    const ledgerOf = async (contract, token) => (await read(contract, token)).data['amendment-ledger'];
 
     it('keeps a contract as one document with its start date, read as the last version or as of a date', async () => {
         const underwriter = await userWith(`planner-${run}`, ['underwriter-role']);
@@ -201,13 +201,13 @@ describe('server with the demo', function () {
             write('writeTrait', { key: 'body', command: 'overwrite', value: {} }),
             write('applyChange', { change: {} }),
             write('enter', { trait: 'generator', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
-            write('deliver', { trait: 'generator', message: 'apply' })
+            write('write', { entityOperation: 'generator/apply', operations: [] })
         ])).to.deep.equal([
             "unknown-operation: construction has no operation 'writeLedger'",
             "unknown-operation: construction has no operation 'writeTrait'",
             'private-operation: construction.applyChange is private to construction',
             'private-operation: construction.enter is private to construction',
-            'forbidden: a message is delivered by a trait'
+            'forbidden: an entity is written by a trait'
         ]);
     });
 

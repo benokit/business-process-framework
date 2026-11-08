@@ -51,52 +51,29 @@
                         } 
                     ]
                 },
-                "deliver": {
-                    "input": { "!businessKey": "string", "!trait": "string", "!message": "string", "input": "@any" },
+                "write": {
+                    "input": { "!businessKey": "string", "!entityOperation": "string", "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" } },
                     "output": "@viewed-entity-record",
                     "implementation": [
                         {
                             "if": { "$negate": "#._ctx.trait" },
-                            "then": { "throw": { "code": "forbidden", "message": "a message is delivered by a trait" } }
-                        },
-                        { "outputKey": "sender", "set": "#._ctx.trait" },
-                        {
-                            "if": { "$negate": { "$includes": { "collection": { "$func/entity-hooked-keys": { "entityType": "#.self.id", "operation": "receive" } }, "value": "#.input.trait" } } },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait", " that receives messages"] } } }
+                            "then": { "throw": { "code": "forbidden", "message": "an entity is written by a trait" } }
                         },
                         { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.input.trait" } } },
                         {
-                            "outputKey": "operations",
-                            "withContext": { "trait": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "key": "#.input.trait", "caller": "#._ctx.trait" } },
-                            "do": {
-                                "inputMap": {
-                                    "entityType": "#.self.id",
-                                    "key": "#.input.trait",
-                                    "configuration": "#.use.configuration",
-                                    "sender": "#.sender",
-                                    "message": "#.input.message",
-                                    "input": "#.input.input",
-                                    "record": "#.record"
-                                },
-                                "invoke": "#.use.trait",
-                                "operation": "receive"
-                            }
-                        },
-                        {
-                            "if": { "$gt": [{ "$count": { "collection": { "$coalesce": ["#.operations", { "$literal": [] }] } } }, 0] },
+                            "if": { "$gt": [{ "$count": { "collection": "#.input.operations" } }, 0] },
                             "then": {
                                 "inputMap": {
                                     "businessKey": "#.input.businessKey",
                                     "revision": "#.record.revision",
-                                    "entityOperation": { "$str": ["#.input.trait", "/", "#.input.message"] },
-                                    "operations": "#.operations",
-                                    "origin": { "sender": "#.sender", "trait": "#.input.trait", "message": "#.input.message" }
+                                    "entityOperation": "#.input.entityOperation",
+                                    "operations": "#.input.operations",
+                                    "origin": { "sender": { "entityType": "#._ctx.trait.entityType", "businessKey": "#._ctx.trait.businessKey", "key": "#._ctx.trait.key" }, "entityOperation": "#.input.entityOperation" }
                                 },
                                 "invoke": "#.self.id",
                                 "operation": "applyTraitOperations"
                             },
-                            "else": { "set": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id" } } }
+                            "else": { "set": "#.record" }
                         }
                     ]
                 },
