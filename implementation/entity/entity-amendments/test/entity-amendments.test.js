@@ -90,7 +90,7 @@ const elements = [
     declaration('copy', { [COPY]: { type: COPY } })
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-generation', 'entity-amendments'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-generation', 'entity-amendments'];
 
 const errorOf = promise => promise.then(() => null, error => error);
 

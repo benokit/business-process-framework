@@ -193,14 +193,5 @@
                 }
             }
         }
-    },
-    {
-        "id": "amendment-entity-amended",
-        "kind": "slot-fill",
-        "data": {
-            "target": "amendment-entity-type",
-            "slot": "relations",
-            "value": { "set": { "relations": [{ "targetEntityType": "#.input.data.generated.sourceType", "targetEntityBusinessKey": "#.input.data.generated.sourceKey", "relationType": "amends" }] } }
-        }
     }
 ]
