@@ -47,7 +47,7 @@ const elements = [
                         states: { status: { draft: true, active: true, cancelled: true } },
                         transitions: { activate: { status: { draft: 'active' } }, cancel: { status: { active: 'cancelled' } }, reactivate: { status: { cancelled: 'active' } } },
                         initialStates: { default: { status: 'draft' } },
-                        operations: { 'generator/generate': { status: { active: true } }, 'generator/apply': { status: { active: true } } }
+                        operations: { generate: { status: { active: true } }, 'generator/apply': { status: { active: true } } }
                     }
                 }
             }
@@ -99,8 +99,8 @@ const policy = async (businessKey, { activate = true } = {}) => {
     return activate ? invoke(POLICY, 'transition', { businessKey, revision: created.revision, transition: 'activate' }) : created;
 };
 
-const generate = (businessKey, effectiveFrom, generator, input) => invoke(POLICY, 'enter', {
-    businessKey, trait: 'generator', entry: 'generate', input: { generator, input, context: { effectiveFrom } }
+const generate = (businessKey, effectiveFrom, generator, input) => invoke(POLICY, 'generate', {
+    businessKey, generator, input, context: { effectiveFrom }
 });
 
 const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => generate(businessKey, effectiveFrom, amendmentType, input);
@@ -195,8 +195,8 @@ describe('entity-amendments', function () {
         const link = { sourceType: POLICY, sourceKey: 'a-5', sourceRevision: 1, generator: RAISE, context: { effectiveFrom: '2026-07-01' } };
         const direct = await errorOf(invoke(RAISE, 'create', { businessKey: 'direct', traits: { body: { reason: 'x', changes: { premium: 1 } }, generated: link } }));
         expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'a generated entity is created through the entity that generates it']);
-        const forged = await errorOf(invoke(POLICY, 'enter', { businessKey: 'a-1', trait: 'generator', entry: 'write', input: { command: 'reset', value: { last: 0, open: null } } }));
-        expect(forged.code).to.equal('invalid');
+        const forged = await errorOf(invoke(POLICY, 'enter', { businessKey: 'a-1', trait: 'generator', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }));
+        expect(forged.code).to.equal('private-operation');
     });
 
     it('proposes an amendment of a shape of its own, checked against the input of its declaration', async () => {
@@ -276,8 +276,8 @@ describe('entity-amendments', function () {
         const pending = await propose('g-2', '2026-07-01', 112);
         const stray = await errorOf(invoke(POLICY, 'deliver', { businessKey: 'g-3', trait: 'generator', message: 'apply' }));
         expect(stray.code).to.equal('forbidden');
-        const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'generator', entry: 'apply', input: { amendment: pending } }));
-        expect(direct.code).to.equal('invalid');
+        const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'generator', process: 'apply', entityOperation: 'apply', input: { amendment: pending } }));
+        expect(direct.code).to.equal('private-operation');
         expect([(await read('g-2')).data.body.premium, (await read('g-3')).data.body.premium]).to.deep.equal([100, 100]);
     });
 

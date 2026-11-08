@@ -13,7 +13,7 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping", "identity": "boolean", "entries[]": "string" },
+            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping", "identity": "boolean" },
             "lifecycle": {
                 "load": {
                     "inputMap": { "id": { "$str": ["#.self.id", "/configuration"] }, "schema": "#.self.data.configuration" },
@@ -94,15 +94,6 @@
             "signature": { "input": { "!record": "@any", "!kind": "string" }, "output": "@any" },
             "module": "@business-framework/entities/traits",
             "export": "traitValueOf"
-        }
-    },
-    {
-        "id": "entity-trait-entries",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "!entityType": "string", "!key": "string" }, "output": "[string]" },
-            "module": "@business-framework/entities/traits",
-            "export": "traitEntriesOf"
         }
     },
     {

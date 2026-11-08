@@ -191,7 +191,7 @@ describe('server with the demo', function () {
         expect([winner.businessKey, await ledgerOf(contract, administrator)]).to.deep.equal([`${contract.businessKey}-001`, { last: 1, open: winner.businessKey }]);
     });
 
-    it('exposes no write of the ledger or of a trait command, and starts only the entries of a trait', async () => {
+    it('exposes no write of the ledger or of a trait command, and starts a trait process only through an operation of the entity type', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`amender-w-${run}`, ['underwriter-role']), userWith(`approver-w-${run}`, ['administrator-role'])]);
         const contract = await activeContract(underwriter, administrator);
         const write = (operation, input) => invoke('construction', operation, { businessKey: contract.businessKey, revision: contract.revision, ...input })
@@ -200,13 +200,13 @@ describe('server with the demo', function () {
             write('writeLedger', { command: 'reset', value: { last: 0, open: null } }),
             write('writeTrait', { key: 'body', command: 'overwrite', value: {} }),
             write('applyChange', { change: {} }),
-            write('enter', { trait: 'generator', entry: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
+            write('enter', { trait: 'generator', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
             write('deliver', { trait: 'generator', message: 'apply' })
         ])).to.deep.equal([
             "unknown-operation: construction has no operation 'writeLedger'",
             "unknown-operation: construction has no operation 'writeTrait'",
             'private-operation: construction.applyChange is private to construction',
-            'invalid: construction has no trait generator with the entry write',
+            'private-operation: construction.enter is private to construction',
             'forbidden: a message is delivered by a trait'
         ]);
     });

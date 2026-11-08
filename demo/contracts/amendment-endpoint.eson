@@ -27,19 +27,15 @@
         "data": {
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/amendments",
-            "target": { "element": "trait-messages", "operation": "enter" },
+            "target": { "element": "entity-generation-gateway", "operation": "generate" },
             "body": { "!amendmentType": "string", "!effectiveFrom": "@date", "!reason": "string", "!changes": "object", "*": "never" },
             "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "propose" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
-                "trait": "generator",
-                "entry": "generate",
-                "input": {
-                    "generator": "#.body.amendmentType",
-                    "input": { "reason": "#.body.reason", "changes": "#.body.changes" },
-                    "context": { "effectiveFrom": "#.body.effectiveFrom" }
-                }
+                "generator": "#.body.amendmentType",
+                "input": { "reason": "#.body.reason", "changes": "#.body.changes" },
+                "context": { "effectiveFrom": "#.body.effectiveFrom" }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

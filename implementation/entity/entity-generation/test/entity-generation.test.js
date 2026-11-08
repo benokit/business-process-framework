@@ -18,11 +18,11 @@ const statesOf = (initial, transitions, operations = {}) => ({
 const elements = [
     {
         id: ORDER,
-        kind: 'stateful-body-entity-type',
+        kind: 'generating-entity-type',
         data: {
             traits: {
                 body: { configuration: { schema: { '!total': 'number', paid: 'boolean' } } },
-                state: statesOf('open', { settle: { status: { open: 'settled' } } }, { 'generator/generate': { status: { open: true } } }),
+                state: statesOf('open', { settle: { status: { open: 'settled' } } }, { generate: { status: { open: true } } }),
                 generator: {
                     configuration: {
                         declarations: {
@@ -54,7 +54,7 @@ const packages = ['integration', 'database', 'postgresql', 'transaction', 'entit
 
 const errorOf = promise => promise.then(() => null, error => error);
 
-const generate = (businessKey, request) => invoke(ORDER, 'enter', { businessKey, trait: 'generator', entry: 'generate', input: request });
+const generate = (businessKey, request) => invoke(ORDER, 'generate', { businessKey, ...request });
 
 describe('entity-generation', function () {
     before(async function () {
@@ -96,7 +96,7 @@ describe('entity-generation', function () {
         const order = await invoke(ORDER, 'read', { businessKey: 'o-1' });
         await invoke(ORDER, 'transition', { businessKey: 'o-1', revision: order.revision, transition: 'settle' });
         const error = await errorOf(generate('o-1', { generator: 'payment', key: 'p-2', input: { amount: 1 } }));
-        expect([error.code, error.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow generator/generate in its current state`]);
+        expect([error.code, error.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow generate in its current state`]);
     });
 
     it('answers a message of a generated entity that the entity did not generate with forbidden', async () => {

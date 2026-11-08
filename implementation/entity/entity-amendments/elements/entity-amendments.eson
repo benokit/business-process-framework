@@ -134,13 +134,13 @@
     {
         "id": "amendment-generator",
         "kind": "amendment-generator-trait",
-        "data": { "key": "generator", "entries": ["generate", "preview"], "pairs": [{ "changes": "apply", "undoneBy": "revert", "defaultKeys": ["body"] }], "configuration": "@generator-configuration" }
+        "data": { "key": "generator", "pairs": [{ "changes": "apply", "undoneBy": "revert", "defaultKeys": ["body"] }], "configuration": "@generator-configuration" }
     },
     {
         "id": "versioned-entity-type",
         "kind": "kind",
         "data": {
-            "extends": "stateful-body-entity-type",
+            "extends": "generating-entity-type",
             "fixed": { "traits": { "generator": { "trait": "amendment-generator" } } }
         }
     },
@@ -159,12 +159,12 @@
                             "inputMap": {
                                 "entityType": "#.amendment.data.generated.sourceType",
                                 "businessKey": "#.amendment.data.generated.sourceKey",
-                                "trait": "generator",
-                                "entry": "preview",
-                                "input": { "generatedType": "#.self.id", "generated": "#.input.businessKey", "effect": "apply" }
+                                "generatedType": "#.self.id",
+                                "generated": "#.input.businessKey",
+                                "effect": "apply"
                             },
-                            "invoke": "trait-messages",
-                            "operation": "enter"
+                            "invoke": "entity-generation-gateway",
+                            "operation": "preview"
                         }
                     ]
                 }

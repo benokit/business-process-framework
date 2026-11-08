@@ -25,6 +25,21 @@
         "data": { "!generator": "string", "key": "string", "input": "@any", "context": "object" }
     },
     {
+        "id": "generation-start-input",
+        "kind": "schema",
+        "data": { "$data#&": [{ "!businessKey": "string" }, "@generation-request"] }
+    },
+    {
+        "id": "generation-preview-request",
+        "kind": "schema",
+        "data": { "!generatedType": "string", "!generated": "string", "!effect": "string" }
+    },
+    {
+        "id": "generation-preview-input",
+        "kind": "schema",
+        "data": { "$data#&": [{ "!businessKey": "string" }, "@generation-preview-request"] }
+    },
+    {
         "id": "generation-admission",
         "kind": "schema",
         "data": { "!key": "string", "!revision": "integer" }
@@ -74,6 +89,52 @@
         }
     },
     { "id": "generated-entity-creator", "kind": "entity-creator", "data": {} },
+    {
+        "id": "generating-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "stateful-body-entity-type",
+            "operations": {
+                "generate": {
+                    "input": "@generation-start-input",
+                    "output": "@any",
+                    "implementation": { "starts": { "key": "generator", "operation": "generate" } }
+                },
+                "preview": {
+                    "input": "@generation-preview-input",
+                    "output": "[@any]",
+                    "implementation": { "starts": { "key": "generator", "operation": "preview" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "generation-gateway",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "generate": {
+                    "input": { "$data#&": [{ "!entityType": "@ref/generating-entity-type" }, "@generation-start-input"] },
+                    "output": "@any",
+                    "implementation": {
+                        "inputMap": { "$omit": { "keys": ["entityType"], "object": "#.input" } },
+                        "invoke": "#.input.entityType",
+                        "operation": "generate"
+                    }
+                },
+                "preview": {
+                    "input": { "$data#&": [{ "!entityType": "@ref/generating-entity-type" }, "@generation-preview-input"] },
+                    "output": "[@any]",
+                    "implementation": {
+                        "inputMap": { "$omit": { "keys": ["entityType"], "object": "#.input" } },
+                        "invoke": "#.input.entityType",
+                        "operation": "preview"
+                    }
+                }
+            }
+        }
+    },
+    { "id": "entity-generation-gateway", "kind": "generation-gateway", "data": {} },
     {
         "id": "generator-trait",
         "kind": "kind",
@@ -133,7 +194,7 @@
                     ]
                 },
                 "generate": {
-                    "input": "@trait-entry-input",
+                    "input": "@trait-process-input",
                     "output": "@any",
                     "implementation": [
                         { "outputKey": "request", "set": "#.input.input" },
@@ -182,7 +243,7 @@
                     ]
                 },
                 "preview": {
-                    "input": "@trait-entry-input",
+                    "input": "@trait-process-input",
                     "output": "[@any]",
                     "implementation": [
                         { "outputKey": "generated", "inputMap": { "entityType": "#.input.input.generatedType", "businessKey": "#.input.input.generated" }, "invoke": "entity-database", "operation": "read" },
@@ -258,7 +319,7 @@
     {
         "id": "generator",
         "kind": "plain-generator-trait",
-        "data": { "entries": ["generate", "preview"], "configuration": "@generator-configuration" }
+        "data": { "configuration": "@generator-configuration" }
     },
     {
         "id": "generated-trait",

@@ -72,11 +72,6 @@ export const hookedKeysOf = ({ entityType, operation }) => Object.entries(traits
     .filter(([, { trait }]) => hasOperation({ element: trait, operation }))
     .map(([key]) => key);
 
-export const traitEntriesOf = ({ entityType, key }) => {
-    const use = traitsOf(entityType)[key];
-    return use === undefined ? [] : getElement(use.trait).data.entries ?? [];
-};
-
 export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
     .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
     .map(([key]) => key);
@@ -125,19 +120,20 @@ const guardHookProblems = entityType => Object.values(traitsOf(entityType))
     .filter(({ trait }) => isTrait(trait) && hasOperation({ element: trait, operation: 'guard' }))
     .flatMap(({ trait }) => changesOf({ element: trait, operation: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
 
-const FRAMEWORK_OPERATIONS = ['initialize', 'derive'];
+const FRAMEWORK_OPERATIONS = ['initialize', 'derive', 'guard', 'react', 'receive'];
 
-const exposureProblems = (entityType, operation, { key, operation: traitOperation }) => {
+const exposureProblems = (entityType, operation, { key, operation: traitOperation }, keyword) => {
     const use = traitsOf(entityType)[key];
-    const where = `operation '${operation}' of ${entityType} exposes '${traitOperation}' of '${key}'`;
+    const where = `operation '${operation}' of ${entityType} ${keyword} '${traitOperation}' of '${key}'`;
     if (use === undefined) return [`${where}, but ${entityType} has no trait '${key}'`];
     if (FRAMEWORK_OPERATIONS.includes(traitOperation)) return [`${where}, which only the framework calls`];
     return traitOperation in resolveKind(getElement(use.trait).kind).operations ? [] : [`${where}, but trait '${use.trait}' has no such operation`];
 };
 
 const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
-    .filter(([, { implementation }]) => implementation?.exposes !== undefined)
-    .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
+    .flatMap(([operation, { implementation }]) => ['exposes', 'starts']
+        .filter(keyword => implementation?.[keyword] !== undefined)
+        .flatMap(keyword => exposureProblems(entityType, operation, implementation[keyword], keyword)));
 
 const identityProblems = entityType => {
     const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;

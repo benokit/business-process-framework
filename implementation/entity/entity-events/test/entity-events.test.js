@@ -24,13 +24,14 @@ const elements = [
             operations: {
                 initialize: { implementation: { set: 0 } },
                 add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', 1] } } } },
-                ping: { input: '@trait-entry-input', output: '@any', implementation: { deliver: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', trait: '#.input.key', message: 'add' } } },
+                ping: { input: '@trait-process-input', output: '@any', implementation: { deliver: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', trait: '#.input.key', message: 'add' } } },
                 receive: { input: '@trait-message-input', output: '@trait-message-reply', implementation: { set: [{ key: '#.input.key', operation: 'add', input: {} }] } }
             }
         }
     },
-    { id: PINGED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`${PINGED}-trait`]: { configuration: {} } } } },
-    { id: `${PINGED}-trait`, kind: `${PINGED}-kind`, data: { entries: ['ping'], configuration: {} } },
+    { id: `${PINGED}-entity-type`, kind: 'kind', data: { extends: 'body-entity-type', operations: { ping: { input: { '!businessKey': 'string' }, output: '@any', implementation: { starts: { key: `${PINGED}-trait`, operation: 'ping' } } } } } },
+    { id: PINGED, kind: `${PINGED}-entity-type`, data: { traits: { body: { configuration: { schema: {} } }, [`${PINGED}-trait`]: { configuration: {} } } } },
+    { id: `${PINGED}-trait`, kind: `${PINGED}-kind`, data: { configuration: {} } },
     { id: `${ORDER}-group`, kind: 'slot-fill', data: { target: ORDER, slot: 'eventGroup', value: 'all-orders' } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } } } } },
     { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record', effects: ['irreversible'] } } } }
@@ -85,7 +86,7 @@ describe('entity-events', function () {
 
     it('names the sender of a change that a trait made to its entity from within', async () => {
         await invoke(PINGED, 'create', { businessKey: 'p-1', traits: { body: {} } });
-        await invoke(PINGED, 'enter', { businessKey: 'p-1', trait: `${PINGED}-trait`, entry: 'ping' });
+        await invoke(PINGED, 'ping', { businessKey: 'p-1' });
         await eventually(() => received.some(event => event.entityType === PINGED && event.origin));
         const event = received.find(({ entityType, origin }) => entityType === PINGED && origin);
         expect([event.eventType, event.origin]).to.deep.equal(['trait', { sender: { entityType: PINGED, businessKey: 'p-1', key: `${PINGED}-trait` }, trait: `${PINGED}-trait`, message: 'add' }]);

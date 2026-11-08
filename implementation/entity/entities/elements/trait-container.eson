@@ -101,18 +101,15 @@
                     ]
                 },
                 "enter": {
-                    "input": { "!businessKey": "string", "!trait": "string", "!entry": "string", "input": "@any" },
+                    "private": true,
+                    "input": { "!businessKey": "string", "!trait": "string", "!process": "string", "!entityOperation": "string", "input": "@any" },
                     "output": "@any",
                     "implementation": {
                         "inTransaction": [
-                            {
-                                "if": { "$negate": { "$includes": { "collection": { "$func/entity-trait-entries": { "entityType": "#.self.id", "key": "#.input.trait" } }, "value": "#.input.entry" } } },
-                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait", " with the entry ", "#.input.entry"] } } }
-                            },
                             { "outputKey": "stored", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
                             { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                             {
-                                "inputMap": { "change": { "operation": "trait", "entityOperation": { "$str": ["#.input.trait", "/", "#.input.entry"] }, "commands": { "$literal": [] }, "before": "#.stored" } },
+                                "inputMap": { "change": { "operation": "trait", "entityOperation": "#.input.entityOperation", "commands": { "$literal": [] }, "before": "#.stored" } },
                                 "invoke": "#.self.id",
                                 "operation": "guardTraits"
                             },
@@ -129,7 +126,7 @@
                                         "record": "#.record"
                                     },
                                     "invoke": "#.use.trait",
-                                    "operation": "#.input.entry"
+                                    "operation": "#.input.process"
                                 }
                             }
                         ]

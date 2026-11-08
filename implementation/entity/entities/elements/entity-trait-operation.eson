@@ -28,7 +28,7 @@
         }
     },
     {
-        "id": "trait-entry-input",
+        "id": "trait-process-input",
         "kind": "schema",
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!businessKey": "string", "input": "@any", "!record": "@entity-record" }
     },
@@ -138,19 +138,30 @@
         }
     },
     {
+        "id": "started-trait-process",
+        "kind": "execution-node-template",
+        "data": {
+            "keyword": "starts",
+            "within": "entity-type",
+            "node": { "!starts": { "!key": "string", "!operation": "string" } },
+            "implementation": {
+                "inputMap": {
+                    "businessKey": "#.input.businessKey",
+                    "trait": "#.node.starts.key",
+                    "process": "#.node.starts.operation",
+                    "entityOperation": "#.operation",
+                    "input": { "$omit": { "keys": ["businessKey"], "object": "#.input" } }
+                },
+                "invoke": "#.self.id",
+                "operation": "enter"
+            }
+        }
+    },
+    {
         "id": "trait-message-bus",
         "kind": "kind",
         "data": {
             "operations": {
-                "enter": {
-                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!trait": "string", "!entry": "string", "input": "@any" },
-                    "output": "@any",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "trait": "#.input.trait", "entry": "#.input.entry", "input": "#.input.input" },
-                        "invoke": "#.input.entityType",
-                        "operation": "enter"
-                    }
-                },
                 "previewOperations": {
                     "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!operations[]": "@trait-message-operation" },
                     "output": "[@any]",
