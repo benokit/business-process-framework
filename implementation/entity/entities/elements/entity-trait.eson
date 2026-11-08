@@ -10,6 +10,11 @@
         "data": { "trait": "@ref/entity-trait", "configuration": "@any" }
     },
     {
+        "id": "trait-bundle",
+        "kind": "kind",
+        "data": { "shape": { "!traits{}": "@entity-trait-entry" } }
+    },
+    {
         "id": "entity-trait",
         "kind": "kind",
         "data": {

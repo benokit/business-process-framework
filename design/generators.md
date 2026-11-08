@@ -42,7 +42,7 @@ Two traits, no entity type built around a slot. Any entity type takes the capabi
 
 ### The trait `generator` (the source)
 
-A trait of cardinality `one`, key `generator`, with one operation, `generate`, and no hooks. Its `configuration` is `{ declarations: { <name>: { type, open?, input?, effects? } }, key?, context?, effects? }`.
+A trait of cardinality `many` (an entity type may have several uses, each under a key of its own, with its own declarations and policy), with one operation, `generate`, and no hooks. Its `configuration` is `{ declarations: { <name>: { type, open?, input?, effects? } }, key?, context?, effects? }`.
 
 - `type`: the kind of the entity to generate; it has the trait `generated`.
 - `open`: maps `{ entity, input }` to the initial traits of the new entity. Without it, `input` is the body.
@@ -56,14 +56,14 @@ Declarations are contributed as paths of the use are: in the `traits` of the ent
 
 A trait of cardinality `one`, valued: its value is the link, fixed at creation, `{ sourceType, sourceKey, sourceRevision, generator, context }`. Its `configuration` binds the moves of the generated entity to the effects of the declaration, `{ "apply": { "versionStatus": { "pending": "applied" } }, … }`.
 
-- `guard` on `create`: refuses unless `_ctx.trait` is the `generator` use of the source that the link to be written names, so the entity exists only through `generate`.
+- `guard` on `create`: refuses unless `_ctx.trait` is the generator use (the key in the link) of the source that the link to be written names, so the entity exists only through `generate`.
 - `react`: after a write, finds the effect whose binding the change satisfies, reads the source through the link, computes the operations of the effect (the declaration's, through the policy of the source) and `writes` them to the source, in the transaction of the move, so a failure rolls the move back. Behaviour of the move stays with the generated entity's own state model; behaviour on the source stays with the declaration and the policy. The link names the only entity it can write, and the effect comes from the declaration, never from a caller.
 - `preview`: a process, started by the operation `preview({ businessKey, effect })` of `generated-entity-type`, that returns the commands the effect would write, writing nothing.
 - The trait has only `initialize`, so no trait operation writes the link, and `applyTraitOperations` is private.
 
 ### The operation `generate`
 
-`generating-entity-type` declares `generate` with `starts: { key: "generator", operation: "generate" }`, so `generate({ businessKey, generator, input?, context? })` on the source starts it (the HTTP route of an application targets `entity-generation-gateway.generate`; the state model lists `generate`, authorization names the action). The operation runs as the trait, in one transaction:
+`generating-entity-type` declares `generate`, which enters the process `generate` of the trait use the request names, so `generate({ businessKey, generator, declaration, input?, context? })` on the source (`generator` the key of the use, `declaration` the name in it) starts it (the HTTP route of an application targets `entity-generation-gateway.generate`; the state model lists `generate`, authorization names the action). The operation runs as the trait, in one transaction:
 
 1. finds the declaration of that name (`invalid` otherwise) and checks `input` and `context`;
 2. makes the initial traits with `open`;
@@ -76,7 +76,7 @@ A trait of cardinality `one`, valued: its value is the link, fixed at creation, 
 The generic `generator` knows no policy. What the amendment process adds lives in the package of amendments and uses nothing but the mechanisms above:
 
 - **the ledger** is a trait of its own, `amendment-ledger`, with the operations `open` (one open at a time) and `close` (the amendment is the open one; the source is still at the revision the amendment was proposed at, when asked), which refuse by throwing;
-- **the class** `versioned-entity-type` fixes the ledger and the policy of the generator: the key `<businessKey>-<nnn>` from the ledger, the schema of the context, and the pure function `amendment-effect-operations`, which puts the ledger's `open` in the effect `generate`, its `close` after the declared items of `apply` (and in `close`), and gives `apply` and `revert` their defaults (`body.amend` and `body.remove` of the amendment's body) when the declaration lists none;
+- **the bundle** `amendable`, taken by `versioned-entity-type`, brings the ledger and a generator use `amendments` with the policy: the key `<businessKey>-<nnn>` from the ledger, the schema of the context, and the pure function `amendment-effect-operations`, which puts the ledger's `open` in the effect `generate`, its `close` after the declared items of `apply` (and in `close`), and gives `apply` and `revert` their defaults (`body.amend` and `body.remove` of the amendment's body) when the declaration lists none;
 - `amendment-entity-type` extends `generated-entity-type`, has the trait `generated` with the bindings above, and keeps `versionStatus`.
 
 ## What guarantees that only the generating entity is interacted with
@@ -144,4 +144,5 @@ The review of the generator found it bloated: `generator-trait` carried five hoo
 - **One write primitive instead of messages.** `deliver` and `receive` (and the schemas `trait-message-input` and `trait-message-reply`) became `write` and the node `writes`, with `origin: { sender, entityOperation }`. The state model gates the write by name as before; a written entity refuses in a `guard` that reads `origin`, not in a hook of its own to answer messages. The bus `trait-messages` is `trait-writes`.
 - **The effects moved to the generated entity.** Its `react` computes the operations from the declaration and writes them, so the generator has no `receive` and no hooks, and `preview` is an operation of `generated-entity-type`.
 - **Policy is data and a trait of the source.** The ledger is the trait `amendment-ledger` and the rules around effects are the policy fields of the generator configuration, fixed by `versioned-entity-type`; `plain-generator-trait` and `amendment-generator-trait` are gone, the instance `amendment-generator` only declares `pairs`.
+- **Bundles and several generators (R6.32).** The policy was per entity type, so a versioned entity could generate nothing but amendments. Now `generator` has cardinality `many` and the link records the key of the use (`generator`) and the declaration, so each use has its own policy; and the traits that make a capability are taken together as a **trait bundle** (`bundles` of an entity type or of a kind's `fixed`, expanded into ordinary uses; see [entities](../implementation/entity/entities/README.md#traits)), here `amendable` with the generator `amendments` and the ledger. The state model's keys became `amendments/apply`; the request of `generate` names `generator` and `declaration`.
 - **Cost:** a trait of the written entity can no longer decide in its own code which sender it accepts; it refuses in a `guard`. And the ledger is no longer part of the `generator` value, so it lives under the key `amendment-ledger`.

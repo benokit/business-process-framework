@@ -4,7 +4,7 @@
         "kind": "kind",
         "data": {
             "context": { "manages": { "trait": { "!entityType": "string", "!businessKey": "string", "!key": "string", "caller": "object" } } },
-            "shape": { "traits{}": "@entity-trait-entry" },
+            "shape": { "traits{}": "@entity-trait-entry", "bundles{}": "boolean" },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" }
             },
@@ -91,6 +91,10 @@
                                 "operation": "guardTraits"
                             },
                             { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.input.trait" } } },
+                            {
+                                "if": { "$not": { "$and": ["#.use", { "$func/has-operation": { "element": "#.use.trait", "operation": "#.input.process" } }] } },
+                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait", " with the process ", "#.input.process"] } } }
+                            },
                             {
                                 "withContext": { "trait": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "key": "#.input.trait", "caller": "#._ctx.trait" } },
                                 "do": {

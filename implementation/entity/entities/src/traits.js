@@ -1,4 +1,4 @@
-import { getElement } from '@business-framework/core';
+import { findElement, getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
 import { changesOf } from '@business-framework/core/effects';
@@ -10,6 +10,8 @@ const cardinalityOf = trait => getElement(trait).data.cardinality ?? 'one';
 const keyOf = trait => getElement(trait).data.key ?? trait;
 
 const isTrait = trait => isInstanceOf({ element: trait, kind: 'entity-trait' });
+
+const isBundle = id => findElement(id) !== undefined && isInstanceOf({ element: id, kind: 'trait-bundle' });
 
 const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
 
@@ -39,7 +41,14 @@ const traitsOfKey = (key, contributions) => {
     return named.some(isAlternativeTo(key)) ? named.filter(trait => trait !== key) : named;
 };
 
-const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
+const bundlesOf = entityType => Object.keys(selfOf(getElement(entityType)).data.bundles ?? {});
+
+const bundleContributions = entityType => bundlesOf(entityType)
+    .filter(isBundle)
+    .flatMap(bundle => Object.entries(getElement(bundle).data.traits ?? {})
+        .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: bundle })));
+
+const resolve = entityType => Object.entries(Object.groupBy([...bundleContributions(entityType), ...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
     .map(([key, contributions]) => {
         const traits = traitsOfKey(key, contributions);
         return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
@@ -109,7 +118,7 @@ const isRepeated = (fill, index, fills) => fill.trait !== undefined && fills.fin
 
 const closedProblems = entityType => {
     const kind = selfOf(getElement(entityType)).kind;
-    const declared = Object.keys(resolveKind(kind).fixed.traits ?? {});
+    const declared = [...Object.keys(resolveKind(kind).fixed.traits ?? {}), ...bundleContributions(entityType).map(({ key }) => key)];
     const injectors = Object.groupBy(fillContributions(entityType), ({ key }) => key);
     return Object.keys(getElement(entityType).data.traits ?? {})
         .filter(key => !declared.includes(key) && key in injectors)
@@ -135,6 +144,10 @@ const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf
         .filter(keyword => implementation?.[keyword] !== undefined)
         .flatMap(keyword => exposureProblems(entityType, operation, implementation[keyword], keyword)));
 
+const bundleProblems = entityType => bundlesOf(entityType)
+    .filter(bundle => !isBundle(bundle))
+    .map(bundle => `${entityType} names '${bundle}' as a bundle, which is no trait bundle`);
+
 const identityProblems = entityType => {
     const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;
     return count === 1 ? [] : [`${entityType} has ${count} traits that give the business key, needs one`];
@@ -143,6 +156,7 @@ const identityProblems = entityType => {
 export const traitProblems = entityType => {
     const fills = fillContributions(entityType);
     return [
+        ...bundleProblems(entityType),
         ...identityProblems(entityType),
         ...guardHookProblems(entityType),
         ...exposedOperationProblems(entityType),

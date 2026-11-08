@@ -100,26 +100,31 @@
     {
         "id": "amendment-generator",
         "kind": "generator-trait",
-        "data": { "key": "generator", "pairs": [{ "changes": "apply", "undoneBy": "revert", "defaultKeys": ["body"] }], "configuration": "@generator-configuration" }
+        "data": { "cardinality": "many", "pairs": [{ "changes": "apply", "undoneBy": "revert", "defaultKeys": ["body"] }], "configuration": "@generator-configuration" }
+    },
+    {
+        "id": "amendable",
+        "kind": "trait-bundle",
+        "data": {
+            "traits": {
+                "amendments": {
+                    "trait": "amendment-generator",
+                    "configuration": {
+                        "key": "#.source.data.amendment-ledger.open",
+                        "context": "amendment-context",
+                        "effects": { "$func/amendment-effect-operations": "#" }
+                    }
+                },
+                "amendment-ledger": { "configuration": {} }
+            }
+        }
     },
     {
         "id": "versioned-entity-type",
         "kind": "kind",
         "data": {
             "extends": "generating-entity-type",
-            "fixed": {
-                "traits": {
-                    "generator": {
-                        "trait": "amendment-generator",
-                        "configuration": {
-                            "key": "#.source.data.amendment-ledger.open",
-                            "context": "amendment-context",
-                            "effects": { "$func/amendment-effect-operations": "#" }
-                        }
-                    },
-                    "amendment-ledger": { "configuration": {} }
-                }
-            }
+            "fixed": { "bundles": { "amendable": true } }
         }
     },
     {

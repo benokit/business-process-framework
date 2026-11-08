@@ -200,8 +200,8 @@ describe('server with the demo', function () {
             write('writeLedger', { command: 'reset', value: { last: 0, open: null } }),
             write('writeTrait', { key: 'body', command: 'overwrite', value: {} }),
             write('applyChange', { change: {} }),
-            write('enter', { trait: 'generator', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
-            write('write', { entityOperation: 'generator/apply', operations: [] })
+            write('enter', { trait: 'amendments', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }),
+            write('write', { entityOperation: 'amendments/apply', operations: [] })
         ])).to.deep.equal([
             "unknown-operation: construction has no operation 'writeLedger'",
             "unknown-operation: construction has no operation 'writeTrait'",

@@ -23,7 +23,8 @@ const elements = [
             traits: {
                 body: { configuration: { schema: { '!total': 'number', paid: 'boolean' } } },
                 state: statesOf('open', { settle: { status: { open: 'settled' } } }, { generate: { status: { open: true } } }),
-                generator: {
+                payments: {
+                    trait: 'generator',
                     configuration: {
                         declarations: {
                             payment: {
@@ -54,7 +55,7 @@ const packages = ['integration', 'database', 'postgresql', 'transaction', 'entit
 
 const errorOf = promise => promise.then(() => null, error => error);
 
-const generate = (businessKey, request) => invoke(ORDER, 'generate', { businessKey, ...request });
+const generate = (businessKey, request) => invoke(ORDER, 'generate', { businessKey, generator: 'payments', ...request });
 
 describe('entity-generation', function () {
     before(async function () {
@@ -73,14 +74,14 @@ describe('entity-generation', function () {
 
     it('generates an entity of the declared type, with a link to the entity that generated it', async () => {
         const order = await invoke(ORDER, 'read', { businessKey: 'o-1' });
-        const payment = await generate('o-1', { generator: 'payment', key: 'p-1', input: { amount: 40 }, context: { by: 'card' } });
+        const payment = await generate('o-1', { declaration: 'payment', key: 'p-1', input: { amount: 40 }, context: { by: 'card' } });
         expect([payment.entityType, payment.data.body, payment.data.generated]).to.deep.equal([
-            PAYMENT, { amount: 40 }, { sourceType: ORDER, sourceKey: 'o-1', sourceRevision: order.revision, generator: 'payment', context: { by: 'card' } }
+            PAYMENT, { amount: 40 }, { sourceType: ORDER, sourceKey: 'o-1', sourceRevision: order.revision, generator: 'payments', declaration: 'payment', context: { by: 'card' } }
         ]);
     });
 
     it('refuses to create a generated entity other than through the entity that generates it', async () => {
-        const link = { sourceType: ORDER, sourceKey: 'o-1', sourceRevision: 1, generator: 'payment' };
+        const link = { sourceType: ORDER, sourceKey: 'o-1', sourceRevision: 1, generator: 'payments', declaration: 'payment' };
         const direct = await errorOf(invoke(PAYMENT, 'create', { businessKey: 'p-direct', traits: { body: { amount: 1 }, generated: link } }));
         expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'a generated entity is created through the entity that generates it']);
     });
@@ -92,17 +93,17 @@ describe('entity-generation', function () {
     });
 
     it('refuses a generator the entity does not declare, and a state its model does not allow', async () => {
-        expect((await errorOf(generate('o-1', { generator: 'refund', key: 'r-1' }))).code).to.equal('invalid');
+        expect((await errorOf(generate('o-1', { declaration: 'refund', key: 'r-1' }))).code).to.equal('invalid');
         const order = await invoke(ORDER, 'read', { businessKey: 'o-1' });
         await invoke(ORDER, 'transition', { businessKey: 'o-1', revision: order.revision, transition: 'settle' });
-        const error = await errorOf(generate('o-1', { generator: 'payment', key: 'p-2', input: { amount: 1 } }));
+        const error = await errorOf(generate('o-1', { declaration: 'payment', key: 'p-2', input: { amount: 1 } }));
         expect([error.code, error.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow generate in its current state`]);
     });
 
     it('accepts a write to an entity from anyone but a trait', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-2', traits: { body: { total: 5 } } });
-        const stray = await generate('o-2', { generator: 'payment', key: 'p-3', input: { amount: 5 } });
-        const error = await errorOf(invoke(ORDER, 'write', { businessKey: 'o-1', entityOperation: 'generator/settle', operations: [{ key: 'body', operation: 'put', input: { value: { total: 1, paid: true } } }] }));
+        const stray = await generate('o-2', { declaration: 'payment', key: 'p-3', input: { amount: 5 } });
+        const error = await errorOf(invoke(ORDER, 'write', { businessKey: 'o-1', entityOperation: 'payments/settle', operations: [{ key: 'body', operation: 'put', input: { value: { total: 1, paid: true } } }] }));
         expect(error.code).to.equal('forbidden');
         expect(stray.data.generated.sourceKey).to.equal('o-2');
     });

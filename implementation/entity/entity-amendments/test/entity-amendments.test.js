@@ -7,6 +7,7 @@ const POLICY = `policy-${run}`;
 const RAISE = `raise-${run}`;
 const COPY = `copy-${run}`;
 const END = `end-${run}`;
+const NOTE = `note-${run}`;
 const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number', endDate: '@date', '*': 'never' };
 const VALID_FROM = '#.link.context.effectiveFrom';
 const AMENDMENT_KEY = '#.generated.businessKey';
@@ -33,7 +34,7 @@ const amendmentType = (id, schema) => ({
     }
 });
 
-const declaration = (id, declarations) => ({ id: `${POLICY}-${id}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value: { key: 'generator', configuration: { declarations } } } });
+const declaration = (id, declarations) => ({ id: `${POLICY}-${id}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value: { key: 'amendments', configuration: { declarations } } } });
 
 const elements = [
     {
@@ -41,18 +42,20 @@ const elements = [
         kind: 'versioned-entity-type',
         data: {
             traits: {
+                notes: { trait: 'generator', configuration: { declarations: { note: { type: NOTE } } } },
                 body: { trait: 'versioned-body', configuration: { schema: BODY, versioned: { validFrom: '/startDate' } } },
                 state: {
                     configuration: {
                         states: { status: { draft: true, active: true, cancelled: true } },
                         transitions: { activate: { status: { draft: 'active' } }, cancel: { status: { active: 'cancelled' } }, reactivate: { status: { cancelled: 'active' } } },
                         initialStates: { default: { status: 'draft' } },
-                        operations: { generate: { status: { active: true } }, 'generator/apply': { status: { active: true } } }
+                        operations: { generate: { status: { active: true } }, 'amendments/apply': { status: { active: true } } }
                     }
                 }
             }
         }
     },
+    { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } }, generated: { configuration: {} } } } },
     amendmentType(RAISE, { '!reason': 'string', '!changes': { '!premium': 'number' } }),
     amendmentType(COPY, BODY),
     amendmentType(END, { '!reason': 'string' }),
@@ -100,7 +103,7 @@ const policy = async (businessKey, { activate = true } = {}) => {
 };
 
 const generate = (businessKey, effectiveFrom, generator, input) => invoke(POLICY, 'generate', {
-    businessKey, generator, input, context: { effectiveFrom }
+    businessKey, generator: 'amendments', declaration: generator, input, context: { effectiveFrom }
 });
 
 const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => generate(businessKey, effectiveFrom, amendmentType, input);
@@ -192,10 +195,10 @@ describe('entity-amendments', function () {
     });
 
     it('refuses an amendment created other than through the entity it amends, and a start of a ledger write', async () => {
-        const link = { sourceType: POLICY, sourceKey: 'a-5', sourceRevision: 1, generator: RAISE, context: { effectiveFrom: '2026-07-01' } };
+        const link = { sourceType: POLICY, sourceKey: 'a-5', sourceRevision: 1, generator: 'amendments', declaration: RAISE, context: { effectiveFrom: '2026-07-01' } };
         const direct = await errorOf(invoke(RAISE, 'create', { businessKey: 'direct', traits: { body: { reason: 'x', changes: { premium: 1 } }, generated: link } }));
         expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'a generated entity is created through the entity that generates it']);
-        const forged = await errorOf(invoke(POLICY, 'enter', { businessKey: 'a-1', trait: 'generator', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }));
+        const forged = await errorOf(invoke(POLICY, 'enter', { businessKey: 'a-1', trait: 'amendments', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }));
         expect(forged.code).to.equal('private-operation');
     });
 
@@ -206,7 +209,7 @@ describe('entity-amendments', function () {
         const proposed = await propose('a-7', '2026-07-01', 110);
         expect([proposed.data.body, proposed.data.generated]).to.deep.equal([
             { reason: 'indexation', changes: { premium: 110 } },
-            { sourceType: POLICY, sourceKey: 'a-7', sourceRevision: (await read('a-7')).revision, generator: RAISE, context: { effectiveFrom: '2026-07-01' } }
+            { sourceType: POLICY, sourceKey: 'a-7', sourceRevision: (await read('a-7')).revision, generator: 'amendments', declaration: RAISE, context: { effectiveFrom: '2026-07-01' } }
         ]);
     });
 
@@ -274,11 +277,20 @@ describe('entity-amendments', function () {
         await policy('g-2');
         await policy('g-3');
         const pending = await propose('g-2', '2026-07-01', 112);
-        const stray = await errorOf(invoke(POLICY, 'write', { businessKey: 'g-3', entityOperation: 'generator/apply', operations: [{ key: 'body', operation: 'remove', input: {} }] }));
+        const stray = await errorOf(invoke(POLICY, 'write', { businessKey: 'g-3', entityOperation: 'amendments/apply', operations: [{ key: 'body', operation: 'remove', input: {} }] }));
         expect(stray.code).to.equal('forbidden');
-        const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'generator', process: 'apply', entityOperation: 'apply', input: { amendment: pending } }));
+        const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'amendments', process: 'apply', entityOperation: 'apply', input: { amendment: pending } }));
         expect(direct.code).to.equal('private-operation');
         expect([(await read('g-2')).data.body.premium, (await read('g-3')).data.body.premium]).to.deep.equal([100, 100]);
+    });
+
+    it('generates entities of other kinds beside amendments, with no ledger and no context of its own', async () => {
+        await policy('a-13');
+        const note = await invoke(POLICY, 'generate', { businessKey: 'a-13', generator: 'notes', declaration: 'note', key: 'n-1', input: { text: 'hello' } });
+        expect([note.businessKey, note.data.generated.generator, note.data.body]).to.deep.equal(['n-1', 'notes', { text: 'hello' }]);
+        expect((await read('a-13')).data['amendment-ledger']).to.deep.equal({ last: 0, open: null });
+        const absent = await errorOf(invoke(POLICY, 'generate', { businessKey: 'a-13', generator: 'nothing', declaration: 'note', key: 'n-2', input: { text: 'x' } }));
+        expect(absent.code).to.equal('invalid');
     });
 
     const messagesWith = async extra => {

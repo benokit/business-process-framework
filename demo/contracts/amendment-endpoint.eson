@@ -33,7 +33,8 @@
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
-                "generator": "#.body.amendmentType",
+                "generator": "amendments",
+                "declaration": "#.body.amendmentType",
                 "input": { "reason": "#.body.reason", "changes": "#.body.changes" },
                 "context": { "effectiveFrom": "#.body.effectiveFrom" }
             },

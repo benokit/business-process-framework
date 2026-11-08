@@ -2,7 +2,7 @@
     {
         "id": "generation-link-value",
         "kind": "schema",
-        "data": { "!sourceType": "string", "!sourceKey": "string", "!sourceRevision": "integer", "!generator": "string", "context": "object", "*": "never" }
+        "data": { "!sourceType": "string", "!sourceKey": "string", "!sourceRevision": "integer", "!generator": "string", "!declaration": "string", "context": "object", "*": "never" }
     },
     {
         "id": "generation-operation-use",
@@ -22,7 +22,7 @@
     {
         "id": "generation-request",
         "kind": "schema",
-        "data": { "!generator": "string", "key": "string", "input": "@any", "context": "object" }
+        "data": { "!generator": "string", "!declaration": "string", "key": "string", "input": "@any", "context": "object" }
     },
     {
         "id": "generation-start-input",
@@ -107,7 +107,17 @@
                 "generate": {
                     "input": "@generation-start-input",
                     "output": "@any",
-                    "implementation": { "starts": { "key": "generator", "operation": "generate" } }
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "trait": "#.input.generator",
+                            "process": "generate",
+                            "entityOperation": "#.operation",
+                            "input": { "$omit": { "keys": ["businessKey"], "object": "#.input" } }
+                        },
+                        "invoke": "#.self.id",
+                        "operation": "enter"
+                    }
                 }
             }
         }
@@ -157,10 +167,10 @@
                     "implementation": [
                         { "outputKey": "request", "set": "#.input.input" },
                         { "inputMap": { "schemaId": "generation-request", "value": "#.request" }, "invoke": "ajv", "operation": "assert" },
-                        { "outputKey": "declaration", "set": { "$get": { "object": "#.input.configuration.declarations", "path": "#.request.generator" } } },
+                        { "outputKey": "declaration", "set": { "$get": { "object": "#.input.configuration.declarations", "path": "#.request.declaration" } } },
                         {
                             "if": { "$negate": "#.declaration" },
-                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no generator ", "#.request.generator"] } } }
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no declaration ", "#.request.declaration", " in ", "#.input.key"] } } }
                         },
                         {
                             "if": "#.declaration.input",
@@ -217,7 +227,8 @@
                                                 "sourceType": "#.input.entityType",
                                                 "sourceKey": "#.input.businessKey",
                                                 "sourceRevision": "#.source.revision",
-                                                "generator": "#.request.generator",
+                                                "generator": "#.input.key",
+                                                "declaration": "#.request.declaration",
                                                 "context": "#.request.context"
                                             }
                                         }
@@ -235,7 +246,7 @@
     {
         "id": "generator",
         "kind": "generator-trait",
-        "data": { "configuration": "@generator-configuration" }
+        "data": { "cardinality": "many", "configuration": "@generator-configuration" }
     },
     {
         "id": "generated-trait",
@@ -257,7 +268,7 @@
                             "if": {
                                 "$and": [
                                     { "$eq": ["#.input.change.operation", "create"] },
-                                    { "$not": { "$and": [{ "$eq": ["#._ctx.trait.caller.key", "generator"] }, { "$eq": ["#._ctx.trait.caller.entityType", "#.link.sourceType"] }, { "$eq": ["#._ctx.trait.caller.businessKey", "#.link.sourceKey"] }] } }
+                                    { "$not": { "$and": [{ "$eq": ["#._ctx.trait.caller.key", "#.link.generator"] }, { "$eq": ["#._ctx.trait.caller.entityType", "#.link.sourceType"] }, { "$eq": ["#._ctx.trait.caller.businessKey", "#.link.sourceKey"] }] } }
                                 ]
                             },
                             "then": { "throw": { "code": "forbidden", "message": "a generated entity is created through the entity that generates it" } }
@@ -283,7 +294,7 @@
                                     "inputMap": {
                                         "entityType": "#.link.sourceType",
                                         "businessKey": "#.link.sourceKey",
-                                        "entityOperation": { "$str": ["generator/", "#.effect"] },
+                                        "entityOperation": { "$str": ["#.link.generator", "/", "#.effect"] },
                                         "operations": "#.operations"
                                     },
                                     "writes": {

@@ -13,8 +13,6 @@ export const firedEffects = ({ configuration, before, after }) => before === und
     ? []
     : Object.entries(configuration).filter(([, binding]) => movedAlong(binding, before, after)).map(([effect]) => effect);
 
-const GENERATOR_KEY = 'generator';
-
 const declaredOperations = ({ declaration, effect, scope }) => (declaration.effects?.[effect] ?? [])
     .map(({ key, operation, input }) => ({ key, operation, input: applyMapping({ mapping: input, input: scope }) }));
 
@@ -25,8 +23,8 @@ export const generationOperations = ({ configuration, declaration, effect, scope
 
 export const linkedGenerationOperations = ({ source, generated, effect }) => {
     const link = generated.data.generated;
-    const { configuration } = traitsOf(link.sourceType)[GENERATOR_KEY];
-    return generationOperations({ configuration, declaration: configuration.declarations[link.generator], effect, scope: { source, generated, link } });
+    const { configuration } = traitsOf(link.sourceType)[link.generator];
+    return generationOperations({ configuration, declaration: configuration.declarations[link.declaration], effect, scope: { source, generated, link } });
 };
 
 export const generationKey = ({ configuration, source, request }) => applyMapping({ mapping: configuration.key ?? '#.request.key', input: { source, request } });

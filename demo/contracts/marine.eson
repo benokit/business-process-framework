@@ -23,7 +23,7 @@
             "target": "marine",
             "slot": "traits",
             "value": {
-                "key": "generator",
+                "key": "amendments",
                 "configuration": {
                     "declarations": {
                         "premium-adjustment": {
