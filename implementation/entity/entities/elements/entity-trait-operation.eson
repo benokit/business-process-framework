@@ -5,11 +5,6 @@
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "value": "@any", "input": "@any" }
     },
     {
-        "id": "entity-revision-input",
-        "kind": "schema",
-        "data": { "!businessKey": "string", "!revision": "number" }
-    },
-    {
         "id": "trait-hook-input",
         "kind": "schema",
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!change": "@viewed-entity-change" }
