@@ -18,7 +18,6 @@ const MASKED = `masked-${run}`;
 const MASKING = `masking-${run}`;
 const BODYLESS = `bodyless-${run}`;
 const VETO = `veto-${run}`;
-const ECHO = `echo-${run}`;
 const HOOKED = `hooked-${run}`;
 
 const prefixed = id => ({
@@ -136,22 +135,7 @@ const elements = [
         }
     },
     { id: VETO, kind: `${VETO}-trait`, data: { configuration: { '!reason': 'string' } } },
-    {
-        id: `${ECHO}-trait`,
-        kind: 'kind',
-        data: {
-            extends: 'valued-entity-trait',
-            operations: {
-                initialize: { implementation: { set: true } },
-                react: {
-                    input: '@trait-hook-input',
-                    implementation: { if: { $eq: [{ $get: { object: '#.input.change.after', path: 'businessKey' } }, 'boom'] }, then: { throw: '#.input.configuration.reason' } }
-                }
-            }
-        }
-    },
-    { id: ECHO, kind: `${ECHO}-trait`, data: { configuration: { '!reason': 'string' } } },
-    { id: HOOKED, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
+    { id: HOOKED, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } } } } },
     { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: NOTED, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -283,11 +267,9 @@ describe('entities', function () {
         expect((await errorOf(invoke(ORDER, 'read', { businessKey: 'o-13' }))).code).to.equal('not-found');
     });
 
-    it('runs the guard and reaction hooks of its traits', async () => {
+    it('runs the guard hook of its traits', async () => {
         await invoke(HOOKED, 'create', { businessKey: 'h-1', traits: { body: {} } });
         expect((await errorOf(invoke(HOOKED, 'delete', { businessKey: 'h-1', revision: 1 }))).message).to.equal('deletion vetoed');
-        expect((await errorOf(invoke(HOOKED, 'create', { businessKey: 'boom', traits: { body: {} } }))).message).to.equal('reaction hook failed');
-        expect((await errorOf(invoke(HOOKED, 'read', { businessKey: 'boom' }))).code).to.equal('not-found');
     });
 
     it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {

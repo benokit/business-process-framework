@@ -97,11 +97,6 @@
                                     "operation": "#.store.operation"
                                 },
                                 {
-                                    "inputMap": { "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] } },
-                                    "invoke": "#.self.id",
-                                    "operation": "reactTraits"
-                                },
-                                {
                                     "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
                                     "forEach": {
                                         "inputMap": {

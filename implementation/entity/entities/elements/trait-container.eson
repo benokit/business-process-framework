@@ -26,24 +26,6 @@
                         }
                     ]
                 },
-                "reactTraits": {
-                    "private": true,
-                    "input": { "!change": "@entity-change" },
-                    "implementation": [
-                        { "outputKey": "change", "set": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } } },
-                        {
-                            "inputMap": { "$func/entity-hooked-keys": { "entityType": "#.self.id", "operation": "react" } },
-                            "forEach": [
-                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
-                                {
-                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
-                                    "invoke": "#.use.trait",
-                                    "operation": "react"
-                                }
-                            ]
-                        } 
-                    ]
-                },
                 "initialTraitValues": {
                     "input": { "!traits": "object", "create": "@any" },
                     "output": "object",
