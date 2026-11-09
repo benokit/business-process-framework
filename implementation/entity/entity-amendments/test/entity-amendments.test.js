@@ -12,7 +12,7 @@ const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number',
 const VALID_FROM = '#.effectiveFrom';
 const AMENDMENT_KEY = '#.amendment.businessKey';
 
-const amendmentType = (id, schema) => ({ id, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema } } } } });
+const amendmentType = (id, schema) => ({ id, kind: 'entity-type', data: { traits: { body: { configuration: { schema } } } } });
 
 const amend = patch => ({ key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY, body: { '$func/patched-body': { body: { '$func/record-body': '#.entity' }, patch } } } });
 
@@ -21,7 +21,7 @@ const configuration = amendable => ({ id: `${POLICY}-${Object.keys(amendable)[0]
 const elements = [
     {
         id: POLICY,
-        kind: 'amendable-entity-type',
+        kind: 'entity-type',
         data: {
             traits: {
                 body: { trait: 'versioned-body', configuration: { schema: BODY, versioned: { validFrom: '/startDate' } } },
@@ -37,6 +37,7 @@ const elements = [
                     configuration: {
                         [RAISE]: {
                             mapping: { reason: '#.input.reason', changes: '#.input.changes' },
+                            applicable: { $neq: ['#.amendment.data.body.reason', 'draft'] },
                             apply: [amend([{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }])]
                         },
                         [END]: {
@@ -64,16 +65,18 @@ const errorOf = promise => promise.then(() => null, error => error);
 
 const policy = async (businessKey, { activate = true } = {}) => {
     const created = await invoke(POLICY, 'create', { businessKey, traits: { body: { holder: 'Ada', startDate: '2026-01-01', premium: 100 } } });
-    return activate ? invoke(POLICY, 'transition', { businessKey, revision: created.revision, transition: 'activate' }) : created;
+    return activate ? invoke(POLICY, 'run', { businessKey, revision: created.revision, trait: 'state', operation: 'transition', input: { transition: 'activate' } }) : created;
 };
 
-const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => invoke(POLICY, 'propose', { businessKey, amendmentType, effectiveFrom, input });
+const amendable = (businessKey, operation, input) => invoke(POLICY, 'run', { businessKey, trait: 'amendable', operation, input });
 
-const apply = (businessKey, amendment) => invoke(POLICY, 'apply', { businessKey, amendment: amendment.businessKey });
+const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => amendable(businessKey, 'propose', { amendmentType, effectiveFrom, input });
 
-const revert = (businessKey, amendment) => invoke(POLICY, 'revert', { businessKey, amendment: amendment.businessKey });
+const apply = (businessKey, amendment) => amendable(businessKey, 'apply', { amendment: amendment.businessKey });
 
-const discard = (businessKey, amendment) => invoke(POLICY, 'discard', { businessKey, amendment: amendment.businessKey });
+const revert = (businessKey, amendment) => amendable(businessKey, 'revert', { amendment: amendment.businessKey });
+
+const discard = (businessKey, amendment) => amendable(businessKey, 'discard', { amendment: amendment.businessKey });
 
 const read = (businessKey, at) => invoke(POLICY, 'read', { businessKey, at });
 
@@ -149,6 +152,16 @@ describe('entity-amendments', function () {
         expect([unchanged.data.body.premium, await statuses('a-5')]).to.deep.equal([100, [['a-5-001', 'pending']]]);
     });
 
+    it('applies an amendment only when its kind says it is applicable', async () => {
+        await policy('a-14');
+        const draft = await propose('a-14', '2026-07-01', 110, RAISE, { reason: 'draft', changes: { premium: 110 } });
+        expect((await errorOf(apply('a-14', draft))).code).to.equal('conflict');
+        expect(await statuses('a-14')).to.deep.equal([['a-14-001', 'pending']]);
+        await discard('a-14', draft);
+        await apply('a-14', await propose('a-14', '2026-07-01', 120));
+        expect((await read('a-14')).data.body.premium).to.equal(120);
+    });
+
     it('leaves nothing behind when the amendment cannot be created', async () => {
         await policy('a-6');
         const error = await errorOf(propose('a-6', '2026-07-01', undefined, RAISE, { reason: 'indexation', changes: { premium: 'high' } }));
@@ -157,10 +170,11 @@ describe('entity-amendments', function () {
         expect((await propose('a-6', '2026-07-01', 110)).businessKey).to.equal('a-6-001');
     });
 
-    it('keeps its own steps private to the entity type', async () => {
+    it('runs only the public operations of a trait', async () => {
         await policy('a-7');
-        const errors = await Promise.all(['amendmentChange', 'amendmentOperations', 'applyTraitOperations'].map(operation => errorOf(invoke(POLICY, operation, {}))));
-        expect(errors.map(({ code }) => code)).to.deep.equal(['private-operation', 'private-operation', 'private-operation']);
+        const errors = await Promise.all(['open', 'settle', 'plan', 'initialize'].map(operation => errorOf(amendable('a-7', operation, { amendment: 'x' }))));
+        expect(errors.map(({ code }) => code)).to.deep.equal(['private-operation', 'private-operation', 'private-operation', 'private-operation']);
+        expect((await errorOf(invoke(POLICY, 'applyTraitOperations', {}))).code).to.equal('private-operation');
     });
 
     it('copies the last version into an amendment of a kind with the defaults, and applies it from the date of the amendment', async () => {
@@ -175,7 +189,7 @@ describe('entity-amendments', function () {
         await policy('a-9');
         const proposed = await propose('a-9', '2026-07-01', 110);
         const before = await read('a-9');
-        const commands = await invoke(POLICY, 'preview', { businessKey: 'a-9', amendment: proposed.businessKey, effect: 'apply' });
+        const commands = await amendable('a-9', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
         expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['amendable', 'applied']]);
         expect(await read('a-9')).to.deep.equal(before);
         await apply('a-9', proposed);
@@ -186,7 +200,7 @@ describe('entity-amendments', function () {
         await policy('a-11');
         const before = await read('a-11');
         const proposed = await propose('a-11', '2026-07-01', undefined, END, { reason: 'lapsed' });
-        const preview = await invoke(POLICY, 'preview', { businessKey: 'a-11', amendment: proposed.businessKey, effect: 'apply' });
+        const preview = await amendable('a-11', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
         expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['amendable', 'applied']]);
         await apply('a-11', proposed);
         const cancelled = await read('a-11');
@@ -201,7 +215,7 @@ describe('entity-amendments', function () {
         await policy('a-12');
         const proposed = await propose('a-12', '2026-07-01', undefined, END, { reason: 'lapsed' });
         const current = await read('a-12');
-        await invoke(POLICY, 'transition', { businessKey: 'a-12', revision: current.revision, transition: 'cancel' });
+        await invoke(POLICY, 'run', { businessKey: 'a-12', revision: current.revision, trait: 'state', operation: 'transition', input: { transition: 'cancel' } });
         expect((await errorOf(apply('a-12', proposed))).code).to.equal('conflict');
         expect((await read('a-12')).data.body.endDate).to.equal(undefined);
     });
@@ -210,7 +224,7 @@ describe('entity-amendments', function () {
         await policy('a-10');
         const proposed = await propose('a-10', '2026-07-01', 110);
         const current = await read('a-10');
-        await invoke(POLICY, 'update', { businessKey: 'a-10', revision: current.revision, value: { holder: 'Grace', startDate: '2026-01-01', premium: 100 } });
+        await invoke(POLICY, 'run', { businessKey: 'a-10', revision: current.revision, trait: 'body', operation: 'update', input: { value: { holder: 'Grace', startDate: '2026-01-01', premium: 100 } } });
         expect((await errorOf(apply('a-10', proposed))).code).to.equal('conflict');
         expect((await read('a-10')).data.body.holder).to.equal('Grace');
     });

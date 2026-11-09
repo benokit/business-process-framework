@@ -43,6 +43,24 @@
         }
     },
     {
+        "id": "entity-public-operation",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!key": "string", "!operation": "string" }, "output": { "$data#": [{ "!form=1": ["command", "plan"] }, "null"] } },
+            "module": "@business-framework/entities/traits",
+            "export": "publicOperationOf"
+        }
+    },
+    {
+        "id": "entity-public-operations",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entities/traits",
+            "export": "publicOperationsOf"
+        }
+    },
+    {
         "id": "entity-traits",
         "kind": "pure-function",
         "data": {

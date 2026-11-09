@@ -15,6 +15,16 @@
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!change": "@viewed-entity-change" }
     },
     {
+        "id": "trait-process-input",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!businessKey": "string", "input": "@any", "!record": "@viewed-entity-record" }
+    },
+    {
+        "id": "trait-plan",
+        "kind": "schema",
+        "data": { "operations[]": "@trait-operation-use", "output": "@any", "commit=": false }
+    },
+    {
         "id": "trait-operation-use",
         "kind": "schema",
         "data": { "!key": "string", "!operation": "string", "input": "@any" }
@@ -89,29 +99,6 @@
                     "operation": "applyTraitOperations"
                 }
             ]
-        }
-    },
-    {
-        "id": "exposed-trait-operation",
-        "kind": "execution-node-template",
-        "data": {
-            "keyword": "exposes",
-            "within": "entity-type",
-            "node": { "!exposes": { "!key": "string", "!operation": "string" } },
-            "implementation": {
-                "inputMap": {
-                    "businessKey": "#.input.businessKey",
-                    "revision": "#.input.revision",
-                    "entityOperation": "#.operation",
-                    "operations": [{
-                        "key": "#.node.exposes.key",
-                        "operation": "#.node.exposes.operation",
-                        "input": { "$omit": { "keys": ["businessKey", "revision"], "object": "#.input" } }
-                    }]
-                },
-                "invoke": "#.self.id",
-                "operation": "applyTraitOperations"
-            }
         }
     }
 ]

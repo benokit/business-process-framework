@@ -7,8 +7,8 @@ const PARTY = `party-${run}`;
 const CONTRACT = `contract-${run}`;
 
 const elements = [
-    { id: PARTY, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
-    { id: CONTRACT, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!holder': 'string', broker: 'string' } } } } } },
+    { id: PARTY, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
+    { id: CONTRACT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!holder': 'string', broker: 'string' } } } } } },
     { id: `holder-${run}`, kind: 'slot-fill', data: { target: CONTRACT, slot: 'relations', value: { set: { relations: [{ targetEntityType: PARTY, targetEntityBusinessKey: '#.input.data.body.holder', relationType: 'holder' }] } } } },
     {
         id: `broker-${run}`,
@@ -47,7 +47,7 @@ describe('entity-relations', function () {
     it('maintains relations from all rules on create and update', async () => {
         const created = await invoke(CONTRACT, 'create', { businessKey: 'c-1', traits: { body: { holder: 'ada', broker: 'bob' } } });
         expect(await relationsOf(created)).to.deep.equal(['broker', 'holder']);
-        const updated = await invoke(CONTRACT, 'update', { businessKey: 'c-1', revision: 1, value: { holder: 'bob' } });
+        const updated = await invoke(CONTRACT, 'run', { businessKey: 'c-1', revision: 1, trait: 'body', operation: 'update', input: { value: { holder: 'bob' } } });
         expect(await relationsOf(updated)).to.deep.equal(['holder']);
     });
 

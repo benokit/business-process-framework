@@ -69,7 +69,7 @@ const elements = [
         id: WRITING,
         kind: 'kind',
         data: {
-            extends: 'body-entity-type',
+            extends: 'entity-type',
             operations: {
                 writeTraits: {
                     input: { '!businessKey': 'string', '!revision': 'number', '!amount': 'number', '!note': 'string' },
@@ -77,7 +77,7 @@ const elements = [
                     implementation: {
                         inputMap: { businessKey: '#.input.businessKey', revision: '#.input.revision', amount: '#.input.amount', note: '#.input.note' },
                         traitOperations: [
-                            { key: 'body', operation: 'put', input: { value: { amount: '#.input.amount' } } },
+                            { key: 'body', operation: 'update', input: { value: { amount: '#.input.amount' } } },
                             { key: NOTE, operation: 'rewrite', input: { value: '#.input.note' } }
                         ]
                     }
@@ -120,7 +120,7 @@ const elements = [
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
-    { id: MASKING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
+    { id: MASKING, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
     {
         id: `${VETO}-trait`,
         kind: 'kind',
@@ -151,9 +151,9 @@ const elements = [
         }
     },
     { id: ECHO, kind: `${ECHO}-trait`, data: { configuration: { '!reason': 'string' } } },
-    { id: HOOKED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
-    { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
-    { id: NOTED, kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
+    { id: HOOKED, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
+    { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
+    { id: NOTED, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
@@ -168,7 +168,7 @@ const elements = [
         if: { $eq: ['#.input.before.businessKey', 'o-raced'] },
         then: {
             if: { $eq: ['#.input.operation', 'delete'] },
-            then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', value: { amount: 2 } }, invoke: ORDER, operation: 'update' }
+            then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' }
         }
     }),
     fill('hide-hidden-order', ORDER, 'guards', {
@@ -184,7 +184,7 @@ const elements = [
         then: { throw: 'unlucky amount' }
     }),
     { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
-    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'body-entity-type', fixed: { characteristics: { lineOfBusiness: 'marine' } } } },
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', fixed: { characteristics: { lineOfBusiness: 'marine' } } } },
     {
         id: CONSTRUCTION,
         kind: CONTRACT_CLASS,
@@ -264,7 +264,7 @@ describe('entities', function () {
         await invoke(ORDER, 'create', { businessKey: 'o-hidden', traits: { body: { amount: 1 } } });
         const errors = await Promise.all([
             errorOf(invoke(ORDER, 'read', { businessKey: 'o-hidden' })),
-            errorOf(invoke(ORDER, 'update', { businessKey: 'o-hidden', revision: 1, value: { amount: 'x' } })),
+            errorOf(invoke(ORDER, 'run', { businessKey: 'o-hidden', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 'x' } } })),
             errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-hidden', revision: 1, key: 'other', command: 'x', value: {} })),
             errorOf(invoke(ORDER, 'delete', { businessKey: 'o-hidden', revision: 1 }))
         ]);
@@ -274,7 +274,7 @@ describe('entities', function () {
     it('runs a guard only on the operations it is on', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-kept', traits: { body: { amount: 1 } } });
         expect((await invoke(ORDER, 'read', { businessKey: 'o-kept' })).businessKey).to.equal('o-kept');
-        expect((await invoke(ORDER, 'update', { businessKey: 'o-kept', revision: 1, value: { amount: 2 } })).revision).to.equal(2);
+        expect((await invoke(ORDER, 'run', { businessKey: 'o-kept', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } })).revision).to.equal(2);
         expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-kept', revision: 2 }))).message).to.equal('kept');
     });
 
@@ -292,9 +292,9 @@ describe('entities', function () {
 
     it('updates the body with optimistic concurrency, keeps the traits and reads past revisions', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-4', traits: { body: { amount: 1 } } });
-        const updated = await invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, value: { amount: 2 } });
+        const updated = await invoke(ORDER, 'run', { businessKey: 'o-4', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } });
         expect([updated.revision, updated.data.body, updated.data[NOTE]]).to.deep.equal([2, { amount: 2 }, 'order: new']);
-        expect((await errorOf(invoke(ORDER, 'update', { businessKey: 'o-4', revision: 1, value: { amount: 3 } }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-4', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('conflict');
         expect((await invoke(ORDER, 'read', { businessKey: 'o-4', revision: 1 })).data.body.amount).to.equal(1);
     });
 
@@ -320,7 +320,7 @@ describe('entities', function () {
         it('derive in the order of the traits, each seeing the output of the one before, on create and on a write', async () => {
             const created = await invoke(DERIVING, 'create', { businessKey: 'd-1', traits: { body: { amount: 3 } } });
             expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
-            const updated = await invoke(DERIVING, 'update', { businessKey: 'd-1', revision: 1, value: { amount: 5 } });
+            const updated = await invoke(DERIVING, 'run', { businessKey: 'd-1', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 5 } } });
             expect([updated.revision, updated.data[TOTAL], updated.data[DOUBLE]]).to.deep.equal([2, 5, 10]);
         });
 
@@ -361,11 +361,11 @@ describe('entities', function () {
 
         it('lets update correct a body of one version, its date included, and refuses it once amended', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-3', traits: { body: body('2025-01-01', 100) } });
-            const corrected = await invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 1, value: body('2025-02-01', 90) });
+            const corrected = await invoke(VERSIONED, 'run', { businessKey: 'v-3', revision: 1, trait: 'body', operation: 'update', input: { value: body('2025-02-01', 90) } });
             expect([corrected.revision, corrected.data.body]).to.deep.equal([2, body('2025-02-01', 90)]);
             expect((await stored('v-3')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-02-01']);
             await invoke(VERSIONED, 'amend', { businessKey: 'v-3', revision: 2, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 95) });
-            expect((await errorOf(invoke(VERSIONED, 'update', { businessKey: 'v-3', revision: 3, value: body('2025-02-01', 1) }))).code).to.equal('conflict');
+            expect((await errorOf(invoke(VERSIONED, 'run', { businessKey: 'v-3', revision: 3, trait: 'body', operation: 'update', input: { value: body('2025-02-01', 1) } }))).code).to.equal('conflict');
         });
 
         it('amends from the date of the last version or later, and removes only the last one, by its ref', async () => {
@@ -387,7 +387,7 @@ describe('entities', function () {
         it('keys a body without a date by a marker that the first date replaces', async () => {
             await invoke(VERSIONED, 'create', { businessKey: 'v-5', traits: { body: body(undefined, 100) } });
             expect((await stored('v-5')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['undated']);
-            await invoke(VERSIONED, 'update', { businessKey: 'v-5', revision: 1, value: body('2025-01-01', 100) });
+            await invoke(VERSIONED, 'run', { businessKey: 'v-5', revision: 1, trait: 'body', operation: 'update', input: { value: body('2025-01-01', 100) } });
             expect((await stored('v-5')).data.body.map(({ validFrom }) => validFrom)).to.deep.equal(['2025-01-01']);
         });
 
@@ -436,21 +436,33 @@ describe('entities', function () {
         expect((await invoke(SPECIALISED, 'create', { businessKey: 'c-1', traits: { body: {} } })).data[NOTE]).to.equal('class: new!');
     });
 
-    it('reports an exposed trait operation that the entity type cannot run in validate()', async () => {
-        const exposing = operation => ({ input: '@entity-revision-input', output: '@entity-record', implementation: { exposes: { key: NOTE, operation } } });
+    it('runs a public operation of a trait, and no private one', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-run', traits: { body: { amount: 1 } } });
+        const updated = await invoke(ORDER, 'run', { businessKey: 'o-run', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } });
+        expect([updated.revision, updated.data.body]).to.deep.equal([2, { amount: 2 }]);
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 2, trait: 'body', operation: 'initialize', input: {} }))).code).to.equal('private-operation');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 2, trait: 'nothing', operation: 'update', input: { value: {} } }))).code).to.equal('private-operation');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('invalid');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('conflict');
+    });
+
+    it('reports two traits that offer the same public operation', async () => {
+        const offering = id => ({
+            id: `${id}-trait`,
+            kind: 'kind',
+            data: { extends: 'entity-trait', operations: { refresh: { public: true, input: { '$data#&': ['@trait-operation-input', { '!input': 'object' }] }, output: '@trait-command', implementation: { set: { command: 'refresh', value: 1 } } } } }
+        });
         const broken = [
-            { id: `unbodied-${run}`, kind: 'body-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'p' } } } } },
-            { id: `exposing-${run}`, kind: 'kind', data: { extends: 'entity-type', operations: { vanish: exposing('vanish'), refresh: exposing('derive') } } },
-            { id: `exposed-${run}`, kind: `exposing-${run}`, data: { traits: { [NOTE]: { configuration: { prefix: 'p' } } } } }
+            offering(`first-${run}`),
+            offering(`second-${run}`),
+            { id: `first-${run}`, kind: `first-${run}-trait`, data: { configuration: {} } },
+            { id: `second-${run}`, kind: `second-${run}-trait`, data: { configuration: {} } },
+            { id: `offering-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`first-${run}`]: { configuration: {} }, [`second-${run}`]: { configuration: {} } } } }
         ];
         await stop();
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
         const messages = validate().flatMap(problem => problem.data.messages ?? []);
-        expect(messages).to.include.members([
-            `operation 'update' of unbodied-${run} exposes 'put' of 'body', but unbodied-${run} has no trait 'body'`,
-            `operation 'vanish' of exposed-${run} exposes 'vanish' of '${NOTE}', but trait '${NOTE}' has no such operation`,
-            `operation 'refresh' of exposed-${run} exposes 'derive' of '${NOTE}', which only the framework calls`
-        ]);
+        expect(messages).to.include(`offering-${run}: the traits first-${run} and second-${run} both offer the operation 'refresh'`);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
         await migrate();
@@ -465,12 +477,12 @@ describe('entities', function () {
                     extends: 'valued-entity-trait',
                     operations: {
                         initialize: { implementation: { set: true } },
-                        guard: { input: '@trait-hook-input', implementation: { inputMap: { businessKey: 'o-raced', revision: 1, value: { amount: 2 } }, invoke: ORDER, operation: 'update' } }
+                        guard: { input: '@trait-hook-input', implementation: { inputMap: { businessKey: 'o-raced', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' } }
                     }
                 }
             },
             { id: `writing-hook-${run}`, kind: `writing-hook-${run}-trait`, data: { configuration: {} } },
-            { id: `hooking-${run}`, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`writing-hook-${run}`]: { configuration: {} } } } }
+            { id: `hooking-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`writing-hook-${run}`]: { configuration: {} } } } }
         ];
         await stop();
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...writing] });

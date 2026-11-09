@@ -9,11 +9,11 @@ const PLAIN = `plain-${run}`;
 
 const body = { configuration: { schema: { '!region': 'string' } } };
 
-const unowned = [{ id: CONTRACT, kind: 'body-entity-type', data: { traits: { body } } }];
+const unowned = [{ id: CONTRACT, kind: 'entity-type', data: { traits: { body } } }];
 
 const owned = [
-    { id: PLAIN, kind: 'body-entity-type', data: { traits: { body } } },
-    { id: REGIONAL, kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
+    { id: PLAIN, kind: 'entity-type', data: { traits: { body } } },
+    { id: REGIONAL, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
     {
         id: `ownership-backfill-${run}`,
         kind: 'slot-fill',

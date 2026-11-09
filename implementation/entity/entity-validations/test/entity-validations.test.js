@@ -30,15 +30,15 @@ const traits = {
 };
 
 const elements = [
-    { id: INVOICE, kind: 'stateful-body-entity-type', data: { traits } },
-    { id: PLAIN, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, validation: { configuration: {} } } } },
+    { id: INVOICE, kind: 'entity-type', data: { traits } },
+    { id: PLAIN, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, validation: { configuration: {} } } } },
     {
         id: STRAY,
-        kind: 'body-entity-type',
+        kind: 'entity-type',
         data: {
             traits: {
                 body: { configuration: { schema: { '!amount': 'number' } } },
-                validation: { configuration: { onValidation: [{ key: 'state', operation: 'transition', input: {} }, { key: 'body', operation: 'close', input: {} }, { key: 'body', operation: 'put', input: {} }] } }
+                validation: { configuration: { onValidation: [{ key: 'state', operation: 'transition', input: {} }, { key: 'body', operation: 'close', input: {} }, { key: 'body', operation: 'update', input: {} }] } }
             }
         }
     },
@@ -82,17 +82,17 @@ describe('entity-validations', function () {
 
     it('blocks a transition that needs a valid entity until the errors are fixed', async () => {
         await invoke(INVOICE, 'create', { businessKey: 'i-2', traits: { body: { amount: 5 } } });
-        const blocked = await errorOf(invoke(INVOICE, 'transition', { businessKey: 'i-2', revision: 1, transition: 'issue' }));
+        const blocked = await errorOf(invoke(INVOICE, 'run', { businessKey: 'i-2', revision: 1, trait: 'state', operation: 'transition', input: { transition: 'issue' } }));
         expect(blocked.code).to.equal('conflict');
-        const fixed = await invoke(INVOICE, 'update', { businessKey: 'i-2', revision: 1, value: { amount: 5, customer: 'acme' } });
+        const fixed = await invoke(INVOICE, 'run', { businessKey: 'i-2', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 5, customer: 'acme' } } });
         expect([fixed.revision, fixed.data.validation, fixed.data.state.validity]).to.deep.equal([2, {}, 'valid']);
-        const issued = await invoke(INVOICE, 'transition', { businessKey: 'i-2', revision: fixed.revision, transition: 'issue' });
+        const issued = await invoke(INVOICE, 'run', { businessKey: 'i-2', revision: fixed.revision, trait: 'state', operation: 'transition', input: { transition: 'issue' } });
         expect(issued.data.state).to.deep.equal({ status: 'issued', validity: 'valid' });
     });
 
     it('leaves the delegate alone while the errors stay the same', async () => {
         const created = await invoke(INVOICE, 'create', { businessKey: 'i-4', traits: { body: { amount: 5, customer: 'acme' } } });
-        const updated = await invoke(INVOICE, 'update', { businessKey: 'i-4', revision: created.revision, value: { amount: 6, customer: 'acme' } });
+        const updated = await invoke(INVOICE, 'run', { businessKey: 'i-4', revision: created.revision, trait: 'body', operation: 'update', input: { value: { amount: 6, customer: 'acme' } } });
         expect([updated.revision, updated.data.state.validity]).to.deep.equal([2, 'valid']);
     });
 

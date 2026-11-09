@@ -8,7 +8,7 @@ const ORDER = `order-states-http-${run}`;
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: ORDER, kind: 'stateful-body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     {
         id: `${ORDER}-lifecycle`,
         kind: 'slot-fill',

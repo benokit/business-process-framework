@@ -116,19 +116,25 @@ const guardHookProblems = entityType => Object.values(traitsOf(entityType))
     .filter(({ trait }) => isTrait(trait) && hasOperation({ element: trait, operation: 'guard' }))
     .flatMap(({ trait }) => changesOf({ element: trait, operation: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
 
-const FRAMEWORK_OPERATIONS = ['initialize', 'derive', 'guard', 'react'];
+const publicOperationsOfTrait = trait => Object.entries(resolveKind(getElement(trait).kind).operations)
+    .filter(([, operation]) => operation.public === true);
 
-const exposureProblems = (entityType, operation, { key, operation: traitOperation }) => {
+export const publicOperationsOf = entityType => [...new Set(Object.values(traitsOf(entityType))
+    .filter(({ trait }) => isTrait(trait))
+    .flatMap(({ trait }) => publicOperationsOfTrait(trait).map(([name]) => name)))].sort();
+
+export const publicOperationOf = ({ entityType, key, operation }) => {
     const use = traitsOf(entityType)[key];
-    const where = `operation '${operation}' of ${entityType} exposes '${traitOperation}' of '${key}'`;
-    if (use === undefined) return [`${where}, but ${entityType} has no trait '${key}'`];
-    if (FRAMEWORK_OPERATIONS.includes(traitOperation)) return [`${where}, which only the framework calls`];
-    return traitOperation in resolveKind(getElement(use.trait).kind).operations ? [] : [`${where}, but trait '${use.trait}' has no such operation`];
+    const declared = use === undefined || !isTrait(use.trait) ? undefined : Object.fromEntries(publicOperationsOfTrait(use.trait))[operation];
+    return declared === undefined ? null : { form: declared.output === '@trait-plan' ? 'plan' : 'command' };
 };
 
-const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
-    .filter(([, { implementation }]) => implementation?.exposes !== undefined)
-    .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
+const publicOperationProblems = entityType => Object.entries(Object.groupBy(
+    Object.values(traitsOf(entityType)).filter(({ trait }) => isTrait(trait)).flatMap(({ trait }) => publicOperationsOfTrait(trait).map(([name]) => ({ name, trait }))),
+    ({ name }) => name
+))
+    .filter(([, offers]) => new Set(offers.map(({ trait }) => trait)).size > 1)
+    .map(([name, offers]) => `${entityType}: the traits ${[...new Set(offers.map(({ trait }) => trait))].join(' and ')} both offer the operation '${name}'`);
 
 const identityProblems = entityType => {
     const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;
@@ -140,7 +146,7 @@ export const traitProblems = entityType => {
     return [
         ...identityProblems(entityType),
         ...guardHookProblems(entityType),
-        ...exposedOperationProblems(entityType),
+        ...publicOperationProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
         ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),
         ...closedProblems(entityType),

@@ -4,6 +4,11 @@ const publicOperationsOf = ({ id }) => Object.entries(resolveKind(id).operations
     .filter(([, operation]) => !operation.private)
     .map(([name]) => name);
 
-export const entityOperationNames = () => [...new Set(instancesOf('kind')
-    .filter(({ id }) => extendsKind(id, 'entity-type'))
-    .flatMap(publicOperationsOf))].sort();
+const publicTraitOperationsOf = ({ id }) => Object.entries(resolveKind(id).operations)
+    .filter(([, operation]) => operation.public === true)
+    .map(([name]) => name);
+
+export const entityOperationNames = () => [...new Set([
+    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-type')).flatMap(publicOperationsOf),
+    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-trait')).flatMap(publicTraitOperationsOf)
+])].sort();

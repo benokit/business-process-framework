@@ -35,9 +35,9 @@
                     "implementation": [
                         { "inputMap": "#.input", "invoke": "#.self.id", "operation": "assertEntityType" },
                         {
-                            "inputMap": { "businessKey": "#.input.request.businessKey", "revision": "#.input.request.revision", "value": "#.input.request.body" },
+                            "inputMap": { "businessKey": "#.input.request.businessKey", "revision": "#.input.request.revision", "trait": "body", "operation": "update", "input": { "value": "#.input.request.body" } },
                             "invoke": "#.input.entityType",
-                            "operation": "update"
+                            "operation": "run"
                         }
                     ]
                 },

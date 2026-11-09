@@ -3,7 +3,7 @@
         "id": "underwriting-amendment-type",
         "kind": "kind",
         "data": {
-            "extends": "stateful-body-entity-type",
+            "extends": "entity-type",
             "fixed": { "traits": { "state": { "configuration": {
                 "states": { "status": { "draft": true, "issued": true } },
                 "transitions": { "issue": { "status": { "draft": "issued" } } },

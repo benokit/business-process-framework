@@ -15,7 +15,7 @@ const elements = [
     {
         id: REGIONAL,
         kind: 'kind',
-        data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', 'departments[]': 'string', level: 'integer' } } } } } }
+        data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', 'departments[]': 'string', level: 'integer' } } } } } }
     },
     {
         id: CONTRACT,

@@ -4,6 +4,7 @@
         "kind": "kind",
         "data": {
             "extends": "trait-container",
+            "fixed": { "traits": { "business-key": { "configuration": {} } } },
             "shape": { "characteristics{}": "@any" },
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
@@ -136,6 +137,94 @@
                             }
                         }
                     ]
+                },
+                "run": {
+                    "input": { "!businessKey": "string", "revision": "number", "!trait": "string", "!operation": "string", "input": "@any" },
+                    "output": "@any",
+                    "implementation": [
+                        { "outputKey": "public", "set": { "$func/entity-public-operation": { "entityType": "#.self.id", "key": "#.input.trait", "operation": "#.input.operation" } } },
+                        {
+                            "if": { "$negate": "#.public" },
+                            "then": { "throw": { "code": "private-operation", "message": { "$str": ["#.self.id", " has no public operation ", "#.input.operation", " of the trait ", "#.input.trait"] } } }
+                        },
+                        {
+                            "if": { "$eq": ["#.public.form", "command"] },
+                            "then": [
+                                {
+                                    "if": { "$negate": "#.input.revision" },
+                                    "then": { "throw": { "code": "invalid", "message": { "$str": [ "#.input.operation", " of ", "#.self.id", " needs the revision it applies to"] } } }
+                                },
+                                {
+                                    "inputMap": {
+                                        "businessKey": "#.input.businessKey",
+                                        "revision": "#.input.revision",
+                                        "entityOperation": "#.input.operation",
+                                        "operations": [{ "key": "#.input.trait", "operation": "#.input.operation", "input": "#.input.input" }]
+                                    },
+                                    "invoke": "#.self.id",
+                                    "operation": "applyTraitOperations"
+                                }
+                            ],
+                            "else": { "inputMap": "#.input", "invoke": "#.self.id", "operation": "process" }
+                        }
+                    ]
+                },
+                "process": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "revision": "number", "!trait": "string", "!operation": "string", "input": "@any" },
+                    "output": "@any",
+                    "implementation": {
+                        "inTransaction": [
+                            { "outputKey": "stored", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
+                            { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                            {
+                                "if": { "$and": ["#.input.revision", { "$neq": ["#.input.revision", "#.record.revision"] }] },
+                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.self.id", " '", "#.input.businessKey", "' is not at revision ", "#.input.revision"] } } }
+                            },
+                            {
+                                "inputMap": { "change": { "operation": "trait", "entityOperation": "#.input.operation", "commands": { "$literal": [] }, "before": "#.stored" } },
+                                "invoke": "#.self.id",
+                                "operation": "guardTraits"
+                            },
+                            { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.input.trait" } } },
+                            {
+                                "outputKey": "plan",
+                                "inputMap": {
+                                    "entityType": "#.self.id",
+                                    "key": "#.input.trait",
+                                    "configuration": "#.use.configuration",
+                                    "businessKey": "#.input.businessKey",
+                                    "input": "#.input.input",
+                                    "record": "#.record"
+                                },
+                                "invoke": "#.use.trait",
+                                "operation": "#.input.operation"
+                            },
+                            { "outputKey": "operations", "set": { "$coalesce": ["#.plan.operations", []] } },
+                            {
+                                "if": { "$eq": ["#.plan.commit", false] },
+                                "then": { "inputMap": { "data": "#.stored.data", "operations": "#.operations" }, "invoke": "#.self.id", "operation": "traitCommands" },
+                                "else": [
+                                    {
+                                        "outputKey": "written",
+                                        "if": { "$gt": [{ "$count": { "collection": "#.operations" } }, 0] },
+                                        "then": {
+                                            "inputMap": {
+                                                "businessKey": "#.input.businessKey",
+                                                "revision": "#.record.revision",
+                                                "entityOperation": "#.input.operation",
+                                                "operations": "#.operations"
+                                            },
+                                            "invoke": "#.self.id",
+                                            "operation": "applyTraitOperations"
+                                        },
+                                        "else": { "set": "#.record" }
+                                    },
+                                    { "set": { "$coalesce": ["#.plan.output", "#.written"] } }
+                                ]
+                            }
+                        ]
+                    }
                 },
                 "applyTraitOperations": {
                     "private": true,

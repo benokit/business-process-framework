@@ -89,7 +89,6 @@
         "id": "validation",
         "kind": "validation-trait",
         "data": {
-            "cardinality": "one",
             "configuration": { "onValidation": "@mapping" }
         }
     }

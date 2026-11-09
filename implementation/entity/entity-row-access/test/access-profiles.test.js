@@ -15,7 +15,7 @@ const PACKAGES = [
 const profile = (id, data) => ({ id, kind: 'access-profile', data });
 
 const elements = [
-    { id: 'regional', kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', '!confidential': 'boolean' } } } } } } },
+    { id: 'regional', kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string', '!confidential': 'boolean' } } } } } } },
     { id: 'contract', kind: 'regional', data: { traits: { body: { configuration: { schema: { '!region': 'string' } } }, ownership: { configuration: { rule: { region: '#.data.body.region', confidential: false } } } } } },
     { id: 'claim', kind: 'regional', data: { traits: { body: { configuration: { schema: { '!region': 'string' } } }, ownership: { configuration: { rule: { region: '#.data.body.region', confidential: false } } } } } },
     { id: 'german', kind: 'ownership-scope', data: { filter: GERMAN } },

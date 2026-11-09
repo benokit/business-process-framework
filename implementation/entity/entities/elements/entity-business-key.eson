@@ -24,14 +24,6 @@
     {
         "id": "business-key",
         "kind": "business-key-trait",
-        "data": { "cardinality": "one", "identity": true, "configuration": { "rule": "@method" } }
-    },
-    {
-        "id": "keyed-entity-type",
-        "kind": "kind",
-        "data": {
-            "extends": "entity-type",
-            "fixed": { "traits": { "business-key": { "configuration": {} } } }
-        }
+        "data": { "identity": true, "configuration": { "rule": "@method" } }
     }
 ]

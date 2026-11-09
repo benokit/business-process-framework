@@ -86,7 +86,7 @@
         }
     },
     {
-        "id": "body-put-input",
+        "id": "body-update-input",
         "kind": "schema",
         "data": { "!value": "object" }
     },
@@ -101,26 +101,12 @@
         "data": { "!validFrom": "@date", "!ref": "string" }
     },
     {
-        "id": "body-entity-type",
-        "kind": "kind",
-        "data": {
-            "extends": "keyed-entity-type",
-            "operations": {
-                "update": {
-                    "input": { "$data#&": ["@entity-revision-input", "@body-put-input"] },
-                    "output": "@viewed-entity-record",
-                    "implementation": { "exposes": { "key": "body", "operation": "put" } }
-                }
-            }
-        }
-    },
-    {
         "id": "body-trait",
         "kind": "kind",
         "data": {
             "extends": "valued-entity-trait",
             "operations": {
-                "put": { "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-put-input" }] }, "output": "@trait-command" }
+                "update": { "public": true, "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-update-input" }] }, "output": "@trait-command" }
             }
         }
     },
@@ -140,10 +126,10 @@
                         { "set": "#.input.input" }
                     ]
                 },
-                "put": {
+                "update": {
                     "implementation": [
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
-                        { "set": { "command": "put", "value": "#.input.input.value" } }
+                        { "set": { "command": "update", "value": "#.input.input.value" } }
                     ]
                 }
             }
@@ -168,10 +154,10 @@
                         { "set": { "$func/start-body-versions": { "configuration": "#.input.configuration", "body": "#.input.input" } } }
                     ]
                 },
-                "put": {
+                "update": {
                     "implementation": [
                         { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
-                        { "set": { "command": "put", "value": { "$func/replace-body-versions": { "timeline": "#.input.value", "configuration": "#.input.configuration", "body": "#.input.input.value" } } } }
+                        { "set": { "command": "update", "value": { "$func/replace-body-versions": { "timeline": "#.input.value", "configuration": "#.input.configuration", "body": "#.input.input.value" } } } }
                     ]
                 },
                 "amend": {
@@ -199,13 +185,12 @@
     {
         "id": "body",
         "kind": "plain-body-trait",
-        "data": { "cardinality": "one", "configuration": { "!schema": "@schema" } }
+        "data": { "configuration": { "!schema": "@schema" } }
     },
     {
         "id": "versioned-body",
         "kind": "versioned-body-trait",
         "data": {
-            "cardinality": "one",
             "key": "body",
             "configuration": { "!schema": "@schema", "!versioned": { "!validFrom": "string:^(/([^/~]|~[01])*)+$" } },
             "view": { "$func/body-at": { "timeline": "#.value", "at": "#.at" } }

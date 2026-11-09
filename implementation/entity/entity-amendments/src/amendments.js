@@ -56,12 +56,14 @@ const useProblems = ({ entityType, type, effect }, scope, use) => {
     return mappingProblems(use.input, scope, operationInputType(entityType, use), `${where}, its input`);
 };
 
+const scopeOf = (entityType, type) => ({
+    type: 'object',
+    properties: { entity: recordType(entityType), amendment: recordType(type), effectiveFrom: { type: 'string' } },
+    additionalProperties: false
+});
+
 const listProblems = (context, uses) => {
-    const scope = {
-        type: 'object',
-        properties: { entity: recordType(context.entityType), amendment: recordType(context.type), effectiveFrom: { type: 'string' } },
-        additionalProperties: false
-    };
+    const scope = scopeOf(context.entityType, context.type);
     return [
         ...Object.entries(Object.groupBy(uses, ({ key }) => key)).filter(([, group]) => group.length > 1).map(([key]) => `${context.entityType}: the ${context.effect} of ${context.type} runs a trait operation of '${key}' twice`),
         ...uses.flatMap(use => useProblems(context, scope, use))
@@ -77,6 +79,7 @@ const kindProblems = (entityType, type, kind) => {
     if (!isInstanceOf({ element: type, kind: 'entity-type' })) return [`${entityType} names '${type}' as an amendment type, which is no entity type`];
     return [
         ...kind.mapping === undefined ? [] : mappingProblems(kind.mapping, { type: 'object', properties: { entity: recordType(entityType), input: {} }, additionalProperties: false }, bodyType(type), `${entityType}: the mapping of ${type}`),
+        ...kind.applicable === undefined ? [] : mappingProblems(kind.applicable, scopeOf(entityType, type), { type: 'boolean' }, `${entityType}: the applicable of ${type}`),
         ...['apply', 'revert'].filter(effect => Array.isArray(kind[effect])).flatMap(effect => listProblems({ entityType, type, effect }, kind[effect])),
         ...pairedProblems(entityType, type, kind)
     ];

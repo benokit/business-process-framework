@@ -18,7 +18,7 @@ const profileOf = region => ({ id: `${region}-access-${run}`, kind: 'access-prof
 
 const elements = [
     { kind: 'app-config', data: { 'http-server': { port: 0 } } },
-    { id: REGIONAL, kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
+    { id: REGIONAL, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!region': 'string' } } } } } } },
     {
         id: CONTRACT,
         kind: REGIONAL,

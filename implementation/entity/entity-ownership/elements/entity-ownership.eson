@@ -109,7 +109,7 @@
     {
         "id": "ownership",
         "kind": "ownership-trait",
-        "data": { "cardinality": "one", "configuration": { "!dimensions": "@schema", "!rule": "@mapping" } }
+        "data": { "configuration": { "!dimensions": "@schema", "!rule": "@mapping" } }
     },
     {
         "id": "ownership-scope",

@@ -8,7 +8,7 @@ The `validation` [trait](../entities/README.md#traits): the business validations
 - The trait writes nothing but its own key. What the errors cause is the configurator's decision: the configuration `onValidation` is a mapping, the delegate the `derive` calls when the errors changed, from `{ entityType, businessKey, errors }` to the trait operations to run (`[{ key, operation, input }]`, as `traitOperations` takes them). They run in the same derivation, so their commands land in the revision of the write, and a failure refuses it. Without a delegate the errors are only stored. `validate()` reports a literal request whose key the entity type has no trait for, or whose operation that trait doesn't have; a request that is computed, and the names inside its `input` (a transition, say), are not checked.
 
 ```json
-{ "id": "invoice", "kind": "stateful-body-entity-type", "data": { "traits": { "validation": { "configuration": {} } } } }
+{ "id": "invoice", "kind": "entity-type", "data": { "traits": { "validation": { "configuration": {} } } } }
 { "id": "invoice-amount-positive", "kind": "slot-fill", "data": { "target": "invoice", "slot": "validations", "value": { "$if": [{ "$gt": ["#.data.body.amount", 0] }, {}, { "amount": "must be positive" }] } } }
 ```
 

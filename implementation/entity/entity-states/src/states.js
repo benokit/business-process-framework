@@ -1,6 +1,6 @@
 import { getElement } from '@business-framework/core';
-import { hasOperation, isInstanceOf, resolveKind, selfOf, selvesOf } from '@business-framework/core/kinds';
-import { traitsOf, traitValueOf } from '@business-framework/entities/traits';
+import { isInstanceOf, resolveKind, selfOf, selvesOf } from '@business-framework/core/kinds';
+import { publicOperationsOf, traitsOf, traitValueOf } from '@business-framework/entities/traits';
 
 export const applyTransition = ({ model, state, transition }) => {
     const targets = Object.entries(model.transitions?.[transition] ?? {}).map(([dimension, edges]) => [dimension, edges[state[dimension]] === true ? state[dimension] : edges[state[dimension]]]);
@@ -52,9 +52,10 @@ const processDimensionProblems = model => model.states[processDimensionOf(model)
 
 const NOT_GOVERNED = ['read', 'create', 'transition'];
 
-const exposedOperationsOf = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
-    .filter(([name, operation]) => !operation.private && !NOT_GOVERNED.includes(name))
-    .map(([name]) => name);
+const exposedOperationsOf = entityType => [
+    ...Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations).filter(([, operation]) => !operation.private).map(([name]) => name),
+    ...publicOperationsOf(entityType)
+].filter(name => !NOT_GOVERNED.includes(name));
 
 const isWriteOf = (entityType, name) => {
     const [key, message] = name.split('/');
@@ -89,8 +90,7 @@ const checkStatesModel = (model, entityType) => [
 
 export const statesModelProblems = trait => selvesOf('entity-type').flatMap(({ id }) => {
     const uses = Object.values(traitsOf(id)).filter(use => use.trait === trait);
-    const unexposed = uses.length > 0 && !hasOperation({ element: id, operation: 'transition' }) ? [`${id}: has states and exposes no transition operation`] : [];
-    return [...unexposed, ...uses.flatMap(({ configuration }) => checkStatesModel(configuration, id).map(problem => `${id}: ${problem}`))];
+    return [...uses.flatMap(({ configuration }) => checkStatesModel(configuration, id).map(problem => `${id}: ${problem}`))];
 });
 
 const statesConfigurationOf = entityType => Object.values(traitsOf(entityType))

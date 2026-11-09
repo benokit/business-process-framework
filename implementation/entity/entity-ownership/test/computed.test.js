@@ -15,7 +15,7 @@ describe('computed values in scopes', () => {
         paths: packages.map(name => packageElements(`@business-framework/${name}`)),
         elements: [
             { id: 'departments', kind: 'hierarchy', data: { tree } },
-            { id: 'regional', kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!department': 'string' } } } } } } },
+            { id: 'regional', kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { ownership: { configuration: { dimensions: { '!department': 'string' } } } } } } },
             { id: 'memo', kind: 'regional', data: { traits: { body: { configuration: { schema: { '!department': 'string' } } }, ownership: { configuration: { rule: { department: '#.data.body.department' } } } } } },
             { id: 'below', kind: 'ownership-scope', data: { filter: below } },
             { id: 'from-ownership', kind: 'ownership-scope', data: { filter: { $includes: { collection: subtree('#.ownership.department'), value: '#.ownership.department' } } } }

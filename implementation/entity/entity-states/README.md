@@ -4,13 +4,13 @@ The `state` [trait](../entities/README.md#traits): an entity's lifecycle as name
 
 - The trait `state`, configured by an `entity-states-model`: `{ states: { <dimension>: { <state>: true | { initial?, to? } } }, transitions?: { <name>: { <dimension>: { <from state>: <target state> } } }, initialStates?: { default, <name>: { <dimension>: value } } }`. A transition changes every dimension it lists, and only if all of them have their current state among its sources (a transition listing several dimensions is coupled); from different source states it may lead to different targets, and a target `true` keeps the state (`"validity": { "valid": true }`: only from `valid`, like the sources of `operations`). Everything is a map, so a subtype edits a model with the data algebra: `{ "cancel": { "status": { "suspended": "cancelled" } } }` adds a source state, `{ "cancel": { "/unset": true } }` removes a transition. `validate()` reports sources, targets and initial states a dimension doesn't declare.
 - `data.state` is `{ <dimension>: value }`, set on `create` from `initialStates.default`, or from the initial state named in the create input (`traits: { state: "<name>" }`).
-- An entity type with the `state` trait exposes the operation `transition({ businessKey, revision, transition })`: it runs the operation `transition` of the `state` trait (the node `exposes`), which computes the target state from the record at `revision` and writes it as command `<transition>`. The kind `stateful-entity-type` declares it and `stateful-body-entity-type` adds `update`; a kind that has to expose other operations too declares `transition` with the same node. `validate()` reports an entity type with states and no `transition`.
+- The operation `transition` of the `state` trait is public: `run({ businessKey, revision, trait: "state", operation: "transition", input: { transition } })` of an entity type with the trait computes the target state from the record at `revision` and writes it as command `<transition>`.
 -  a record no longer at `revision` gives `conflict`. Errors: `not-found` (no entity type), `invalid` (no such transition), `conflict` (not allowed from the current state, revision mismatch).
 - The schema `entity-transition` is the names of every transition of every entity type, registered at load, and types the `transition` input: a transition is a closed set of values, so [authorization](../../services/authorization/README.md) can grant transitions and `validate()` knows them.
 - A model used by several entity types is an element of the kind `state-machine` (shaped as the model), which an entity type takes as its configuration with `{ "/ref": "<id>" }` and edits with `/merge`; the demo's [approvals](../../../demo/approvals/approvals.eson) show it.
 
 ```json
-{ "id": "order", "kind": "stateful-entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
+{ "id": "order", "kind": "entity-type", "data": { "traits": { "state": { "configuration": { "states": { "status": { "draft": true, "confirmed": true } }, "transitions": { "confirm": { "status": { "draft": "confirmed" } } }, "initialStates": { "default": { "status": "draft" } } } } } } }
 ```
 
 ## Reading the state of a record
@@ -35,7 +35,7 @@ A state is `true` (no restriction) or `{ initial?: true, to?: [<state>] }`. The 
 
 ## Operations by state
 
-Besides transitions, the model says in which states the operations an entity exposes are possible, as a rule of the process that holds for everyone: `operations` maps the name of an operation of the entity type (`update`, `delete`, `putSegment`, … any public operation other than `read`, `create` and `transition`) to the states it is possible in, in the shape of the sources of a transition (`{ <dimension>: { <state>: true } }`; with several dimensions all must hold). An operation the model doesn't list is possible in every state. Trait operations are private to the entity and have no name here.
+Besides transitions, the model says in which states the operations an entity exposes are possible, as a rule of the process that holds for everyone: `operations` maps the name of an operation of the entity type (`update`, `delete`, `propose`, … any public operation of the entity type or of one of its traits other than `read`, `create` and `transition`) to the states it is possible in, in the shape of the sources of a transition (`{ <dimension>: { <state>: true } }`; with several dimensions all must hold). An operation the model doesn't list is possible in every state. Private operations of a trait have no name here.
 
 ```json
 "operations": { "update": { "status": { "draft": true } }, "delete": { "status": { "draft": true, "cancelled": true } } }

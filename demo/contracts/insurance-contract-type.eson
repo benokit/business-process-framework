@@ -3,9 +3,10 @@
         "id": "insurance-contract-type",
         "kind": "kind",
         "data": {
-            "extends": "amendable-entity-type",
+            "extends": "entity-type",
             "fixed": {
                 "traits": {
+                    "amendable": { "configuration": {} },
                     "state": {
                         "configuration": {
                             "states": {

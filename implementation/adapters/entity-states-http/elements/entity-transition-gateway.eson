@@ -13,13 +13,13 @@
                             "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
                         },
                         {
-                            "if": { "$negate": { "$func/has-operation": { "element": "#.input.entityType", "operation": "transition" } } },
+                            "if": { "$negate": { "$func/entity-public-operation": { "entityType": "#.input.entityType", "key": "state", "operation": "transition" } } },
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " has no transition ", "#.input.transition"] } } }
                         },
                         {
-                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "transition": "#.input.transition" },
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "state", "operation": "transition", "input": { "transition": "#.input.transition" } },
                             "invoke": "#.input.entityType",
-                            "operation": "transition"
+                            "operation": "run"
                         }
                     ]
                 }

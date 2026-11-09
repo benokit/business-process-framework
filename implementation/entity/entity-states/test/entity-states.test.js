@@ -20,17 +20,17 @@ const lifecycle = {
 };
 
 const elements = [
-    { id: ORDER, kind: 'stateful-body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
+    { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: lifecycle } } },
-    { id: TICKET, kind: 'stateful-entity-type', data: { traits: { state: { configuration: { ...lifecycle, operations: { delete: lifecycle.operations.delete } } } } } },
-    { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
+    { id: TICKET, kind: 'entity-type', data: { traits: { state: { configuration: { ...lifecycle, operations: { delete: lifecycle.operations.delete } } } } } },
+    { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } }
 ];
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states'];
 
 const errorOf = promise => promise.then(() => null, error => error);
 
-const transition = (businessKey, name, revision, entityType = ORDER) => invoke(entityType, 'transition', { businessKey, revision, transition: name });
+const transition = (businessKey, name, revision, entityType = ORDER) => invoke(entityType, 'run', { businessKey, revision, trait: 'state', operation: 'transition', input: { transition: name } });
 
 describe('entity-states', function () {
     before(async function () {
@@ -50,7 +50,7 @@ describe('entity-states', function () {
         const created = await invoke(TICKET, 'create', { businessKey: 't-1' });
         expect(created.data).to.deep.equal({ 'business-key': 't-1', state: { status: 'draft' } });
         expect((await transition('t-1', 'confirm', 1, TICKET)).data).to.deep.equal({ 'business-key': 't-1', state: { status: 'confirmed' } });
-        expect((await errorOf(invoke(TICKET, 'update', { businessKey: 't-1', revision: 2, value: {} }))).code).to.equal('unknown-operation');
+        expect((await errorOf(invoke(TICKET, 'run', { businessKey: 't-1', revision: 2, trait: 'body', operation: 'update', input: { value: {} } }))).code).to.equal('private-operation');
     });
 
     it('starts in the default or a named initial state', async () => {
@@ -69,7 +69,7 @@ describe('entity-states', function () {
     });
 
     it('allows an entity operation only in the states its declaration lists', async () => {
-        const put = (businessKey, revision, amount) => invoke(ORDER, 'update', { businessKey, revision, value: { amount } });
+        const put = (businessKey, revision, amount) => invoke(ORDER, 'run', { businessKey, revision, trait: 'body', operation: 'update', input: { value: { amount } } });
         await invoke(ORDER, 'create', { businessKey: 'o-1', traits: { body: { amount: 1 } } });
         const changed = await put('o-1', 1, 2);
         expect(changed.data.body.amount).to.equal(2);
@@ -96,7 +96,7 @@ describe('entity-states', function () {
 
     it('leaves entity types without a states model stateless', async () => {
         expect((await invoke(NOTE, 'create', { businessKey: 'n-1', traits: { body: { text: 'hi' } } })).data).to.deep.equal({ 'business-key': 'n-1', body: { text: 'hi' } });
-        expect((await errorOf(transition('n-1', 'confirm', 1, NOTE))).code).to.equal('unknown-operation');
+        expect((await errorOf(transition('n-1', 'confirm', 1, NOTE))).code).to.equal('private-operation');
     });
 
     it('reports a states model with undeclared states in validate()', async () => {
@@ -104,8 +104,7 @@ describe('entity-states', function () {
         await stop();
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
         expect(validate().map(problem => problem.message)).to.deep.equal([[
-            `state: ${NOTE}: has states and exposes no transition operation`,
-            `${NOTE}: operation 'amend' is no operation the entity type exposes nor a write of one of its traits (<trait key>/<name>), other than read, create, transition`,
+            `state: ${NOTE}: operation 'amend' is no operation the entity type exposes nor a write of one of its traits (<trait key>/<name>), other than read, create, transition`,
             `${NOTE}: operation 'delete' uses undeclared state status=z`,
             `${NOTE}: initial state 'default' uses undeclared state status=b`
         ].join('; ')]);
@@ -125,7 +124,7 @@ describe('entity-states', function () {
             const broken = { id: `${ORDER}-flow`, kind: 'slot-fill', data: { target: NOTE, slot: 'traits', value: { trait: 'state', configuration } } };
             await stop();
             await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements: [...elements, broken] });
-            const problems = validate().flatMap(problem => problem.message.split('; ')).filter(message => !message.includes('exposes no transition operation'));
+            const problems = validate().flatMap(problem => problem.message.replace(/^state: /, '').split('; '));
             await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
             await start();
             await migrate();

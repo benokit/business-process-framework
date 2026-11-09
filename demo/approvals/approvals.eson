@@ -14,7 +14,7 @@
     },
     {
         "id": "expense-claim",
-        "kind": "stateful-body-entity-type",
+        "kind": "entity-type",
         "/data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number", "justification": "string" } } },
@@ -58,7 +58,7 @@
     },
     {
         "id": "leave-request",
-        "kind": "stateful-body-entity-type",
+        "kind": "entity-type",
         "/data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!employee": "string", "!from": "string", "!to": "string" } } },
