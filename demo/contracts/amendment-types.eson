@@ -3,15 +3,10 @@
         "id": "underwriting-amendment-type",
         "kind": "kind",
         "data": {
-            "extends": "amendment-entity-type",
+            "extends": "stateful-body-entity-type",
             "fixed": { "traits": { "state": { "configuration": {
-                "states": { "status": { "draft": true, "issued": true, "active": true, "cancelled": true, "annulled": true } },
-                "transitions": {
-                    "issue": { "status": { "draft": "issued" } },
-                    "activate": { "status": { "issued": "active" }, "versionStatus": { "pending": "applied" } },
-                    "cancel": { "status": { "draft": "cancelled", "issued": "cancelled" }, "versionStatus": { "pending": "discarded" } },
-                    "annul": { "status": { "active": "annulled" }, "versionStatus": { "applied": "discarded" } }
-                },
+                "states": { "status": { "draft": true, "issued": true } },
+                "transitions": { "issue": { "status": { "draft": "issued" } } },
                 "initialStates": { "default": { "status": "draft" } },
                 "operations": { "update": { "status": { "draft": true } } }
             } } } }

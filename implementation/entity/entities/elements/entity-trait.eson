@@ -10,15 +10,10 @@
         "data": { "trait": "@ref/entity-trait", "configuration": "@any" }
     },
     {
-        "id": "trait-bundle",
-        "kind": "kind",
-        "data": { "shape": { "!traits{}": "@entity-trait-entry" } }
-    },
-    {
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "cardinality=1": ["one", "many"], "key": "string", "view": "@mapping", "identity": "boolean" },
+            "shape": { "!configuration": "@schema", "key": "string", "view": "@mapping", "identity": "boolean" },
             "lifecycle": {
                 "load": {
                     "inputMap": { "id": { "$str": ["#.self.id", "/configuration"] }, "schema": "#.self.data.configuration" },

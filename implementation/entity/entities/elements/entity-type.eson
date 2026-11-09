@@ -143,8 +143,7 @@
                         "!businessKey": "string",
                         "revision": "number",
                         "!entityOperation": "string",
-                        "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" },
-                        "origin": "object"
+                        "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" }
                     },
                     "output": "@viewed-entity-record",
                     "implementation": [
@@ -167,7 +166,7 @@
                         },
                         {
                             "inputMap": {
-                                "change": { "operation": "trait", "entityOperation": "#.input.entityOperation", "commands": "#.commands", "before": "#.before", "origin": "#.input.origin" },
+                                "change": { "operation": "trait", "entityOperation": "#.input.entityOperation", "commands": "#.commands", "before": "#.before" },
                                 "revision": "#.input.revision"
                             },
                             "invoke": "#.self.id",

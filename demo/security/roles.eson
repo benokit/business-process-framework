@@ -8,11 +8,16 @@
                 { "area": "entities", "resource": "insurance-contract-type", "action": "delete", "state": "draft" },
                 { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue"] },
                 { "area": "entities", "resource": "party", "action": ["query", "create", "update"] },
-                { "area": "entities", "resource": "amendment-entity-type", "action": ["query", "update"] },
-                { "area": "states", "resource": "amendment-entity-type", "action": ["issue", "cancel", "annul"] },
-                { "area": "amendments", "resource": "insurance-contract-type" }
+                { "area": "entities", "resource": "underwriting-amendment-type", "action": ["query", "update"] },
+                { "area": "states", "resource": "underwriting-amendment-type", "action": "issue" },
+                { "area": "amendments", "resource": "insurance-contract-type", "action": ["propose", "discard", "revert"] }
             ]
         }
+    },
+    {
+        "id": "amendment-approver-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "amendments", "resource": "insurance-contract-type", "action": "apply" }] }
     },
     {
         "id": "underwriter-role",
@@ -27,6 +32,6 @@
     {
         "id": "administrator-role",
         "kind": "role",
-        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor", "user-administrator-actor"] }
+        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor", "user-administrator-actor", "amendment-approver-actor"] }
     }
 ]

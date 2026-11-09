@@ -7,93 +7,58 @@ const POLICY = `policy-${run}`;
 const RAISE = `raise-${run}`;
 const COPY = `copy-${run}`;
 const END = `end-${run}`;
-const NOTE = `note-${run}`;
+const OTHER = `other-${run}`;
 const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number', endDate: '@date', '*': 'never' };
-const VALID_FROM = '#.link.context.effectiveFrom';
-const AMENDMENT_KEY = '#.generated.businessKey';
+const VALID_FROM = '#.effectiveFrom';
+const AMENDMENT_KEY = '#.amendment.businessKey';
 
-const amendmentType = (id, schema) => ({
-    id,
-    kind: 'amendment-entity-type',
-    data: {
-        traits: {
-            body: { configuration: { schema } },
-            state: {
-                configuration: {
-                    states: { status: { draft: true, issued: true, active: true, cancelled: true, annulled: true } },
-                    transitions: {
-                        issue: { status: { draft: 'issued' } },
-                        activate: { status: { issued: 'active' }, versionStatus: { pending: 'applied' } },
-                        cancel: { status: { draft: 'cancelled', issued: 'cancelled' }, versionStatus: { pending: 'discarded' } },
-                        annul: { status: { active: 'annulled' }, versionStatus: { applied: 'discarded' } }
-                    },
-                    initialStates: { default: { status: 'draft' } }
-                }
-            }
-        }
-    }
-});
+const amendmentType = (id, schema) => ({ id, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema } } } } });
 
-const declaration = (id, declarations) => ({ id: `${POLICY}-${id}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value: { key: 'amendments', configuration: { declarations } } } });
+const amend = patch => ({ key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY, body: { '$func/patched-body': { body: { '$func/record-body': '#.entity' }, patch } } } });
+
+const configuration = amendable => ({ id: `${POLICY}-${Object.keys(amendable)[0]}`, kind: 'slot-fill', data: { target: POLICY, slot: 'traits', value: { key: 'amendable', configuration: amendable } } });
 
 const elements = [
     {
         id: POLICY,
-        kind: 'versioned-entity-type',
+        kind: 'amendable-entity-type',
         data: {
             traits: {
-                notes: { trait: 'generator', configuration: { declarations: { note: { type: NOTE } } } },
                 body: { trait: 'versioned-body', configuration: { schema: BODY, versioned: { validFrom: '/startDate' } } },
                 state: {
                     configuration: {
                         states: { status: { draft: true, active: true, cancelled: true } },
                         transitions: { activate: { status: { draft: 'active' } }, cancel: { status: { active: 'cancelled' } }, reactivate: { status: { cancelled: 'active' } } },
                         initialStates: { default: { status: 'draft' } },
-                        operations: { generate: { status: { active: true } }, 'amendments/apply': { status: { active: true } } }
+                        operations: { propose: { status: { active: true } }, apply: { status: { active: true } } }
+                    }
+                },
+                amendable: {
+                    configuration: {
+                        [RAISE]: {
+                            mapping: { reason: '#.input.reason', changes: '#.input.changes' },
+                            apply: [amend([{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }])]
+                        },
+                        [END]: {
+                            apply: [amend([{ op: 'add', path: '/endDate', value: VALID_FROM }]), { key: 'state', operation: 'transition', input: { transition: 'cancel' } }],
+                            revert: [
+                                { key: 'body', operation: 'remove', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY } },
+                                { key: 'state', operation: 'transition', input: { transition: 'reactivate' } }
+                            ]
+                        },
+                        [COPY]: {}
                     }
                 }
             }
         }
     },
-    { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } }, generated: { configuration: {} } } } },
     amendmentType(RAISE, { '!reason': 'string', '!changes': { '!premium': 'number' } }),
     amendmentType(COPY, BODY),
     amendmentType(END, { '!reason': 'string' }),
-    { id: `${RAISE}-input`, kind: 'schema', data: { '!reason': 'string', '!changes': { '!premium': 'number' }, '*': 'never' } },
-    declaration('raise', {
-        [RAISE]: {
-            type: RAISE,
-            input: `${RAISE}-input`,
-            open: { body: { reason: '#.input.reason', changes: '#.input.changes' } },
-            effects: {
-                apply: [{
-                    key: 'body',
-                    operation: 'amend',
-                    input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY, body: { '$func/patched-body': { body: { '$func/record-body': '#.source' }, patch: [{ op: 'replace', path: '/premium', value: '#.generated.data.body.changes.premium' }] } } }
-                }]
-            }
-        }
-    }),
-    declaration('end', {
-        [END]: {
-            type: END,
-            open: { body: { reason: '#.input.reason' } },
-            effects: {
-                apply: [
-                    { key: 'body', operation: 'amend', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY, body: { '$func/patched-body': { body: { '$func/record-body': '#.source' }, patch: [{ op: 'add', path: '/endDate', value: VALID_FROM }] } } } },
-                    { key: 'state', operation: 'transition', input: { transition: 'cancel' } }
-                ],
-                revert: [
-                    { key: 'body', operation: 'remove', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY } },
-                    { key: 'state', operation: 'transition', input: { transition: 'reactivate' } }
-                ]
-            }
-        }
-    }),
-    declaration('copy', { [COPY]: { type: COPY } })
+    amendmentType(OTHER, { '!reason': 'string' })
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-generation', 'entity-amendments'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-amendments'];
 
 const errorOf = promise => promise.then(() => null, error => error);
 
@@ -102,19 +67,19 @@ const policy = async (businessKey, { activate = true } = {}) => {
     return activate ? invoke(POLICY, 'transition', { businessKey, revision: created.revision, transition: 'activate' }) : created;
 };
 
-const generate = (businessKey, effectiveFrom, generator, input) => invoke(POLICY, 'generate', {
-    businessKey, generator: 'amendments', declaration: generator, input, context: { effectiveFrom }
-});
+const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => invoke(POLICY, 'propose', { businessKey, amendmentType, effectiveFrom, input });
 
-const propose = (businessKey, effectiveFrom, value, amendmentType = RAISE, input = { reason: 'indexation', changes: { premium: value } }) => generate(businessKey, effectiveFrom, amendmentType, input);
+const apply = (businessKey, amendment) => invoke(POLICY, 'apply', { businessKey, amendment: amendment.businessKey });
 
-const move = (amendment, transition) => invoke(amendment.entityType, 'transition', { businessKey: amendment.businessKey, revision: amendment.revision, transition });
+const revert = (businessKey, amendment) => invoke(POLICY, 'revert', { businessKey, amendment: amendment.businessKey });
 
-const issue = amendment => move(amendment, 'issue');
-
-const activate = async amendment => move(await issue(amendment), 'activate');
+const discard = (businessKey, amendment) => invoke(POLICY, 'discard', { businessKey, amendment: amendment.businessKey });
 
 const read = (businessKey, at) => invoke(POLICY, 'read', { businessKey, at });
+
+const ledger = async businessKey => (await read(businessKey)).data.amendable;
+
+const statuses = async businessKey => (await ledger(businessKey)).entries.map(({ key, status }) => [key, status]);
 
 describe('entity-amendments', function () {
     before(async function () {
@@ -134,90 +99,75 @@ describe('entity-amendments', function () {
         await policy('a-draft', { activate: false });
         expect((await errorOf(propose('a-draft', '2026-07-01', 110))).code).to.equal('conflict');
         await policy('a-1');
-        expect((await errorOf(propose('a-1', '2026-07-01', 110, `${RAISE}-other`))).code).to.equal('invalid');
+        expect((await errorOf(propose('a-1', '2026-07-01', 110, OTHER))).code).to.equal('invalid');
+        const before = await read('a-1');
         const proposed = await propose('a-1', '2026-07-01', 110);
-        expect([proposed.businessKey, proposed.data.state.status, proposed.data.body.reason]).to.deep.equal(['a-1-001', 'draft', 'indexation']);
-        expect((await read('a-1')).data['amendment-ledger']).to.deep.equal({ last: 1, open: 'a-1-001' });
+        expect([proposed.businessKey, proposed.data.body]).to.deep.equal(['a-1-001', { reason: 'indexation', changes: { premium: 110 } }]);
+        expect((await ledger('a-1'))).to.deep.equal({ last: 1, entries: [{ key: 'a-1-001', type: RAISE, effectiveFrom: '2026-07-01', proposedAt: before.revision + 1, status: 'pending' }] });
     });
 
-    it('allows one open amendment, which is closed by activating or cancelling it, and numbers them without gaps', async () => {
+    it('allows one open amendment, which is closed by applying or discarding it, and numbers them without gaps', async () => {
         await policy('a-2');
         const first = await propose('a-2', '2026-07-01', 110);
         expect((await errorOf(propose('a-2', '2026-08-01', 120))).code).to.equal('conflict');
-        const cancelled = await move(await issue(first), 'cancel');
-        expect(cancelled.data.state.status).to.equal('cancelled');
-        expect((await read('a-2')).data['amendment-ledger']).to.deep.equal({ last: 1, open: null });
+        await discard('a-2', first);
+        expect(await statuses('a-2')).to.deep.equal([['a-2-001', 'discarded']]);
         expect((await read('a-2')).data.body.premium).to.equal(100);
         expect((await propose('a-2', '2026-08-01', 120)).businessKey).to.equal('a-2-002');
+        expect((await errorOf(discard('a-2', first))).code).to.equal('conflict');
     });
 
-    it('applies an activated amendment as a version valid from its date, and reverts an annulled one', async () => {
+    it('applies an amendment as a version valid from its date, and reverts it', async () => {
         await policy('a-3');
-        const raised = await activate(await propose('a-3', '2026-07-01', 110));
-        expect(raised.data.state.status).to.equal('active');
+        await apply('a-3', await propose('a-3', '2026-07-01', 110));
         const amended = await read('a-3');
-        expect([amended.data.body.premium, amended.data.body.startDate, amended.data['amendment-ledger']]).to.deep.equal([110, '2026-07-01', { last: 1, open: null }]);
+        expect([amended.data.body.premium, amended.data.body.startDate, await statuses('a-3')]).to.deep.equal([110, '2026-07-01', [['a-3-001', 'applied']]]);
         expect((await read('a-3', '2026-03-01')).data.body.premium).to.equal(100);
 
-        await move(raised, 'annul');
-        expect([(await read('a-3')).data.body.premium, (await read('a-3')).data.body.startDate]).to.deep.equal([100, '2026-01-01']);
+        await revert('a-3', { businessKey: 'a-3-001' });
+        expect([(await read('a-3')).data.body.premium, (await read('a-3')).data.body.startDate, await statuses('a-3')]).to.deep.equal([100, '2026-01-01', [['a-3-001', 'discarded']]]);
+        expect((await errorOf(apply('a-3', { businessKey: 'a-3-001' }))).code).to.equal('conflict');
     });
 
-    it('annuls amendments in the reverse order of their activation', async () => {
+    it('reverts amendments in the reverse order of their application', async () => {
         await policy('a-4');
-        const first = await activate(await propose('a-4', '2026-07-01', 110));
-        const second = await activate(await propose('a-4', '2027-01-01', 120));
-        expect((await errorOf(move(first, 'annul'))).code).to.equal('conflict');
-        await move(second, 'annul');
-        await move(first, 'annul');
+        const first = await propose('a-4', '2026-07-01', 110);
+        await apply('a-4', first);
+        const second = await propose('a-4', '2027-01-01', 120);
+        await apply('a-4', second);
+        expect((await errorOf(revert('a-4', first))).code).to.equal('conflict');
+        await revert('a-4', second);
+        await revert('a-4', first);
         expect((await read('a-4')).data.body.premium).to.equal(100);
     });
 
-    it('refuses to activate an amendment dated before the last version, leaving everything as it was', async () => {
+    it('refuses to apply an amendment dated before the last version, leaving everything as it was', async () => {
         await policy('a-5');
-        const early = await issue(await propose('a-5', '2025-12-31', 90));
-        expect((await errorOf(move(early, 'activate'))).code).to.equal('conflict');
+        const early = await propose('a-5', '2025-12-31', 90);
+        expect((await errorOf(apply('a-5', early))).code).to.equal('conflict');
         const unchanged = await read('a-5');
-        expect([unchanged.data.body.premium, unchanged.data['amendment-ledger'].open]).to.deep.equal([100, 'a-5-001']);
-        expect((await invoke(RAISE, 'read', { businessKey: 'a-5-001' })).data.state.status).to.equal('issued');
+        expect([unchanged.data.body.premium, await statuses('a-5')]).to.deep.equal([100, [['a-5-001', 'pending']]]);
     });
 
-    it('lets only the process of the amendment type move its version status along pending, applied and discarded', async () => {
+    it('leaves nothing behind when the amendment cannot be created', async () => {
         await policy('a-6');
-        const proposed = await propose('a-6', '2026-07-01', 110);
-        expect(proposed.data.state).to.deep.equal({ status: 'draft', versionStatus: 'pending' });
-        const applied = await activate(proposed);
-        expect(applied.data.state).to.deep.equal({ status: 'active', versionStatus: 'applied' });
-        expect((await move(applied, 'annul')).data.state).to.deep.equal({ status: 'annulled', versionStatus: 'discarded' });
-        const other = await propose('a-6', '2026-08-01', 120);
-        const discarded = await move(other, 'cancel');
-        expect(discarded.data.state).to.deep.equal({ status: 'cancelled', versionStatus: 'discarded' });
-    });
-
-    it('refuses an amendment created other than through the entity it amends, and a start of a ledger write', async () => {
-        const link = { sourceType: POLICY, sourceKey: 'a-5', sourceRevision: 1, generator: 'amendments', declaration: RAISE, context: { effectiveFrom: '2026-07-01' } };
-        const direct = await errorOf(invoke(RAISE, 'create', { businessKey: 'direct', traits: { body: { reason: 'x', changes: { premium: 1 } }, generated: link } }));
-        expect([direct.code, direct.message]).to.deep.equal(['forbidden', 'a generated entity is created through the entity that generates it']);
-        const forged = await errorOf(invoke(POLICY, 'enter', { businessKey: 'a-1', trait: 'amendments', process: 'write', entityOperation: 'write', input: { command: 'reset', value: { last: 0, open: null } } }));
-        expect(forged.code).to.equal('private-operation');
-    });
-
-    it('proposes an amendment of a shape of its own, checked against the input of its declaration', async () => {
-        await policy('a-7');
-        const error = await errorOf(propose('a-7', '2026-07-01', undefined, RAISE, { reason: 'indexation', changes: { premium: 'high' } }));
+        const error = await errorOf(propose('a-6', '2026-07-01', undefined, RAISE, { reason: 'indexation', changes: { premium: 'high' } }));
         expect(error.code).to.equal('invalid');
-        const proposed = await propose('a-7', '2026-07-01', 110);
-        expect([proposed.data.body, proposed.data.generated]).to.deep.equal([
-            { reason: 'indexation', changes: { premium: 110 } },
-            { sourceType: POLICY, sourceKey: 'a-7', sourceRevision: (await read('a-7')).revision, generator: 'amendments', declaration: RAISE, context: { effectiveFrom: '2026-07-01' } }
-        ]);
+        expect(await ledger('a-6')).to.deep.equal({ last: 0, entries: [] });
+        expect((await propose('a-6', '2026-07-01', 110)).businessKey).to.equal('a-6-001');
     });
 
-    it('copies the last version into an amendment of a declaration with the defaults, and applies it from the date of the amendment', async () => {
+    it('keeps its own steps private to the entity type', async () => {
+        await policy('a-7');
+        const errors = await Promise.all(['amendmentChange', 'amendmentOperations', 'applyTraitOperations'].map(operation => errorOf(invoke(POLICY, operation, {}))));
+        expect(errors.map(({ code }) => code)).to.deep.equal(['private-operation', 'private-operation', 'private-operation']);
+    });
+
+    it('copies the last version into an amendment of a kind with the defaults, and applies it from the date of the amendment', async () => {
         await policy('a-8');
         const proposed = await propose('a-8', '2026-07-01', undefined, COPY, { holder: 'Ada', startDate: '2026-01-01', premium: 130 });
         expect(proposed.data.body.premium).to.equal(130);
-        await activate(proposed);
+        await apply('a-8', proposed);
         expect(await read('a-8').then(({ data }) => [data.body.premium, data.body.startDate])).to.deep.equal([130, '2026-07-01']);
     });
 
@@ -225,72 +175,44 @@ describe('entity-amendments', function () {
         await policy('a-9');
         const proposed = await propose('a-9', '2026-07-01', 110);
         const before = await read('a-9');
-        const commands = await invoke(RAISE, 'preview', { businessKey: proposed.businessKey, effect: 'apply' });
-        expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['amendment-ledger', 'close']]);
+        const commands = await invoke(POLICY, 'preview', { businessKey: 'a-9', amendment: proposed.businessKey, effect: 'apply' });
+        expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['amendable', 'applied']]);
         expect(await read('a-9')).to.deep.equal(before);
-        await activate(proposed);
+        await apply('a-9', proposed);
         expect((await read('a-9')).data.body).to.deep.equal({ holder: 'Ada', startDate: '2026-07-01', premium: 110 });
     });
 
-    it('moves the state in the same change as the body, and moves it back when the amendment is annulled', async () => {
+    it('moves the state in the same change as the body, and moves it back when the amendment is reverted', async () => {
         await policy('a-11');
         const before = await read('a-11');
         const proposed = await propose('a-11', '2026-07-01', undefined, END, { reason: 'lapsed' });
-        const preview = await invoke(END, 'preview', { businessKey: proposed.businessKey, effect: 'apply' });
-        expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['amendment-ledger', 'close']]);
-        const ended = await activate(proposed);
+        const preview = await invoke(POLICY, 'preview', { businessKey: 'a-11', amendment: proposed.businessKey, effect: 'apply' });
+        expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['amendable', 'applied']]);
+        await apply('a-11', proposed);
         const cancelled = await read('a-11');
         expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-07-01', before.revision + 2]);
         expect((await errorOf(propose('a-11', '2026-08-01', 120))).code).to.equal('conflict');
-        await move(ended, 'annul');
+        await revert('a-11', proposed);
         const reactivated = await read('a-11');
         expect([reactivated.data.state.status, reactivated.data.body.endDate]).to.deep.equal(['active', undefined]);
     });
 
-    it('rolls the activation back when the state cannot move', async () => {
+    it('rolls the application back when the state cannot move', async () => {
         await policy('a-12');
-        const proposed = await issue(await propose('a-12', '2026-07-01', undefined, END, { reason: 'lapsed' }));
+        const proposed = await propose('a-12', '2026-07-01', undefined, END, { reason: 'lapsed' });
         const current = await read('a-12');
         await invoke(POLICY, 'transition', { businessKey: 'a-12', revision: current.revision, transition: 'cancel' });
-        expect((await errorOf(move(proposed, 'activate'))).code).to.equal('conflict');
+        expect((await errorOf(apply('a-12', proposed))).code).to.equal('conflict');
         expect((await read('a-12')).data.body.endDate).to.equal(undefined);
     });
 
     it('refuses to apply an amendment once the entity moved on from the revision it was proposed at', async () => {
         await policy('a-10');
-        const proposed = await issue(await propose('a-10', '2026-07-01', 110));
+        const proposed = await propose('a-10', '2026-07-01', 110);
         const current = await read('a-10');
         await invoke(POLICY, 'update', { businessKey: 'a-10', revision: current.revision, value: { holder: 'Grace', startDate: '2026-01-01', premium: 100 } });
-        expect((await errorOf(move(proposed, 'activate'))).code).to.equal('conflict');
+        expect((await errorOf(apply('a-10', proposed))).code).to.equal('conflict');
         expect((await read('a-10')).data.body.holder).to.equal('Grace');
-    });
-
-    it('keeps the link of an amendment, which no trait operation writes and no update of the amendment changes', async () => {
-        await policy('g-1');
-        const proposed = await propose('g-1', '2026-07-01', 110);
-        await invoke(RAISE, 'update', { businessKey: proposed.businessKey, revision: proposed.revision, value: { reason: 'again', changes: { premium: 120 }, generated: { sourceKey: 'g-2' } } });
-        const stored = await invoke(RAISE, 'read', { businessKey: proposed.businessKey });
-        expect([stored.data.body.reason, stored.data.generated]).to.deep.equal(['again', proposed.data.generated]);
-    });
-
-    it('accepts no write to an entity from anyone but a trait, and no start of a process of a trait that no kind declares', async () => {
-        await policy('g-2');
-        await policy('g-3');
-        const pending = await propose('g-2', '2026-07-01', 112);
-        const stray = await errorOf(invoke(POLICY, 'write', { businessKey: 'g-3', entityOperation: 'amendments/apply', operations: [{ key: 'body', operation: 'remove', input: {} }] }));
-        expect(stray.code).to.equal('forbidden');
-        const direct = await errorOf(invoke(POLICY, 'enter', { businessKey: 'g-2', trait: 'amendments', process: 'apply', entityOperation: 'apply', input: { amendment: pending } }));
-        expect(direct.code).to.equal('private-operation');
-        expect([(await read('g-2')).data.body.premium, (await read('g-3')).data.body.premium]).to.deep.equal([100, 100]);
-    });
-
-    it('generates entities of other kinds beside amendments, with no ledger and no context of its own', async () => {
-        await policy('a-13');
-        const note = await invoke(POLICY, 'generate', { businessKey: 'a-13', generator: 'notes', declaration: 'note', key: 'n-1', input: { text: 'hello' } });
-        expect([note.businessKey, note.data.generated.generator, note.data.body]).to.deep.equal(['n-1', 'notes', { text: 'hello' }]);
-        expect((await read('a-13')).data['amendment-ledger']).to.deep.equal({ last: 0, open: null });
-        const absent = await errorOf(invoke(POLICY, 'generate', { businessKey: 'a-13', generator: 'nothing', declaration: 'note', key: 'n-2', input: { text: 'x' } }));
-        expect(absent.code).to.equal('invalid');
     });
 
     const messagesWith = async extra => {
@@ -303,71 +225,39 @@ describe('entity-amendments', function () {
         return messages;
     };
 
-    it('reports a process that moves the version status against its order, starts it elsewhere than pending or adds a state to it', async () => {
-        const broken = {
-            id: `${RAISE}-broken`,
-            kind: 'amendment-entity-type',
-            data: {
-                traits: {
-                    body: { configuration: { schema: { '!reason': 'string' } } },
-                    state: {
-                        configuration: {
-                            states: { status: { open: true }, versionStatus: { suspended: true } },
-                            transitions: { reopen: { versionStatus: { discarded: 'pending' }, status: { open: 'open' } }, undo: { versionStatus: { applied: 'pending' } } },
-                            initialStates: { default: { status: 'open' }, applied: { status: 'open', versionStatus: 'applied' } }
-                        }
-                    }
-                }
-            }
-        };
-        expect((await messagesWith([broken])).filter(message => message.startsWith(`${RAISE}-broken`))).to.include.members([
-            `${RAISE}-broken: state versionStatus=suspended declares no moves in a dimension that restricts them (to: [] ends it)`,
-            `${RAISE}-broken: transition 'reopen' moves versionStatus from discarded to pending, which the dimension does not allow`,
-            `${RAISE}-broken: transition 'undo' moves versionStatus from applied to pending, which the dimension does not allow`,
-            `${RAISE}-broken: initial state 'applied' starts versionStatus in applied, which the dimension does not allow`
-        ]);
+    it('reports a mapping of a kind that reads a field the entity does not have', async () => {
+        const wrong = `${RAISE}-wrong`;
+        const messages = (await messagesWith([amendmentType(wrong, { '!reason': 'string' }), configuration({ [wrong]: { mapping: { reason: '#.input.why', holder: '#.entity.data.body.owner' } } })])).join('\n');
+        expect(messages).to.include(`the mapping of ${wrong}`).and.to.include('owner');
     });
 
-    it('reports a mapping of a declaration that reads a field neither the entity, the input nor the amendment has', async () => {
-        const broken = declaration('broken', {
-            [`${RAISE}-wrong`]: {
-                type: RAISE,
-                input: `${RAISE}-input`,
-                open: { body: { reason: '#.input.why', changes: '#.input.changes', holder: '#.entity.data.body.owner' } },
-                effects: { apply: [{ key: 'body', operation: 'amend', input: { validFrom: '#.link.since', ref: '#.generated.nope', body: { '$func/patched-body': { body: { '$func/record-body': '#.source' }, patch: [{ op: 'replace', path: '/premium', value: 1 }] } } } }] }
-            }
-        });
-        const messages = (await messagesWith([broken])).join('\n');
-        expect(messages).to.include(`the open mapping of ${RAISE}-wrong`).and.to.include('why').and.to.include('owner').and.to.include(`the apply of ${RAISE}-wrong`).and.to.include('since').and.to.include('nope');
+    it('reports an apply that reads a field neither the entity, the amendment nor the date has', async () => {
+        const wrong = `${RAISE}-wrong`;
+        const broken = configuration({ [wrong]: { apply: [{ key: 'body', operation: 'amend', input: { validFrom: '#.since', ref: '#.amendment.nope', body: { holder: 'Ada', premium: 'high' } } }] } });
+        const messages = (await messagesWith([amendmentType(wrong, { '!reason': 'string' }), broken])).join('\n');
+        expect(messages).to.include(`the apply of ${wrong}`).and.to.include('since').and.to.include('nope').and.to.include('premium');
     });
 
-    it('reports a mapping of a declaration whose result does not fit the body it produces', async () => {
-        const broken = declaration('misshaped', {
-            [`${RAISE}-misshaped`]: {
-                type: RAISE,
-                open: { body: { reason: 5 } },
-                effects: { apply: [{ key: 'body', operation: 'amend', input: { validFrom: '2026-07-01', ref: AMENDMENT_KEY, body: { holder: 'Ada', premium: 'high', nope: 1 } } }] }
-            }
-        });
-        const messages = (await messagesWith([broken])).join('\n');
-        expect(messages).to.include(`the open mapping of ${RAISE}-misshaped`).and.to.include('reason').and.to.include(`the apply of ${RAISE}-misshaped`).and.to.include('premium').and.to.include('nope');
+    it('reports a mapping that does not fit the body it produces', async () => {
+        const misshaped = `${RAISE}-misshaped`;
+        const messages = (await messagesWith([amendmentType(misshaped, { '!reason': 'string' }), configuration({ [misshaped]: { mapping: { reason: 5 } } })])).join('\n');
+        expect(messages).to.include(`the mapping of ${misshaped}`).and.to.include('reason');
     });
 
-    it('reports a declaration whose apply changes a trait that its revert leaves, names no trait of the entity or no operation of it', async () => {
-        const broken = declaration('unpaired', {
-            [`${END}-unpaired`]: {
-                type: END,
-                effects: {
-                    apply: [
-                        { key: 'state', operation: 'transition', input: { transition: 'cancel' } },
-                        { key: 'ownership', operation: 'put', input: {} },
-                        { key: 'body', operation: 'nope', input: {} }
-                    ],
-                    revert: [{ key: 'body', operation: 'remove', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY } }]
-                }
-            }
+    it('reports a kind whose apply changes a trait that its revert leaves, names no trait of the entity or no operation of it, or no entity type', async () => {
+        const unpaired = `${END}-unpaired`;
+        const broken = configuration({
+            [unpaired]: {
+                apply: [
+                    { key: 'state', operation: 'transition', input: { transition: 'cancel' } },
+                    { key: 'ownership', operation: 'put', input: {} },
+                    { key: 'body', operation: 'nope', input: {} }
+                ],
+                revert: [{ key: 'body', operation: 'remove', input: { validFrom: VALID_FROM, ref: AMENDMENT_KEY } }]
+            },
+            'no-such-type': {}
         });
-        const messages = (await messagesWith([broken])).join('\n');
-        expect(messages).to.include("changes 'state' and its revert doesn't").and.to.include("has no trait 'ownership'").and.to.include('has no such operation');
+        const messages = (await messagesWith([amendmentType(unpaired, { '!reason': 'string' }), broken])).join('\n');
+        expect(messages).to.include("changes 'state' and its revert doesn't").and.to.include("has no trait 'ownership'").and.to.include('has no such operation').and.to.include("names 'no-such-type' as an amendment type, which is no entity type");
     });
 });

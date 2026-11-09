@@ -11,8 +11,6 @@ const CONTRACT_BODY = `contract-body-${run}`;
 const fill = (id, target, slot, value, order = {}) => ({ id: `${id}-${run}`, kind: 'slot-fill', data: { target, slot, value, ...order } });
 
 const NOTE = `note-${run}`;
-const TAG = `tag-${run}`;
-const TAGGED = `tagged-${run}`;
 const CONFIGURED = `configured-${run}`;
 const NOTED = `noted-${run}`;
 const SPECIALISED = `specialised-${run}`;
@@ -120,7 +118,6 @@ const elements = [
     { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {} }, [DOUBLE]: { configuration: {} } } } },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
-    prefixed(TAG),
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
     { id: MASKING, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
@@ -156,10 +153,6 @@ const elements = [
     { id: ECHO, kind: `${ECHO}-trait`, data: { configuration: { '!reason': 'string' } } },
     { id: HOOKED, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } }, [ECHO]: { configuration: { reason: 'reaction hook failed' } } } } },
     { id: BODYLESS, kind: 'keyed-entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
-    { id: TAG, kind: `${TAG}-trait`, data: { cardinality: 'many', configuration: { '!prefix': 'string' } } },
-    { id: TAGGED, kind: WRITING, data: { traits: { body: { configuration: { schema: {} } } } } },
-    fill('tagged-first', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'a: ' } }),
-    fill('tagged-second', TAGGED, 'traits', { trait: TAG, key: 'second', configuration: { prefix: 'b: ' } }),
     { id: NOTED, kind: 'kind', data: { extends: 'body-entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
     { id: CONFIGURED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
@@ -405,14 +398,6 @@ describe('entities', function () {
         });
     });
 
-    it('holds one trait under several keys', async () => {
-        const created = await invoke(TAGGED, 'create', { businessKey: 't-1', traits: { body: {}, first: 'x' } });
-        expect([created.data.first, created.data.second]).to.deep.equal(['a: x', 'b: new']);
-        const written = await invoke(TAGGED, 'writeTrait', { businessKey: 't-1', revision: 1, key: 'second', command: 'rewrite', value: 'changed' });
-        expect([written.data.first, written.data.second]).to.deep.equal(['a: x', 'changed']);
-        expect((await errorOf(invoke(TAGGED, 'writeTrait', { businessKey: 't-1', revision: 2, key: TAG, command: 'x', value: {} }))).code).to.equal('invalid');
-    });
-
     it('deletes only at a given revision', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-6', traits: { body: { amount: 1 } } });
         expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-6' }))).code).to.equal('invalid');
@@ -506,11 +491,9 @@ describe('entities', function () {
             fill('bad-configuration', `bad-${run}`, 'traits', { trait: NOTE, configuration: { prefix: 1 } }),
             fill('not-a-trait', ORDER, 'traits', { trait: 'postgresql', configuration: {} }),
             fill('repeated-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'again' } }),
-            fill('keyless-tag', `bad-${run}`, 'traits', { trait: TAG, configuration: { prefix: 'p' } }),
             fill('keyed-note', `bad-${run}`, 'traits', { trait: NOTE, key: 'memo', configuration: { prefix: 'p' } }),
-            fill('body-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'body', configuration: { prefix: 'p' } }),
-            fill('dotted-tag', `bad-${run}`, 'traits', { trait: TAG, key: 'first.one', configuration: { prefix: 'p' } }),
-            fill('repeated-tag', TAGGED, 'traits', { trait: TAG, key: 'first', configuration: { prefix: 'again' } }),
+            fill('body-note', `bad-${run}`, 'traits', { trait: NOTE, key: 'body', configuration: { prefix: 'p' } }),
+            fill('dotted-note', `bad-${run}`, 'traits', { trait: NOTE, key: 'first.one', configuration: { prefix: 'p' } }),
             { id: `undated-field-${run}`, kind: 'entity-type', data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { startDate: 'string:^x$' }, versioned: { validFrom: '/startDate' } } } } } },
             { id: `missing-field-${run}`, kind: 'entity-type', data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { startDate: 'string' }, versioned: { validFrom: '/begin' } } } } } }
         ];
@@ -525,11 +508,9 @@ describe('entities', function () {
             "trait 'body': configuration.schema.holder is both optional and required",
             "'postgresql' is not an entity trait",
             `trait '${NOTE}' is used twice on ${CONTRACT_CLASS}`,
-            `trait '${TAG}' needs a key`,
-            `trait '${NOTE}' has cardinality one and takes no key`,
-            `key 'body' is used by the traits body and ${TAG}`,
+            `trait '${NOTE}' is used under the key 'memo', and its key is '${NOTE}'`,
+            `key 'body' is used by the traits body and ${NOTE}`,
             "key 'first.one' is not lowercase letters and digits in segments joined by '-'",
-            `trait 'first' is used twice on ${TAGGED}`,
             `undated-field-${run}: the field '/startDate' of the versioned body is no date (a string that matches YYYY-MM-DD)`,
             `missing-field-${run}: the pointer '/begin' of the versioned body is no field of its schema`
         ]);

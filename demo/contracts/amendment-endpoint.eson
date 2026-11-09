@@ -18,7 +18,15 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "object" },
-            "mapping": { "$func/patched-body": { "body": { "$func/record-body": "#.source" }, "patch": { "$func/changes-patch": "#.generated.data.body.changes" } } }
+            "mapping": { "$func/patched-body": { "body": { "$func/record-body": "#.entity" }, "patch": { "$func/changes-patch": "#.amendment.data.body.changes" } } }
+        }
+    },
+    {
+        "id": "change-amendment-operations",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[@trait-operation-use]" },
+            "mapping": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.effectiveFrom", "ref": "#.amendment.businessKey", "body": { "$func/change-version": "#" } } }]
         }
     },
     {
@@ -27,18 +35,35 @@
         "data": {
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/amendments",
-            "target": { "element": "entity-generation-gateway", "operation": "generate" },
+            "target": { "element": "entity-amendment-gateway", "operation": "propose" },
             "body": { "!amendmentType": "string", "!effectiveFrom": "@date", "!reason": "string", "!changes": "object", "*": "never" },
             "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "propose" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
-                "generator": "amendments",
-                "declaration": "#.body.amendmentType",
-                "input": { "reason": "#.body.reason", "changes": "#.body.changes" },
-                "context": { "effectiveFrom": "#.body.effectiveFrom" }
+                "amendmentType": "#.body.amendmentType",
+                "effectiveFrom": "#.body.effectiveFrom",
+                "input": { "reason": "#.body.reason", "changes": "#.body.changes" }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "entity-amendment-action-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType/:businessKey/amendments/:amendment/:action",
+            "target": { "element": "entity-amendment-gateway", "operation": "settle" },
+            "body": { "*": "never" },
+            "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "#.input.action" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "businessKey": "#.params.businessKey",
+                "amendment": "#.params.amendment",
+                "action": "#.params.action"
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }
     }
 ]

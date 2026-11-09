@@ -5,8 +5,7 @@ The entity store and the traits and features built on it: states, validations, v
 | Package | Description |
 | --- | --- |
 | [entities](entities/README.md) | Entity types, traits, their slots and the entity store |
-| [entity-amendments](entity-amendments/README.md) | Amendments of an entity with a versioned body as entities of their own: propose, activate, annul, with a ledger of one open amendment; the special case of entity-generation |
-| [entity-generation](entity-generation/README.md) | Entities that generate entities: the traits `generator` and `generated`, the operation `generate`, effects on the source as writes of the generated entity |
+| [entity-amendments](entity-amendments/README.md) | Amendments of an entity with a versioned body as entities of their own: propose, apply, revert, discard, with a ledger of one open amendment, as one trait |
 | [entity-events](entity-events/README.md) | An event per entity write, through the outbox |
 | [entity-ownership](entity-ownership/README.md) | The `ownership` trait: access-relevant facts of an entity, derived from its data at every write by a rule |
 | [entity-relations](entity-relations/README.md) | The `relations` slot and relation maintenance |

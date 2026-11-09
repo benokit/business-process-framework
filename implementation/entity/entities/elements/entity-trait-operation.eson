@@ -15,11 +15,6 @@
         "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!change": "@viewed-entity-change" }
     },
     {
-        "id": "trait-process-input",
-        "kind": "schema",
-        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!businessKey": "string", "input": "@any", "!record": "@entity-record" }
-    },
-    {
         "id": "trait-operation-use",
         "kind": "schema",
         "data": { "!key": "string", "!operation": "string", "input": "@any" }
@@ -116,72 +111,6 @@
                 },
                 "invoke": "#.self.id",
                 "operation": "applyTraitOperations"
-            }
-        }
-    },
-    {
-        "id": "started-trait-process",
-        "kind": "execution-node-template",
-        "data": {
-            "keyword": "starts",
-            "within": "entity-type",
-            "node": { "!starts": { "!key": "string", "!operation": "string" } },
-            "implementation": {
-                "inputMap": {
-                    "businessKey": "#.input.businessKey",
-                    "trait": "#.node.starts.key",
-                    "process": "#.node.starts.operation",
-                    "entityOperation": "#.operation",
-                    "input": { "$omit": { "keys": ["businessKey"], "object": "#.input" } }
-                },
-                "invoke": "#.self.id",
-                "operation": "enter"
-            }
-        }
-    },
-    {
-        "id": "trait-write-bus",
-        "kind": "kind",
-        "data": {
-            "operations": {
-                "previewOperations": {
-                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!operations[]": "@trait-operation-use" },
-                    "output": "[@any]",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "operations": "#.input.operations" },
-                        "invoke": "#.input.entityType",
-                        "operation": "previewOperations"
-                    }
-                },
-                "write": {
-                    "input": { "!entityType": "@ref/trait-container", "!businessKey": "string", "!entityOperation": "string", "!operations[]": "@trait-operation-use" },
-                    "output": "@viewed-entity-record",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "entityOperation": "#.input.entityOperation", "operations": "#.input.operations" },
-                        "invoke": "#.input.entityType",
-                        "operation": "write"
-                    }
-                }
-            }
-        }
-    },
-    { "id": "trait-writes", "kind": "trait-write-bus", "data": {} },
-    {
-        "id": "write-by-trait",
-        "kind": "execution-node-template",
-        "data": {
-            "keyword": "writes",
-            "within": "entity-trait",
-            "node": { "!writes": { "!entityType": "@mapping", "!businessKey": "@mapping", "!entityOperation": "@mapping", "!operations": "@mapping" } },
-            "implementation": {
-                "inputMap": {
-                    "entityType": { "$func/apply-mapping": { "mapping": "#.node.writes.entityType", "input": "#" } },
-                    "businessKey": { "$func/apply-mapping": { "mapping": "#.node.writes.businessKey", "input": "#" } },
-                    "entityOperation": { "$func/apply-mapping": { "mapping": "#.node.writes.entityOperation", "input": "#" } },
-                    "operations": { "$func/apply-mapping": { "mapping": "#.node.writes.operations", "input": "#" } }
-                },
-                "invoke": "trait-writes",
-                "operation": "write"
             }
         }
     }

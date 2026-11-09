@@ -6,6 +6,7 @@
             "characteristics": { "lineOfBusiness": "marine", "maxSumInsured": 5000000 },
             "traits": {
                 "body": { "configuration": { "schema": { "$data#&": ["@contract-terms", { "!policyholder": "string", "!vessel": "string", "!currency": "string", "!region": "@region", "confidential": "boolean" }] } } },
+                "amendable": { "configuration": { "premium-adjustment": { "apply": { "$func/change-amendment-operations": "#" } } } },
                 "state": { "configuration": {
                     "states": { "status": { "suspended": true } },
                     "transitions": {
@@ -13,25 +14,6 @@
                         "cancel": { "status": { "suspended": "cancelled" } }
                     }
                 } }
-            }
-        }
-    },
-    {
-        "id": "marine-premium-adjustment",
-        "kind": "slot-fill",
-        "data": {
-            "target": "marine",
-            "slot": "traits",
-            "value": {
-                "key": "amendments",
-                "configuration": {
-                    "declarations": {
-                        "premium-adjustment": {
-                            "type": "premium-adjustment",
-                            "effects": { "apply": [{ "key": "body", "operation": "amend", "input": { "validFrom": "#.link.context.effectiveFrom", "ref": "#.generated.businessKey", "body": { "$func/change-version": "#" } } }] }
-                        }
-                    }
-                }
             }
         }
     }

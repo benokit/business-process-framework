@@ -3,7 +3,7 @@
         "id": "insurance-contract-type",
         "kind": "kind",
         "data": {
-            "extends": "versioned-entity-type",
+            "extends": "amendable-entity-type",
             "fixed": {
                 "traits": {
                     "state": {
@@ -50,7 +50,7 @@
                                     "status": "draft"
                                 }
                             },
-                            "operations": { "update": { "status": { "draft": true } }, "generate": { "status": { "active": true } }, "amendments/apply": { "status": { "active": true } } }
+                            "operations": { "update": { "status": { "draft": true } }, "propose": { "status": { "active": true } }, "apply": { "status": { "active": true } } }
                         }
                     },
                     "body": { "trait": "versioned-body", "configuration": { "versioned": { "validFrom": "/startDate" } } },

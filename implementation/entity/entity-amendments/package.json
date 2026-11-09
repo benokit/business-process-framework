@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./amendments": "./src/amendments.js"
   },
   "scripts": {
     "test": "mocha --exit"
@@ -11,8 +12,7 @@
   "dependencies": {
     "@business-framework/core": "*",
     "@business-framework/entities": "*",
-    "@business-framework/entity-states": "*",
-    "@business-framework/entity-generation": "*"
+    "@business-framework/entity-states": "*"
   },
   "devDependencies": {
     "@business-framework/database": "*",

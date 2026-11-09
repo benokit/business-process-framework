@@ -1,17 +1,13 @@
-import { findElement, getElement } from '@business-framework/core';
+import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
 import { changesOf } from '@business-framework/core/effects';
 import { memo } from '@business-framework/core/registry';
 import { validateValue } from '@business-framework/core/schemas';
 
-const cardinalityOf = trait => getElement(trait).data.cardinality ?? 'one';
-
 const keyOf = trait => getElement(trait).data.key ?? trait;
 
 const isTrait = trait => isInstanceOf({ element: trait, kind: 'entity-trait' });
-
-const isBundle = id => findElement(id) !== undefined && isInstanceOf({ element: id, kind: 'trait-bundle' });
 
 const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
 
@@ -41,14 +37,7 @@ const traitsOfKey = (key, contributions) => {
     return named.some(isAlternativeTo(key)) ? named.filter(trait => trait !== key) : named;
 };
 
-const bundlesOf = entityType => Object.keys(selfOf(getElement(entityType)).data.bundles ?? {});
-
-const bundleContributions = entityType => bundlesOf(entityType)
-    .filter(isBundle)
-    .flatMap(bundle => Object.entries(getElement(bundle).data.traits ?? {})
-        .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: bundle })));
-
-const resolve = entityType => Object.entries(Object.groupBy([...bundleContributions(entityType), ...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
+const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
     .map(([key, contributions]) => {
         const traits = traitsOfKey(key, contributions);
         return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
@@ -88,9 +77,7 @@ export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
 const configurationProblems = (trait, configuration) => validateValue({ schemaId: `${trait}/configuration`, value: configuration }).errors
     .map(error => `trait '${trait}': configuration${error.instancePath} ${error.message}`);
 
-const cardinalityProblems = ({ key, trait }) => cardinalityOf(trait) === 'many'
-    ? (key === trait ? [`trait '${trait}' needs a key`] : [])
-    : (key === keyOf(trait) ? [] : [`trait '${trait}' has cardinality one and takes no key`]);
+const keyProblems = ({ key, trait }) => key === keyOf(trait) ? [] : [`trait '${trait}' is used under the key '${key}', and its key is '${keyOf(trait)}'`];
 
 const optionalAndRequired = (value, path = []) => isObject(value)
     ? [
@@ -107,7 +94,7 @@ const useProblems = use => [
     ...use.conflicts,
     ...(isTrait(use.trait)
         ? [
-            ...cardinalityProblems(use),
+            ...keyProblems(use),
             ...configurationProblems(use.trait, use.configuration),
             ...optionalAndRequired(use.configuration).map(path => `trait '${use.key}': configuration.${path} is both optional and required`)
         ]
@@ -118,7 +105,7 @@ const isRepeated = (fill, index, fills) => fill.trait !== undefined && fills.fin
 
 const closedProblems = entityType => {
     const kind = selfOf(getElement(entityType)).kind;
-    const declared = [...Object.keys(resolveKind(kind).fixed.traits ?? {}), ...bundleContributions(entityType).map(({ key }) => key)];
+    const declared = Object.keys(resolveKind(kind).fixed.traits ?? {});
     const injectors = Object.groupBy(fillContributions(entityType), ({ key }) => key);
     return Object.keys(getElement(entityType).data.traits ?? {})
         .filter(key => !declared.includes(key) && key in injectors)
@@ -131,22 +118,17 @@ const guardHookProblems = entityType => Object.values(traitsOf(entityType))
 
 const FRAMEWORK_OPERATIONS = ['initialize', 'derive', 'guard', 'react'];
 
-const exposureProblems = (entityType, operation, { key, operation: traitOperation }, keyword) => {
+const exposureProblems = (entityType, operation, { key, operation: traitOperation }) => {
     const use = traitsOf(entityType)[key];
-    const where = `operation '${operation}' of ${entityType} ${keyword} '${traitOperation}' of '${key}'`;
+    const where = `operation '${operation}' of ${entityType} exposes '${traitOperation}' of '${key}'`;
     if (use === undefined) return [`${where}, but ${entityType} has no trait '${key}'`];
     if (FRAMEWORK_OPERATIONS.includes(traitOperation)) return [`${where}, which only the framework calls`];
     return traitOperation in resolveKind(getElement(use.trait).kind).operations ? [] : [`${where}, but trait '${use.trait}' has no such operation`];
 };
 
 const exposedOperationProblems = entityType => Object.entries(resolveKind(selfOf(getElement(entityType)).kind).operations)
-    .flatMap(([operation, { implementation }]) => ['exposes', 'starts']
-        .filter(keyword => implementation?.[keyword] !== undefined)
-        .flatMap(keyword => exposureProblems(entityType, operation, implementation[keyword], keyword)));
-
-const bundleProblems = entityType => bundlesOf(entityType)
-    .filter(bundle => !isBundle(bundle))
-    .map(bundle => `${entityType} names '${bundle}' as a bundle, which is no trait bundle`);
+    .filter(([, { implementation }]) => implementation?.exposes !== undefined)
+    .flatMap(([operation, { implementation }]) => exposureProblems(entityType, operation, implementation.exposes));
 
 const identityProblems = entityType => {
     const count = Object.values(traitsOf(entityType)).filter(isIdentity).length;
@@ -156,7 +138,6 @@ const identityProblems = entityType => {
 export const traitProblems = entityType => {
     const fills = fillContributions(entityType);
     return [
-        ...bundleProblems(entityType),
         ...identityProblems(entityType),
         ...guardHookProblems(entityType),
         ...exposedOperationProblems(entityType),

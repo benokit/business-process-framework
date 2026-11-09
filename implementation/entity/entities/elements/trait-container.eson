@@ -3,8 +3,7 @@
         "id": "trait-container",
         "kind": "kind",
         "data": {
-            "context": { "manages": { "trait": { "!entityType": "string", "!businessKey": "string", "!key": "string", "caller": "object" } } },
-            "shape": { "traits{}": "@entity-trait-entry", "bundles{}": "boolean" },
+            "shape": { "traits{}": "@entity-trait-entry" },
             "slots": {
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" }
             },
@@ -19,12 +18,9 @@
                             "forEach": [
                                 { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
                                 {
-                                    "withContext": { "trait": { "entityType": "#.self.id", "businessKey": { "$coalesce": ["#.change.before.businessKey", "#.change.after.businessKey"] }, "key": "#.item", "caller": "#._ctx.trait" } },
-                                    "do": {
-                                        "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
-                                        "invoke": "#.use.trait",
-                                        "operation": "guard"
-                                    }
+                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
+                                    "invoke": "#.use.trait",
+                                    "operation": "guard"
                                 }
                             ]
                         }
@@ -40,90 +36,12 @@
                             "forEach": [
                                 { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
                                 {
-                                    "withContext": { "trait": { "entityType": "#.self.id", "businessKey": { "$coalesce": ["#.change.before.businessKey", "#.change.after.businessKey"] }, "key": "#.item", "caller": "#._ctx.trait" } },
-                                    "do": {
-                                        "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
-                                        "invoke": "#.use.trait",
-                                        "operation": "react"
-                                    }
+                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
+                                    "invoke": "#.use.trait",
+                                    "operation": "react"
                                 }
                             ]
                         } 
-                    ]
-                },
-                "write": {
-                    "input": { "!businessKey": "string", "!entityOperation": "string", "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" } },
-                    "output": "@viewed-entity-record",
-                    "implementation": [
-                        {
-                            "if": { "$negate": "#._ctx.trait" },
-                            "then": { "throw": { "code": "forbidden", "message": "an entity is written by a trait" } }
-                        },
-                        { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                        {
-                            "if": { "$gt": [{ "$count": { "collection": "#.input.operations" } }, 0] },
-                            "then": {
-                                "inputMap": {
-                                    "businessKey": "#.input.businessKey",
-                                    "revision": "#.record.revision",
-                                    "entityOperation": "#.input.entityOperation",
-                                    "operations": "#.input.operations",
-                                    "origin": { "sender": { "entityType": "#._ctx.trait.entityType", "businessKey": "#._ctx.trait.businessKey", "key": "#._ctx.trait.key" }, "entityOperation": "#.input.entityOperation" }
-                                },
-                                "invoke": "#.self.id",
-                                "operation": "applyTraitOperations"
-                            },
-                            "else": { "set": "#.record" }
-                        }
-                    ]
-                },
-                "enter": {
-                    "private": true,
-                    "input": { "!businessKey": "string", "!trait": "string", "!process": "string", "!entityOperation": "string", "input": "@any" },
-                    "output": "@any",
-                    "implementation": {
-                        "inTransaction": [
-                            { "outputKey": "stored", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
-                            { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                            {
-                                "inputMap": { "change": { "operation": "trait", "entityOperation": "#.input.entityOperation", "commands": { "$literal": [] }, "before": "#.stored" } },
-                                "invoke": "#.self.id",
-                                "operation": "guardTraits"
-                            },
-                            { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.input.trait" } } },
-                            {
-                                "if": { "$not": { "$and": ["#.use", { "$func/has-operation": { "element": "#.use.trait", "operation": "#.input.process" } }] } },
-                                "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no trait ", "#.input.trait", " with the process ", "#.input.process"] } } }
-                            },
-                            {
-                                "withContext": { "trait": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "key": "#.input.trait", "caller": "#._ctx.trait" } },
-                                "do": {
-                                    "inputMap": {
-                                        "entityType": "#.self.id",
-                                        "key": "#.input.trait",
-                                        "configuration": "#.use.configuration",
-                                        "businessKey": "#.input.businessKey",
-                                        "input": "#.input.input",
-                                        "record": "#.record"
-                                    },
-                                    "invoke": "#.use.trait",
-                                    "operation": "#.input.process"
-                                }
-                            }
-                        ]
-                    }
-                },
-                "previewOperations": {
-                    "input": { "!businessKey": "string", "!operations[]": { "!key": "string", "!operation": "string", "input": "@any" } },
-                    "output": "[@any]",
-                    "implementation": [
-                        {
-                            "if": { "$negate": "#._ctx.trait" },
-                            "then": { "throw": { "code": "forbidden", "message": "the commands of operations are previewed by a trait" } }
-                        },
-                        { "outputKey": "stored", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
-                            { "outputKey": "record", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "load" },
-                        { "inputMap": { "data": "#.record.data", "operations": "#.input.operations" }, "invoke": "#.self.id", "operation": "traitCommands" }
                     ]
                 },
                 "initialTraitValues": {

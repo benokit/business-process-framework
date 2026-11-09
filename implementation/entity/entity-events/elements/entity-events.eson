@@ -10,7 +10,6 @@
             "!revision": "number",
             "key": "string",
             "command": "string",
-            "origin": "object",
             "by": "string"
         }
     },
@@ -55,7 +54,6 @@
                             "businessKey": "#.record.businessKey",
                             "revision": "#.record.revision",
                             "commands": { "$map": { "over": { "$coalesce": ["#.input.commands", []] }, "fn": { "key": "#.key", "command": "#.command" } } },
-                            "origin": "#.input.origin",
                             "by": "#._ctx.user.userId"
                         },
                         "subject": "#.record.entityType",

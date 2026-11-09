@@ -5,32 +5,16 @@ import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/
 const run = Date.now();
 const ORDER = `order-events-${run}`;
 const NOTE = `note-events-${run}`;
-const PINGED = `pinged-${run}`;
 const received = [];
 
 export const record = ({ input, _ctx }) => {
-    if ([ORDER, NOTE, PINGED].includes(input.entityType)) received.push({ ...input, group: _ctx.message.group, correlation: _ctx.trace.correlation });
+    if ([ORDER, NOTE].includes(input.entityType)) received.push({ ...input, group: _ctx.message.group, correlation: _ctx.trace.correlation });
     return null;
 };
 
 const elements = [
     { id: ORDER, kind: 'stateful-body-entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
     { id: NOTE, kind: 'body-entity-type', data: { traits: { body: { configuration: { schema: { '!text': 'string' } } } } } },
-    {
-        id: `${PINGED}-kind`,
-        kind: 'kind',
-        data: {
-            extends: 'valued-entity-trait',
-            operations: {
-                initialize: { implementation: { set: 0 } },
-                add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', 1] } } } },
-                ping: { input: '@trait-process-input', output: '@any', implementation: { writes: { entityType: '#.input.entityType', businessKey: '#.input.businessKey', entityOperation: { $str: ['#.input.key', '/add'] }, operations: [{ key: '#.input.key', operation: 'add', input: {} }] } } }
-            }
-        }
-    },
-    { id: `${PINGED}-entity-type`, kind: 'kind', data: { extends: 'body-entity-type', operations: { ping: { input: { '!businessKey': 'string' }, output: '@any', implementation: { starts: { key: `${PINGED}-trait`, operation: 'ping' } } } } } },
-    { id: PINGED, kind: `${PINGED}-entity-type`, data: { traits: { body: { configuration: { schema: {} } }, [`${PINGED}-trait`]: { configuration: {} } } } },
-    { id: `${PINGED}-trait`, kind: `${PINGED}-kind`, data: { configuration: {} } },
     { id: `${ORDER}-group`, kind: 'slot-fill', data: { target: ORDER, slot: 'eventGroup', value: 'all-orders' } },
     { id: `${ORDER}-lifecycle`, kind: 'slot-fill', data: { target: ORDER, slot: 'traits', value: { trait: 'state', configuration: { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } } } } },
     { id: `event-recorder-${run}`, kind: 'message-consumer', data: { channel: 'entity-events', broadcast: true, handler: { low: { module: import.meta.url, export: 'record', effects: ['irreversible'] } } } }
@@ -81,14 +65,5 @@ describe('entity-events', function () {
         await eventually(() => received.some(event => event.entityType === NOTE));
         const groupsOf = type => [...new Set(received.filter(event => event.entityType === type).map(event => event.group))];
         expect([groupsOf(ORDER), groupsOf(NOTE)]).to.deep.equal([['all-orders'], [`${NOTE}/n-1`]]);
-    });
-
-    it('names the sender of a change that a trait made to its entity from within', async () => {
-        await invoke(PINGED, 'create', { businessKey: 'p-1', traits: { body: {} } });
-        await invoke(PINGED, 'ping', { businessKey: 'p-1' });
-        await eventually(() => received.some(event => event.entityType === PINGED && event.origin));
-        const event = received.find(({ entityType, origin }) => entityType === PINGED && origin);
-        expect([event.eventType, event.origin]).to.deep.equal(['trait', { sender: { entityType: PINGED, businessKey: 'p-1', key: `${PINGED}-trait` }, entityOperation: `${PINGED}-trait/add` }]);
-        expect(received.filter(({ entityType, origin }) => entityType === PINGED && !origin).map(({ eventType }) => eventType)).to.deep.equal(['create']);
     });
 });
