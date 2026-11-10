@@ -12,7 +12,7 @@ Changes to an entity with a versioned body as entities of their own: an amendmen
   - **`apply({ amendment })`**: the items of `apply`, then `settle` pending → applied with the revision check: `conflict` if the entity moved on since the proposal, or the amendment isn't pending; all in one change, with the operation's name as its `entityOperation`. The amended version must not be before the last one (`conflict` otherwise).
   - **`revert({ amendment })`**: the items of `revert`, then `settle` applied → discarded. Only the latest version can go, so reverts run in the reverse order of applications (`conflict` otherwise).
   - **`discard({ amendment })`**: `settle` pending → discarded, for an amendment that never took effect.
-  - **`preview({ amendment, effect })`** returns the commands `apply` or `revert` would write, `[{ key, command, value }]`, and writes nothing.
+  - **`preview({ amendment, effect })`** returns `{ commands, entity }`, the commands `apply` or `revert` would write (`[{ key, command, value }]`) and the entity as it would look after them, and writes nothing.
 - **`entity-amendment-gateway`** takes the entity type as an argument (`propose`, and `settle` with `action` one of `apply`, `revert`, `discard`) and runs the operation of the trait `amendable`, for an HTTP route.
 - **`validate()`** checks each amendment type of a use: it is an entity type, its `mapping` yields a body that fits the amendment's schema and reads only fields the entity has, the items of `apply` and `revert` name a trait of the entity and an operation of it, read only `entity`, `amendment` and `effectiveFrom` and give an input that fits the operation, a trait operation isn't run twice in a list, and an `apply` doesn't change a trait its `revert` leaves.
 

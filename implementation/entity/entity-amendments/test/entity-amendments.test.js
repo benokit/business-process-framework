@@ -174,12 +174,13 @@ describe('entity-amendments', function () {
         expect(await read('a-8').then(({ data }) => [data.body.premium, data.body.startDate])).to.deep.equal([130, '2026-07-01']);
     });
 
-    it('previews the commands an amendment writes, writing nothing', async () => {
+    it('previews the commands an amendment writes and the entity they result in, writing nothing', async () => {
         await policy('a-9');
         const proposed = await propose('a-9', '2026-07-01', 110);
         const before = await read('a-9');
-        const commands = await amendable('a-9', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
+        const { commands, entity } = await amendable('a-9', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
         expect(commands.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['amendable', 'applied']]);
+        expect(entity.data.body).to.deep.equal({ holder: 'Ada', startDate: '2026-07-01', premium: 110 });
         expect(await read('a-9')).to.deep.equal(before);
         await apply('a-9', proposed);
         expect((await read('a-9')).data.body).to.deep.equal({ holder: 'Ada', startDate: '2026-07-01', premium: 110 });
@@ -189,7 +190,7 @@ describe('entity-amendments', function () {
         await policy('a-11');
         const before = await read('a-11');
         const proposed = await propose('a-11', '2026-07-01', undefined, END, { reason: 'lapsed' });
-        const preview = await amendable('a-11', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
+        const { commands: preview } = await amendable('a-11', 'preview', { amendment: proposed.businessKey, effect: 'apply' });
         expect(preview.map(({ key, command }) => [key, command])).to.deep.equal([['body', 'amend'], ['state', 'cancel'], ['amendable', 'applied']]);
         await apply('a-11', proposed);
         const cancelled = await read('a-11');

@@ -198,7 +198,15 @@
                             { "outputKey": "operations", "set": { "$coalesce": ["#.plan.operations", []] } },
                             {
                                 "if": { "$eq": ["#.plan.commit", false] },
-                                "then": { "inputMap": { "data": "#.stored.data", "operations": "#.operations" }, "invoke": "#.self.id", "operation": "traitCommands" },
+                                "then": [
+                                    { "outputKey": "commands", "inputMap": { "data": "#.stored.data", "operations": "#.operations" }, "invoke": "#.self.id", "operation": "traitCommands" },
+                                    {
+                                        "set": {
+                                            "commands": "#.commands",
+                                            "entity": { "$func/viewed-record": { "record": { "$merge": ["#.record", { "data": { "$func/data-with-commands": { "data": "#.stored.data", "commands": "#.commands" } } }] }, "entityType": "#.self.id" } }
+                                        }
+                                    }
+                                ],
                                 "else": [
                                     {
                                         "outputKey": "written",
