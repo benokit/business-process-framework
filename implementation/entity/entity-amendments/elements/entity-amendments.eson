@@ -224,15 +224,45 @@
                         "operation": "run"
                     }
                 },
-                "settle": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "revision": "number", "!amendment": "string", "!action=1": ["apply", "revert", "discard"] },
+                "apply": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "revision": "number", "!amendment": "string" },
                     "output": "@viewed-entity-record",
                     "implementation": {
                         "inputMap": {
                             "businessKey": "#.input.businessKey",
                             "revision": "#.input.revision",
                             "trait": "amendable",
-                            "operation": "#.input.action",
+                            "operation": "apply",
+                            "input": { "amendment": "#.input.amendment" }
+                        },
+                        "invoke": "#.input.entityType",
+                        "operation": "run"
+                    }
+                },
+                "revert": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "revision": "number", "!amendment": "string" },
+                    "output": "@viewed-entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "trait": "amendable",
+                            "operation": "revert",
+                            "input": { "amendment": "#.input.amendment" }
+                        },
+                        "invoke": "#.input.entityType",
+                        "operation": "run"
+                    }
+                },
+                "discard": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "revision": "number", "!amendment": "string" },
+                    "output": "@viewed-entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "trait": "amendable",
+                            "operation": "discard",
                             "input": { "amendment": "#.input.amendment" }
                         },
                         "invoke": "#.input.entityType",

@@ -43,7 +43,7 @@
                 "businessKey": "#.params.businessKey",
                 "amendmentType": "#.body.amendmentType",
                 "effectiveFrom": "#.body.effectiveFrom",
-                "input": { "reason": "#.body.reason", "changes": "#.body.changes" }
+                "input": { "target": { "entityType": "#.params.entityType", "businessKey": "#.params.businessKey" }, "reason": "#.body.reason", "changes": "#.body.changes" }
             },
             "response": { "status": 201, "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }
@@ -53,15 +53,14 @@
         "kind": "http-endpoint",
         "data": {
             "method": "POST",
-            "path": "/entities/:entityType/:businessKey/amendments/:amendment/:action",
-            "target": { "element": "entity-amendment-gateway", "operation": "settle" },
+            "path": "/entities/:entityType/:businessKey/amendments/:amendment/discard",
+            "target": { "element": "entity-amendment-gateway", "operation": "discard" },
             "body": { "*": "never" },
-            "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "#.input.action" },
+            "operation": { "area": "amendments", "resource": "#.input.entityType", "action": "discard" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
-                "amendment": "#.params.amendment",
-                "action": "#.params.action"
+                "amendment": "#.params.amendment"
             },
             "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
         }

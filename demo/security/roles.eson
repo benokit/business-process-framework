@@ -9,15 +9,15 @@
                 { "area": "states", "resource": "insurance-contract-type", "action": ["discard", "issue"] },
                 { "area": "entities", "resource": "party", "action": ["query", "create", "update"] },
                 { "area": "entities", "resource": "underwriting-amendment-type", "action": ["query", "update"] },
-                { "area": "states", "resource": "underwriting-amendment-type", "action": "issue" },
-                { "area": "amendments", "resource": "insurance-contract-type", "action": ["propose", "discard", "revert"] }
+                { "area": "states", "resource": "underwriting-amendment-type", "action": ["issue", "annul"] },
+                { "area": "amendments", "resource": "insurance-contract-type", "action": ["propose", "discard"] }
             ]
         }
     },
     {
         "id": "amendment-approver-actor",
         "kind": "actor",
-        "data": { "grants": [{ "area": "amendments", "resource": "insurance-contract-type", "action": "apply" }] }
+        "data": { "grants": [{ "area": "states", "resource": "underwriting-amendment-type", "action": "activate" }] }
     },
     {
         "id": "underwriter-role",

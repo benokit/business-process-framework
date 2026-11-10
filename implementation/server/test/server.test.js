@@ -110,6 +110,12 @@ describe('server with the demo', function () {
 
     const issued = async (amendment, token) => (await move(amendment, 'issue', token)).body;
 
+    const activated = async (amendment, token) => {
+        const moved = await move(amendment, 'activate', token);
+        expect(moved.status).to.equal(200);
+        return moved.body;
+    };
+
     const settle = (contract, amendment, action, token) => call('POST', `/entities/${contract.entityType}/${contract.businessKey}/amendments/${amendment.businessKey}/${action}`, null, token);
 
     const read = async (record, token) => (await call('GET', `/entities/${record.entityType}/${record.businessKey}`, null, token)).body;
@@ -169,19 +175,20 @@ describe('server with the demo', function () {
         expect((await propose(contract, 'extension', '2027-01-01', { endDate: '2028-01-01' }, underwriter)).status).to.equal(409);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: first.businessKey });
 
-        expect((await settle(contract, first, 'apply', underwriter)).status).to.equal(403);
-        expect((await settle(contract, await issued(first, underwriter), 'apply', administrator)).status).to.equal(200);
+        const firstIssued = await issued(first, underwriter);
+        expect((await move(firstIssued, 'activate', underwriter)).status).to.equal(403);
+        const firstActive = await activated(firstIssued, administrator);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: null });
         const second = (await propose(contract, 'extension', '2027-01-01', { endDate: '2028-01-01' }, underwriter)).body;
         expect(second.businessKey).to.equal(`${contract.businessKey}-002`);
-        expect((await settle(contract, await issued(second, underwriter), 'apply', administrator)).status).to.equal(200);
+        const secondActive = await activated(await issued(second, underwriter), administrator);
         expect(await periodsOf(contract, administrator)).to.deep.equal(['2026-01-01', '2026-07-01', '2027-01-01']);
         const amended = await read(contract, administrator);
         expect(amended.data.body).to.deep.equal({ ...contract.data.body, ...terms(1200, '2028-01-01'), startDate: '2027-01-01' });
 
-        expect((await settle(contract, first, 'revert', underwriter)).status).to.equal(409);
-        expect((await settle(contract, second, 'revert', underwriter)).status).to.equal(200);
-        expect((await settle(contract, first, 'revert', underwriter)).status).to.equal(200);
+        expect((await move(firstActive, 'annul', underwriter)).status).to.equal(409);
+        expect((await move(secondActive, 'annul', underwriter)).status).to.equal(200);
+        expect((await move(firstActive, 'annul', underwriter)).status).to.equal(200);
         expect(await periodsOf(contract, administrator)).to.deep.equal(['2026-01-01']);
         expect(await amendmentStatuses(contract, administrator)).to.deep.equal([[first.businessKey, 'discarded'], [second.businessKey, 'discarded']]);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 2, open: null });
@@ -232,27 +239,28 @@ describe('server with the demo', function () {
         expect((await propose(marine, 'premium-adjustment', '2026-07-01', { premium: 1100 }, underwriter)).status).to.equal(201);
 
         const contract = await activeContract(underwriter, administrator);
-        const direct = { businessKey: `direct-${run}`, body: { reason: 'x', changes: { premium: 1 } } };
+        const direct = { businessKey: `direct-${run}`, body: { target: { entityType: contract.entityType, businessKey: contract.businessKey }, reason: 'x', changes: { premium: 1 } } };
         expect((await propose(contract, 'premium-adjustment', '2026-07-01', { premium: 1 }, viewer)).status).to.equal(403);
         const created = await call('POST', '/entities/premium-adjustment', direct, administrator);
         expect(created.status).to.equal(201);
-        expect((await settle(contract, created.body, 'apply', administrator)).status).to.equal(409);
+        expect((await move(await issued(created.body, underwriter), 'activate', administrator)).status).to.equal(409);
     });
 
     it('refuses to apply an amendment that starts before the current terms or ends them before they start, and discards one that never took effect', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`amender-2-${run}`, ['underwriter-role']), userWith(`approver-2-${run}`, ['administrator-role'])]);
         const contract = await activeContract(underwriter, administrator);
         const early = (await propose(contract, 'premium-adjustment', '2025-12-31', { premium: 1 }, underwriter)).body;
-        expect((await settle(contract, await issued(early, underwriter), 'apply', administrator)).status).to.equal(409);
+        const earlyIssued = await issued(early, underwriter);
+        expect((await move(earlyIssued, 'activate', administrator)).status).to.equal(409);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: early.businessKey });
 
         expect((await settle(contract, early, 'discard', underwriter)).status).to.equal(200);
-        expect((await settle(contract, early, 'apply', administrator)).status).to.equal(409);
+        expect((await move(earlyIssued, 'activate', administrator)).status).to.equal(409);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: null });
 
         const backwards = (await propose(contract, 'extension', '2026-07-01', { endDate: '2026-03-01' }, underwriter)).body;
         expect(backwards.businessKey).to.equal(`${contract.businessKey}-002`);
-        expect((await settle(contract, await issued(backwards, underwriter), 'apply', administrator)).status).to.equal(400);
+        expect((await move(await issued(backwards, underwriter), 'activate', administrator)).status).to.equal(400);
         expect(await periodsOf(contract, administrator)).to.deep.equal(['2026-01-01']);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 2, open: backwards.businessKey });
     });
@@ -291,12 +299,12 @@ describe('server with the demo', function () {
         const proposed = (await propose(contract, 'cancellation', '2026-07-01', { endDate: '2026-12-31' }, underwriter)).body;
         const before = await read(contract, administrator);
 
-        expect((await settle(contract, await issued(proposed, underwriter), 'apply', administrator)).status).to.equal(200);
+        const active = await activated(await issued(proposed, underwriter), administrator);
         const cancelled = await read(contract, administrator);
         expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-12-31', before.revision + 1]);
         expect((await propose(contract, 'premium-adjustment', '2026-09-01', { premium: 1 }, underwriter)).status).to.equal(409);
 
-        expect((await settle(contract, proposed, 'revert', underwriter)).status).to.equal(200);
+        expect((await move(active, 'annul', underwriter)).status).to.equal(200);
         const restored = await read(contract, administrator);
         expect([restored.data.state.status, restored.data.body.endDate]).to.deep.equal(['active', contract.data.body.endDate]);
     });

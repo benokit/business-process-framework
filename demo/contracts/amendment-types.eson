@@ -5,8 +5,12 @@
         "data": {
             "extends": "entity-type",
             "fixed": { "traits": { "state": { "configuration": {
-                "states": { "status": { "draft": true, "issued": true } },
-                "transitions": { "issue": { "status": { "draft": "issued" } } },
+                "states": { "status": { "draft": true, "issued": true, "active": true, "annulled": true } },
+                "transitions": {
+                    "issue": { "status": { "draft": "issued" } },
+                    "activate": { "status": { "issued": "active" } },
+                    "annul": { "status": { "active": "annulled" } }
+                },
                 "initialStates": { "default": { "status": "draft" } },
                 "operations": { "update": { "status": { "draft": true } } }
             } } } }
@@ -15,16 +19,50 @@
     {
         "id": "premium-adjustment",
         "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!premium": "number" } } } } } }
+        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!premium": "number" } } } } } }
     },
     {
         "id": "cancellation",
         "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
+        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
     },
     {
         "id": "extension",
         "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
+        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
+    },
+    {
+        "id": "amendment-target",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string", "*": "never" }
+    },
+    {
+        "id": "amendment-application-reaction",
+        "kind": "slot-fill",
+        "data": {
+            "target": "underwriting-amendment-type",
+            "slot": "reactions",
+            "value": {
+                "if": { "$eq": ["#.input.operation", "trait"] },
+                "then": [
+                    {
+                        "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "status", "from": "issued", "to": "active" } },
+                        "then": {
+                            "inputMap": { "entityType": "#.input.after.data.body.target.entityType", "businessKey": "#.input.after.data.body.target.businessKey", "amendment": "#.input.after.businessKey" },
+                            "invoke": "entity-amendment-gateway",
+                            "operation": "apply"
+                        }
+                    },
+                    {
+                        "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "status", "from": "active", "to": "annulled" } },
+                        "then": {
+                            "inputMap": { "entityType": "#.input.after.data.body.target.entityType", "businessKey": "#.input.after.data.body.target.businessKey", "amendment": "#.input.after.businessKey" },
+                            "invoke": "entity-amendment-gateway",
+                            "operation": "revert"
+                        }
+                    }
+                ]
+            }
+        }
     }
 ]
