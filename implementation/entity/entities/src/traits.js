@@ -1,7 +1,7 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
-import { changesOf } from '@business-framework/core/effects';
+import { methodChangesOf } from '@business-framework/core/effects';
 import { memo } from '@business-framework/core/registry';
 import { validateValue } from '@business-framework/core/schemas';
 
@@ -66,10 +66,6 @@ const isIdentity = ({ trait }) => isTrait(trait) && getElement(trait).data.ident
 
 export const identityKeyOf = entityType => Object.entries(traitsOf(entityType)).find(([, use]) => isIdentity(use))?.[0] ?? null;
 
-export const hookedKeysOf = ({ entityType, operation }) => Object.entries(traitsOf(entityType))
-    .filter(([, { trait }]) => hasOperation({ element: trait, operation }))
-    .map(([key]) => key);
-
 export const valuedKeysOf = entityType => Object.entries(traitsOf(entityType))
     .filter(([, { trait }]) => hasOperation({ element: trait, operation: 'initialize' }))
     .map(([key]) => key);
@@ -113,8 +109,8 @@ const closedProblems = entityType => {
 };
 
 const guardHookProblems = entityType => Object.values(traitsOf(entityType))
-    .filter(({ trait }) => isTrait(trait) && hasOperation({ element: trait, operation: 'guard' }))
-    .flatMap(({ trait }) => changesOf({ element: trait, operation: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
+    .filter(({ trait }) => isTrait(trait) && getElement(trait).data.guard !== undefined)
+    .flatMap(({ trait }) => methodChangesOf({ element: trait, property: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
 
 const publicOperationsOfTrait = trait => Object.entries(resolveKind(getElement(trait).kind).operations)
     .filter(([, operation]) => operation.public === true);

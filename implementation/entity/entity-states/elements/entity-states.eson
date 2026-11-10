@@ -93,23 +93,6 @@
         "data": {
             "extends": "valued-entity-trait",
             "operations": {
-                "guard": {
-                    "input": "@trait-hook-input",
-                    "implementation": {
-                        "if": {
-                            "$and": [
-                                { "$or": [{ "$eq": ["#.input.change.operation", "trait"] }, { "$eq": ["#.input.change.operation", "delete"] }] },
-                                { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "#.input.change.entityOperation", "state": { "$get": { "object": "#.input.change.before.data", "path": "#.input.key" } } } }
-                            ]
-                        },
-                        "then": {
-                            "throw": {
-                                "code": "conflict",
-                                "message": { "$str": ["#.input.entityType", " doesn't allow ", "#.input.change.entityOperation", " in its current state"] }
-                            }
-                        }
-                    }
-                },
                 "initialize": {
                     "implementation": [
                         { "outputKey": "state", "set": { "$func/initial-state": { "model": "#.input.configuration", "name": "#.input.input" } } },
@@ -151,7 +134,23 @@
     {
         "id": "state",
         "kind": "states-trait",
-        "data": { "configuration": "@entity-states-model" }
+        "data": {
+            "configuration": "@entity-states-model",
+            "guard": {
+                "if": {
+                    "$and": [
+                        { "$or": [{ "$eq": ["#.input.change.operation", "trait"] }, { "$eq": ["#.input.change.operation", "delete"] }] },
+                        { "$func/state-forbids-operation": { "entityType": "#.input.entityType", "entityOperation": "#.input.change.entityOperation", "state": { "$get": { "object": "#.input.change.before.data", "path": "#.input.key" } } } }
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "conflict",
+                        "message": { "$str": ["#.input.entityType", " doesn't allow ", "#.input.change.entityOperation", " in its current state"] }
+                    }
+                }
+            }
+        }
     },
     {
         "id": "state-transition-input",

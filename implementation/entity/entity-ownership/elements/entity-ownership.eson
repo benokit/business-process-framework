@@ -85,23 +85,6 @@
                         },
                         { "set": {} }
                     ]
-                },
-                "derive": {
-                    "input": "@trait-derive-input",
-                    "output": "@trait-derivation",
-                    "implementation": [
-                        { "outputKey": "ownership", "set": { "$func/derived-ownership": { "rule": "#.input.configuration.rule", "record": "#.input.record" } } },
-                        {
-                            "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/ownership/dimensions"] }, "value": "#.ownership" },
-                            "invoke": "ajv",
-                            "operation": "assert"
-                        },
-                        {
-                            "if": { "$eq": ["#.ownership", { "$get": { "object": "#.input.record.data", "path": "#.input.key" } }] },
-                            "then": { "set": null },
-                            "else": { "set": { "command": "derive", "value": "#.ownership" } }
-                        }
-                    ]
                 }
             }
         }
@@ -109,7 +92,22 @@
     {
         "id": "ownership",
         "kind": "ownership-trait",
-        "data": { "configuration": { "!dimensions": "@schema", "!rule": "@mapping" } }
+        "data": {
+            "configuration": { "!dimensions": "@schema", "!rule": "@mapping" },
+            "derive": [
+                { "outputKey": "ownership", "set": { "$func/derived-ownership": { "rule": "#.input.configuration.rule", "record": "#.input.record" } } },
+                {
+                    "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/ownership/dimensions"] }, "value": "#.ownership" },
+                    "invoke": "ajv",
+                    "operation": "assert"
+                },
+                {
+                    "if": { "$eq": ["#.ownership", { "$get": { "object": "#.input.record.data", "path": "#.input.key" } }] },
+                    "then": { "set": null },
+                    "else": { "set": { "command": "derive", "value": "#.ownership" } }
+                }
+            ]
+        }
     },
     {
         "id": "ownership-scope",

@@ -203,6 +203,56 @@
             }
         }
     },
+    {
+        "id": "amending-move",
+        "kind": "schema",
+        "data": { "!dimension": "string", "!from": "string", "!to": "string", "*": "never" }
+    },
+    {
+        "id": "amending-configuration",
+        "kind": "schema",
+        "data": { "!target": "@mapping", "apply": "@amending-move", "revert": "@amending-move", "*": "never" }
+    },
+    {
+        "id": "amending-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait"
+        }
+    },
+    {
+        "id": "amending",
+        "kind": "amending-trait",
+        "data": {
+            "configuration": "@amending-configuration",
+            "react": {
+                "if": { "$eq": ["#.input.change.operation", "trait"] },
+                "then": {
+                    "inputMap": ["apply", "revert"],
+                    "forEach": [
+                        { "outputKey": "move", "set": { "$get": { "object": "#.input.configuration", "path": "#.item" } } },
+                        {
+                            "outputKey": "moved",
+                            "if": { "$isNil": "#.move" },
+                            "then": { "set": false },
+                            "else": { "set": { "$func/state-moved": { "before": "#.input.change.before", "after": "#.input.change.after", "dimension": "#.move.dimension", "from": "#.move.from", "to": "#.move.to" } } }
+                        },
+                        {
+                            "if": "#.moved",
+                            "then": [
+                                { "outputKey": "target", "set": { "$func/apply-mapping": { "mapping": "#.input.configuration.target", "input": "#.input.change.after" } } },
+                                {
+                                    "inputMap": { "entityType": "#.target.entityType", "businessKey": "#.target.businessKey", "amendment": "#.input.change.after.businessKey" },
+                                    "invoke": "entity-amendment-gateway",
+                                    "operation": "#.item"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    },
     { "id": "amendable", "kind": "amendable-trait", "data": { "configuration": "@amendable-configuration" } },
     {
         "id": "amendment-gateway-kind",

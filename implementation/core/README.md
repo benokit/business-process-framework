@@ -65,6 +65,7 @@ Besides the bootstrap kinds:
 | `$func/slot-values`, `apply-mapping`, `schema-validate`, `is-instance-of` | pure functions over slots, mappings, schemas and kinds |
 | `$func/settings` | `id` → the effective [settings](#settings) of an element |
 | `$func/has-operation` | `{ element, operation }`; true for an unknown element, which the reference check reports |
+| `$func/instance-methods` | `{ kind, property }` → `[{ id, method }]`, the method held in `property` of the data of each identified instance of a kind that has one; a driver runs them with `execute`, and the inference counts the effects of the methods an operation lists this way |
 | `$func/changes-of` | `{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"` ([Effects](#effects)) |
 | `$func/instances-of` | the `{ id, kind, data }` of every identified instance of a kind |
 | `$func/kind-chain` | the kinds above an element, nearest first (an instance's chain, a kind's ancestors); `[]` for an unknown id |

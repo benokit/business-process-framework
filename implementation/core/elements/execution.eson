@@ -80,6 +80,15 @@
         }
     },
     {
+        "id": "instance-methods",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!kind": "string", "!property": "string" }, "output": "[object]" },
+            "module": "@business-framework/core/kinds",
+            "export": "instanceMethods"
+        }
+    },
+    {
         "id": "instances-of",
         "kind": "pure-function",
         "data": {

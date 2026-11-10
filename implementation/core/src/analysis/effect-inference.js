@@ -1,6 +1,6 @@
 import { get, isPlainObject } from 'lodash-es';
 import { allElements, findElement } from '../registry.js';
-import { instancesOf, resolveKind, selfOf } from '../kinds.js';
+import { instancesOf, resolveKind, selfOf, selvesOf } from '../kinds.js';
 import { fillsOf } from '../slots.js';
 import { isKindReference, resolveReference } from '../references.js';
 import { formOf, pipelinesOf, templatePositions } from './code.js';
@@ -74,6 +74,15 @@ const slotCalls = tree => {
     ];
 };
 
+const methodCalls = tree => {
+    if (Array.isArray(tree)) return tree.flatMap(methodCalls);
+    if (!isPlainObject(tree) || '$literal' in tree) return [];
+    return [
+        ...isPlainObject(tree['$func/instance-methods']) ? [tree['$func/instance-methods']] : [],
+        ...Object.values(tree).flatMap(methodCalls)
+    ];
+};
+
 const methodsOf = (value, type) => {
     if (type === '@method') return [{ code: value, path: 'value' }];
     return Object.entries(isPlainObject(type) ? type : {})
@@ -118,6 +127,10 @@ const analysis = previous => {
         return union(fillsOf(self, slot).fills.map(fill => fillEffects(self, fill)));
     };
 
+    const methodValueEffects = ({ kind, property }) => typeof kind !== 'string' || typeof property !== 'string' ? new Map()
+        : union(selvesOf(kind).filter(({ data }) => data[property] !== undefined)
+            .map(self => traced(pipelineEffects(self.data[property], { self, author: self.id }, `data.${property}`), `${self.id}.${property}`)));
+
     const invokeEffects = (node, ctx) => {
         const targets = targetsOf(node.invoke, ctx) ?? typedTargets(node);
         if (targets === undefined) return effectsFrom(UNKNOWN, `invoke ${JSON.stringify(node.invoke)}`);
@@ -160,6 +173,7 @@ const analysis = previous => {
         const { keyword, template } = formOf(node);
         return union([
             ...slotCalls(ownExpressions(node, keyword, template)).map(call => slotEffects(call, ctx)),
+            ...methodCalls(ownExpressions(node, keyword, template)).map(methodValueEffects),
             keyword === undefined ? new Map() : keywordEffects(node, keyword, template, ctx, path)
         ]);
     };
@@ -168,7 +182,7 @@ const analysis = previous => {
         ? union(pipeline.map((node, index) => nodeEffects(node, ctx, `${path}[${index}]`)))
         : nodeEffects(pipeline, ctx, path);
 
-    return { operations, operationEffects, fillEffects, problems };
+    return { operations, operationEffects, fillEffects, pipelineEffects, problems };
 };
 
 const grown = (operations, previous) => [...operations].some(([key, effects]) => [...effects.keys()].some(effect => !previous.get(key)?.has(effect)));
@@ -202,6 +216,22 @@ const effectMapOf = ({ element, operation }) => {
 export const effectsOf = request => classesOf(effectMapOf(request));
 
 export const effectTracesOf = request => Object.fromEntries(tracesByClass(effectMapOf(request)));
+
+const changesFrom = effects => [...effects]
+    .filter(([effect]) => ['write', 'irreversible'].includes(effect))
+    .map(([effect, trace]) => `${effect}: ${trace}`);
+
+export const methodChangesOf = ({ element, property }) => {
+    const self = selfOf(findElement(element));
+    const effects = new Map();
+    if (self.data[property] !== undefined) {
+        converged(({ pipelineEffects }) => {
+            effects.clear();
+            pipelineEffects(self.data[property], { self, author: element }, `data.${property}`).forEach((trace, effect) => effects.set(effect, trace));
+        });
+    }
+    return changesFrom(effects);
+};
 
 export const changesOf = request => findElement(request.element)
     ? Object.entries(effectTracesOf(request)).filter(([effect]) => ['write', 'irreversible'].includes(effect)).map(([effect, trace]) => `${effect}: ${trace}`)

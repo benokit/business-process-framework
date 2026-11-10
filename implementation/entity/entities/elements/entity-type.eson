@@ -97,16 +97,18 @@
                                     "operation": "#.store.operation"
                                 },
                                 {
-                                    "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
-                                    "forEach": {
-                                        "inputMap": {
-                                            "$func/viewed-change": {
-                                                "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] },
-                                                "entityType": "#.self.id"
-                                            }
-                                        },
-                                        "execute": "#.item"
+                                    "outputKey": "written",
+                                    "set": {
+                                        "$func/viewed-change": {
+                                            "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] },
+                                            "entityType": "#.self.id"
+                                        }
                                     }
+                                },
+                                { "inputMap": { "change": "#.written" }, "invoke": "#.self.id", "operation": "reactTraits" },
+                                {
+                                    "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "reactions" } },
+                                    "forEach": { "inputMap": "#.written", "execute": "#.item" }
                                 },
                                 { "return": { "$func/viewed-record": { "record": "#.record", "entityType": "#.self.id" } } }
                             ]

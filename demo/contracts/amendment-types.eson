@@ -4,7 +4,11 @@
         "kind": "kind",
         "data": {
             "extends": "entity-type",
-            "fixed": { "traits": { "state": { "configuration": {
+            "fixed": { "traits": { "amending": { "configuration": {
+                "target": { "entityType": "#.data.body.target.entityType", "businessKey": "#.data.body.target.businessKey" },
+                "apply": { "dimension": "status", "from": "issued", "to": "active" },
+                "revert": { "dimension": "status", "from": "active", "to": "annulled" }
+            } }, "state": { "configuration": {
                 "states": { "status": { "draft": true, "issued": true, "active": true, "annulled": true } },
                 "transitions": {
                     "issue": { "status": { "draft": "issued" } },
@@ -35,34 +39,5 @@
         "id": "amendment-target",
         "kind": "schema",
         "data": { "!entityType": "@ref/entity-type", "!businessKey": "string", "*": "never" }
-    },
-    {
-        "id": "amendment-application-reaction",
-        "kind": "slot-fill",
-        "data": {
-            "target": "underwriting-amendment-type",
-            "slot": "reactions",
-            "value": {
-                "if": { "$eq": ["#.input.operation", "trait"] },
-                "then": [
-                    {
-                        "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "status", "from": "issued", "to": "active" } },
-                        "then": {
-                            "inputMap": { "entityType": "#.input.after.data.body.target.entityType", "businessKey": "#.input.after.data.body.target.businessKey", "amendment": "#.input.after.businessKey" },
-                            "invoke": "entity-amendment-gateway",
-                            "operation": "apply"
-                        }
-                    },
-                    {
-                        "if": { "$func/state-moved": { "before": "#.input.before", "after": "#.input.after", "dimension": "status", "from": "active", "to": "annulled" } },
-                        "then": {
-                            "inputMap": { "entityType": "#.input.after.data.body.target.entityType", "businessKey": "#.input.after.data.body.target.businessKey", "amendment": "#.input.after.businessKey" },
-                            "invoke": "entity-amendment-gateway",
-                            "operation": "revert"
-                        }
-                    }
-                ]
-            }
-        }
     }
 ]

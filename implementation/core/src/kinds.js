@@ -76,6 +76,10 @@ export const instancesOf = memo(kindId => allElements().filter(element => extend
 
 export const selvesOf = kind => instancesOf(kind).filter(element => element.id !== undefined).map(selfOf);
 
+export const instanceMethods = ({ kind, property }) => selvesOf(kind)
+    .filter(({ data }) => data[property] !== undefined)
+    .map(({ id, data }) => ({ id, method: data[property] }));
+
 export const isInstanceOf = ({ element, kind }) => {
     const found = findElement(element);
     return found !== undefined && extendsKind(kindOf(found), kind);

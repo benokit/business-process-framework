@@ -14,13 +14,44 @@
                     "implementation": [
                         { "outputKey": "change", "set": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } } },
                         {
-                            "inputMap": { "$func/entity-hooked-keys": { "entityType": "#.self.id", "operation": "guard" } },
+                            "outputKey": "hooks",
+                            "set": { "$func/instance-methods": { "kind": "entity-trait", "property": "guard" } }
+                        },
+                        {
+                            "inputMap": { "$keys": { "$func/entity-traits": "#.self.id" } },
                             "forEach": [
                                 { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
+                                { "outputKey": "hook", "set": { "$find": { "collection": "#.hooks", "predicate": { "$eq": ["@candidate.id", "#.use.trait"] }, "as": "candidate" } } },
                                 {
-                                    "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
-                                    "invoke": "#.use.trait",
-                                    "operation": "guard"
+                                    "if": "#.hook",
+                                    "then": {
+                                        "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.change" },
+                                        "execute": "#.hook.method"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "reactTraits": {
+                    "private": true,
+                    "input": { "!change": "@viewed-entity-change" },
+                    "implementation": [
+                        {
+                            "outputKey": "hooks",
+                            "set": { "$func/instance-methods": { "kind": "entity-trait", "property": "react" } }
+                        },
+                        {
+                            "inputMap": { "$keys": { "$func/entity-traits": "#.self.id" } },
+                            "forEach": [
+                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
+                                { "outputKey": "hook", "set": { "$find": { "collection": "#.hooks", "predicate": { "$eq": ["@candidate.id", "#.use.trait"] }, "as": "candidate" } } },
+                                {
+                                    "if": "#.hook",
+                                    "then": {
+                                        "inputMap": { "entityType": "#.self.id", "key": "#.item", "configuration": "#.use.configuration", "change": "#.input.change" },
+                                        "execute": "#.hook.method"
+                                    }
                                 }
                             ]
                         }
@@ -78,9 +109,11 @@
                             { "outputKey": "key", "set": { "$head": "#.input.keys" } },
                             { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
                             { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.key" } } },
+                            { "outputKey": "hooks", "set": { "$func/instance-methods": { "kind": "entity-trait", "property": "derive" } } },
+                            { "outputKey": "hook", "set": { "$find": { "collection": "#.hooks", "predicate": { "$eq": ["@candidate.id", "#.use.trait"] }, "as": "candidate" } } },
                             {
                                 "outputKey": "derivation",
-                                "if": { "$func/has-operation": { "element": "#.use.trait", "operation": "derive" } },
+                                "if": "#.hook",
                                 "then": {
                                     "inputMap": {
                                         "entityType": "#.self.id",
@@ -88,8 +121,7 @@
                                         "configuration": "#.use.configuration",
                                         "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" }
                                     },
-                                    "invoke": "#.use.trait",
-                                    "operation": "derive"
+                                    "execute": "#.hook.method"
                                 }
                             },
                             { "outputKey": "ownCommand", "set": { "$if": ["#.derivation", [{ "key": "#.key", "command": "#.derivation.command", "value": "#.derivation.value" }], []] } },

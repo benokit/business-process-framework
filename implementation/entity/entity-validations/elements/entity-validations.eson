@@ -47,40 +47,6 @@
                         },
                         { "set": {} }
                     ]
-                },
-                "derive": {
-                    "input": "@trait-derive-input",
-                    "output": "@trait-derivation",
-                    "implementation": [
-                        {
-                            "outputKey": "errors",
-                            "set": {
-                                "$merge": {
-                                    "$map": {
-                                        "over": { "$func/slot-values": { "element": "#.input.entityType", "slot": "validations" } },
-                                        "as": "rule",
-                                        "fn": { "$func/apply-mapping": { "mapping": "@rule", "input": "#.input.record" } }
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "set": {
-                                "$func/validation-derivation": {
-                                    "record": "#.input.record",
-                                    "key": "#.input.key",
-                                    "errors": "#.errors",
-                                    "operations": {
-                                        "$if": [
-                                            "#.input.configuration.onValidation",
-                                            { "$func/apply-mapping": { "mapping": "#.input.configuration.onValidation", "input": { "entityType": "#.input.entityType", "businessKey": "#.input.record.businessKey", "errors": "#.errors" } } },
-                                            []
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    ]
                 }
             }
         }
@@ -89,7 +55,37 @@
         "id": "validation",
         "kind": "validation-trait",
         "data": {
-            "configuration": { "onValidation": "@mapping" }
+            "configuration": { "onValidation": "@mapping" },
+            "derive": [
+                {
+                    "outputKey": "errors",
+                    "set": {
+                        "$merge": {
+                            "$map": {
+                                "over": { "$func/slot-values": { "element": "#.input.entityType", "slot": "validations" } },
+                                "as": "rule",
+                                "fn": { "$func/apply-mapping": { "mapping": "@rule", "input": "#.input.record" } }
+                            }
+                        }
+                    }
+                },
+                {
+                    "set": {
+                        "$func/validation-derivation": {
+                            "record": "#.input.record",
+                            "key": "#.input.key",
+                            "errors": "#.errors",
+                            "operations": {
+                                "$if": [
+                                    "#.input.configuration.onValidation",
+                                    { "$func/apply-mapping": { "mapping": "#.input.configuration.onValidation", "input": { "entityType": "#.input.entityType", "businessKey": "#.input.record.businessKey", "errors": "#.errors" } } },
+                                    []
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
         }
     }
 ]

@@ -8,6 +8,7 @@ const RAISE = `raise-${run}`;
 const COPY = `copy-${run}`;
 const END = `end-${run}`;
 const OTHER = `other-${run}`;
+const REACTIVE = `reactive-${run}`;
 const BODY = { '!holder': 'string', '!startDate': '@date', '!premium': 'number', endDate: '@date', '*': 'never' };
 const VALID_FROM = '#.effectiveFrom';
 const AMENDMENT_KEY = '#.amendment.businessKey';
@@ -46,7 +47,11 @@ const elements = [
                                 { key: 'state', operation: 'transition', input: { transition: 'reactivate' } }
                             ]
                         },
-                        [COPY]: {}
+                        [COPY]: {},
+                        [REACTIVE]: {
+                            mapping: { target: { entityType: '#.entity.entityType', businessKey: '#.entity.businessKey' }, reason: '#.input.reason', changes: '#.input.changes' },
+                            apply: [amend([{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }])]
+                        }
                     }
                 }
             }
@@ -55,7 +60,30 @@ const elements = [
     amendmentType(RAISE, { '!reason': 'string', '!changes': { '!premium': 'number' } }),
     amendmentType(COPY, BODY),
     amendmentType(END, { '!reason': 'string' }),
-    amendmentType(OTHER, { '!reason': 'string' })
+    amendmentType(OTHER, { '!reason': 'string' }),
+    {
+        id: REACTIVE,
+        kind: 'entity-type',
+        data: {
+            traits: {
+                body: { configuration: { schema: { '!target': { '!entityType': 'string', '!businessKey': 'string' }, '!reason': 'string', '!changes': { '!premium': 'number' } } } },
+                state: {
+                    configuration: {
+                        states: { status: { draft: true, active: true, annulled: true } },
+                        transitions: { activate: { status: { draft: 'active' } }, annul: { status: { active: 'annulled' } } },
+                        initialStates: { default: { status: 'draft' } }
+                    }
+                },
+                amending: {
+                    configuration: {
+                        target: { entityType: '#.data.body.target.entityType', businessKey: '#.data.body.target.businessKey' },
+                        apply: { dimension: 'status', from: 'draft', to: 'active' },
+                        revert: { dimension: 'status', from: 'active', to: 'annulled' }
+                    }
+                }
+            }
+        }
+    }
 ];
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-amendments'];
@@ -149,6 +177,17 @@ describe('entity-amendments', function () {
         expect((await errorOf(apply('a-5', early))).code).to.equal('conflict');
         const unchanged = await read('a-5');
         expect([unchanged.data.body.premium, await statuses('a-5')]).to.deep.equal([100, [['a-5-001', 'pending']]]);
+    });
+
+    it('applies and reverts an amendment on the target when its own state moves, in the transaction of the transition', async () => {
+        await policy('a-15');
+        const proposed = await propose('a-15', '2026-07-01', undefined, REACTIVE, { reason: 'indexation', changes: { premium: 140 } });
+        expect(proposed.data.body.target).to.deep.equal({ entityType: POLICY, businessKey: 'a-15' });
+        const move = (record, transition) => invoke(REACTIVE, 'run', { businessKey: record.businessKey, revision: record.revision, trait: 'state', operation: 'transition', input: { transition } });
+        const active = await move(proposed, 'activate');
+        expect([(await read('a-15')).data.body.premium, await statuses('a-15')]).to.deep.equal([140, [['a-15-001', 'applied']]]);
+        await move(active, 'annul');
+        expect([(await read('a-15')).data.body.premium, await statuses('a-15')]).to.deep.equal([100, [['a-15-001', 'discarded']]]);
     });
 
     it('leaves nothing behind when the amendment cannot be created', async () => {

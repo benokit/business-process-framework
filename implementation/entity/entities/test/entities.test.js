@@ -36,29 +36,26 @@ const TOTAL = `total-${run}`;
 const DOUBLE = `double-${run}`;
 const DERIVING = `deriving-${run}`;
 
-const derived = (id, compute) => ({
+const derived = id => ({
     id: `${id}-trait`,
     kind: 'kind',
     data: {
         extends: 'valued-entity-trait',
         operations: {
             initialize: { implementation: { set: 0 } },
-            rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } },
-            derive: {
-                input: '@trait-derive-input',
-                output: '@trait-derivation',
-                implementation: [
-                    { outputKey: 'computed', set: compute },
-                    {
-                        if: { $eq: ['#.computed', { $get: { object: '#.input.record.data', path: '#.input.key' } }] },
-                        then: { set: null },
-                        else: { set: { command: 'derive', value: '#.computed' } }
-                    }
-                ]
-            }
+            rewrite: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'rewrite', value: '#.input.input.value' } } }
         }
     }
 });
+
+const derivation = compute => [
+    { outputKey: 'computed', set: compute },
+    {
+        if: { $eq: ['#.computed', { $get: { object: '#.input.record.data', path: '#.input.key' } }] },
+        then: { set: null },
+        else: { set: { command: 'derive', value: '#.computed' } }
+    }
+];
 
 const WRITING = `writing-${run}`;
 const VERSIONED = `versioned-${run}`;
@@ -110,10 +107,10 @@ const elements = [
             }
         }
     },
-    derived(TOTAL, '#.input.record.data.body.amount'),
-    { id: TOTAL, kind: `${TOTAL}-trait`, data: { configuration: {} } },
-    derived(DOUBLE, { $multiply: [2, { $get: { object: '#.input.record.data', path: TOTAL } }] }),
-    { id: DOUBLE, kind: `${DOUBLE}-trait`, data: { configuration: {} } },
+    derived(TOTAL),
+    { id: TOTAL, kind: `${TOTAL}-trait`, data: { configuration: {}, derive: derivation('#.input.record.data.body.amount') } },
+    derived(DOUBLE),
+    { id: DOUBLE, kind: `${DOUBLE}-trait`, data: { configuration: {}, derive: derivation({ $multiply: [2, { $get: { object: '#.input.record.data', path: TOTAL } }] }) } },
     { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {} }, [DOUBLE]: { configuration: {} } } } },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
@@ -125,16 +122,17 @@ const elements = [
         kind: 'kind',
         data: {
             extends: 'valued-entity-trait',
-            operations: {
-                initialize: { implementation: { set: true } },
-                guard: {
-                    input: '@trait-hook-input',
-                    implementation: { if: { $eq: ['#.input.change.operation', 'delete'] }, then: { throw: { code: 'conflict', message: '#.input.configuration.reason' } } }
-                }
-            }
+            operations: { initialize: { implementation: { set: true } } }
         }
     },
-    { id: VETO, kind: `${VETO}-trait`, data: { configuration: { '!reason': 'string' } } },
+    {
+        id: VETO,
+        kind: `${VETO}-trait`,
+        data: {
+            configuration: { '!reason': 'string' },
+            guard: { if: { $eq: ['#.input.change.operation', 'delete'] }, then: { throw: { code: 'conflict', message: '#.input.configuration.reason' } } }
+        }
+    },
     { id: HOOKED, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [VETO]: { configuration: { reason: 'deletion vetoed' } } } } },
     { id: BODYLESS, kind: 'entity-type', data: { traits: { [NOTE]: { configuration: { prefix: 'plain: ' } } } } },
     { id: NOTED, kind: 'kind', data: { extends: 'entity-type', fixed: { traits: { [NOTE]: { configuration: { prefix: 'class: ' } } } } } },
@@ -457,13 +455,17 @@ describe('entities', function () {
                 kind: 'kind',
                 data: {
                     extends: 'valued-entity-trait',
-                    operations: {
-                        initialize: { implementation: { set: true } },
-                        guard: { input: '@trait-hook-input', implementation: { inputMap: { businessKey: 'o-raced', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' } }
-                    }
+                    operations: { initialize: { implementation: { set: true } } }
                 }
             },
-            { id: `writing-hook-${run}`, kind: `writing-hook-${run}-trait`, data: { configuration: {} } },
+            {
+                id: `writing-hook-${run}`,
+                kind: `writing-hook-${run}-trait`,
+                data: {
+                    configuration: {},
+                    guard: { inputMap: { businessKey: 'o-raced', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' }
+                }
+            },
             { id: `hooking-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [`writing-hook-${run}`]: { configuration: {} } } } }
         ];
         await stop();
