@@ -22,14 +22,6 @@
         }
     },
     {
-        "id": "issued-amendment",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": "@any", "output": "boolean" },
-            "mapping": { "$eq": ["#.amendment.data.state.status", "issued"] }
-        }
-    },
-    {
         "id": "change-amendment-operations",
         "kind": "pure-function",
         "data": {

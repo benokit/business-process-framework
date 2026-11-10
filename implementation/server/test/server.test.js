@@ -170,7 +170,6 @@ describe('server with the demo', function () {
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: first.businessKey });
 
         expect((await settle(contract, first, 'apply', underwriter)).status).to.equal(403);
-        expect((await settle(contract, first, 'apply', administrator)).status).to.equal(409);
         expect((await settle(contract, await issued(first, underwriter), 'apply', administrator)).status).to.equal(200);
         expect(await ledgerOf(contract, administrator)).to.deep.equal({ last: 1, open: null });
         const second = (await propose(contract, 'extension', '2027-01-01', { endDate: '2028-01-01' }, underwriter)).body;

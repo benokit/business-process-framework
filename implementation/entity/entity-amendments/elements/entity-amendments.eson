@@ -2,7 +2,7 @@
     {
         "id": "amendment-kind",
         "kind": "schema",
-        "data": { "mapping": "@mapping", "applicable": "@mapping", "apply": "@mapping", "revert": "@mapping", "*": "never" }
+        "data": { "mapping": "@mapping", "apply": "@mapping", "revert": "@mapping", "*": "never" }
     },
     {
         "id": "amendable-configuration",
@@ -186,16 +186,6 @@
                         { "outputKey": "amended", "set": { "$func/viewed-record": { "record": "#.stored", "entityType": "#.entry.type" } } },
                         { "outputKey": "kind", "set": { "$coalesce": [{ "$get": { "object": "#.input.configuration", "path": "#.entry.type" } }, {}] } },
                         { "outputKey": "scope", "set": { "entity": "#.input.record", "amendment": "#.amended", "effectiveFrom": "#.entry.effectiveFrom" } },
-                        {
-                            "outputKey": "applicable",
-                            "if": { "$or": [{ "$neq": ["#.input.input.effect", "apply"] }, { "$isNil": "#.kind.applicable" }] },
-                            "then": { "set": true },
-                            "else": { "set": { "$func/apply-mapping": { "mapping": "#.kind.applicable", "input": "#.scope" } } }
-                        },
-                        {
-                            "if": { "$not": "#.applicable" },
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["amendment ", "#.input.input.amendment", " of ", "#.input.entityType", " can't be applied yet"] } } }
-                        },
                         { "outputKey": "declared", "set": { "$func/amendment-operations": { "kind": "#.kind", "effect": "#.input.input.effect", "scope": "#.scope" } } },
                         {
                             "outputKey": "settle",

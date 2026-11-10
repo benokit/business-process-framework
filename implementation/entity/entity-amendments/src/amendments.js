@@ -79,7 +79,6 @@ const kindProblems = (entityType, type, kind) => {
     if (!isInstanceOf({ element: type, kind: 'entity-type' })) return [`${entityType} names '${type}' as an amendment type, which is no entity type`];
     return [
         ...kind.mapping === undefined ? [] : mappingProblems(kind.mapping, { type: 'object', properties: { entity: recordType(entityType), input: {} }, additionalProperties: false }, bodyType(type), `${entityType}: the mapping of ${type}`),
-        ...kind.applicable === undefined ? [] : mappingProblems(kind.applicable, scopeOf(entityType, type), { type: 'boolean' }, `${entityType}: the applicable of ${type}`),
         ...['apply', 'revert'].filter(effect => Array.isArray(kind[effect])).flatMap(effect => listProblems({ entityType, type, effect }, kind[effect])),
         ...pairedProblems(entityType, type, kind)
     ];

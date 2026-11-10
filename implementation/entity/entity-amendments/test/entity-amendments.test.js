@@ -37,7 +37,6 @@ const elements = [
                     configuration: {
                         [RAISE]: {
                             mapping: { reason: '#.input.reason', changes: '#.input.changes' },
-                            applicable: { $neq: ['#.amendment.data.body.reason', 'draft'] },
                             apply: [amend([{ op: 'replace', path: '/premium', value: '#.amendment.data.body.changes.premium' }])]
                         },
                         [END]: {
@@ -150,16 +149,6 @@ describe('entity-amendments', function () {
         expect((await errorOf(apply('a-5', early))).code).to.equal('conflict');
         const unchanged = await read('a-5');
         expect([unchanged.data.body.premium, await statuses('a-5')]).to.deep.equal([100, [['a-5-001', 'pending']]]);
-    });
-
-    it('applies an amendment only when its kind says it is applicable', async () => {
-        await policy('a-14');
-        const draft = await propose('a-14', '2026-07-01', 110, RAISE, { reason: 'draft', changes: { premium: 110 } });
-        expect((await errorOf(apply('a-14', draft))).code).to.equal('conflict');
-        expect(await statuses('a-14')).to.deep.equal([['a-14-001', 'pending']]);
-        await discard('a-14', draft);
-        await apply('a-14', await propose('a-14', '2026-07-01', 120));
-        expect((await read('a-14')).data.body.premium).to.equal(120);
     });
 
     it('leaves nothing behind when the amendment cannot be created', async () => {

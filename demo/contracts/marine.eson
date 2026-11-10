@@ -6,7 +6,7 @@
             "characteristics": { "lineOfBusiness": "marine", "maxSumInsured": 5000000 },
             "traits": {
                 "body": { "configuration": { "schema": { "$data#&": ["@contract-terms", { "!policyholder": "string", "!vessel": "string", "!currency": "string", "!region": "@region", "confidential": "boolean" }] } } },
-                "amendable": { "configuration": { "premium-adjustment": { "applicable": { "$func/issued-amendment": "#" }, "apply": { "$func/change-amendment-operations": "#" } } } },
+                "amendable": { "configuration": { "premium-adjustment": { "apply": { "$func/change-amendment-operations": "#" } } } },
                 "state": { "configuration": {
                     "states": { "status": { "suspended": true } },
                     "transitions": {

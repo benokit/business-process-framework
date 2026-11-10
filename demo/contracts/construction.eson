@@ -23,10 +23,9 @@
                 },
                 "amendable": {
                     "configuration": {
-                        "premium-adjustment": { "applicable": { "$func/issued-amendment": "#" }, "apply": { "$func/change-amendment-operations": "#" } },
-                        "extension": { "applicable": { "$func/issued-amendment": "#" }, "apply": { "$func/change-amendment-operations": "#" } },
+                        "premium-adjustment": { "apply": { "$func/change-amendment-operations": "#" } },
+                        "extension": { "apply": { "$func/change-amendment-operations": "#" } },
                         "cancellation": {
-                            "applicable": { "$func/issued-amendment": "#" },
                             "apply": { "$concat": [{ "$func/change-amendment-operations": "#" }, [{ "key": "state", "operation": "transition", "input": { "transition": "cancel" } }]] },
                             "revert": [
                                 { "key": "body", "operation": "remove", "input": { "validFrom": "#.effectiveFrom", "ref": "#.amendment.businessKey" } },
