@@ -39,8 +39,17 @@ function serialize(value, depth, tabSize) {
     return inlineValue(value);
 }
 
+const commentsAndStrings = /("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
+
+function withoutComments(text) {
+    return text.replace(commentsAndStrings, (match, string) => string ?? match.replace(/[^\n]/g, ' '));
+}
+
 function formatEson(text, tabSize) {
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(withoutComments(text));
+    if (withoutComments(text) !== text) {
+        throw new Error('the file has comments, which formatting would remove');
+    }
     return serialize(parsed, 0, tabSize) + '\n';
 }
 

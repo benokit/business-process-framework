@@ -13,8 +13,12 @@ const sources = new WeakMap();
 
 export const sourceOf = element => sources.get(element);
 
+const commentsAndStrings = /("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
+
+export const withoutComments = text => text.replace(commentsAndStrings, (match, string) => string ?? match.replace(/[^\n]/g, ' '));
+
 const elementsIn = async file => {
-    const elements = [JSON.parse(await readFile(file, 'utf8'))].flat();
+    const elements = [JSON.parse(withoutComments(await readFile(file, 'utf8')))].flat();
     elements.forEach(element => sources.set(element, file));
     return elements;
 };

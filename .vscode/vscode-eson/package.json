@@ -2,7 +2,7 @@
     "name": "vscode-eson",
     "displayName": "ESON – Business Process Framework",
     "description": "Syntax highlighting for .eson files (elements, pipelines, LambdaJSON)",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "publisher": "business-process-framework",
     "engines": { "vscode": "^1.75.0" },
     "categories": ["Programming Languages"],
@@ -54,6 +54,11 @@
                     "comment": "LambdaJSON \\\\escaped literal",
                     "scope": "constant.other.literal.eson",
                     "settings": { "foreground": "#CE9178", "fontStyle": "italic" }
+                },
+                {
+                    "comment": "Comments (// and /* */)",
+                    "scope": ["comment.line.double-slash.eson", "comment.block.eson"],
+                    "settings": { "foreground": "#6A9955", "fontStyle": "italic" }
                 },
                 {
                     "comment": "Plain string values",

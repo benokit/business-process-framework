@@ -8,9 +8,22 @@
     ],
     "repository": {
 
+        "comment-line": {
+            "match": "//.*$",
+            "name": "comment.line.double-slash.eson"
+        },
+
+        "comment-block": {
+            "begin": "/\\*",
+            "end": "\\*/",
+            "name": "comment.block.eson"
+        },
+
         "value": {
             "comment": "Any JSON value (used in array context and as object values)",
             "patterns": [
+                { "include": "#comment-line" },
+                { "include": "#comment-block" },
                 { "include": "#object" },
                 { "include": "#array" },
                 { "include": "#value-string" },
@@ -26,6 +39,8 @@
             "beginCaptures": { "0": { "name": "punctuation.definition.dictionary.begin.eson" } },
             "endCaptures": { "0": { "name": "punctuation.definition.dictionary.end.eson" } },
             "patterns": [
+                { "include": "#comment-line" },
+                { "include": "#comment-block" },
                 { "include": "#key-string" },
                 { "include": "#value" },
                 { "match": ":", "name": "punctuation.separator.dictionary.key-value.eson" },
