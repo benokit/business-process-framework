@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { invoke, validate } from '../src/index.js';
+import { instanceMethods, selvesOf } from '../src/kinds.js';
 import { bootWith, element, kind, operation } from './helpers.js';
 
 describe('kinds', () => {
@@ -17,6 +18,95 @@ describe('kinds', () => {
             kind('derived', { extends: 'base', fixed: { b: 2, nested: { y: 2 } } }),
             element('one', 'derived', { c: 3, a: 1 }));
         expect(await invoke('one', 'read', null)).to.deep.equal({ a: 1, b: 2, c: 3, nested: { x: 1, y: 2 } });
+    });
+
+    describe('mapping', () => {
+        const kinds = [
+            kind('base', {
+                shape: { '!name': 'string' },
+                fixed: { type: 'base' },
+                operations: { read: operation({ set: '#.self.data' }), describe: { input: '@any' } }
+            }),
+            kind('derived', {
+                extends: 'base',
+                shape: { '!label': 'string' },
+                fixed: { origin: 'derived' },
+                mapping: { name: '#.data.label', id: '#.id' },
+                operations: { own: operation({ set: '#.self.data' }), describe: { implementation: { set: '#.self.data' } } }
+            }),
+            element('one', 'derived', { label: 'Ada' })
+        ];
+
+        it('gives the code of each kind the data in the shape of that kind', async () => {
+            await bootWith(...kinds);
+            expect(await invoke('one', 'own', null)).to.deep.equal({ label: 'Ada', origin: 'derived' });
+            expect(await invoke('one', 'read', null)).to.deep.equal({ name: 'Ada', id: 'one', type: 'base' });
+        });
+
+        it('runs an implementation at the level of the kind that writes it', async () => {
+            await bootWith(...kinds);
+            expect(await invoke('one', 'describe', null)).to.deep.equal({ label: 'Ada', origin: 'derived' });
+        });
+
+        it('checks the data of every level against the shape of its kind', async () => {
+            await bootWith(...kinds.slice(0, 2), element('one', 'derived', { label: 'Ada' }), element('two', 'derived', { label: 1 }));
+            expect(validate().map(problem => problem.data.element ?? problem.data.id)).to.include('two');
+        });
+
+        it('rejects a shape without a mapping where the parent has a shape', async () => {
+            const error = await bootWith(kind('base', { shape: { a: 'string' } }), kind('derived', { extends: 'base', shape: { b: 'string' } })).catch(e => e);
+            expect(error.message).to.include('derived declares a shape without a mapping');
+        });
+
+        it('accepts a shape without a mapping where no parent has one', async () => {
+            await bootWith(kind('base', {}), kind('derived', { extends: 'base', shape: { '!b': 'string' } }), element('one', 'derived', { b: 'x' }));
+            expect(validate()).to.deep.equal([]);
+        });
+
+        it('gives the instances of a kind, and their methods, as that kind sees them', async () => {
+            await bootWith(
+                kind('base', { shape: { '!run': '@method' } }),
+                kind('derived', { extends: 'base', shape: { '!label': 'string' }, mapping: { run: { set: '#.data.label' } } }),
+                element('one', 'derived', { label: 'Ada' }));
+            expect(selvesOf('base').map(({ id, data }) => [id, Object.keys(data)])).to.deep.equal([['one', ['run']]]);
+            expect(selvesOf('derived').map(({ data }) => Object.keys(data))).to.deep.equal([['label']]);
+            expect(instanceMethods({ kind: 'base', property: 'run' }).map(({ id }) => id)).to.deep.equal(['one']);
+        });
+
+        const mapping = (code, ...elements) => [
+            kind('base', { shape: { '!name': 'string' } }),
+            kind('derived', { extends: 'base', shape: { label: 'string' }, mapping: code }),
+            ...elements
+        ];
+
+        it('names the kind and the instance of a mapping that fails', async () => {
+            const error = await bootWith(...mapping({ name: { $add: ['#.data.label', 1] } }, element('one', 'derived', {}))).catch(e => e);
+            expect(error.code).to.equal('mapping-failed');
+            expect(error.message).to.include('one: the mapping of derived failed');
+        });
+
+        it('names the level whose shape the mapped data break', async () => {
+            await bootWith(...mapping({ name: 1 }, element('one', 'derived', { label: 'Ada' })));
+            expect(validate().map(problem => problem.message)).to.include("one doesn't match the shape of base (its data as mapped for base)");
+        });
+
+        const fixing = (mapping, ...elements) => [
+            kind('base', { fixed: { a: 1 }, operations: { read: operation({ set: '#.self.data' }) } }),
+            kind('derived', { extends: 'base', fixed: { a: 2 }, mapping, operations: { own: operation({ set: '#.self.data' }) } }),
+            element('one', 'derived'),
+            ...elements
+        ];
+
+        it('keeps the fixed values of a kind out of the levels above its mapping', async () => {
+            await bootWith(...fixing({ b: 3 }));
+            expect(await invoke('one', 'own', null)).to.deep.equal({ a: 2 });
+            expect(await invoke('one', 'read', null)).to.deep.equal({ a: 1, b: 3 });
+        });
+
+        it('rejects a mapping that changes a fixed value of its parent', async () => {
+            const error = await bootWith(...fixing({ a: '#.data.a' })).catch(e => e);
+            expect(error.code).to.equal('fixed-conflict');
+        });
     });
 
     it('checks the shape after the fixed values are filled in', async () => {

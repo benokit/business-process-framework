@@ -92,10 +92,10 @@ const resolvedSchemaType = memo(id => closedType(typeOf({ $ref: schemaRef(id) },
 
 const compactType = schema => schema === undefined ? ANY : closedType(typeOf(standardOf(schema)));
 
-const dataType = kindId => resolveKind(kindId).chain
-    .filter(kind => kind.data.shape !== undefined)
-    .map(kind => schemaType(kind.id))
-    .reduce(intersect, OBJECT);
+const dataType = kindId => {
+    const declaring = resolveKind(kindId).chain.findLast(kind => kind.data.shape !== undefined);
+    return declaring ? schemaType(declaring.id) : OBJECT;
+};
 
 const selfType = memo(kindId => closed({ id: ANY, kind: STRING, data: dataType(kindId) }));
 
@@ -131,10 +131,12 @@ const pathOf = (path, pointer) => pointer.split('/').slice(1)
     .map(step => step.replace(/~1/g, '/').replace(/~0/g, '~'))
     .reduce((at, step) => /^\d+$/.test(step) ? `${at}[${step}]` : `${at}.${step}`, path);
 
-const expression = (walk, input, code, path) => {
-    const { type, problems } = infer(code, { input, primitives: pureFunctions() });
+const EXPECTED_STEP = /^\/\$func~1expected/;
+
+const expression = (walk, input, code, path, expected) => {
+    const { type, problems } = expected === undefined ? infer(code, { input, primitives: pureFunctions() }) : mappingType(code, input, expected);
     problems.forEach(({ severity, code: name, path: pointer, message }) =>
-        walk.problems.push(problem(walk.at, pathOf(path, pointer), name, message.replace(/ \(at [^)]*\)$/, ''), { severity })));
+        walk.problems.push(problem(walk.at, pathOf(path, pointer.replace(EXPECTED_STEP, '')), name, message.replace(/ \(at [^)]*\)$/, ''), { severity })));
     return type;
 };
 
@@ -327,6 +329,7 @@ const fillInput = fill => {
 };
 
 const mappingInput = (author, path) => {
+    if (author.kind === 'kind' && path === 'mapping') return closed({ id: ANY, data: dataType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.validate') return closed({ self: selfType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.explain') return closed({ self: selfType(author.id), element: STRING });
     if (author.kind === 'pure-function' && path === 'mapping') return compactType(author.data.signature?.input);
@@ -334,11 +337,13 @@ const mappingInput = (author, path) => {
     return ANY;
 };
 
+const expectedOf = (author, path) => author.kind === 'kind' && path === 'mapping' ? dataType(author.data.extends) : undefined;
+
 const positionWalk = (author, targets) => ({ type, code, path }) => {
     const start = type === 'method' ? methodStart(author, path) : {};
     const walk = { at: { author }, kind: start.kind, problems: [], returns: [], targets };
     if (type === 'method') method(walk, code, start.scope, path);
-    else expression(walk, mappingInput(author, path), code, path);
+    else expression(walk, mappingInput(author, path), code, path, expectedOf(author, path));
     return walk.problems;
 };
 

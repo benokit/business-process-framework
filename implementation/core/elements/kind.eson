@@ -6,6 +6,7 @@
             "shape": {
                 "extends": "@ref/kind",
                 "shape": "@schema",
+                "mapping": "@mapping",
                 "fixed": "object",
                 "settings": { "shape": "@schema", "defaults": "object" },
                 "operations{}": "@operation",

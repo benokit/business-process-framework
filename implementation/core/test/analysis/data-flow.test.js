@@ -156,4 +156,38 @@ describe('data flow', () => {
             kind('shop', { operations: { open: operation({ set: { '$func/id-of': { id: '#.input.store' } } }, { '!store': '@ref/shop' }, 'string') } }));
         expect(problemsOf()).to.deep.equal([]);
     });
+
+    describe('kind mappings', () => {
+        const base = kind('base', { shape: { '!name': 'string', age: 'integer' }, operations: { read: operation({ set: '#.self.data.name' }) } });
+        const derived = mapping => [base, kind('derived', {
+            extends: 'base',
+            shape: { '!label': 'string' },
+            mapping,
+            operations: { own: operation([{ set: '#.self.data.label' }, { set: '#.self.data.name' }]) }
+        })];
+
+        it('types the code of a kind with the shape of that kind only', async () => {
+            await bootWith(...derived({ name: '#.data.label' }));
+            expect(problemsOf()).to.deep.equal([['unknown-path', 'operations.own.implementation[1].set']]);
+        });
+
+        it('checks the result of a mapping against the parent shape', async () => {
+            await bootWith(...derived({ name: 1 }));
+            expect(problemsOf().map(([code]) => code)).to.include('type-mismatch');
+            await bootWith(...derived({ age: 1 }));
+            expect(problemsOf().map(([code]) => code)).to.include('missing-property');
+            await bootWith(...derived({ name: '#.data.label', extra: 1 }));
+            expect(problemsOf().map(([code]) => code)).to.include('unknown-property');
+        });
+
+        it('knows the scope of a mapping: the id and the data of its kind', async () => {
+            await bootWith(...derived({ name: '#.data.name' }));
+            expect(problemsOf()).to.deep.include(['unknown-path', 'mapping.name']);
+        });
+
+        it('accepts a correct mapping', async () => {
+            await bootWith(...derived({ name: '#.data.label' }).map(element => element.id === 'derived' ? { ...element, data: { ...element.data, operations: {} } } : element));
+            expect(problemsOf()).to.deep.equal([]);
+        });
+    });
 });

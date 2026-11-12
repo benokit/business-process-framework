@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, the `context` it manages and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data.
+The framework is built around **elements**: declarative JSON objects `{ id, kind, data }` loaded from `.eson` files. The **kind** is the abstraction: a kind is itself an element (of kind `kind`) that declares a `shape`, `operations`, `slots`, the `context` it manages and `lifecycle` hooks, and can `extends` another kind. Behaviour belongs to kinds; instances hold data. A kind's code sees its instances' data in the kind's own `shape`; a subkind either has its parent's shape or declares its own with a `mapping` to the parent's.
 
 - Pipelines are LambdaJSON trees, never strings. Mappings are pure; nodes are effects; `low` calls JS, declares its effects (`read`, `write`, `irreversible`, `trace`; everything else is inferred) and can't change context.
 - `_ctx` is read-only and scoped: only a kind that manages a key may bind it, with `withContext`; any code sees every bound key.

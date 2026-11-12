@@ -21,20 +21,25 @@
         }
     },
     {
-        "id": "premium-adjustment",
-        "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!premium": "number" } } } } } }
+        "id": "change-underwriting-amendment-type",
+        "kind": "kind",
+        "data": {
+            "extends": "underwriting-amendment-type",
+            "shape": { "!changes": "@schema" },
+            "mapping": {
+                "traits": {
+                    "body": {
+                        "configuration": {
+                            "schema": { "!target": "\\@amendment-target", "!reason": "string", "!changes": "#.data.changes" }
+                        }
+                    }
+                }
+            }
+        }
     },
-    {
-        "id": "cancellation",
-        "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
-    },
-    {
-        "id": "extension",
-        "kind": "underwriting-amendment-type",
-        "data": { "traits": { "body": { "configuration": { "schema": { "!target": "@amendment-target", "!reason": "string", "!changes": { "!endDate": "@date" } } } } } }
-    },
+    { "id": "premium-adjustment", "kind": "change-underwriting-amendment-type", "data": { "changes": { "!premium": "number" } } },
+    { "id": "cancellation", "kind": "change-underwriting-amendment-type", "data": { "changes": { "!endDate": "@date" } } },
+    { "id": "extension", "kind": "change-underwriting-amendment-type", "data": { "changes": { "!endDate": "@date" } } },
     {
         "id": "amendment-target",
         "kind": "schema",

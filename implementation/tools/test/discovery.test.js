@@ -19,6 +19,19 @@ describe('discovery', () => {
             .to.deep.equal(['refuse-uncovered-results', 'maintain-entity-relations', 'publish-entity-events', 'refuse-forbidden-initial-states', 'contract-activation-events', 'contract-sum-insured-within-line-limit', 'contract-terms-end-after-start']);
     });
 
+    it('explains the data of an instance at the level of each kind, where a kind maps it', () => {
+        const { levels } = explain('construction');
+        expect(levels.map(level => level.kind)).to.deep.equal(['trait-container', 'entity-type', 'insurance-contract-type']);
+        expect(explain('entity-type').mappings).to.deep.equal({ 'entity-type': '#.data' });
+    });
+
+    it('layers an amendment type: the changes an author writes become the body schema of the entity type', () => {
+        const { levels } = explain('premium-adjustment');
+        expect(levels.map(level => level.kind)).to.deep.equal(['trait-container', 'entity-type', 'underwriting-amendment-type', 'change-underwriting-amendment-type']);
+        expect(levels.at(-1).data).to.deep.equal({ changes: { '!premium': 'number' } });
+        expect(levels[1].data.traits.body.configuration.schema).to.deep.equal({ '!target': '@amendment-target', '!reason': 'string', '!changes': { '!premium': 'number' } });
+    });
+
     it('explains the effects of each operation of an instance, with a trace', () => {
         const effectsOf = (id, name) => explain(id).operations.find(op => op.name === name).effects;
         expect(Object.keys(effectsOf('entities', 'read'))).to.include('read');

@@ -1,6 +1,6 @@
 import { get, isPlainObject } from 'lodash-es';
 import { allElements, findElement } from '../registry.js';
-import { instancesOf, resolveKind, selfOf, selvesOf } from '../kinds.js';
+import { instancesOf, resolveKind, selfAt, selfOf, selvesOf } from '../kinds.js';
 import { fillsOf } from '../slots.js';
 import { isKindReference, resolveReference } from '../references.js';
 import { formOf, pipelinesOf, templatePositions } from './code.js';
@@ -111,14 +111,18 @@ const analysis = previous => {
             const kind = resolveKind(self.kind);
             const owner = kind.chain.findLast(k => k.data.operations?.[operation]?.implementation);
             const code = owner?.data.operations[operation].implementation;
-            const ctx = { self, input: kind.operations[operation]?.input, author: owner?.id };
+            const ctx = { self: owner ? selfAt(findElement(self.id), owner.id) : self, input: kind.operations[operation]?.input, author: owner?.id };
             operations.set(key, code === undefined ? new Map() : pipelineEffects(code, ctx, `operations.${operation}.implementation`));
         }
         return operations.get(key);
     };
 
-    const fillEffects = (self, fill) => traced(union(methodsOf(fill.data.value, resolveKind(self.kind).slots[fill.data.slot].value)
-        .map(({ code, path }) => pipelineEffects(code, { self, author: fill.id ?? `a fill of ${fill.data.slot}` }, path))), `fill ${fill.id ?? fill.data.slot}`);
+    const fillEffects = (self, fill) => {
+        const declaration = resolveKind(self.kind).slots[fill.data.slot];
+        const level = selfAt(findElement(self.id), declaration.owner);
+        return traced(union(methodsOf(fill.data.value, declaration.value)
+            .map(({ code, path }) => pipelineEffects(code, { self: level, author: fill.id ?? `a fill of ${fill.data.slot}` }, path))), `fill ${fill.id ?? fill.data.slot}`);
+    };
 
     const slotEffects = ({ element, slot }, ctx) => {
         const self = element === '#.self.id' ? ctx.self : selvesNamed(element)?.[0];

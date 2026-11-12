@@ -1,5 +1,5 @@
 import { allElements, kindOf } from './registry.js';
-import { instancesOf, resolveKind, selfOf } from './kinds.js';
+import { instancesOf, resolveKind, selfAt } from './kinds.js';
 import { orderItems } from './order.js';
 import { runMethod } from './execution/pipeline.js';
 import { sequentially } from './execution/sequentially.js';
@@ -7,8 +7,8 @@ import { sequentially } from './execution/sequentially.js';
 const chainOf = element => resolveKind(kindOf(element)).chain;
 
 const hooksOf = (element, phase) => chainOf(element)
-    .map(kind => kind.data.lifecycle?.[phase])
-    .filter(Boolean);
+    .map(kind => ({ kind: kind.id, hook: kind.data.lifecycle?.[phase] }))
+    .filter(({ hook }) => hook);
 
 const namedKinds = (element, property) => chainOf(element).flatMap(kind => kind.data.lifecycle?.[property] ?? []);
 
@@ -36,6 +36,6 @@ const ELEMENTS_FOR = {
 };
 
 const runHooks = (element, phase) => sequentially(hooksOf(element, phase),
-    hook => runMethod(hook, { input: undefined, self: selfOf(element), _ctx: Object.freeze({}) }));
+    ({ kind, hook }) => runMethod(hook, { input: undefined, self: selfAt(element, kind), _ctx: Object.freeze({}) }));
 
 export const runLifecycle = phase => sequentially(ELEMENTS_FOR[phase](), element => runHooks(element, phase));

@@ -1,6 +1,7 @@
 import { isEmpty, isEqual, isPlainObject } from 'lodash-es';
 import { allElements, findElement, kindOf, memo } from './registry.js';
 import { fail, problemsOf } from './errors.js';
+import { applyMapping } from './mappings.js';
 
 const kindElement = id => {
     const element = findElement(id);
@@ -26,11 +27,11 @@ const isImplementation = (inherited, value) => inherited.implementation === unde
 
 const added = (kind, what, name, value) => what === 'operation' && value.input === undefined
     ? fail('missing-contract', `${kind.id}: operation '${name}' implements nothing and declares no input`, { kind: kind.id, name })
-    : { ...value, owner: kind.id };
+    : { ...value, owner: kind.id, ...value.implementation !== undefined && { implementedIn: kind.id } };
 
 const entry = (kind, what, acc, name, value) => {
     if (!(name in acc)) return added(kind, what, name, value);
-    if (what === 'operation' && isImplementation(acc[name], value)) return { ...acc[name], implementation: value.implementation };
+    if (what === 'operation' && isImplementation(acc[name], value)) return { ...acc[name], implementation: value.implementation, implementedIn: kind.id };
     return fail('redefined', `${kind.id} may not redefine ${what} '${name}'`, { kind: kind.id, name });
 };
 
@@ -49,8 +50,22 @@ export const unite = (base, over, owner, path = []) => {
     return isEqual(base, over) ? base : fail('fixed-conflict', `${owner} can't change the fixed value at '${path.join('.')}'`, { owner, path });
 };
 
+const fixedUpTo = (chain, index) => {
+    const mapped = chain.slice(0, index + 1).findLastIndex(kind => kind.data.mapping !== undefined);
+    return chain.slice(Math.max(mapped, 0), index + 1)
+        .reduce((fixed, kind) => unite(fixed, kind.data.fixed ?? {}, kind.id), {});
+};
+
+const checkShape = chain => {
+    const { id, data } = chain.at(-1);
+    if (data.shape !== undefined && data.mapping === undefined && chain.slice(0, -1).some(kind => kind.data.shape !== undefined)) {
+        fail('redundant-shape', `${id} declares a shape without a mapping: without one its shape is its parent's`, { id });
+    }
+};
+
 export const resolveKind = memo(id => {
     const chain = kindChain(id);
+    checkShape(chain);
     const ids = chain.map(kind => kind.id);
     return {
         id,
@@ -58,23 +73,41 @@ export const resolveKind = memo(id => {
         chain,
         operations: collect(chain, 'operations', 'operation'),
         slots: collect([...chain, ...slotDeclarationsFor(ids)], 'slots', 'slot'),
-        fixed: chain.reduce((fixed, kind) => unite(fixed, kind.data.fixed ?? {}, kind.id), {}),
+        fixed: fixedUpTo(chain, chain.length - 1),
         manages: managedKeys(chain)
     };
 });
 
-export const selfOf = memo(element => {
-    const { fixed } = resolveKind(kindOf(element));
-    return Object.freeze({
-        id: element.id,
-        kind: kindOf(element),
-        data: isEmpty(fixed) ? element.data : unite(fixed, element.data, element.id)
-    });
+const mapped = (element, kind, data) => {
+    try {
+        return applyMapping({ mapping: kind.data.mapping, input: { id: element.id, data } });
+    } catch (error) {
+        return fail('mapping-failed', `${element.id ?? 'an element'}: the mapping of ${kind.id} failed: ${error.message}`, { element: element.id, kind: kind.id });
+    }
+};
+
+const selvesByKind = memo(element => {
+    const { chain } = resolveKind(kindOf(element));
+    const selves = {};
+    chain.reduceRight((authored, kind, index) => {
+        const fixed = fixedUpTo(chain, index);
+        const data = isEmpty(fixed) ? authored : unite(fixed, authored, element.id);
+        selves[kind.id] = Object.freeze({ id: element.id, kind: kindOf(element), data });
+        return kind.data.mapping === undefined ? data : mapped(element, kind, data);
+    }, element.data);
+    return selves;
 });
+
+export const levelsOf = element => resolveKind(kindOf(element)).chain
+    .map(kind => ({ kind: kind.id, data: selvesByKind(element)[kind.id].data }));
+
+export const selfAt = (element, kindId) => selvesByKind(element)[kindId];
+
+export const selfOf = element => selfAt(element, kindOf(element));
 
 export const instancesOf = memo(kindId => allElements().filter(element => extendsKind(kindOf(element), kindId)));
 
-export const selvesOf = kind => instancesOf(kind).filter(element => element.id !== undefined).map(selfOf);
+export const selvesOf = kind => instancesOf(kind).filter(element => element.id !== undefined).map(element => selfAt(element, kind));
 
 export const instanceMethods = ({ kind, property }) => selvesOf(kind)
     .filter(({ data }) => data[property] !== undefined)

@@ -19,6 +19,15 @@ Status: **draft** (not yet discussed) · **agreed** · **in progress**.
 | R3.2 | Checked pure functions: arguments and results checked against the `signature`; declared `examples` run in `validate()` | F11 | A wrong argument or result fails; a failing example is reported | draft |
 | R3.3 | Purity checks: frozen inputs, a lint configuration for pure modules, a determinism test | F11 | CI runs these checks for every pure function | draft |
 
+## Core: kinds
+
+| ID | Step | Refs | Done when | Status |
+|---|---|---|---|---|
+| R3.4 | `mapping` in the shape of `kind`; `selfAt(element, kind)` is the data at the level of a kind: the authored data mapped along the chain, `fixed` united at each level, no `mapping` the identity (`selfOf` is the most derived level); code runs at the level of the kind that owns it: an operation at its `owner` ([invoke.js](../implementation/core/src/execution/invoke.js)), a lifecycle hook and `validate`/`explain` at their kind, the code of a slot fill at the kind that declares the slot, a bound context value at the managing kind | F70, P24 | A test kind with a `mapping`: its operation sees its shape, the operation of its parent sees the mapped data; every existing test passes; a shape declared without a mapping where an ancestor has one is `redundant-shape` | done |
+| R3.5 | Checks per level: the data of each level against the shape of its kind (the nearest declared one when the kind declares none), the mapped data against the parent's shape with `mappingType` and `expected`, `fixed` united at each level (`fixed-conflict` names the kind), `self` of the data flow typed at the level of the code's kind ([data-flow.js](../implementation/core/src/analysis/data-flow.js)), the effect inference of `#.self.data` targets at that level | F70, R3.4 | A mapping with a wrong or missing property is reported with the kind and the path; a misspelled path in a kind's code is `unknown-path` against its own shape; `npx bpf validate` over `implementation/` and `demo/` reports nothing new | done |
+| R3.6 | Tools and documentation: `explain` shows the data of every level of an instance; the problems of a mapped representation name the level (a mapping can't be inverted, so a path is the level's, not the authored one), a failing mapping names the instance and the kind; [core](../implementation/core/README.md) (fixed values, data flow, kinds) and the [tools](../implementation/tools/README.md) describe it; P22 refers to P24 for `fixed` | F70, R3.5 | `bpf explain` of an instance with a mapping lists each level; the READMEs have one owner for each fact | done |
+| R3.7 | First use: the amendment types of the demo are written in the vocabulary of the business (`changes`) through `change-underwriting-amendment-type`, which maps them to the configuration of the trait `body`; the shape of `entity-type` declares `traits` as well, since its code sees that shape | F70, R3.6 | `bpf explain premium-adjustment ../demo` lists four levels; the demo's tests pass | done |
+
 ## Packages, tooling and delivery
 
 | ID | Step | Refs | Done when | Status |

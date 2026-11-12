@@ -1,5 +1,5 @@
 import { findElement, getElement } from '@business-framework/core';
-import { extendsKind, isInstanceOf, kindChainOf, selfOf, selvesOf } from '@business-framework/core/kinds';
+import { extendsKind, isInstanceOf, kindChainOf, selfAt, selvesOf } from '@business-framework/core/kinds';
 import { applyMapping } from '@business-framework/core/mappings';
 import { bindRows, ownershipOf, ownershipRule } from '@business-framework/entity-ownership/ownership';
 
@@ -7,7 +7,7 @@ const SYSTEM = 'system';
 
 const WILDCARD = '*';
 
-const profileOf = id => selfOf(getElement(id)).data;
+const profileOf = id => selfAt(getElement(id), 'access-profile').data;
 
 const profilesWithin = (id, path = []) => path.includes(id) || !findElement(id)
     ? []
@@ -17,7 +17,7 @@ const namesAll = value => value === undefined || [value].flat().includes(WILDCAR
 
 const reaches = (resource, entityType) => namesAll(resource) || [resource].flat().some(named => named === entityType || kindChainOf(entityType).includes(named));
 
-const filterOf = scope => findElement(scope) ? selfOf(getElement(scope)).data.filter : undefined;
+const filterOf = scope => findElement(scope) ? selfAt(getElement(scope), 'ownership-scope').data.filter : undefined;
 
 const filtersOf = scopes => [scopes ?? []].flat().filter(named => named !== WILDCARD).map(filterOf).filter(filter => filter !== undefined);
 

@@ -1,5 +1,5 @@
 import { allElements, findElement, kindOf } from '../registry.js';
-import { instancesOf, resolveKind, selfOf } from '../kinds.js';
+import { instancesOf, resolveKind, selfAt, selfOf } from '../kinds.js';
 import { validateValue } from '../schemas.js';
 import { applyMapping } from '../mappings.js';
 import { fillsOf, orderFills } from '../slots.js';
@@ -29,12 +29,16 @@ const contextProblems = () => {
     ];
 };
 
-const shapeProblems = element => resolveKind(kindOf(element)).chain
-    .filter(kind => kind.data.shape !== undefined)
-    .map(kind => () => {
-        const { isValid, errors } = validateValue({ schemaId: kind.id, value: selfOf(element).data });
-        if (!isValid) fail('invalid-element', `${element.id ?? 'an element'} doesn't match the shape of ${kind.id}`, { element: element.id, kind: kind.id, errors });
-    });
+const isMappedLevel = (chain, index) => chain.slice(index + 1).some(kind => kind.data.mapping !== undefined);
+
+const shapeProblems = element => {
+    const { chain } = resolveKind(kindOf(element));
+    return chain.flatMap((kind, index) => kind.data.shape === undefined ? [] : [() => {
+        const { isValid, errors } = validateValue({ schemaId: kind.id, value: selfAt(element, kind.id).data });
+        const level = isMappedLevel(chain, index) ? ` (its data as mapped for ${kind.id})` : '';
+        if (!isValid) fail('invalid-element', `${element.id ?? 'an element'} doesn't match the shape of ${kind.id}${level}`, { element: element.id, kind: kind.id, errors });
+    }]);
+};
 
 const fillProblem = fill => () => {
     const { target, slot, value, position, on } = fill.data;
@@ -88,7 +92,7 @@ const referenceProblems = element => {
 
 const isWarning = message => typeof message === 'object' && message !== null && 'warning' in message;
 
-const hookMessages = (element, kind) => applyMapping({ mapping: kind.data.lifecycle.validate, input: { self: selfOf(element) } }) ?? [];
+const hookMessages = (element, kind) => applyMapping({ mapping: kind.data.lifecycle.validate, input: { self: selfAt(element, kind.id) } }) ?? [];
 
 const quietly = messagesOf => (...args) => {
     try {

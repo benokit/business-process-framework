@@ -1,5 +1,5 @@
-import { getElement } from '../registry.js';
-import { resolveKind, selfOf } from '../kinds.js';
+import { getElement, kindOf } from '../registry.js';
+import { resolveKind, selfAt } from '../kinds.js';
 import { check, resolveReferencesIn } from '../schemas.js';
 import { fail, framing } from '../errors.js';
 import { resolveReference } from '../references.js';
@@ -10,9 +10,10 @@ export const contractId = (owner, operation, part) => `${owner}/${operation}/${p
 
 export const invoke = async (reference, operationName, input, _ctx = Object.freeze({}), caller = undefined) => {
     const elementId = resolveReference(reference);
-    const self = selfOf(getElement(elementId));
-    const operation = resolveKind(self.kind).operations[operationName]
+    const element = getElement(elementId);
+    const operation = resolveKind(kindOf(element)).operations[operationName]
         ?? fail('unknown-operation', `${elementId} has no operation '${operationName}'`, { element: elementId, operation: operationName });
+    const self = selfAt(element, operation.implementedIn ?? kindOf(element));
     const where = `${elementId}.${operationName}`;
     if (operation.private && caller?.id !== elementId) {
         fail('private-operation', `${where} is private to ${elementId}`, { element: elementId, operation: operationName });

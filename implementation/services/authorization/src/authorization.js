@@ -1,5 +1,5 @@
 import { findElement, getElement } from '@business-framework/core';
-import { isInstanceOf, selfOf, selvesOf } from '@business-framework/core/kinds';
+import { isInstanceOf, selfAt, selvesOf } from '@business-framework/core/kinds';
 import { slotValues } from '@business-framework/core/slots';
 import { applyMapping } from '@business-framework/core/mappings';
 import { resolveReference } from '@business-framework/core/references';
@@ -132,7 +132,7 @@ const insert = (at, paths, holder) => {
 
 const actorsOf = role => role.data.actors ?? [];
 
-const includedOf = id => findElement(id) ? selfOf(getElement(id)).data.roles ?? [] : [];
+const includedOf = id => findElement(id) ? selfAt(getElement(id), 'role').data.roles ?? [] : [];
 
 const rolesWithin = (id, path = []) => path.includes(id) || !findElement(id)
     ? []
@@ -147,9 +147,9 @@ const cycleThrough = (start, id = start, path = []) => {
 const cycleProblems = () => selvesOf('role').map(role => cycleThrough(role.id)).filter(Boolean)
     .map(cycle => `${cycle[0]}: includes itself through ${cycle.join(' > ')}`);
 
-const ownGrantsOf = role => [...actorsOf(role).flatMap(actor => selfOf(getElement(actor)).data.grants), ...role.data.grants ?? []];
+const ownGrantsOf = role => [...actorsOf(role).flatMap(actor => selfAt(getElement(actor), 'actor').data.grants), ...role.data.grants ?? []];
 
-const grantsOf = role => rolesWithin(role.id).flatMap(id => ownGrantsOf(selfOf(getElement(id))));
+const grantsOf = role => rolesWithin(role.id).flatMap(id => ownGrantsOf(selfAt(getElement(id), 'role')));
 
 const isAll = edges => edges.includes(WILDCARD);
 
@@ -237,7 +237,7 @@ const EXPLAINED = {
     'http-endpoint': endpointExplanation,
     actor: (authorization, actor) => ({
         endpoints: reachable(authorization, actorTrie(authorization), actor.id),
-        roles: selvesOf('role').filter(role => rolesWithin(role.id).some(id => actorsOf(selfOf(getElement(id))).includes(actor.id))).map(role => role.id)
+        roles: selvesOf('role').filter(role => rolesWithin(role.id).some(id => actorsOf(selfAt(getElement(id), 'role')).includes(actor.id))).map(role => role.id)
     }),
     role: (authorization, role) => ({
         actors: actorsOf(role),
@@ -251,7 +251,7 @@ const EXPLAINED = {
 export const authorizationExplanation = ({ authorization, element }) => {
     const found = findElement(element);
     const kind = found && Object.keys(EXPLAINED).find(name => isInstanceOf({ element, kind: name }));
-    return kind ? { authorization: EXPLAINED[kind](authorization, selfOf(found)) ?? null } : null;
+    return kind ? { authorization: EXPLAINED[kind](authorization, selfAt(found, kind)) ?? null } : null;
 };
 
 const theAuthorization = () => resolveReference({ instanceOf: 'authorization' });
@@ -263,7 +263,7 @@ export const permits = ({ operation, roles }) => {
 };
 
 export const endpointOperation = ({ endpoint, request }) => {
-    const { data } = selfOf(getElement(endpoint));
+    const { data } = selfAt(getElement(endpoint), 'http-endpoint');
     const scope = { params: request.params, query: request.query, headers: request.headers, input: applyMapping({ mapping: data.request ?? '#.body', input: request }) };
     const named = applyMapping({ mapping: data.operation, input: scope });
     return Object.fromEntries(dimensionsOf(theAuthorization()).map(dimension =>

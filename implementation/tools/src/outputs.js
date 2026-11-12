@@ -28,6 +28,8 @@ export const outputSchemas = {
         'chain[]': 'string',
         data: 'object',
         shapes: 'object',
+        mappings: 'object',
+        'levels[]': { '!kind': 'string', '!data': 'object' },
         fixed: 'object',
         manages: 'object',
         'settings[]': 'object',

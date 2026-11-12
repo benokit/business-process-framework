@@ -1,7 +1,7 @@
 import path from 'path';
 import { getElement } from '@business-framework/core';
 import { availableSettings } from '@business-framework/core/introspection';
-import { effectTracesOf, explanationsOf, fillsOf, instancesOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
+import { effectTracesOf, explanationsOf, fillsOf, instancesOf, levelsOf, orderFills, resolveKind, selfOf, sourceOf } from '@business-framework/core/introspection';
 
 const relative = file => file && path.relative(process.cwd(), file);
 
@@ -54,6 +54,7 @@ const kindDescription = element => {
     return {
         chain: kind.ids,
         shapes: Object.fromEntries(kind.chain.filter(k => k.data.shape).map(k => [k.id, k.data.shape])),
+        mappings: Object.fromEntries(kind.chain.filter(k => k.data.mapping !== undefined).map(k => [k.id, k.data.mapping])),
         fixed: kind.fixed,
         settings: availableSettings(element.id),
         manages: kind.manages,
@@ -68,7 +69,8 @@ const kindDescription = element => {
 const instanceDescription = element => {
     const self = selfOf(element);
     const kind = resolveKind(self.kind);
-    return { chain: kind.ids, data: self.data, settings: availableSettings(element.id), operations: operationsOf(kind, self), slots: slotsOf(self) };
+    const levels = kind.chain.some(({ data }) => data.mapping !== undefined) ? { levels: levelsOf(element) } : {};
+    return { chain: kind.ids, data: self.data, ...levels, settings: availableSettings(element.id), operations: operationsOf(kind, self), slots: slotsOf(self) };
 };
 
 export const explain = id => {
@@ -115,10 +117,12 @@ export const renderExplanation = description => [
     `${description.id}  ${description.kind}  ${description.source ?? ''}`.trimEnd(),
     `chain: ${description.chain.join(' > ')}`,
     ...section('shapes', Object.entries(description.shapes ?? {}).map(([kind, shape]) => `  ${kind}: ${json(shape)}`)),
+    ...section('mappings', Object.entries(description.mappings ?? {}).map(([kind, mapping]) => `  ${kind}: ${json(mapping)}`)),
     ...valueLine('fixed', description.fixed),
     ...valueLine('manages', description.manages),
     ...section('settings', (description.settings ?? []).map(settingLine)),
     ...valueLine('data', description.data),
+    ...section('levels', (description.levels ?? []).map(({ kind, data }) => `  ${kind}: ${json(data)}`)),
     ...section('operations', description.operations.map(operationLine)),
     ...section('slots', description.slots.flatMap(slotLines)),
     ...section('lifecycle', (description.lifecycle ?? []).map(lifecycleLine)),

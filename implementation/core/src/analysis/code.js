@@ -21,10 +21,10 @@ const fillPositions = ({ data: { target, slot, value } }) => {
     return declaration ? positionsIn({ schemaId: `${declaration.owner}/slots/${slot}`, value, path: 'value' }) : [];
 };
 
+const declaringShape = element => resolveKind(kindOf(element)).chain.findLast(kind => kind.data.shape !== undefined)?.id;
+
 const positionsOf = element => [
-    ...resolveKind(kindOf(element)).chain
-        .filter(kind => kind.data.shape !== undefined)
-        .flatMap(kind => positionsIn({ schemaId: kind.id, value: element.data })),
+    ...declaringShape(element) ? positionsIn({ schemaId: declaringShape(element), value: element.data }) : [],
     ...element.kind === 'slot-fill' ? fillPositions(element) : []
 ];
 

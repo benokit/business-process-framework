@@ -58,6 +58,15 @@ describe('effects', () => {
         expect(problems()).to.deep.equal([['effect-bound', 'operations.run.implementation', 'irreversible']]);
     });
 
+    it('evaluates the targets of an operation at the level of the kind that implements it', async () => {
+        await bootWith(
+            ...store,
+            kind('relay', { operations: { run: operation({ invoke: '#.self.data.target', operation: 'send' }) } }),
+            kind('mapped-relay', { extends: 'relay', shape: { '!destination': 'string' }, mapping: { target: '#.data.destination' } }),
+            element('the-relay', 'mapped-relay', { destination: 'the-store' }));
+        expect(effectsOf({ element: 'the-relay', operation: 'run' })).to.deep.equal(['irreversible']);
+    });
+
     it('resolves a target from a typed input reference over the instances of its kind', async () => {
         await bootRunner({ invoke: '#.input.target', operation: 'get' });
         expect(effectsOf({ element: 'the-runner', operation: 'run' })).to.deep.equal(['read']);

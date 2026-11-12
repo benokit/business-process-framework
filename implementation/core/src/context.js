@@ -1,6 +1,6 @@
 import { isPlainObject } from 'lodash-es';
 import { kindOf, onReset } from './registry.js';
-import { resolveKind, selfOf } from './kinds.js';
+import { levelsOf, resolveKind } from './kinds.js';
 import { check } from './schemas.js';
 import { fail } from './errors.js';
 
@@ -18,7 +18,7 @@ const recordValue = (element, value) => {
 
 export const recordAuthors = element => {
     recordValue(element, element.data);
-    recordValue(element, selfOf(element).data);
+    levelsOf(element).forEach(({ data }) => recordValue(element, data));
 };
 
 export const authorOf = node => authors.get(node);

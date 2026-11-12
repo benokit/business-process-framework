@@ -5,7 +5,8 @@
         "data": {
             "extends": "trait-container",
             "fixed": { "traits": { "business-key": { "configuration": {} } } },
-            "shape": { "characteristics{}": "@any" },
+            "shape": { "characteristics{}": "@any", "traits{}": "@entity-trait-entry" },
+            "mapping": "#.data",
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }

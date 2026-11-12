@@ -1,5 +1,5 @@
 import { getElement } from '@business-framework/core';
-import { hasOperation, isInstanceOf, resolveKind, selfOf, unite } from '@business-framework/core/kinds';
+import { hasOperation, isInstanceOf, resolveKind, selfAt, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
 import { methodChangesOf } from '@business-framework/core/effects';
 import { memo } from '@business-framework/core/registry';
@@ -13,7 +13,7 @@ const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const dataContributions = entityType => Object.entries(selfOf(getElement(entityType)).data.traits ?? {})
+const dataContributions = entityType => Object.entries(selfAt(getElement(entityType), 'trait-container').data.traits ?? {})
     .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: entityType }));
 
 const fillContributions = entityType => fillsOf(selfOf(getElement(entityType)), 'traits').fills
