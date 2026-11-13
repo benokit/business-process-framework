@@ -22,7 +22,7 @@ describe('discovery', () => {
     it('explains the data of an instance at the level of each kind, where a kind maps it', () => {
         const { levels } = explain('construction');
         expect(levels.map(level => level.kind)).to.deep.equal(['trait-container', 'entity-type', 'insurance-contract-type']);
-        expect(explain('entity-type').mappings).to.deep.equal({ 'entity-type': '#.data' });
+        expect(explain('insurance-contract-type').mappings).to.deep.equal({ 'insurance-contract-type': { traits: '#.data.traits' } });
     });
 
     it('layers an amendment type: the changes an author writes become the body schema of the entity type', () => {

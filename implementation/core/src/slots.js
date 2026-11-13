@@ -22,7 +22,7 @@ const singleValue = (fills, targets, slot) => {
     const target = targets.findLast(t => fills.some(fill => fill.data.target === t));
     const candidates = fills.filter(fill => fill.data.target === target);
     if (candidates.length > 1) fail('ambiguous-slot', `${candidates.length} '${slot}' fills target '${target}'`, { slot, target });
-    return candidates[0] ? ownedBy(candidates[0].id, candidates[0].data.value) : null;
+    return candidates[0] ? ownedBy(candidates[0].id, candidates[0].data.value, target) : null;
 };
 
 export const fillsOf = (self, slot) => {
@@ -42,5 +42,5 @@ export const slotValues = ({ element, slot, on }) => {
     }
     return declaration.cardinality === 'one'
         ? singleValue(fills, targets, slot)
-        : orderFills(fills, targets, slot).filter(handles(on)).map(fill => ownedBy(fill.id, fill.data.value));
+        : orderFills(fills, targets, slot).filter(handles(on)).map(fill => ownedBy(fill.id, fill.data.value, fill.data.target));
 };

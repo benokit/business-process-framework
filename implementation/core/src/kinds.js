@@ -105,6 +105,10 @@ export const selfAt = (element, kindId) => selvesByKind(element)[kindId];
 
 export const selfOf = element => selfAt(element, kindOf(element));
 
+export const selfAtTarget = (element, target) => resolveKind(kindOf(element)).chain.some(kind => kind.id === target)
+    ? selfAt(element, target)
+    : selfOf(element);
+
 export const instancesOf = memo(kindId => allElements().filter(element => extendsKind(kindOf(element), kindId)));
 
 export const selvesOf = kind => instancesOf(kind).filter(element => element.id !== undefined).map(element => selfAt(element, kind));

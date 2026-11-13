@@ -191,11 +191,7 @@ A kind's `fixed` states what is true of every instance (a query's `provider` is 
 
 ## Shapes and mappings
 
-A kind's `shape` is the shape of its instances' data, and the code of the kind (its operations, hooks and, in a slot fill, the target's code) sees exactly that data as `#.self.data`. A kind that extends another and declares no `mapping` has its parent's shape: declaring one again is `redundant-shape` (a kind none of whose ancestors declares a shape may declare the first), and shapes are never composed. A `mapping` from `{ id, data }` of the kind to its parent's shape lets a subkind use a vocabulary of its own:
-
-```json
-{ "id": "entity-type", "kind": "kind", "data": { "extends": "trait-container", "shape": { "characteristics{}": "@any" }, "mapping": "#.data" } }
-```
+A kind's `shape` is the shape of its instances' data, and the code of the kind (its operations and hooks) sees exactly that data as `#.self.data`; a slot fill sees the data at the level of its `target` kind (of the instance's own kind when the target is the instance), wherever the operation that runs it is implemented. A kind that extends another and declares no `mapping` has its parent's shape: declaring one again is `redundant-shape` (a kind none of whose ancestors declares a shape may declare the first), and shapes are never composed. A `mapping` from `{ id, data }` of the kind to its parent's shape lets a subkind use a vocabulary of its own.
 
 A subkind with a vocabulary of its own writes the mapping once, and its instances use that vocabulary (here `labelled` instances are read by the code of `named` as `{ name }`):
 

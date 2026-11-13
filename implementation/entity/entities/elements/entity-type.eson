@@ -5,8 +5,6 @@
         "data": {
             "extends": "trait-container",
             "fixed": { "traits": { "business-key": { "configuration": {} } } },
-            "shape": { "characteristics{}": "@any", "traits{}": "@entity-trait-entry" },
-            "mapping": "#.data",
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
@@ -346,24 +344,6 @@
             "lifecycle": {
                 "validate": { "$func/entity-trait-problems": "#.self.id" }
             }
-        }
-    },
-    {
-        "id": "entity-characteristics",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": "string", "output": { "*": "@any" } },
-            "module": "@business-framework/entities/characteristics",
-            "export": "characteristicsOf"
-        }
-    },
-    {
-        "id": "entity-characteristic",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": { "!entityType": "string", "!name": "string" }, "output": "@any" },
-            "module": "@business-framework/entities/characteristics",
-            "export": "characteristicOf"
         }
     },
     {

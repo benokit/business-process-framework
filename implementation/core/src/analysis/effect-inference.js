@@ -1,6 +1,6 @@
 import { get, isPlainObject } from 'lodash-es';
 import { allElements, findElement } from '../registry.js';
-import { instancesOf, resolveKind, selfAt, selfOf, selvesOf } from '../kinds.js';
+import { instancesOf, resolveKind, selfAt, selfAtTarget, selfOf, selvesOf } from '../kinds.js';
 import { fillsOf } from '../slots.js';
 import { isKindReference, resolveReference } from '../references.js';
 import { formOf, pipelinesOf, templatePositions } from './code.js';
@@ -119,7 +119,7 @@ const analysis = previous => {
 
     const fillEffects = (self, fill) => {
         const declaration = resolveKind(self.kind).slots[fill.data.slot];
-        const level = selfAt(findElement(self.id), declaration.owner);
+        const level = selfAtTarget(findElement(self.id), fill.data.target);
         return traced(union(methodsOf(fill.data.value, declaration.value)
             .map(({ code, path }) => pipelineEffects(code, { self: level, author: fill.id ?? `a fill of ${fill.data.slot}` }, path))), `fill ${fill.id ?? fill.data.slot}`);
     };

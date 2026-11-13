@@ -166,11 +166,12 @@ const elements = [
         then: { throw: 'unlucky amount' }
     }),
     { id: CONTRACT_BODY, kind: 'schema', data: { '!holder': 'string' } },
-    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', fixed: { characteristics: { lineOfBusiness: 'marine' } } } },
+    { id: CONTRACT_CLASS, kind: 'kind', data: { extends: 'entity-type', shape: { lineOfBusiness: 'string', 'traits{}': '@entity-trait-entry' }, mapping: { traits: '#.data.traits' } } },
     {
         id: CONSTRUCTION,
         kind: CONTRACT_CLASS,
         data: {
+            lineOfBusiness: 'marine',
             traits: {
                 body: { configuration: { schema: { '$data#&': [`@${CONTRACT_BODY}`, { '!project': 'string' }] } } },
                 'business-key': { configuration: { rule: { set: { $str: ['CON-', '#.input.traits.body.project'] } } } }
@@ -178,7 +179,7 @@ const elements = [
         }
     },
     fill('keep-marine-contracts', CONTRACT_CLASS, 'guards', {
-        if: { $eq: [{ '$func/entity-characteristic': { entityType: '#.self.id', name: 'lineOfBusiness' } }, 'marine'] },
+        if: { $eq: ['#.self.data.lineOfBusiness', 'marine'] },
         then: { throw: { code: 'conflict', message: 'marine contracts are kept' } }
     }, { on: ['delete'] }),
     fill('contract-note', CONTRACT_CLASS, 'traits', { trait: NOTE, configuration: { prefix: 'contract: ' } }),
@@ -405,7 +406,7 @@ describe('entities', function () {
         expect((await errorOf(invoke(CONSTRUCTION, 'create', { traits: { body: { project: 'no holder' } } }))).code).to.equal('invalid');
     });
 
-    it('gives a guard the static characteristics of the kind, which no record stores', async () => {
+    it('gives a guard the data of the entity type, which no record stores', async () => {
         const created = await invoke(CONSTRUCTION, 'create', { traits: { body: { holder: 'Ada', project: 'tunnel' } } });
         expect(created.data).to.not.have.property('lineOfBusiness');
         expect((await errorOf(invoke(CONSTRUCTION, 'delete', { businessKey: created.businessKey, revision: created.revision }))).code).to.equal('conflict');

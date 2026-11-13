@@ -3,7 +3,9 @@ import { fail, framing } from '../errors.js';
 import { executors } from './nodes/index.js';
 import { findTemplate, runTemplate } from './templates.js';
 import { sequentially } from './sequentially.js';
-import { ownerOf } from './owners.js';
+import { ownerOf, targetOf } from './owners.js';
+import { findElement } from '../registry.js';
+import { selfAtTarget } from '../kinds.js';
 
 export class Return {
     constructor(value) {
@@ -57,9 +59,16 @@ const runSignalled = async (pipeline, scope) => {
     }
 };
 
+const atTarget = (pipeline, scope) => {
+    const target = targetOf(pipeline);
+    const element = target === undefined ? undefined : findElement(scope.self?.id);
+    return element === undefined ? scope : { ...scope, self: selfAtTarget(element, target) };
+};
+
 export const runMethod = (pipeline, scope) => {
     const owner = ownerOf(pipeline);
-    return owner === undefined ? runSignalled(pipeline, scope) : framing.around(() => runSignalled(pipeline, scope), owner);
+    const run = () => runSignalled(pipeline, atTarget(pipeline, scope));
+    return owner === undefined ? run() : framing.around(run, owner);
 };
 
 export const methodScope = ({ self, _ctx }, input) => ({ input, self, _ctx });

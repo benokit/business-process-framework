@@ -3,7 +3,8 @@
         "id": "construction",
         "kind": "insurance-contract-type",
         "data": {
-            "characteristics": { "lineOfBusiness": "construction", "maxSumInsured": 50000000 },
+            "lineOfBusiness": "construction",
+            "maxSumInsured": 50000000,
             "traits": {
                 "body": {
                     "configuration": {
