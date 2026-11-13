@@ -8,7 +8,7 @@ The `ownership` [trait](../entities/README.md#traits): the facts about an entity
 - A dimension is a `string`, `number`, `integer` or `boolean`, or an array of one of them (`departments[]`). A string has no uppercase letters, since a search engine filter compares strings without case and the two answers must be the same.
 - A class fixes the dimensions (`fixed.traits.ownership.configuration.dimensions`) and each entity type gives its rule, so no entity type can add a dimension.
 - Callers can't write it: `create` fails with `invalid` when `traits.ownership` is given, and no endpoint writes the key.
-- The `derive` of the trait applies the rule to the record as the write leaves it, on `create` and on a trait write, checks the result against `<entityType>/ownership/dimensions` (`invalid` otherwise) and gives a command only when the ownership changed, so it lands in the same revision ([derived traits](../entities/README.md#derived-traits)). An entity type without the trait is untouched.
+- The `derive` of the trait applies the rule to the record as the write leaves it, on `create` and on a trait write, checks the result against `<entityType>/ownership/dimensions` (`invalid` otherwise) and requests its operation `assign` only when the ownership changed, so the command lands in the same revision ([derived traits](../entities/README.md#derived-traits)). An entity type without the trait is untouched.
 
 ## Backfill
 

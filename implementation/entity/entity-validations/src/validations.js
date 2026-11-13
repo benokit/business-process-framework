@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { hasOperation, selvesOf } from '@business-framework/core/kinds';
 import { traitsOf } from '@business-framework/entities/traits';
 
-export const validationDerivation = ({ record, key, errors, operations }) => isDeepStrictEqual(record.data[key], errors) ? null : { command: 'validate', value: errors, operations };
+export const validationDerivation = ({ record, key, errors, operations }) => isDeepStrictEqual(record.data[key], errors) ? [] : [{ key, operation: 'validate', input: errors }, ...operations];
 
 const requestedBy = ({ onValidation }) => Array.isArray(onValidation) ? onValidation.filter(request => typeof request?.key === 'string' && typeof request?.operation === 'string') : [];
 

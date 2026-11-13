@@ -32,12 +32,12 @@
     {
         "id": "trait-derive-input",
         "kind": "schema",
-        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!record": { "!entityType": "string", "!businessKey": "string", "!data": "object" } }
+        "data": { "!entityType": "string", "!key": "string", "!configuration": "@any", "!record": { "!entityType": "string", "!businessKey": "string", "!data": "object" }, "command": "@any" }
     },
     {
         "id": "trait-derivation",
         "kind": "schema",
-        "data": { "$data#": [{ "$data#&": ["@trait-command", { "operations[]": { "!key": "string", "!operation": "string", "input": "@any" } }] }, "null"] }
+        "data": { "$data#": ["[@trait-operation-use]", "null"] }
     },
     {
         "id": "trait-operation",

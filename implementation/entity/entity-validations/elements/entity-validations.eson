@@ -47,6 +47,11 @@
                         },
                         { "set": {} }
                     ]
+                },
+                "validate": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": { "set": { "command": "validate", "value": "#.input.input" } }
                 }
             }
         }

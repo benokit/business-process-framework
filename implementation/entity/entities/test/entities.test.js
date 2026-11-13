@@ -35,6 +35,12 @@ const prefixed = id => ({
 const TOTAL = `total-${run}`;
 const DOUBLE = `double-${run}`;
 const DERIVING = `deriving-${run}`;
+const REVERSED = `reversed-${run}`;
+const ADDED = `added-${run}`;
+const ADDING = `adding-${run}`;
+const COUNTING = `counting-${run}`;
+const CHAINING = `chaining-${run}`;
+const RUNAWAY = `runaway-${run}`;
 
 const derived = id => ({
     id: `${id}-trait`,
@@ -52,8 +58,8 @@ const derivation = compute => [
     { outputKey: 'computed', set: compute },
     {
         if: { $eq: ['#.computed', { $get: { object: '#.input.record.data', path: '#.input.key' } }] },
-        then: { set: null },
-        else: { set: { command: 'derive', value: '#.computed' } }
+        then: { set: [] },
+        else: { set: [{ key: '#.input.key', operation: 'rewrite', input: { value: '#.computed' } }] }
     }
 ];
 
@@ -112,6 +118,44 @@ const elements = [
     derived(DOUBLE),
     { id: DOUBLE, kind: `${DOUBLE}-trait`, data: { configuration: {}, derive: derivation({ $multiply: [2, { $get: { object: '#.input.record.data', path: TOTAL } }] }) } },
     { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {} }, [DOUBLE]: { configuration: {} } } } },
+    { id: REVERSED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [DOUBLE]: { configuration: {} }, [TOTAL]: { configuration: {} } } } },
+    {
+        id: `${ADDED}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'valued-entity-trait',
+            operations: {
+                initialize: { implementation: { set: 0 } },
+                add: { input: '@trait-operation-input', output: '@trait-command', implementation: { set: { command: 'add', value: { $sum: ['#.input.value', '#.input.input'] } } } }
+            }
+        }
+    },
+    { id: ADDED, kind: `${ADDED}-trait`, data: { configuration: {} } },
+    {
+        id: `${ADDING}-trait`,
+        kind: 'kind',
+        data: { extends: 'valued-entity-trait', operations: { initialize: { implementation: { set: 0 } } } }
+    },
+    {
+        id: ADDING,
+        kind: `${ADDING}-trait`,
+        data: {
+            configuration: {},
+            derive: {
+                if: { $eq: [{ $get: { object: '#.input.record.data', path: ADDED } }, 0] },
+                then: { set: [{ key: ADDED, operation: 'add', input: 1 }, { key: ADDED, operation: 'add', input: 2 }] },
+                else: { set: [] }
+            }
+        }
+    },
+    { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {} } } } },
+    derived(COUNTING),
+    {
+        id: COUNTING,
+        kind: `${COUNTING}-trait`,
+        data: { configuration: {}, derive: { set: [{ key: '#.input.key', operation: 'rewrite', input: { value: { $sum: [{ $get: { object: '#.input.record.data', path: '#.input.key' } }, 1] } } }] } }
+    },
+    { id: RUNAWAY, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [COUNTING]: { configuration: {} } } } },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(MASKED),
@@ -303,6 +347,21 @@ describe('entities', function () {
             expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
             const updated = await invoke(DERIVING, 'run', { businessKey: 'd-1', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 5 } } });
             expect([updated.revision, updated.data[TOTAL], updated.data[DOUBLE]]).to.deep.equal([2, 5, 10]);
+        });
+
+        it('converge whatever the order of the traits, a derive that is stale again being consulted again', async () => {
+            const created = await invoke(REVERSED, 'create', { businessKey: 'r-1', traits: { body: { amount: 3 } } });
+            expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
+        });
+
+        it('run the operations a derive requests one after the other, each seeing the value the one before left', async () => {
+            const created = await invoke(CHAINING, 'create', { businessKey: 'c-1', traits: { body: { amount: 1 } } });
+            expect(created.data[ADDED]).to.equal(3);
+        });
+
+        it('stop a derivation that does not settle at the limit of steps, with the commands it ran', async () => {
+            const error = await errorOf(invoke(RUNAWAY, 'create', { businessKey: 'x-1', traits: { body: { amount: 1 } } }));
+            expect([error.code, error.data.commands.length]).to.deep.equal(['derivation-limit', 101]);
         });
 
         it('leave a collision with the command of a caller to the trait', async () => {

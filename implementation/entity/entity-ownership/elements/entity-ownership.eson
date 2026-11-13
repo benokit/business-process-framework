@@ -85,6 +85,11 @@
                         },
                         { "set": {} }
                     ]
+                },
+                "assign": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": { "set": { "command": "derive", "value": "#.input.input" } }
                 }
             }
         }
@@ -103,8 +108,8 @@
                 },
                 {
                     "if": { "$eq": ["#.ownership", { "$get": { "object": "#.input.record.data", "path": "#.input.key" } }] },
-                    "then": { "set": null },
-                    "else": { "set": { "command": "derive", "value": "#.ownership" } }
+                    "then": { "set": [] },
+                    "else": { "set": [{ "key": "#.input.key", "operation": "assign", "input": "#.ownership" }] }
                 }
             ]
         }
