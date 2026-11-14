@@ -5,7 +5,7 @@ const ORDER = 'order';
 
 const elements = [
     { id: ORDER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } } } } },
-    { id: 'positive-amount', kind: 'slot-fill', data: { target: ORDER, slot: 'guards', value: {
+    { id: 'positive-amount', kind: 'slot-fill', data: { target: ORDER, slot: 'requestGuards', value: {
         if: { $lte: ['#.input.after.data.body.amount', 0] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     } } },

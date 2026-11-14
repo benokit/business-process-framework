@@ -27,7 +27,7 @@
         "kind": "slot-fill",
         "data": {
             "target": "user",
-            "slot": "guards",
+            "slot": "requestGuards",
             "on": ["create", "trait"],
             "value": [
                 { "outputKey": "body", "set": { "$head": { "$func/change-command": { "commands": "#.input.commands", "key": "body" } } } },

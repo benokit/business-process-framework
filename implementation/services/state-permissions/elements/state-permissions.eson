@@ -59,7 +59,7 @@
         "kind": "slot-fill",
         "data": {
             "target": "entity-type",
-            "slot": "guards",
+            "slot": "requestGuards",
             "position": "last",
             "on": ["create", "trait", "delete"],
             "value": {

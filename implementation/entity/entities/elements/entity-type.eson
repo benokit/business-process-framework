@@ -6,7 +6,7 @@
             "extends": "trait-container",
             "fixed": { "traits": { "business-key": { "configuration": {} } } },
             "slots": {
-                "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
+                "requestGuards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "resultGuards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
             },
@@ -24,7 +24,7 @@
                         },
                         { "inputMap": { "change": { "operation": "read", "before": "#.record" } }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
-                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "read" } },
+                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "requestGuards", "on": "read" } },
                             "forEach": {
                                 "inputMap": { "$func/viewed-change": { "change": { "operation": "read", "before": "#.record" }, "entityType": "#.self.id" } },
                                 "execute": "#.item"
@@ -179,7 +179,7 @@
                     "implementation": [
                         { "inputMap": { "change": "#.input.change" }, "invoke": "#.self.id", "operation": "guardTraits" },
                         {
-                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "guards", "on": "#.input.change.operation" } },
+                            "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "requestGuards", "on": "#.input.change.operation" } },
                             "forEach": { "inputMap": { "$func/viewed-change": { "change": "#.input.change", "entityType": "#.self.id" } }, "execute": "#.item" }
                         }
                     ]

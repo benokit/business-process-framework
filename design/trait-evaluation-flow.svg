@@ -38,10 +38,10 @@
 <text x="52" y="256" fill="#334">input.revision ≠ before.revision → throw conflict</text>
 <line x1="350" y1="276" x2="350" y2="296" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="296" width="620" height="94" rx="8" fill="#fde8e8" stroke="#c03b3b" stroke-width="1.5"/>
-<text x="52" y="318" font-weight="bold" fill="#123">2  guardRequest: guardTraits, then the guards slot (the request)</text>
+<text x="52" y="318" font-weight="bold" fill="#123">2  guardRequest: guardTraits, then the requestGuards slot</text>
 <text x="52" y="338" fill="#334">for each trait, in the order of entity-traits: its hook guard({ entityType, key, configuration, change })</text>
 <text x="52" y="354" fill="#334">read and trace only; throws to refuse; decides from change.operation</text>
-<text x="52" y="370" fill="#334">then the fills of the slot guards that are on the operation</text>
+<text x="52" y="370" fill="#334">then the fills of the slot requestGuards on the operation</text>
 <line x1="350" y1="390" x2="350" y2="410" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="410" width="620" height="136" rx="8" fill="#f3e8fe" stroke="#7a3bc0" stroke-width="1.5"/>
 <text x="52" y="432" font-weight="bold" fill="#123">3  deriveData (not on delete): a queue of operations, to a fixed point</text>

@@ -66,7 +66,7 @@
         "kind": "slot-fill",
         "data": {
             "target": "entity-type",
-            "slot": "guards",
+            "slot": "requestGuards",
             "on": ["read"],
             "value": {
                 "if": { "$func/denies-record": { "entityType": "#.self.id", "user": "#._ctx.user", "record": "#.input.before" } },

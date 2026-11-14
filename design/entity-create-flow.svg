@@ -37,7 +37,7 @@
 <rect x="40" y="432" width="430" height="92" rx="8" fill="#eef7ea" stroke="#3c8d2f" stroke-width="1.5"/>
 <text x="52" y="454" font-weight="bold" fill="#123">4  applyChange: guards</text>
 <text x="52" y="474" fill="#334">guardTraits (guard hook of each trait)</text>
-<text x="52" y="490" fill="#334">+ slot guards on operation 'create'</text>
+<text x="52" y="490" fill="#334">+ slot requestGuards on operation 'create'</text>
 <text x="52" y="506" fill="#334">read-only; a guard may throw</text>
 <line x1="255.0" y1="524" x2="255.0" y2="546" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="560" y="438" width="460" height="80" rx="6" fill="#fafafa" stroke="#99a" />

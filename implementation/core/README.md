@@ -119,7 +119,7 @@ Declaring only at the leaves and inferring upward means a declaration can't go s
 
 - A template's `effects.bound` lists the effects its code may have (`inTransaction`: `read`, `write`, `trace`).
 - A template with `effects.defers` runs its code after the enclosing scope ends (`afterCommit`): its effects don't count against an enclosing bound, but they count for the operation.
-- A slot's `effects` lists the effects its fills may have (`guards`: `read`, `trace`).
+- A slot's `effects` lists the effects its fills may have (`requestGuards`: `read`, `trace`).
 - A kind checks more in its `validate` hook with `$func/changes-of` (`http-endpoint`: a `GET` target changes nothing).
 
 A bound that inference contradicts is an `effect-bound` problem with the trace. [`bpf explain`](../tools/README.md) shows the effects of every operation of an instance. Operations that reach each other in a cycle get the effects of the whole cycle. Not seen: what a computed `execute` runs (other than slot fills read with `$func/slot-values`).

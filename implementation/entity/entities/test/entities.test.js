@@ -209,22 +209,22 @@ const elements = [
     { id: VERSIONED, kind: WRITING, data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } } } } },
     { id: ORDER, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
-    fill('positive-amount', ORDER, 'guards', {
+    fill('positive-amount', ORDER, 'requestGuards', {
         if: { $and: [{ $eq: ['#.input.operation', 'create'] }, { $lte: ['#.input.after.data.body.amount', 0] }] },
         then: { throw: { code: 'invalid', message: 'amount must be positive' } }
     }),
-    fill('change-concurrently', ORDER, 'guards', {
+    fill('change-concurrently', ORDER, 'requestGuards', {
         if: { $eq: ['#.input.before.businessKey', 'o-raced'] },
         then: {
             if: { $eq: ['#.input.operation', 'delete'] },
             then: { inputMap: { businessKey: 'o-raced', revision: '#.input.before.revision', trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' }
         }
     }),
-    fill('hide-hidden-order', ORDER, 'guards', {
+    fill('hide-hidden-order', ORDER, 'requestGuards', {
         if: { $eq: ['#.input.before.businessKey', 'o-hidden'] },
         then: { throw: { code: 'not-found', message: 'hidden' } }
     }, { on: ['read'] }),
-    fill('keep-kept-order', ORDER, 'guards', {
+    fill('keep-kept-order', ORDER, 'requestGuards', {
         if: { $eq: ['#.input.before.businessKey', 'o-kept'] },
         then: { throw: { code: 'conflict', message: 'kept' } }
     }, { on: ['delete'] }),
@@ -253,7 +253,7 @@ const elements = [
             }
         }
     },
-    fill('keep-marine-contracts', CONTRACT_CLASS, 'guards', {
+    fill('keep-marine-contracts', CONTRACT_CLASS, 'requestGuards', {
         if: { $eq: ['#.self.data.lineOfBusiness', 'marine'] },
         then: { throw: { code: 'conflict', message: 'marine contracts are kept' } }
     }, { on: ['delete'] }),
@@ -276,7 +276,7 @@ describe('entities', function () {
     after(stop);
 
     it('validates, apart from the guard that simulates a concurrent writer', () => {
-        expect(validate().map(({ code, data }) => [code, data.slot, data.effect])).to.deep.equal([['effect-bound', 'guards', 'write']]);
+        expect(validate().map(({ code, data }) => [code, data.slot, data.effect])).to.deep.equal([['effect-bound', 'requestGuards', 'write']]);
     });
 
     it('creates with the body and initial trait values, and reads back', async () => {

@@ -19,7 +19,7 @@ Access is calculated from the context of the call: `_ctx.user` → its `access` 
 
 | Fill on `entity-type` | Slot | Does |
 |---|---|---|
-| `hide-uncovered-records` | `guards` | on `read`, `trait` and `delete`, the record as it is must be reached, otherwise `not-found`, so a hidden record can't be told from a missing one |
+| `hide-uncovered-records` | `requestGuards` | on `read`, `trait` and `delete`, the record as it is must be reached, otherwise `not-found`, so a hidden record can't be told from a missing one |
 | `refuse-uncovered-results` | `reactions` | on `create` and `trait`, the record as the write left it must be reached, otherwise `forbidden` and the transaction is rolled back, so nobody creates or hands over a record they could not change |
 | `search-only-covered-records` | `searchRows` | the search of [entity-search](../entity-search/README.md) is filtered by the same rows, as a filter in the engine's language |
 

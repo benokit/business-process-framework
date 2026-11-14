@@ -4,7 +4,7 @@ Keyed, revisioned business records, extensible by traits.
 
 ## entity-type
 
-Each entity type is an instance of `entity-type`, or of a class: a kind that extends it, with its own fixed traits and fills (`traits`, `guards`, …). A feature is a trait, never a kind: an entity type declares the traits it has.
+Each entity type is an instance of `entity-type`, or of a class: a kind that extends it, with its own fixed traits and fills (`traits`, `requestGuards`, …). A feature is a trait, never a kind: an entity type declares the traits it has.
 
 ```json
 { "id": "order", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } }, "state": { "configuration": { … } } } } }
@@ -12,11 +12,11 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 
 | Operation | Input | Output |
 |---|---|---|
-| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the fills of `guards` that are on `read` run on the loaded record (private `load`, which every write passes through too) as a change `{ operation: "read", before: record }` |
+| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the fills of `requestGuards` that are on `read` run on the loaded record (private `load`, which every write passes through too) as a change `{ operation: "read", before: record }` |
 | `create` | `businessKey?`, `traits` (input per trait, `body` among them) | record |
 | `run` | `businessKey`, `revision?`, `trait`, `operation`, `input?` | the [public operation of a trait](#public-and-private-operations) (`update` of `body`, `transition` of `state`, …); the record for an operation that writes one trait |
 | `delete` | `businessKey`, `revision` | the deleted record |
-| `applyChange` (private) | `change`, `revision?` | record; the write path of every write operation: the guards on the operation of the change, then the [derivation](#derived-traits) of the traits and the `resultGuards` (not on `delete`), then in one transaction the store write the change implies (`create` writes `after` as derived; `trait` sets the key of each of its `commands` and of the derived commands to the command's `value` on `before`, in one revision; `delete` removes `before`) and the reactions |
+| `applyChange` (private) | `change`, `revision?` | record; the write path of every write operation: the `requestGuards` on the operation of the change, then the [derivation](#derived-traits) of the traits and the `resultGuards` (not on `delete`), then in one transaction the store write the change implies (`create` writes `after` as derived; `trait` sets the key of each of its `commands` and of the derived commands to the command's `value` on `before`, in one revision; `delete` removes `before`) and the reactions |
 | `derive` | `businessKey`, `revision?` | record; applies the [derivation](#derived-traits) to the stored record and writes the commands it gives as one `trait` change; the record as it is, without a new revision, when nothing is stale (a backfill after a rule changed) |
 | `applyTraitOperations` (private) | `businessKey`, `revision?`, `entityOperation`, `operations` (`[{ key, operation, input }]`) | record; runs the trait operation of each item against the record as it is and writes their commands as one `trait` change (`invalid` for a key given twice, a key without a trait, or a trait without the operation). The nodes `traitOperation` and `traitOperations` call it |
 | `initialTraitValues` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
@@ -97,17 +97,17 @@ Fill them on `entity-type` (every entity type), on a class (all its instances) o
 | Slot | Cardinality | Value | Runs |
 |---|---|---|---|
 | `traits` | many | `{ trait?, key?, configuration }` | see [Traits](#traits) |
-| `guards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only; discriminator `operation`, a fill says with `on` which operations it judges ([slots](../../core/README.md#slots)) | on the request, before the derivation |
-| `resultGuards` | many | as `guards` | on the result, after the derivation and before the transaction: the change carries the commands of the whole write, requested and derived, and `after` is the entity as it would be stored (not on `delete`); a refusal writes nothing. It judges what a derive adds, such as an owner a rule computed |
+| `requestGuards` | many | method: change → (throws to refuse); [effects](../../core/README.md#effects) `read` and `trace` only; discriminator `operation`, a fill says with `on` which operations it judges ([slots](../../core/README.md#slots)) | on the request, before the derivation |
+| `resultGuards` | many | as `requestGuards` | on the result, after the derivation and before the transaction: the change carries the commands of the whole write, requested and derived, and `after` is the entity as it would be stored (not on `delete`); a refusal writes nothing. It judges what a derive adds, such as an owner a rule computed |
 | `reactions` | many | method: change with `after` = the written record | inside the transaction, after the write; a failure rolls back; no `irreversible` effects outside `afterCommit` (the outbox defers delivery so) |
 
 A change is one of four variants by its `operation` (`entity-change`): `create` carries `after` (`businessKey`, `data`), `trait` the `before` record and the `commands` (`{ key, command, value }`; the requested ones for a guard, the requested and the derived ones, in the order they ran, for a reaction), `delete` and `read` the `before` record; reactions see `after` as the written record. The input of a guard fill that is `on` some operations has only their fields, so a guard `on: ["read"]` that reads `commands` is reported by `validate()`. `entityOperation` (any variant) names the operation of the entity type that causes a `trait` or `delete` change (`update`, `putSegment`, `delete`, …), so that a guard can decide on what the entity exposes and not on the trait it ends in.
 
 ### Order of a write
 
-1. `load` reads the record and runs the guards `on` `read`: whether a record is visible is decided here, once, for `read`, `derive` and every write, before anything computes on it (a hidden record is `not-found`, never an `invalid` from a trait operation).
+1. `load` reads the record and runs the `requestGuards` `on` `read`: whether a record is visible is decided here, once, for `read`, `derive` and every write, before anything computes on it (a hidden record is `not-found`, never an `invalid` from a trait operation).
 2. The operation computes its commands (trait operations) and calls `applyChange`.
-3. `applyChange` checks the `revision`, runs the guards `on` the operation of the change (`create`, `trait` or `delete`), folds the [derivation](#derived-traits), runs the `resultGuards` on the result, then in one transaction writes and runs the reactions.
+3. `applyChange` checks the `revision`, runs the `requestGuards` `on` the operation of the change (`create`, `trait` or `delete`), folds the [derivation](#derived-traits), runs the `resultGuards` on the result, then in one transaction writes and runs the reactions.
 
 A guard without `on` judges every operation, so it runs in step 1 and again in step 3.
 
