@@ -583,6 +583,44 @@ describe('entities', function () {
         await migrate();
     });
 
+    it('reports a derive hook and a command operation of a trait that write', async () => {
+        const id = `writing-derive-${run}`;
+        const writing = [
+            {
+                id: `${id}-trait`,
+                kind: 'kind',
+                data: {
+                    extends: 'valued-entity-trait',
+                    operations: {
+                        initialize: { implementation: { set: true } },
+                        rewrite: {
+                            input: '@trait-operation-input',
+                            output: '@trait-command',
+                            implementation: [{ inputMap: { businessKey: 'o-raced', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' }, { set: { command: 'rewrite', value: true } }]
+                        }
+                    }
+                }
+            },
+            {
+                id,
+                kind: `${id}-trait`,
+                data: {
+                    configuration: {},
+                    derive: { inputMap: { businessKey: 'o-raced', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } }, invoke: ORDER, operation: 'run' }
+                }
+            },
+            { id: `deriving-writer-${run}`, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [id]: { configuration: {}, dependsOn: ['body'] } } } }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...writing] });
+        const messages = validate().flatMap(problem => problem.data.messages ?? []);
+        expect(messages.some(message => message.startsWith(`trait '${id}': its derive may only read and trace, but has write: `))).to.equal(true);
+        expect(messages.some(message => message.startsWith(`trait '${id}': its operation 'rewrite' returns a command, so it may only read and trace, but has write: `))).to.equal(true);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
+        await migrate();
+    });
+
     it('reports invalid trait uses in validate()', async () => {
         const broken = [
             { id: `schemaless-${run}`, kind: 'entity-type', data: { traits: { body: {} } } },

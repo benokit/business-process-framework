@@ -1,7 +1,7 @@
 import { getElement } from '@business-framework/core';
 import { hasOperation, isInstanceOf, resolveKind, selfAt, selfOf, unite } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
-import { methodChangesOf } from '@business-framework/core/effects';
+import { changesOf, methodChangesOf } from '@business-framework/core/effects';
 import { memo } from '@business-framework/core/registry';
 import { validateValue } from '@business-framework/core/schemas';
 
@@ -112,6 +112,16 @@ const guardHookProblems = entityType => Object.values(traitsOf(entityType))
     .filter(({ trait }) => isTrait(trait) && getElement(trait).data.guard !== undefined)
     .flatMap(({ trait }) => methodChangesOf({ element: trait, property: 'guard' }).map(change => `trait '${trait}': its guard may only read and trace, but has ${change}`));
 
+const deriveHookProblems = entityType => Object.values(traitsOf(entityType))
+    .filter(({ trait }) => isTrait(trait) && getElement(trait).data.derive !== undefined)
+    .flatMap(({ trait }) => methodChangesOf({ element: trait, property: 'derive' }).map(change => `trait '${trait}': its derive may only read and trace, but has ${change}`));
+
+const commandOperationProblems = entityType => Object.values(traitsOf(entityType))
+    .filter(({ trait }) => isTrait(trait))
+    .flatMap(({ trait }) => Object.entries(resolveKind(getElement(trait).kind).operations)
+        .filter(([, operation]) => operation.output === '@trait-command')
+        .flatMap(([name]) => changesOf({ element: trait, operation: name }).map(change => `trait '${trait}': its operation '${name}' returns a command, so it may only read and trace, but has ${change}`)));
+
 const publicOperationsOfTrait = trait => Object.entries(resolveKind(getElement(trait).kind).operations)
     .filter(([, operation]) => operation.public === true);
 
@@ -150,6 +160,8 @@ export const traitProblems = entityType => {
     return [
         ...identityProblems(entityType),
         ...guardHookProblems(entityType),
+        ...deriveHookProblems(entityType),
+        ...commandOperationProblems(entityType),
         ...publicOperationProblems(entityType),
         ...dependencyProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
