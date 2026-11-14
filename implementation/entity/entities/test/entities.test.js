@@ -70,6 +70,8 @@ const derivation = compute => [
 
 const WRITING = `writing-${run}`;
 const VERSIONED = `versioned-${run}`;
+const HANDLING = `handling-${run}`;
+const HANDLED = `handled-${run}`;
 
 const elements = [
     {
@@ -211,6 +213,25 @@ const elements = [
     { id: SPECIALISED, kind: NOTED, data: { traits: { body: { configuration: { schema: {} } } } } },
     fill('specialised-note', SPECIALISED, 'traits', { key: NOTE, configuration: { suffix: '!' } }),
     { id: VERSIONED, kind: WRITING, data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } } } } },
+    { id: `${HANDLING}-value`, kind: 'schema', data: { '!handler': 'string', team: 'string' } },
+    {
+        id: `${HANDLING}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'valued-entity-trait',
+            operations: {
+                initialize: { implementation: { set: { $coalesce: ['#.input.input', {}] } } },
+                reassign: {
+                    public: true,
+                    input: { '$data#&': ['@trait-operation-input', { '!input': { '!value': `@${HANDLING}-value` } }] },
+                    output: '@trait-command',
+                    implementation: { set: { command: 'reassign', value: '#.input.input.value' } }
+                }
+            }
+        }
+    },
+    { id: HANDLING, kind: `${HANDLING}-trait`, data: { configuration: {} } },
+    { id: HANDLED, kind: WRITING, data: { traits: { body: { trait: 'versioned-body', configuration: { schema: { '!owner': 'string', startDate: 'string', '!premium': 'number' }, versioned: { validFrom: '/startDate' } } }, [HANDLING]: { configuration: {} } } } },
     { id: ORDER, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number', note: 'string' } } } } } },
     fill('order-note', ORDER, 'traits', { trait: NOTE, configuration: { prefix: 'order: ' } }),
     fill('positive-amount', ORDER, 'requestGuards', {
@@ -443,6 +464,20 @@ describe('entities', function () {
     it('refuses a write that changes a trait twice', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-twice', traits: { body: { amount: 1 } } });
         expect((await errorOf(invoke(ORDER, 'writeTwice', { businessKey: 'o-twice', revision: 1 }))).code).to.equal('invalid');
+    });
+
+    describe('a trait beside a versioned body', () => {
+        const body = (startDate, premium) => ({ owner: 'Ada', startDate, premium });
+
+        it('keeps a property of the entity as a whole out of the versions, so it changes after an amendment, while the body can no longer be updated', async () => {
+            await invoke(HANDLED, 'create', { businessKey: 'h-1', traits: { body: body('2025-01-01', 100), [HANDLING]: { handler: 'ann' } } });
+            await invoke(HANDLED, 'amend', { businessKey: 'h-1', revision: 1, ref: 'a-1', validFrom: '2025-07-01', body: body('2025-07-01', 110) });
+            const reassigned = await invoke(HANDLED, 'run', { businessKey: 'h-1', revision: 2, trait: HANDLING, operation: 'reassign', input: { value: { handler: 'bob', team: 'north' } } });
+            expect([reassigned.revision, reassigned.data[HANDLING], reassigned.data.body]).to.deep.equal([3, { handler: 'bob', team: 'north' }, body('2025-07-01', 110)]);
+            expect((await invoke(HANDLED, 'read', { businessKey: 'h-1', at: '2025-03-01' })).data).to.deep.include({ body: body('2025-01-01', 100), [HANDLING]: { handler: 'bob', team: 'north' } });
+            expect((await errorOf(invoke(HANDLED, 'run', { businessKey: 'h-1', revision: 3, trait: 'body', operation: 'update', input: { value: body('2025-01-01', 1) } }))).code).to.equal('conflict');
+            expect((await errorOf(invoke(HANDLED, 'run', { businessKey: 'h-1', revision: 3, trait: HANDLING, operation: 'reassign', input: { value: { handler: 7 } } }))).code).to.equal('invalid');
+        });
     });
 
     describe('a versioned body', () => {
