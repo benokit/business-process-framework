@@ -41,6 +41,8 @@ const ADDING = `adding-${run}`;
 const COUNTING = `counting-${run}`;
 const CHAINING = `chaining-${run}`;
 const RESULT_GUARDED = `result-guarded-${run}`;
+const PREVIEWED = `previewed-${run}`;
+const PREVIEWING = `previewing-${run}`;
 const RUNAWAY = `runaway-${run}`;
 const UNDECLARED = `undeclared-${run}`;
 
@@ -151,6 +153,23 @@ const elements = [
         }
     },
     { id: RESULT_GUARDED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] } } } },
+    {
+        id: `${PREVIEWING}-trait`,
+        kind: 'kind',
+        data: {
+            extends: 'entity-trait',
+            operations: {
+                preview: {
+                    public: true,
+                    input: { '$data#&': ['@trait-process-input', { '!input': { '!amount': 'number' } }] },
+                    output: '@trait-plan',
+                    implementation: { set: { operations: [{ key: 'body', operation: 'update', input: { value: { amount: '#.input.input.amount' } } }], commit: false } }
+                }
+            }
+        }
+    },
+    { id: PREVIEWING, kind: `${PREVIEWING}-trait`, data: { configuration: {} } },
+    { id: PREVIEWED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] }, [PREVIEWING]: { configuration: {} } } } },
     { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {}, dependsOn: [ADDED] } } } },
     derived(COUNTING),
     {
@@ -377,6 +396,14 @@ describe('entities', function () {
             const error = await errorOf(invoke(RESULT_GUARDED, 'run', { businessKey: 'g-1', revision: created.revision, trait: 'body', operation: 'update', input: { value: { amount: 5 } } }));
             expect([error.code, error.message]).to.deep.equal(['forbidden', 'derived double refused']);
             expect((await invoke(RESULT_GUARDED, 'read', { businessKey: 'g-1' })).revision).to.equal(created.revision);
+        });
+
+        it('preview the whole write: the derived commands and the entity after them, the guards of both phases run, nothing written', async () => {
+            const created = await invoke(PREVIEWED, 'create', { businessKey: 'p-1', traits: { body: { amount: 3 } } });
+            const preview = await invoke(PREVIEWED, 'run', { businessKey: 'p-1', revision: created.revision, trait: PREVIEWING, operation: 'preview', input: { amount: 5 } });
+            expect(preview.commands.map(command => [command.key, command.value])).to.deep.equal([['body', { amount: 5 }], [TOTAL, 5], [DOUBLE, 10]]);
+            expect([preview.entity.data[TOTAL], preview.entity.data[DOUBLE]]).to.deep.equal([5, 10]);
+            expect((await invoke(PREVIEWED, 'read', { businessKey: 'p-1' })).data[TOTAL]).to.equal(3);
         });
 
         it('consult a derive again only for the keys it declares, and on the first iteration alone when it declares none', async () => {
