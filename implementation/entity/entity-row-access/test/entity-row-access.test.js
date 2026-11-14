@@ -104,7 +104,7 @@ describe('entity-row-access', function () {
         ]).to.deep.equal([200, 404, 200]);
     });
 
-    it('refuses changing a row outside the scopes as not found, and handing a row over as forbidden, rolling it back', async () => {
+    it('refuses changing a row outside the scopes as not found, and handing a row over as forbidden, before anything is written', async () => {
         const { etag } = await everything('GET', `/entities/${CONTRACT}/c-de`);
         const frenchEtag = (await everything('GET', `/entities/${CONTRACT}/c-fr`)).etag;
         expect((await german('PUT', `/entities/${CONTRACT}/c-fr`, { body: { body: { region: 'de', name: 'taken' } }, headers: { 'if-match': frenchEtag } })).status).to.equal(404);

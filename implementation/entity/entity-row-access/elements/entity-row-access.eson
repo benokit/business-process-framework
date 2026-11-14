@@ -85,8 +85,8 @@
         "kind": "slot-fill",
         "data": {
             "target": "entity-type",
-            "slot": "reactions",
-            "position": "first",
+            "slot": "resultGuards",
+            "on": ["create", "trait"],
             "value": {
                 "if": { "$func/denies-record": { "entityType": "#.self.id", "user": "#._ctx.user", "record": "#.input.after" } },
                 "then": {
