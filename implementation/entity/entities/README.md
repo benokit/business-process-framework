@@ -12,14 +12,14 @@ Each entity type is an instance of `entity-type`, or of a class: a kind that ext
 
 | Operation | Input | Output |
 |---|---|---|
-| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the fills of `requestGuards` that are on `read` run on the loaded record (private `load`, which every write passes through too) as a change `{ operation: "read", before: record }` |
+| `read` | `businessKey`, `revision?` (a past revision is rebuilt from history), `at?` | record, its [versioned body](#versioned-body) resolved to the version valid at `at`, the last without it; the fills of `requestGuards` that are on `read` run on the loaded record (private `loadReadableRecord`, which every write passes through too) as a change `{ operation: "read", before: record }` |
 | `create` | `businessKey?`, `traits` (input per trait, `body` among them) | record |
 | `run` | `businessKey`, `revision?`, `trait`, `operation`, `input?` | the [public operation of a trait](#public-and-private-operations) (`update` of `body`, `transition` of `state`, …); the record for an operation that writes one trait |
 | `delete` | `businessKey`, `revision` | the deleted record |
 | `applyChange` (private) | `change`, `revision?` | record; the write path of every write operation: the `requestGuards` on the operation of the change, then the [derivation](#derived-traits) of the traits and the `resultGuards` (not on `delete`), then in one transaction the store write the change implies (`create` writes `after` as derived; `trait` sets the key of each of its `commands` and of the derived commands to the command's `value` on `before`, in one revision; `delete` removes `before`) and the reactions |
 | `derive` | `businessKey`, `revision?` | record; applies the [derivation](#derived-traits) to the stored record and writes the commands it gives as one `trait` change; the record as it is, without a new revision, when nothing is stale (a backfill after a rule changed) |
-| `applyTraitOperations` (private) | `businessKey`, `revision?`, `entityOperation`, `operations` (`[{ key, operation, input }]`) | record; runs the trait operation of each item against the record as it is and writes their commands as one `trait` change (`invalid` for a key given twice, a key without a trait, or a trait without the operation). The nodes `traitOperation` and `traitOperations` call it |
-| `initialTraitValues` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
+| `writeTraitOperationsAsOneChange` (private) | `businessKey`, `revision?`, `entityOperation`, `operations` (`[{ key, operation, input }]`) | record; runs the trait operation of each item against the record as it is and writes their commands as one `trait` change (`invalid` for a key given twice, a key without a trait, or a trait without the operation). The nodes `traitOperation` and `traitOperations` call it |
+| `initialValuesOfTraits` | `traits` (input per trait) | the initial value of every trait, as `create` writes it |
 
 The schema `entity-operation` is the public operation names of every kind that extends `entity-type`, registered at load. It types an argument that names an entity operation (`entityOperation` of `$func/state-forbids-operation`), so `validate()` reports a literal no entity type has, such as a misspelled `applyAmendment`.
 
@@ -61,7 +61,7 @@ The entity type drives its traits, and a trait tells it what to do at three poin
 
 ### Guard of a trait
 
-The hook `guard` takes `{ entityType, key, configuration, change }` (`change` is the viewed change, as the slots get it). It runs before the guards of the slot, at `load` for a read and in `applyChange` for a write; it throws to refuse and may only read and trace (`validate()` reports a guard with another effect). The hook decides from `change.operation` which changes concern it. The trait's own behaviour thus travels with the trait: [entity-states](../entity-states/README.md#operations-by-state) refuses an operation outside its states with the `guard` of the `state` trait, and no fill is needed. A fill stays for what something else contributes to an entity type. The folds belong to the kind `trait-container`, which `entity-type` extends and which holds the slot `traits`, `initialTraitValues`, `deriveData`, and `guardTraits`.
+The hook `guard` takes `{ entityType, key, configuration, change }` (`change` is the viewed change, as the slots get it). It runs before the guards of the slot, at `loadReadableRecord` for a read and in `applyChange` for a write; it throws to refuse and may only read and trace (`validate()` reports a guard with another effect). The hook decides from `change.operation` which changes concern it. The trait's own behaviour thus travels with the trait: [entity-states](../entity-states/README.md#operations-by-state) refuses an operation outside its states with the `guard` of the `state` trait, and no fill is needed. A fill stays for what something else contributes to an entity type. The folds belong to the kind `trait-container`, which `entity-type` extends and which holds the slot `traits`, `initialValuesOfTraits`, `deriveTraitValues`, and `runTraitGuards`.
 
 ### Reaction of a trait
 
@@ -105,7 +105,7 @@ A change is one of four variants by its `operation` (`entity-change`): `create` 
 
 ### Order of a write
 
-1. `load` reads the record and runs the `requestGuards` `on` `read`: whether a record is visible is decided here, once, for `read`, `derive` and every write, before anything computes on it (a hidden record is `not-found`, never an `invalid` from a trait operation).
+1. `loadReadableRecord` reads the record and runs the `requestGuards` `on` `read`: whether a record is visible is decided here, once, for `read`, `derive` and every write, before anything computes on it (a hidden record is `not-found`, never an `invalid` from a trait operation).
 2. The operation computes its commands (trait operations) and calls `applyChange`.
 3. `applyChange` checks the `revision`, runs the `requestGuards` `on` the operation of the change (`create`, `trait` or `delete`), folds the [derivation](#derived-traits), runs the `resultGuards` on the result, then in one transaction writes and runs the reactions.
 

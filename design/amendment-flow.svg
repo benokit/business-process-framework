@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1250" font-family="Helvetica, Arial, sans-serif" font-size="13">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#445"/></marker></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="40" y="38" font-size="20" fill="#123" font-weight="bold" text-anchor="start">Amendments: the process, and where the plan comes in</text>
+<text x="40" y="60" font-size="12" fill="#556" font-weight="normal" text-anchor="start">an amendment is an entity of its own; the trait amendable of the amended entity holds the ledger and runs the operations as plans</text>
+<text x="40" y="92" font-size="14" fill="#123" font-weight="bold" text-anchor="start">Status of one amendment in the ledger of the amended entity</text>
+<rect x="60" y="118" width="70" height="40" rx="20" fill="#fff" stroke="#445" stroke-width="1.5"/>
+<text x="95" y="143" font-size="12" fill="#334" font-weight="normal" text-anchor="middle">none</text>
+<rect x="250" y="118" width="150" height="40" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
+<text x="325" y="143" font-size="13" fill="#123" font-weight="bold" text-anchor="middle">pending</text>
+<rect x="520" y="118" width="150" height="40" rx="8" fill="#e8f0fe" stroke="#3b5fc0" stroke-width="1.5"/>
+<text x="595" y="143" font-size="13" fill="#123" font-weight="bold" text-anchor="middle">applied</text>
+<rect x="790" y="118" width="150" height="40" rx="8" fill="#fde8e8" stroke="#c03b3b" stroke-width="1.5"/>
+<text x="865" y="143" font-size="13" fill="#123" font-weight="bold" text-anchor="middle">discarded</text>
+<line x1="130" y1="138" x2="250" y2="138" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="190" y="130" font-size="11" fill="#445" font-weight="normal" text-anchor="middle">propose</text>
+<line x1="400" y1="138" x2="520" y2="138" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="460" y="130" font-size="11" fill="#445" font-weight="normal" text-anchor="middle">apply</text>
+<line x1="670" y1="138" x2="790" y2="138" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="730" y="130" font-size="11" fill="#445" font-weight="normal" text-anchor="middle">revert</text>
+<path d="M325,118 C325,86 865,86 865,118" fill="none" stroke="#445" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="600" y="86" font-size="11" fill="#445" font-weight="normal" text-anchor="middle">discard (never took effect)</text>
+<text x="40" y="190" font-size="12" fill="#556" font-weight="normal" text-anchor="start">one entry is pending at most; open and settle are the private operations of amendable that the plans return as operations</text>
+<rect x="40" y="215" width="480" height="86" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
+<text x="52" y="237" font-size="13" fill="#123" font-weight="bold" text-anchor="start">Caller (an HTTP route of the application)</text>
+<text x="52" y="257" font-size="13" fill="#334" font-weight="normal" text-anchor="start">propose, apply, revert, discard, preview of the amended entity</text>
+<text x="52" y="273" font-size="13" fill="#334" font-weight="normal" text-anchor="start">the application decides who may call: authorization is not the package's</text>
+<rect x="580" y="215" width="480" height="86" rx="8" fill="#e8f7f3" stroke="#2f9a85" stroke-width="1.5"/>
+<text x="592" y="237" font-size="13" fill="#123" font-weight="bold" text-anchor="start">The amendment entity: its own process (approval, review)</text>
+<text x="592" y="257" font-size="13" fill="#334" font-weight="normal" text-anchor="start">a transition of its state model, the demo's activate or annul</text>
+<text x="592" y="273" font-size="13" fill="#334" font-weight="normal" text-anchor="start">the trait amending reacts, in the transaction of that transition</text>
+<line x1="280" y1="301" x2="280" y2="335" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="820" y1="301" x2="820" y2="335" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="40" y="335" width="1020" height="62" rx="8" fill="#e8f0fe" stroke="#3b5fc0" stroke-width="1.5"/>
+<text x="52" y="357" font-size="13" fill="#123" font-weight="bold" text-anchor="start">entity-amendment-gateway</text>
+<text x="52" y="377" font-size="13" fill="#334" font-weight="normal" text-anchor="start">takes the entity type, runs run({ businessKey, trait: "amendable", operation, input }) of the amended entity</text>
+<line x1="300" y1="397" x2="300" y2="425" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="40" y="425" width="620" height="62" rx="8" fill="#e8f0fe" stroke="#3b5fc0" stroke-width="1.5"/>
+<text x="52" y="447" font-size="13" fill="#123" font-weight="bold" text-anchor="start">1  run: the public operations of a trait are reached only through it</text>
+<text x="52" y="467" font-size="13" fill="#334" font-weight="normal" text-anchor="start">the state model of the amended entity says in which states each operation may run</text>
+<line x1="350" y1="487" x2="350" y2="507" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="24" y="507" width="652" height="350" rx="10" fill="#fff7e6" stroke="#d98e04" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="34" y="847" font-size="12" fill="#a86400" font-weight="bold" text-anchor="start">one transaction (rollback on any failure)</text>
+<rect x="40" y="517" width="620" height="82" rx="8" fill="#fde8e8" stroke="#c03b3b" stroke-width="1.5"/>
+<text x="52" y="539" font-size="13" fill="#123" font-weight="bold" text-anchor="start">2  runTraitPlan: load the record, check the revision, guard</text>
+<text x="52" y="559" font-size="13" fill="#334" font-weight="normal" text-anchor="start">revision given ≠ record revision: conflict</text>
+<text x="52" y="575" font-size="13" fill="#334" font-weight="normal" text-anchor="start">runTraitGuards on a trait change named like the operation: state decides</text>
+<text x="52" y="591" font-size="13" fill="#334" font-weight="normal" text-anchor="start">(the ledger rules, such as apply only when pending, are checked later, by settle)</text>
+<line x1="350" y1="599" x2="350" y2="619" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="40" y="619" width="620" height="104" rx="8" fill="#fff3d6" stroke="#d98e04" stroke-width="1.5"/>
+<text x="52" y="641" font-size="13" fill="#123" font-weight="bold" text-anchor="start">3  the PLAN operation of amendable (propose, apply, revert, discard, preview)</text>
+<text x="52" y="661" font-size="13" fill="#334" font-weight="normal" text-anchor="start">input: { entityType, key, configuration, businessKey, input, record }</text>
+<text x="52" y="677" font-size="13" fill="#334" font-weight="normal" text-anchor="start">reads the ledger and, for apply, revert and discard, the amendment from the store</text>
+<text x="52" y="693" font-size="13" fill="#334" font-weight="normal" text-anchor="start">propose also creates the amendment entity: it is the only plan that writes</text>
+<text x="52" y="709" font-size="13" fill="#334" font-weight="normal" text-anchor="start">returns { operations, output?, commit? }: operations on this entity, no more</text>
+<line x1="200" y1="723" x2="200" y2="753" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="500" y1="723" x2="500" y2="753" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="40" y="753" width="305" height="84" rx="8" fill="#f3e8fe" stroke="#7a3bc0" stroke-width="1.5"/>
+<text x="52" y="775" font-size="13" fill="#123" font-weight="bold" text-anchor="start">4a  commit: false (preview)</text>
+<text x="52" y="795" font-size="13" fill="#334" font-weight="normal" text-anchor="start">commandsOfTraitOperations, request guards,</text>
+<text x="52" y="811" font-size="13" fill="#334" font-weight="normal" text-anchor="start">derivation, result guards</text>
+<text x="52" y="827" font-size="13" fill="#334" font-weight="normal" text-anchor="start">→ { commands, entity }; nothing written</text>
+<rect x="355" y="753" width="305" height="84" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
+<text x="367" y="775" font-size="13" fill="#123" font-weight="bold" text-anchor="start">4b  commit (apply, revert, propose, discard)</text>
+<text x="367" y="795" font-size="13" fill="#334" font-weight="normal" text-anchor="start">writeTraitOperationsAsOneChange → applyChange:</text>
+<text x="367" y="811" font-size="13" fill="#334" font-weight="normal" text-anchor="start">request guards, derivation, result guards</text>
+<text x="367" y="827" font-size="13" fill="#334" font-weight="normal" text-anchor="start">store: one change, one revision, reactions</text>
+<rect x="700" y="425" width="360" height="62" rx="6" fill="#fafafa" stroke="#99a" stroke-width="1"/>
+<text x="710" y="443" font-size="12" fill="#445" font-weight="bold" text-anchor="start">A plan is a process of the trait</text>
+<text x="710" y="461" font-size="12" fill="#223" font-weight="normal" text-anchor="start">it travels with the trait: no kind has to declare it</text>
+<text x="710" y="476" font-size="12" fill="#223" font-weight="normal" text-anchor="start">the entity type needs no code for amendments</text>
+<line x1="660" y1="456" x2="700" y2="456" stroke="#99a" stroke-dasharray="3 3"/>
+<rect x="700" y="517" width="360" height="82" rx="6" fill="#fafafa" stroke="#99a" stroke-width="1"/>
+<text x="710" y="535" font-size="12" fill="#445" font-weight="bold" text-anchor="start">The ledger is the amended entity's</text>
+<text x="710" y="553" font-size="12" fill="#223" font-weight="normal" text-anchor="start">status of each amendment, the proposedAt revision,</text>
+<text x="710" y="568" font-size="12" fill="#223" font-weight="normal" text-anchor="start">at most one pending, apply in order, revert in reverse</text>
+<text x="710" y="583" font-size="12" fill="#223" font-weight="normal" text-anchor="start">settle checks the revision: conflict if it moved on</text>
+<line x1="660" y1="558" x2="700" y2="558" stroke="#99a" stroke-dasharray="3 3"/>
+<rect x="700" y="619" width="360" height="104" rx="6" fill="#fafafa" stroke="#99a" stroke-width="1"/>
+<text x="710" y="637" font-size="12" fill="#445" font-weight="bold" text-anchor="start">Why a plan, not a command</text>
+<text x="710" y="655" font-size="12" fill="#223" font-weight="normal" text-anchor="start">a command is one value of one key</text>
+<text x="710" y="670" font-size="12" fill="#223" font-weight="normal" text-anchor="start">apply changes body and state in one change</text>
+<text x="710" y="685" font-size="12" fill="#223" font-weight="normal" text-anchor="start">and reads another entity, the amendment</text>
+<text x="710" y="700" font-size="12" fill="#223" font-weight="normal" text-anchor="start">the result may be the amendment itself (output)</text>
+<line x1="660" y1="671" x2="700" y2="671" stroke="#99a" stroke-dasharray="3 3"/>
+<rect x="700" y="753" width="360" height="104" rx="6" fill="#fafafa" stroke="#99a" stroke-width="1"/>
+<text x="710" y="771" font-size="12" fill="#445" font-weight="bold" text-anchor="start">Preview and the side effect</text>
+<text x="710" y="789" font-size="12" fill="#223" font-weight="normal" text-anchor="start">preview is an operation of its own: it plans apply</text>
+<text x="710" y="804" font-size="12" fill="#223" font-weight="normal" text-anchor="start">or revert and returns commit: false</text>
+<text x="710" y="819" font-size="12" fill="#223" font-weight="normal" text-anchor="start">a plan that writes (propose) must not return it:</text>
+<text x="710" y="834" font-size="12" fill="#223" font-weight="normal" text-anchor="start">what it created would stay (see the README)</text>
+<line x1="660" y1="795" x2="700" y2="795" stroke="#99a" stroke-dasharray="3 3"/>
+<text x="40" y="890" font-size="14" fill="#123" font-weight="bold" text-anchor="start">What each plan returns</text>
+<rect x="40" y="900" width="1020" height="26" rx="4" fill="#eef" stroke="#99a" stroke-width="1"/>
+<text x="48" y="918" font-size="12" fill="#445" font-weight="bold" text-anchor="start">operation</text>
+<text x="173" y="918" font-size="12" fill="#445" font-weight="bold" text-anchor="start">reads / does</text>
+<text x="478" y="918" font-size="12" fill="#445" font-weight="bold" text-anchor="start">operations it returns on the amended entity</text>
+<text x="903" y="918" font-size="12" fill="#445" font-weight="bold" text-anchor="start">output</text>
+<rect x="40" y="926" width="1020" height="52" rx="0" fill="#fff" stroke="#ddd" stroke-width="1"/>
+<text x="48" y="956" font-size="12" fill="#123" font-weight="bold" text-anchor="start">propose</text>
+<text x="173" y="946" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">reads the ledger; CREATES the amendment entity</text>
+<text x="173" y="960" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">(body from its mapping)</text>
+<text x="478" y="946" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">open: a pending entry, proposedAt = revision + 1</text>
+<text x="903" y="946" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the amendment</text>
+<rect x="40" y="978" width="1020" height="52" rx="0" fill="#fafafa" stroke="#ddd" stroke-width="1"/>
+<text x="48" y="1008" font-size="12" fill="#123" font-weight="bold" text-anchor="start">apply</text>
+<text x="173" y="998" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">reads the amendment and its ledger entry</text>
+<text x="478" y="998" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the apply items (body.amend, state.transition, …), then settle</text>
+<text x="478" y="1012" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">pending → applied, revision checked</text>
+<text x="903" y="998" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the written record</text>
+<rect x="40" y="1030" width="1020" height="52" rx="0" fill="#fff" stroke="#ddd" stroke-width="1"/>
+<text x="48" y="1060" font-size="12" fill="#123" font-weight="bold" text-anchor="start">revert</text>
+<text x="173" y="1050" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">reads the amendment and its ledger entry</text>
+<text x="478" y="1050" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the revert items (body.remove, state.transition, …), then settle</text>
+<text x="478" y="1064" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">applied → discarded</text>
+<text x="903" y="1050" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the written record</text>
+<rect x="40" y="1082" width="1020" height="52" rx="0" fill="#fafafa" stroke="#ddd" stroke-width="1"/>
+<text x="48" y="1112" font-size="12" fill="#123" font-weight="bold" text-anchor="start">discard</text>
+<text x="173" y="1102" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">reads the amendment and its ledger entry</text>
+<text x="478" y="1102" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">settle pending → discarded</text>
+<text x="903" y="1102" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the written record</text>
+<rect x="40" y="1134" width="1020" height="52" rx="0" fill="#fff" stroke="#ddd" stroke-width="1"/>
+<text x="48" y="1164" font-size="12" fill="#123" font-weight="bold" text-anchor="start">preview</text>
+<text x="173" y="1154" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">plans apply or revert, reads only</text>
+<text x="478" y="1154" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">the same operations, with commit: false</text>
+<text x="903" y="1154" font-size="11.5" fill="#223" font-weight="normal" text-anchor="start">{ commands, entity }</text>
+<text x="40" y="1215" font-size="12" fill="#556" font-weight="normal" text-anchor="start">Two ways in, one path: a person calls the route, or the amendment's own transition reacts. A refusal on the amended entity rolls back the transition that triggered it.</text>
+</svg>

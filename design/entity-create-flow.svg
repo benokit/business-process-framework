@@ -14,7 +14,7 @@
 <text x="570" y="132" font-family="Menlo, monospace" font-size="12" fill="#223" xml:space="preserve">{ businessKey?, traits }</text>
 <line x1="470" y1="136.0" x2="560" y2="136.0" stroke="#99a" stroke-dasharray="3 3" marker-end="url(#a)"/>
 <rect x="40" y="204" width="430" height="92" rx="8" fill="#e8f0fe" stroke="#3b5fc0" stroke-width="1.5"/>
-<text x="52" y="226" font-weight="bold" fill="#123">2  initialTraitValues</text>
+<text x="52" y="226" font-weight="bold" fill="#123">2  initialValuesOfTraits</text>
 <text x="52" y="246" fill="#334">for every valued trait: trait.initialize(</text>
 <text x="52" y="262" fill="#334">{ entityType, key, configuration, input: traits[key], create })</text>
 <text x="52" y="278" fill="#334">body: ajv assert against the body schema</text>
@@ -36,7 +36,7 @@
 <line x1="470" y1="364.0" x2="560" y2="364.0" stroke="#99a" stroke-dasharray="3 3" marker-end="url(#a)"/>
 <rect x="40" y="432" width="430" height="92" rx="8" fill="#eef7ea" stroke="#3c8d2f" stroke-width="1.5"/>
 <text x="52" y="454" font-weight="bold" fill="#123">4  applyChange: guards</text>
-<text x="52" y="474" fill="#334">guardTraits (guard hook of each trait)</text>
+<text x="52" y="474" fill="#334">runTraitGuards (guard hook of each trait)</text>
 <text x="52" y="490" fill="#334">+ slot requestGuards on operation 'create'</text>
 <text x="52" y="506" fill="#334">read-only; a guard may throw</text>
 <line x1="255.0" y1="524" x2="255.0" y2="546" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
@@ -46,7 +46,7 @@
 <text x="570" y="489" font-family="Menlo, monospace" font-size="12" fill="#223" xml:space="preserve">  after: { businessKey, data: traits } }</text>
 <line x1="470" y1="478.0" x2="560" y2="478.0" stroke="#99a" stroke-dasharray="3 3" marker-end="url(#a)"/>
 <rect x="40" y="546" width="430" height="92" rx="8" fill="#eef7ea" stroke="#3c8d2f" stroke-width="1.5"/>
-<text x="52" y="568" font-weight="bold" fill="#123">5  deriveData: fold of derive hooks</text>
+<text x="52" y="568" font-weight="bold" fill="#123">5  deriveTraitValues: fold of derive hooks</text>
 <text x="52" y="588" fill="#334">each trait's derive sees data with the commands</text>
 <text x="52" y="604" fill="#334">so far applied; returns a command or null</text>
 <line x1="255.0" y1="638" x2="255.0" y2="660" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
@@ -80,7 +80,7 @@
 <rect x="40" y="888" width="430" height="92" rx="8" fill="#e8f0fe" stroke="#3b5fc0" stroke-width="1.5"/>
 <text x="52" y="910" font-weight="bold" fill="#123">8  reactions</text>
 <text x="52" y="930" fill="#334">written = viewed-change(change + after: record)</text>
-<text x="52" y="946" fill="#334">reactTraits, then slot 'reactions' on written</text>
+<text x="52" y="946" fill="#334">runTraitReactions, then slot 'reactions' on written</text>
 <line x1="255.0" y1="980" x2="255.0" y2="1002" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="560" y="894" width="460" height="80" rx="6" fill="#fafafa" stroke="#99a" />
 <text x="570" y="912" font-weight="bold" fill="#445" font-size="12">written change</text>

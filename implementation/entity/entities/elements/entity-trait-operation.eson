@@ -56,7 +56,7 @@
                         "operations": [{ "key": "#.key", "operation": "#.node.traitOperation.operation", "input": "#.input.input" }]
                     },
                     "invoke": "#.self.id",
-                    "operation": "applyTraitOperations"
+                    "operation": "writeTraitOperationsAsOneChange"
                 }
             ]
         }
@@ -91,7 +91,7 @@
                         "operations": "#.operations"
                     },
                     "invoke": "#.self.id",
-                    "operation": "applyTraitOperations"
+                    "operation": "writeTraitOperationsAsOneChange"
                 }
             ]
         }

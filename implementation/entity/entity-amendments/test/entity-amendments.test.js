@@ -202,7 +202,7 @@ describe('entity-amendments', function () {
         await policy('a-7');
         const errors = await Promise.all(['open', 'settle', 'plan', 'initialize'].map(operation => errorOf(amendable('a-7', operation, { amendment: 'x' }))));
         expect(errors.map(({ code }) => code)).to.deep.equal(['private-operation', 'private-operation', 'private-operation', 'private-operation']);
-        expect((await errorOf(invoke(POLICY, 'applyTraitOperations', {}))).code).to.equal('private-operation');
+        expect((await errorOf(invoke(POLICY, 'writeTraitOperationsAsOneChange', {}))).code).to.equal('private-operation');
     });
 
     it('copies the last version into an amendment of a kind with the defaults, and applies it from the date of the amendment', async () => {

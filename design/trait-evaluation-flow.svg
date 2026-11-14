@@ -5,14 +5,14 @@
 <text x="40" y="60" font-size="12" fill="#556" font-weight="normal" text-anchor="start">left: the write path of the entity type (entity-type, trait-container) · right: what a trait sees and may do at each step</text>
 <rect x="40" y="80" width="225" height="96" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
 <text x="52" y="102" font-weight="bold" fill="#123">create</text>
-<text x="52" y="122" fill="#334">initialTraitValues: each valued</text>
+<text x="52" y="122" fill="#334">initialValuesOfTraits: each valued</text>
 <text x="52" y="138" fill="#334">trait.initialize(input, create)</text>
 <text x="52" y="154" fill="#334">identity trait → businessKey</text>
 <text x="52" y="170" fill="#334">change { create, after }</text>
 <rect x="305" y="80" width="225" height="96" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
 <text x="317" y="102" font-weight="bold" fill="#123">run · command</text>
-<text x="317" y="122" fill="#334">applyTraitOperations →</text>
-<text x="317" y="138" fill="#334">traitCommands: trait.operation</text>
+<text x="317" y="122" fill="#334">writeTraitOperationsAsOneChange →</text>
+<text x="317" y="138" fill="#334">commandsOfTraitOperations: trait.operation</text>
 <text x="317" y="154" fill="#334">({ value, input }) returns</text>
 <text x="317" y="170" fill="#334">{ command, value }; needs revision</text>
 <rect x="570" y="80" width="225" height="96" rx="8" fill="#eef7ee" stroke="#3a8a3a" stroke-width="1.5"/>
@@ -38,13 +38,13 @@
 <text x="52" y="256" fill="#334">input.revision ≠ before.revision → throw conflict</text>
 <line x1="350" y1="276" x2="350" y2="296" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="296" width="620" height="94" rx="8" fill="#fde8e8" stroke="#c03b3b" stroke-width="1.5"/>
-<text x="52" y="318" font-weight="bold" fill="#123">2  guardRequest: guardTraits, then the requestGuards slot</text>
+<text x="52" y="318" font-weight="bold" fill="#123">2  runRequestGuards: runTraitGuards, then the requestGuards slot</text>
 <text x="52" y="338" fill="#334">for each trait, in the order of entity-traits: its hook guard({ entityType, key, configuration, change })</text>
 <text x="52" y="354" fill="#334">read and trace only; throws to refuse; decides from change.operation</text>
 <text x="52" y="370" fill="#334">then the fills of the slot requestGuards on the operation</text>
 <line x1="350" y1="390" x2="350" y2="410" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="410" width="620" height="136" rx="8" fill="#f3e8fe" stroke="#7a3bc0" stroke-width="1.5"/>
-<text x="52" y="432" font-weight="bold" fill="#123">3  deriveData (not on delete): a queue of operations, to a fixed point</text>
+<text x="52" y="432" font-weight="bold" fill="#123">3  deriveTraitValues (not on delete): a queue of operations, to a fixed point</text>
 <text x="52" y="452" fill="#334">dirty derives are consulted one at a time, in trait order: derive({ …, record, command })</text>
 <text x="52" y="468" fill="#334">→ an ordered list of operations [{ key, operation, input }], [] when its value is right</text>
 <text x="52" y="484" fill="#334">its operations run in order, each on the current value; the command is applied to the record</text>
@@ -55,7 +55,7 @@
 <text x="650" y="432" font-size="11" fill="#7a3bc0" font-weight="normal" text-anchor="end">dirty again</text>
 <line x1="350" y1="546" x2="350" y2="566" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="566" width="620" height="84" rx="8" fill="#fde8e8" stroke="#c03b3b" stroke-width="1.5"/>
-<text x="52" y="588" font-weight="bold" fill="#123">4  guardResult: the slot resultGuards (not on delete)</text>
+<text x="52" y="588" font-weight="bold" fill="#123">4  runResultGuards: the slot resultGuards (not on delete)</text>
 <text x="52" y="608" fill="#334">the change carries the commands of the whole write, requested and derived, in order</text>
 <text x="52" y="624" fill="#334">after = the entity as it would be stored · read and trace only · throws to refuse</text>
 <text x="52" y="640" fill="#334">nothing is written yet, so a refusal needs no rollback</text>
@@ -74,7 +74,7 @@
 <text x="52" y="834" fill="#334">store writes only if the record is still at the revision it read, else conflict</text>
 <line x1="350" y1="854" x2="350" y2="874" stroke="#445" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="40" y="874" width="620" height="94" rx="8" fill="#e8f7f3" stroke="#2f9a85" stroke-width="1.5"/>
-<text x="52" y="896" font-weight="bold" fill="#123">7  reactTraits, then the reactions slot</text>
+<text x="52" y="896" font-weight="bold" fill="#123">7  runTraitReactions, then the reactions slot</text>
 <text x="52" y="916" fill="#334">for each trait: react({ entityType, key, configuration, change }), change.after = written record</text>
 <text x="52" y="932" fill="#334">change.commands include the derived ones · may write other entities; a failure rolls back</text>
 <text x="52" y="948" fill="#334">then the fills of the slot reactions, with the written change</text>

@@ -9,7 +9,7 @@
                 "traits": { "cardinality": "many", "value": "@entity-trait-use" }
             },
             "operations": {
-                "guardTraits": {
+                "runTraitGuards": {
                     "private": true,
                     "input": { "!change": "@entity-change" },
                     "implementation": [
@@ -34,7 +34,7 @@
                         }
                     ]
                 },
-                "reactTraits": {
+                "runTraitReactions": {
                     "private": true,
                     "input": { "!change": "@viewed-entity-change" },
                     "implementation": [
@@ -58,7 +58,7 @@
                         }
                     ]
                 },
-                "initialTraitValues": {
+                "initialValuesOfTraits": {
                     "input": { "!traits": "object", "create": "@any" },
                     "output": "object",
                     "implementation": [
@@ -86,7 +86,7 @@
                         { "set": { "$mapValues": { "of": { "$toDictionary": { "by": "#.key", "collection": "#.values" } }, "fn": "#.value" } } }
                     ]
                 },
-                "deriveData": {
+                "deriveTraitValues": {
                     "private": true,
                     "input": { "!businessKey": "string", "!data": "object", "seeds[]": "@any" },
                     "output": "@derived-data",
@@ -117,11 +117,11 @@
                         {
                             "inputMap": { "businessKey": "#.input.businessKey", "data": "#.input.data", "queue": [], "dirty": "#.dirty", "commands": [], "command": null, "steps": 0 },
                             "invoke": "#.self.id",
-                            "operation": "deriveFrom"
+                            "operation": "continueDerivation"
                         }
                     ]
                 },
-                "deriveFrom": {
+                "continueDerivation": {
                     "private": true,
                     "input": { "!businessKey": "string", "!data": "object", "!queue[]": "@trait-operation-use", "!dirty[]": "string", "!commands[]": "@any", "command": "@any", "!steps": "integer" },
                     "output": "@derived-data",
@@ -141,7 +141,7 @@
                         {
                             "if": { "$gt": [{ "$count": { "collection": "#.input.queue" } }, 0] },
                             "then": [
-                                { "outputKey": "executed", "inputMap": { "data": "#.input.data", "operations": [{ "$head": "#.input.queue" }] }, "invoke": "#.self.id", "operation": "traitCommands" },
+                                { "outputKey": "executed", "inputMap": { "data": "#.input.data", "operations": [{ "$head": "#.input.queue" }] }, "invoke": "#.self.id", "operation": "commandsOfTraitOperations" },
                                 { "outputKey": "changed", "set": { "$get": { "object": { "$head": "#.executed" }, "path": "key" } } },
                                 {
                                     "inputMap": {
@@ -170,7 +170,7 @@
                                         "steps": { "$sum": ["#.input.steps", 1] }
                                     },
                                     "invoke": "#.self.id",
-                                    "operation": "deriveFrom"
+                                    "operation": "continueDerivation"
                                 }
                             ],
                             "else": {
@@ -206,7 +206,7 @@
                                             "steps": "#.input.steps"
                                         },
                                         "invoke": "#.self.id",
-                                        "operation": "deriveFrom"
+                                        "operation": "continueDerivation"
                                     }
                                 ]
                             }
