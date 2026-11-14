@@ -7,6 +7,7 @@ import { standardOf } from '@business-framework/core/schemas';
 import { mappingType } from '@business-framework/core/data-flow';
 import { traitKeyOf, traitValueOf } from '@business-framework/entities/traits';
 import { traitsOf } from '@business-framework/entities/traits';
+import { unlistedReadProblems } from '@business-framework/entities/dependencies';
 import { viewedRecord } from '@business-framework/entities/views';
 
 const PRIMITIVES = ['string', 'number', 'integer', 'boolean'];
@@ -77,7 +78,11 @@ const conflictProblems = dimensions => Object.entries(Object.groupBy(dimensions,
 export const ownershipProblems = () => {
     const owned = ownedTypes();
     return [
-        ...owned.flatMap(({ id, use }) => [...dimensionProblems(id, dimensionsOf(use)), ...ruleProblems(id, use)]),
+        ...owned.flatMap(({ id, use }) => [
+            ...dimensionProblems(id, dimensionsOf(use)),
+            ...ruleProblems(id, use),
+            ...unlistedReadProblems({ entityType: id, key: ownershipKeyOf(id), dependsOn: use.dependsOn, rule: 'ownership rule', mappings: use.configuration.rule })
+        ]),
         ...conflictProblems(owned.flatMap(({ use }) => dimensionsOf(use)))
     ];
 };
