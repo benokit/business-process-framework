@@ -40,6 +40,7 @@ const ADDED = `added-${run}`;
 const ADDING = `adding-${run}`;
 const COUNTING = `counting-${run}`;
 const CHAINING = `chaining-${run}`;
+const RESULT_GUARDED = `result-guarded-${run}`;
 const RUNAWAY = `runaway-${run}`;
 const UNDECLARED = `undeclared-${run}`;
 
@@ -149,6 +150,7 @@ const elements = [
             }
         }
     },
+    { id: RESULT_GUARDED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] } } } },
     { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {}, dependsOn: [ADDED] } } } },
     derived(COUNTING),
     {
@@ -211,6 +213,10 @@ const elements = [
         if: { $any: { collection: { $coalesce: ['#.input.commands', []] }, as: 'command', predicate: { $eq: ['@command.key', DOUBLE] } } },
         then: { throw: 'derived command seen' }
     }),
+    fill('refuse-derived-double-result', RESULT_GUARDED, 'resultGuards', {
+        if: { $any: { collection: { $coalesce: ['#.input.commands', []] }, as: 'command', predicate: { $eq: ['@command.key', DOUBLE] } } },
+        then: { throw: { code: 'forbidden', message: 'derived double refused' } }
+    }, { on: ['trait'] }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
@@ -364,6 +370,13 @@ describe('entities', function () {
             const created = await invoke(REVERSED, 'create', { businessKey: 'r-2', traits: { body: { amount: 3 } } });
             const error = await errorOf(invoke(REVERSED, 'run', { businessKey: 'r-2', revision: created.revision, trait: 'body', operation: 'update', input: { value: { amount: 5 } } }));
             expect(error.message).to.equal('derived command seen');
+        });
+
+        it('run result guards on the whole sequence of commands, writing nothing when one refuses', async () => {
+            const created = await invoke(RESULT_GUARDED, 'create', { businessKey: 'g-1', traits: { body: { amount: 3 } } });
+            const error = await errorOf(invoke(RESULT_GUARDED, 'run', { businessKey: 'g-1', revision: created.revision, trait: 'body', operation: 'update', input: { value: { amount: 5 } } }));
+            expect([error.code, error.message]).to.deep.equal(['forbidden', 'derived double refused']);
+            expect((await invoke(RESULT_GUARDED, 'read', { businessKey: 'g-1' })).revision).to.equal(created.revision);
         });
 
         it('consult a derive again only for the keys it declares, and on the first iteration alone when it declares none', async () => {

@@ -1,25 +1,6 @@
 
-entity:
-    operations:
-        create: input -> entity
-        amend: input -> amendment (invoke create on amendable with input)
-        copy: invoke create on entity with self.body
-        ...
-    traits:
-        stateful:
-            configuration: ...
-        versionable:
-            key: body
-            configuration:
-                body: schema
-        amendable:
-            configuration: 
-                technical-amendment: 
-                    mapping: entity -> amendment
-                    apply: amendment -> [trait operations]
-                cancellation-amendment:
-                    mapping: entity -> amendment
-                    apply: amendment -> [trait operations]
 
+Axioms of entity traits derivation
 
-trait operation: (trait, operation, input)
+derive trait 
+    -> (trait value, commands: [(target trait key, trait command, input)])

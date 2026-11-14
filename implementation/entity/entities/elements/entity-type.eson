@@ -7,6 +7,7 @@
             "fixed": { "traits": { "business-key": { "configuration": {} } } },
             "slots": {
                 "guards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
+                "resultGuards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
             },
             "operations": {
@@ -82,6 +83,27 @@
                                 },
                                 "invoke": "#.self.id",
                                 "operation": "deriveData"
+                            }
+                        },
+                        {
+                            "if": { "$neq": ["#.input.change.operation", "delete"] },
+                            "then": {
+                                "inputMap": { "$func/slot-values": { "element": "#.self.id", "slot": "resultGuards", "on": "#.input.change.operation" } },
+                                "forEach": {
+                                    "inputMap": {
+                                        "$func/viewed-change": {
+                                            "change": {
+                                                "$if": [
+                                                    { "$eq": ["#.input.change.operation", "create"] },
+                                                    { "$merge": ["#.input.change", { "after": { "$merge": ["#.input.change.after", { "data": "#.derivation.data" }] } }] },
+                                                    { "$merge": ["#.input.change", { "commands": { "$concat": ["#.input.change.commands", "#.derivation.commands"] }, "after": { "$merge": ["#.input.change.before", { "data": "#.derivation.data" }] } }] }
+                                                ]
+                                            },
+                                            "entityType": "#.self.id"
+                                        }
+                                    },
+                                    "execute": "#.item"
+                                }
                             }
                         },
                         {
