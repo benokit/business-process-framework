@@ -110,9 +110,9 @@
             "slot": "reactions",
             "after": ["publish-entity-events"],
             "value": [
-                { "outputKey": "transition", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
+                { "outputKey": "transitions", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "state" } } },
                 {
-                    "if": { "$eq": ["#.transition.command", "activate"] },
+                    "if": { "$any": { "collection": "#.transitions", "as": "transition", "predicate": { "$eq": ["@transition.command", "activate"] } } },
                     "then": {
                         "inputMap": {
                             "message": { "type": "contract-activated", "contractType": "#.self.id", "contractKey": "#.input.after.businessKey", "lineOfBusiness": "#.self.data.lineOfBusiness" },

@@ -207,6 +207,10 @@ const elements = [
         if: { $eq: ['#.input.before.businessKey', 'o-kept'] },
         then: { throw: { code: 'conflict', message: 'kept' } }
     }, { on: ['delete'] }),
+    fill('refuse-derived-double', REVERSED, 'reactions', {
+        if: { $any: { collection: { $coalesce: ['#.input.commands', []] }, as: 'command', predicate: { $eq: ['@command.key', DOUBLE] } } },
+        then: { throw: 'derived command seen' }
+    }),
     fill('fail-on-unlucky-amount', ORDER, 'reactions', {
         if: { $eq: ['#.input.after.data.body.amount', 13] },
         then: { throw: 'unlucky amount' }
@@ -354,6 +358,12 @@ describe('entities', function () {
         it('converge whatever the order of the traits, a derive that is stale again being consulted again', async () => {
             const created = await invoke(REVERSED, 'create', { businessKey: 'r-1', traits: { body: { amount: 3 } } });
             expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
+        });
+
+        it('show a reaction the commands the derivation ran as well as those requested', async () => {
+            const created = await invoke(REVERSED, 'create', { businessKey: 'r-2', traits: { body: { amount: 3 } } });
+            const error = await errorOf(invoke(REVERSED, 'run', { businessKey: 'r-2', revision: created.revision, trait: 'body', operation: 'update', input: { value: { amount: 5 } } }));
+            expect(error.message).to.equal('derived command seen');
         });
 
         it('consult a derive again only for the keys it declares, and on the first iteration alone when it declares none', async () => {

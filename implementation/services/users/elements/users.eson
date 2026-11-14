@@ -30,7 +30,7 @@
             "slot": "guards",
             "on": ["create", "trait"],
             "value": [
-                { "outputKey": "body", "set": { "$func/change-command": { "commands": "#.input.commands", "key": "body" } } },
+                { "outputKey": "body", "set": { "$head": { "$func/change-command": { "commands": "#.input.commands", "key": "body" } } } },
                 {
                     "outputKey": "unknown",
                     "set": {

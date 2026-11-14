@@ -64,7 +64,7 @@ describe('entities-http', function () {
         const { port } = await invoke('http-server', 'address', null);
         expect((await fetch(`http://localhost:${port}/entities/${ORDER}`, { headers: { [ROLE_HEADER]: 'editor-role' } })).status).to.equal(404);
         const types = await call('GET', '/entity-types');
-        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { 'business-key': { trait: 'business-key', configuration: {} }, body: { trait: 'body', configuration: { schema: { '!amount': 'number' } } } } });
+        expect(types.body.items.find(type => type.id === ORDER)).to.deep.include({ traits: { 'business-key': { trait: 'business-key', configuration: {}, dependsOn: [] }, body: { trait: 'body', configuration: { schema: { '!amount': 'number' } }, dependsOn: [] } } });
     });
 
     it('refuses elements that are not entity types', async () => {

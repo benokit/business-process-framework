@@ -106,7 +106,7 @@
                                     "outputKey": "written",
                                     "set": {
                                         "$func/viewed-change": {
-                                            "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }] }] },
+                                            "change": { "$if": [{ "$eq": ["#.input.change.operation", "delete"] }, "#.input.change", { "$merge": ["#.input.change", { "after": "#.record" }, { "$if": [{ "$eq": ["#.input.change.operation", "trait"] }, { "commands": { "$concat": ["#.input.change.commands", "#.derivation.commands"] } }, {}] }] }] },
                                             "entityType": "#.self.id"
                                         }
                                     }
