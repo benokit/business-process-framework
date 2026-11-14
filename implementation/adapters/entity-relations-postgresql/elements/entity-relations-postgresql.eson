@@ -53,6 +53,16 @@
         }
     },
     {
+        "id": "entity-relations-restrict-target",
+        "kind": "slot-fill",
+        "/data": {
+            "target": "postgresql-database",
+            "slot": "migrations",
+            "after": ["entity-relations-table"],
+            "value": { "command": { "/uri": "@business-framework/entity-relations-postgresql/sql/restrict-target.sql" } }
+        }
+    },
+    {
         "id": "entity-relations-table",
         "kind": "slot-fill",
         "/data": {

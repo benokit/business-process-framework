@@ -4,7 +4,7 @@ The abstract kind `database`. Implementations extend it (`postgresql-database`),
 
 The [abstract operations](../../core/README.md#interfaces):
 
-- `execute(`[`sql-command`](elements/database.eson)` { command, parameters? })` → `{ rows, rowCount }`, in the session bound as `transaction`, else on its own (effect `write`); `read` the same for a statement that changes nothing (`read`), `executeIrreversible` for one whose change no rollback undoes (`irreversible`: a sequence number, a statement meant to run outside the transaction). Rows are JSON (times as ISO strings); a violated unique key fails with `unique-violation`.
+- `execute(`[`sql-command`](elements/database.eson)` { command, parameters? })` → `{ rows, rowCount }`, in the session bound as `transaction`, else on its own (effect `write`); `read` the same for a statement that changes nothing (`read`), `executeIrreversible` for one whose change no rollback undoes (`irreversible`: a sequence number, a statement meant to run outside the transaction). Rows are JSON (times as ISO strings); a violated unique key fails with `unique-violation`, a violated foreign key with `foreign-key-violation`.
 - `begin({ isolation })` → `database-session` `{ sessionId }`, `commit(session)`, `rollback(session)`.
 
 The kind `transaction-execution-node-wrapper` (an `execution-node-wrapper`) is the only manager of the context key `transaction`, a `database-session`; [transaction](../../platform/transaction/README.md) binds it.

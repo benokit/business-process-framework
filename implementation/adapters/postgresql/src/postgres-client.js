@@ -41,7 +41,7 @@ const clientOf = sessionId => sessions.get(sessionId)
 
 export const queryable = _ctx => _ctx.transaction ? clientOf(_ctx.transaction.sessionId) : getPool();
 
-const ERRORS = { 23505: 'unique-violation' };
+const ERRORS = { 23505: 'unique-violation', 23503: 'foreign-key-violation' };
 
 const jsonValue = value => value instanceof Date ? value.toISOString() : value;
 

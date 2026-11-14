@@ -151,9 +151,22 @@
                 "implementation": [
                     {
                         "outputKey": "rows",
-                        "statement": { "/uri": "@business-framework/entities-postgresql/sql/delete-at-revision.sql" },
-                        "parameters": ["#.before.id", "#.before.revision"],
-                        "row": { "$func/entity-row-record": "#" }
+                        "try": {
+                            "statement": { "/uri": "@business-framework/entities-postgresql/sql/delete-at-revision.sql" },
+                            "parameters": ["#.before.id", "#.before.revision"],
+                            "row": { "$func/entity-row-record": "#" }
+                        },
+                        "catch": {
+                            "if": { "$eq": ["#.error.code", "foreign-key-violation"] },
+                            "then": {
+                                "throw": {
+                                    "code": "conflict",
+                                    "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is still referenced and can't be deleted"] },
+                                    "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey" }
+                                }
+                            },
+                            "else": { "throw": "#.error" }
+                        }
                     },
                     {
                         "if": { "$negate": { "$head": "#.rows" } },

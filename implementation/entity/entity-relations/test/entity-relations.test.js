@@ -51,6 +51,22 @@ describe('entity-relations', function () {
         expect(await relationsOf(updated)).to.deep.equal(['holder']);
     });
 
+    it('refuses to delete the target of a relation, and deletes it once nothing refers to it', async () => {
+        await invoke(PARTY, 'create', { businessKey: 'carl', traits: { body: { name: 'carl' } } });
+        const created = await invoke(CONTRACT, 'create', { businessKey: 'c-3', traits: { body: { holder: 'carl' } } });
+        expect((await invoke(PARTY, 'delete', { businessKey: 'carl', revision: 1 }).catch(e => e)).code).to.equal('conflict');
+        expect((await invoke(PARTY, 'read', { businessKey: 'carl' })).businessKey).to.equal('carl');
+        expect(await relationsOf(created)).to.deep.equal(['holder']);
+        await invoke(CONTRACT, 'run', { businessKey: 'c-3', revision: 1, trait: 'body', operation: 'update', input: { value: { holder: 'ada' } } });
+        expect((await invoke(PARTY, 'delete', { businessKey: 'carl', revision: 1 })).businessKey).to.equal('carl');
+    });
+
+    it('deletes the relations of a deleted source', async () => {
+        const created = await invoke(CONTRACT, 'create', { businessKey: 'c-4', traits: { body: { holder: 'ada' } } });
+        await invoke(CONTRACT, 'delete', { businessKey: 'c-4', revision: 1 });
+        expect(await relationsOf(created)).to.deep.equal([]);
+    });
+
     it('rolls the write back when a target is missing', async () => {
         const error = await invoke(CONTRACT, 'create', { businessKey: 'c-2', traits: { body: { holder: 'nobody' } } }).catch(e => e);
         expect(error.code).to.equal('not-found');
