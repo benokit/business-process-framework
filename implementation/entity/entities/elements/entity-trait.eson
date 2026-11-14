@@ -2,12 +2,12 @@
     {
         "id": "entity-trait-use",
         "kind": "schema",
-        "data": { "trait": "@ref/entity-trait", "key": "string", "!configuration": "@any" }
+        "data": { "trait": "@ref/entity-trait", "key": "string", "!configuration": "@any", "dependsOn[]": "string" }
     },
     {
         "id": "entity-trait-entry",
         "kind": "schema",
-        "data": { "trait": "@ref/entity-trait", "configuration": "@any" }
+        "data": { "trait": "@ref/entity-trait", "configuration": "@any", "dependsOn[]": "string" }
     },
     {
         "id": "entity-trait",
@@ -55,7 +55,7 @@
         "id": "entity-traits",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "string", "output": { "*": { "!trait": "@ref/entity-trait", "!configuration": "@any" } } },
+            "signature": { "input": "string", "output": { "*": { "!trait": "@ref/entity-trait", "!configuration": "@any", "dependsOn[]": "string" } } },
             "module": "@business-framework/entities/traits",
             "export": "traitsOf"
         }

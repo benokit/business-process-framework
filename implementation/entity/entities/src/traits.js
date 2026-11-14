@@ -14,10 +14,10 @@ const isName = key => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key);
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const dataContributions = entityType => Object.entries(selfAt(getElement(entityType), 'trait-container').data.traits ?? {})
-    .map(([key, { trait, configuration }]) => ({ key, trait, configuration, source: entityType }));
+    .map(([key, { trait, configuration, dependsOn }]) => ({ key, trait, configuration, dependsOn, source: entityType }));
 
 const fillContributions = entityType => fillsOf(selfOf(getElement(entityType)), 'traits').fills
-    .map(({ id, data: { target, value: { trait, key, configuration } } }) => ({ key: key ?? (trait !== undefined && isTrait(trait) ? keyOf(trait) : trait), trait, configuration, target, source: id ?? target }));
+    .map(({ id, data: { target, value: { trait, key, configuration, dependsOn } } }) => ({ key: key ?? (trait !== undefined && isTrait(trait) ? keyOf(trait) : trait), trait, configuration, dependsOn, target, source: id ?? target }));
 
 const unitedWith = ({ configuration, conflicts }, contribution, key) => {
     try {
@@ -40,10 +40,10 @@ const traitsOfKey = (key, contributions) => {
 const resolve = entityType => Object.entries(Object.groupBy([...dataContributions(entityType), ...fillContributions(entityType)].filter(({ key }) => key !== undefined), ({ key }) => key))
     .map(([key, contributions]) => {
         const traits = traitsOfKey(key, contributions);
-        return { key, trait: traits[0] ?? key, traits, ...unionOf(key, contributions) };
+        return { key, trait: traits[0] ?? key, traits, dependsOn: [...new Set(contributions.flatMap(contribution => contribution.dependsOn ?? []))], ...unionOf(key, contributions) };
     });
 
-export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration }) => [key, { trait, configuration }]));
+export const traitsOf = entityType => Object.fromEntries(resolve(entityType).map(({ key, trait, configuration, dependsOn }) => [key, { trait, configuration, dependsOn }]));
 
 export const traitUseOf = ({ entityType, key }) => {
     const use = traitsOf(entityType)[key];
@@ -125,6 +125,14 @@ export const publicOperationOf = ({ entityType, key, operation }) => {
     return declared === undefined ? null : { form: declared.output === '@trait-plan' ? 'plan' : 'command' };
 };
 
+const dependencyProblems = entityType => {
+    const keys = resolve(entityType).map(({ key }) => key);
+    return resolve(entityType).filter(({ dependsOn }) => dependsOn.length > 0).flatMap(({ key, trait, dependsOn }) => [
+        ...isTrait(trait) && getElement(trait).data.derive === undefined ? [`trait '${key}' of ${entityType} depends on keys and has no derive`] : [],
+        ...dependsOn.filter(dependency => !keys.includes(dependency)).map(dependency => `trait '${key}' of ${entityType} depends on '${dependency}', which the entity type has no trait for`)
+    ]);
+};
+
 const publicOperationProblems = entityType => Object.entries(Object.groupBy(
     Object.values(traitsOf(entityType)).filter(({ trait }) => isTrait(trait)).flatMap(({ trait }) => publicOperationsOfTrait(trait).map(([name]) => ({ name, trait }))),
     ({ name }) => name
@@ -143,6 +151,7 @@ export const traitProblems = entityType => {
         ...identityProblems(entityType),
         ...guardHookProblems(entityType),
         ...publicOperationProblems(entityType),
+        ...dependencyProblems(entityType),
         ...fills.filter(({ key }) => key === undefined).map(({ source }) => `${source} names neither a trait nor a key`),
         ...fills.filter(isRepeated).map(({ key, target }) => `trait '${key}' is used twice on ${target}`),
         ...closedProblems(entityType),

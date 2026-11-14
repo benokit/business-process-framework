@@ -41,6 +41,7 @@ const ADDING = `adding-${run}`;
 const COUNTING = `counting-${run}`;
 const CHAINING = `chaining-${run}`;
 const RUNAWAY = `runaway-${run}`;
+const UNDECLARED = `undeclared-${run}`;
 
 const derived = id => ({
     id: `${id}-trait`,
@@ -117,8 +118,8 @@ const elements = [
     { id: TOTAL, kind: `${TOTAL}-trait`, data: { configuration: {}, derive: derivation('#.input.record.data.body.amount') } },
     derived(DOUBLE),
     { id: DOUBLE, kind: `${DOUBLE}-trait`, data: { configuration: {}, derive: derivation({ $multiply: [2, { $get: { object: '#.input.record.data', path: TOTAL } }] }) } },
-    { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {} }, [DOUBLE]: { configuration: {} } } } },
-    { id: REVERSED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [DOUBLE]: { configuration: {} }, [TOTAL]: { configuration: {} } } } },
+    { id: DERIVING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] } } } },
+    { id: REVERSED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] } } } },
     {
         id: `${ADDED}-trait`,
         kind: 'kind',
@@ -148,14 +149,15 @@ const elements = [
             }
         }
     },
-    { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {} } } } },
+    { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {}, dependsOn: [ADDED] } } } },
     derived(COUNTING),
     {
         id: COUNTING,
         kind: `${COUNTING}-trait`,
         data: { configuration: {}, derive: { set: [{ key: '#.input.key', operation: 'rewrite', input: { value: { $sum: [{ $get: { object: '#.input.record.data', path: '#.input.key' } }, 1] } } }] } }
     },
-    { id: RUNAWAY, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [COUNTING]: { configuration: {} } } } },
+    { id: UNDECLARED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [DOUBLE]: { configuration: {} }, [TOTAL]: { configuration: {}, dependsOn: ['body'] } } } },
+    { id: RUNAWAY, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [COUNTING]: { configuration: {}, dependsOn: [COUNTING] } } } },
     prefixed(NOTE),
     { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
     prefixed(MASKED),
@@ -354,6 +356,11 @@ describe('entities', function () {
             expect([created.revision, created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([1, 3, 6]);
         });
 
+        it('consult a derive again only for the keys it declares, and on the first iteration alone when it declares none', async () => {
+            const created = await invoke(UNDECLARED, 'create', { businessKey: 'u-1', traits: { body: { amount: 3 } } });
+            expect([created.data[TOTAL], created.data[DOUBLE]]).to.deep.equal([3, 0]);
+        });
+
         it('run the operations a derive requests one after the other, each seeing the value the one before left', async () => {
             const created = await invoke(CHAINING, 'create', { businessKey: 'c-1', traits: { body: { amount: 1 } } });
             expect(created.data[ADDED]).to.equal(3);
@@ -503,6 +510,22 @@ describe('entities', function () {
         await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
         const messages = validate().flatMap(problem => problem.data.messages ?? []);
         expect(messages).to.include(`offering-${run}: the traits first-${run} and second-${run} both offer the operation 'refresh'`);
+        await boot({ paths: packages.map(packageElements), elements });
+        await start();
+        await migrate();
+    });
+
+    it('reports a dependency on a key the entity type has no trait for, and one on a trait without a derive', async () => {
+        const broken = [
+            { id: `depending-${run}`, kind: WRITING, data: { traits: { body: { configuration: { schema: {} }, dependsOn: ['body'] }, [TOTAL]: { configuration: {}, dependsOn: ['body', 'missing'] } } } }
+        ];
+        await stop();
+        await boot({ paths: packages.map(packageElements), elements: [...elements, ...broken] });
+        const messages = validate().flatMap(problem => problem.data.messages ?? []);
+        expect(messages).to.include.members([
+            `trait '${TOTAL}' of depending-${run} depends on 'missing', which the entity type has no trait for`,
+            `trait 'body' of depending-${run} depends on keys and has no derive`
+        ]);
         await boot({ paths: packages.map(packageElements), elements });
         await start();
         await migrate();

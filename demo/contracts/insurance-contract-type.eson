@@ -58,6 +58,7 @@
                     },
                     "body": { "trait": "versioned-body", "configuration": { "versioned": { "validFrom": "/startDate" } } },
                     "ownership": {
+                        "dependsOn": ["body"],
                         "configuration": {
                             "dimensions": { "!region": "string", "!confidential": "boolean" },
                             "rule": {

@@ -18,7 +18,7 @@
         "/data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!employee": "string", "!amount": "number", "justification": "string" } } },
-                "validation": { "configuration": { "onValidation": [{
+                "validation": { "dependsOn": ["body"], "configuration": { "onValidation": [{
                     "key": "state",
                     "operation": "transition",
                     "input": { "transition": { "$if": [{ "$eq": [{ "$count": { "collection": { "$keys": "#.errors" } } }, 0] }, "markValid", "markInvalid"] } }

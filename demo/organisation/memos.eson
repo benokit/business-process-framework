@@ -5,7 +5,7 @@
         "data": {
             "traits": {
                 "body": { "configuration": { "schema": { "!title": "string", "!department": "@department" } } },
-                "ownership": { "configuration": { "dimensions": { "!department": "string" }, "rule": { "department": "#.data.body.department" } } }
+                "ownership": { "dependsOn": ["body"], "configuration": { "dimensions": { "!department": "string" }, "rule": { "department": "#.data.body.department" } } }
             }
         }
     },

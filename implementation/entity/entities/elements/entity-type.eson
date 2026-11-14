@@ -64,6 +64,13 @@
                             "if": { "$neq": ["#.input.change.operation", "delete"] },
                             "then": {
                                 "inputMap": {
+                                    "seeds": {
+                                        "$if": [
+                                            { "$eq": ["#.input.change.operation", "create"] },
+                                            { "$map": { "over": { "$keys": "#.input.change.after.data" }, "as": "key", "fn": { "key": "@key" } } },
+                                            "#.input.change.commands"
+                                        ]
+                                    },
                                     "businessKey": { "$if": [{ "$eq": ["#.input.change.operation", "create"] }, "#.input.change.after.businessKey", "#.input.change.before.businessKey"] },
                                     "data": {
                                         "$if": [

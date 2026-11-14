@@ -88,17 +88,42 @@
                 },
                 "deriveData": {
                     "private": true,
-                    "input": { "!businessKey": "string", "!data": "object" },
+                    "input": { "!businessKey": "string", "!data": "object", "seeds[]": "@any" },
                     "output": "@derived-data",
-                    "implementation": {
-                        "inputMap": { "businessKey": "#.input.businessKey", "data": "#.input.data", "queue": [], "commands": [], "command": null, "steps": 0 },
-                        "invoke": "#.self.id",
-                        "operation": "deriveFrom"
-                    }
+                    "implementation": [
+                        { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
+                        {
+                            "outputKey": "dirty",
+                            "set": {
+                                "$filter": {
+                                    "collection": { "$keys": "#.traits" },
+                                    "as": "key",
+                                    "predicate": {
+                                        "$or": [
+                                            { "$isNil": "#.input.seeds" },
+                                            { "$eq": [{ "$count": { "collection": { "$coalesce": [{ "$get": { "object": "#.traits", "path": { "$str": ["@key", ".dependsOn"] } } }, []] } } }, 0] },
+                                            {
+                                                "$any": {
+                                                    "collection": { "$coalesce": [{ "$get": { "object": "#.traits", "path": { "$str": ["@key", ".dependsOn"] } } }, []] },
+                                                    "as": "dependency",
+                                                    "predicate": { "$any": { "collection": "#.input.seeds", "as": "seed", "predicate": { "$eq": ["@seed.key", "@dependency"] } } }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "data": "#.input.data", "queue": [], "dirty": "#.dirty", "commands": [], "command": null, "steps": 0 },
+                            "invoke": "#.self.id",
+                            "operation": "deriveFrom"
+                        }
+                    ]
                 },
                 "deriveFrom": {
                     "private": true,
-                    "input": { "!businessKey": "string", "!data": "object", "!queue[]": "@trait-operation-use", "!commands[]": "@any", "command": "@any", "!steps": "integer" },
+                    "input": { "!businessKey": "string", "!data": "object", "!queue[]": "@trait-operation-use", "!dirty[]": "string", "!commands[]": "@any", "command": "@any", "!steps": "integer" },
                     "output": "@derived-data",
                     "implementation": [
                         { "outputKey": "limit", "set": { "$get": { "object": { "$func/settings": "#.self.id" }, "path": "maxDerivationSteps" } } },
@@ -113,41 +138,33 @@
                             }
                         },
                         { "outputKey": "traits", "set": { "$func/entity-traits": "#.self.id" } },
-                        { "outputKey": "hooks", "set": { "$func/instance-methods": { "kind": "entity-trait", "property": "derive" } } },
                         {
-                            "outputKey": "requests",
-                            "inputMap": { "$keys": "#.traits" },
-                            "forEach": [
-                                { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.item" } } },
-                                { "outputKey": "hook", "set": { "$find": { "collection": "#.hooks", "predicate": { "$eq": ["@candidate.id", "#.use.trait"] }, "as": "candidate" } } },
-                                {
-                                    "outputKey": "operations",
-                                    "if": "#.hook",
-                                    "then": {
-                                        "inputMap": {
-                                            "entityType": "#.self.id",
-                                            "key": "#.item",
-                                            "configuration": "#.use.configuration",
-                                            "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" },
-                                            "command": "#.input.command"
-                                        },
-                                        "execute": "#.hook.method"
-                                    }
-                                },
-                                { "set": { "$coalesce": ["#.operations", []] } }
-                            ]
-                        },
-                        { "outputKey": "queue", "set": { "$concat": ["#.input.queue", { "$concat": "#.requests" }] } },
-                        {
-                            "if": { "$eq": [{ "$count": { "collection": "#.queue" } }, 0] },
-                            "then": { "set": { "data": "#.input.data", "commands": "#.input.commands" } },
-                            "else": [
-                                { "outputKey": "executed", "inputMap": { "data": "#.input.data", "operations": [{ "$head": "#.queue" }] }, "invoke": "#.self.id", "operation": "traitCommands" },
+                            "if": { "$gt": [{ "$count": { "collection": "#.input.queue" } }, 0] },
+                            "then": [
+                                { "outputKey": "executed", "inputMap": { "data": "#.input.data", "operations": [{ "$head": "#.input.queue" }] }, "invoke": "#.self.id", "operation": "traitCommands" },
+                                { "outputKey": "changed", "set": { "$get": { "object": { "$head": "#.executed" }, "path": "key" } } },
                                 {
                                     "inputMap": {
                                         "businessKey": "#.input.businessKey",
                                         "data": { "$func/data-with-commands": { "data": "#.input.data", "commands": "#.executed" } },
-                                        "queue": { "$tail": "#.queue" },
+                                        "queue": { "$tail": "#.input.queue" },
+                                        "dirty": {
+                                            "$filter": {
+                                                "collection": { "$keys": "#.traits" },
+                                                "as": "key",
+                                                "predicate": {
+                                                    "$or": [
+                                                        { "$includes": { "collection": "#.input.dirty", "value": "@key" } },
+                                                        {
+                                                            "$includes": {
+                                                                "collection": { "$coalesce": [{ "$get": { "object": "#.traits", "path": { "$str": ["@key", ".dependsOn"] } } }, []] },
+                                                                "value": "#.changed"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
                                         "commands": { "$concat": ["#.input.commands", "#.executed"] },
                                         "command": { "$head": "#.executed" },
                                         "steps": { "$sum": ["#.input.steps", 1] }
@@ -155,7 +172,44 @@
                                     "invoke": "#.self.id",
                                     "operation": "deriveFrom"
                                 }
-                            ]
+                            ],
+                            "else": {
+                                "if": { "$eq": [{ "$count": { "collection": "#.input.dirty" } }, 0] },
+                                "then": { "set": { "data": "#.input.data", "commands": "#.input.commands" } },
+                                "else": [
+                                    { "outputKey": "key", "set": { "$head": "#.input.dirty" } },
+                                    { "outputKey": "use", "set": { "$func/entity-trait-use-of": { "entityType": "#.self.id", "key": "#.key" } } },
+                                    { "outputKey": "hooks", "set": { "$func/instance-methods": { "kind": "entity-trait", "property": "derive" } } },
+                                    { "outputKey": "hook", "set": { "$find": { "collection": "#.hooks", "predicate": { "$eq": ["@candidate.id", "#.use.trait"] }, "as": "candidate" } } },
+                                    {
+                                        "outputKey": "operations",
+                                        "if": "#.hook",
+                                        "then": {
+                                            "inputMap": {
+                                                "entityType": "#.self.id",
+                                                "key": "#.key",
+                                                "configuration": "#.use.configuration",
+                                                "record": { "entityType": "#.self.id", "businessKey": "#.input.businessKey", "data": "#.input.data" },
+                                                "command": "#.input.command"
+                                            },
+                                            "execute": "#.hook.method"
+                                        }
+                                    },
+                                    {
+                                        "inputMap": {
+                                            "businessKey": "#.input.businessKey",
+                                            "data": "#.input.data",
+                                            "queue": { "$coalesce": ["#.operations", []] },
+                                            "dirty": { "$tail": "#.input.dirty" },
+                                            "commands": "#.input.commands",
+                                            "command": "#.input.command",
+                                            "steps": "#.input.steps"
+                                        },
+                                        "invoke": "#.self.id",
+                                        "operation": "deriveFrom"
+                                    }
+                                ]
+                            }
                         }
                     ]
                 }
