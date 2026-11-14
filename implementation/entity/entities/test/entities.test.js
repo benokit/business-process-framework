@@ -43,6 +43,7 @@ const CHAINING = `chaining-${run}`;
 const RESULT_GUARDED = `result-guarded-${run}`;
 const PREVIEWED = `previewed-${run}`;
 const PREVIEWING = `previewing-${run}`;
+const PLANNING = `planning-${run}`;
 const RUNAWAY = `runaway-${run}`;
 const UNDECLARED = `undeclared-${run}`;
 
@@ -170,6 +171,9 @@ const elements = [
     },
     { id: PREVIEWING, kind: `${PREVIEWING}-trait`, data: { configuration: {} } },
     { id: PREVIEWED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [TOTAL]: { configuration: {}, dependsOn: ['body', TOTAL] }, [DOUBLE]: { configuration: {}, dependsOn: [TOTAL] }, [PREVIEWING]: { configuration: {} } } } },
+    { id: `${PLANNING}-trait`, kind: 'kind', data: { extends: 'entity-trait' } },
+    { id: PLANNING, kind: `${PLANNING}-trait`, data: { configuration: {}, derive: { set: [{ key: PREVIEWING, operation: 'preview', input: { amount: 1 } }] } } },
+    { id: `${PLANNING}-type`, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [PLANNING]: { configuration: {}, dependsOn: ['body'] }, [PREVIEWING]: { configuration: {} } } } },
     { id: CHAINING, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [ADDED]: { configuration: {} }, [ADDING]: { configuration: {}, dependsOn: [ADDED] } } } },
     derived(COUNTING),
     {
@@ -404,6 +408,11 @@ describe('entities', function () {
             expect(preview.commands.map(command => [command.key, command.value])).to.deep.equal([['body', { amount: 5 }], [TOTAL, 5], [DOUBLE, 10]]);
             expect([preview.entity.data[TOTAL], preview.entity.data[DOUBLE]]).to.deep.equal([5, 10]);
             expect((await invoke(PREVIEWED, 'read', { businessKey: 'p-1' })).data[TOTAL]).to.equal(3);
+        });
+
+        it('refuse a derive that requests a plan operation, whose input the request does not supply', async () => {
+            const error = await errorOf(invoke(`${PLANNING}-type`, 'create', { businessKey: 'n-1', traits: { body: { amount: 3 } } }));
+            expect(error.code).to.equal('invalid');
         });
 
         it('consult a derive again only for the keys it declares, and on the first iteration alone when it declares none', async () => {
