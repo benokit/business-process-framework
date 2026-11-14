@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { getElement } from '@business-framework/core';
 import { hasOperation, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { fillsOf } from '@business-framework/core/slots';
+import { mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
 import { unlistedReadProblems } from '@business-framework/entities/dependencies';
 
@@ -16,11 +17,25 @@ const requestProblems = (entityType, { key, operation }) => {
         : hasOperation({ element: use.trait, operation }) ? [] : [`${entityType}: onValidation asks for the operation '${operation}', which the trait under '${key}' doesn't have`];
 };
 
-const validationRulesOf = entityType => fillsOf(selfOf(getElement(entityType)), 'validations').fills.map(({ data: { value } }) => value);
+const validationFillsOf = entityType => fillsOf(selfOf(getElement(entityType)), 'validations').fills;
+
+const validationRulesOf = entityType => validationFillsOf(entityType).map(({ data: { value } }) => value);
+
+const namesOfType = type => [...Object.keys(type?.properties ?? {}), ...[...type?.anyOf ?? [], ...type?.oneOf ?? []].flatMap(namesOfType)];
+
+const errorNamesOf = value => [...new Set(namesOfType(mappingType(value, { type: 'object' }).type))];
+
+const collisionProblems = entityType => Object.entries(Object.groupBy(
+    validationFillsOf(entityType).flatMap(({ id, data: { value } }) => errorNamesOf(value).map(name => ({ name, id }))),
+    ({ name }) => name
+))
+    .filter(([, givers]) => givers.length > 1)
+    .map(([name, givers]) => `${entityType}: the validations ${givers.map(({ id }) => id).join(' and ')} can all give the error '${name}', and the later one overwrites the others`);
 
 export const validationProblems = trait => selvesOf('entity-type').flatMap(({ id }) => Object.entries(traitsOf(id))
     .filter(([, use]) => use.trait === trait)
     .flatMap(([key, { configuration, dependsOn }]) => [
         ...requestedBy(configuration).flatMap(request => requestProblems(id, request)),
-        ...unlistedReadProblems({ entityType: id, key, dependsOn, rule: 'validations', mappings: validationRulesOf(id) })
+        ...unlistedReadProblems({ entityType: id, key, dependsOn, rule: 'validations', mappings: validationRulesOf(id) }),
+        ...collisionProblems(id)
     ]));
