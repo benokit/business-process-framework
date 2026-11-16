@@ -89,6 +89,24 @@ const end = statement => async ({ input: { sessionId } }) => {
     return null;
 };
 
+const SAVEPOINT_NAME = /^[a-z][a-z0-9_]*$/;
+
+const onSavepoint = statement => async ({ input: { sessionId, name } }) => {
+    if (!SAVEPOINT_NAME.test(name)) throw new CoreError('invalid', `'${name}' isn't a valid savepoint name`, { name });
+    try {
+        await clientOf(sessionId).query(`${statement} ${name}`);
+    } catch (error) {
+        throw normalized(error);
+    }
+    return null;
+};
+
+export const savepoint = onSavepoint('SAVEPOINT');
+
+export const releaseSavepoint = onSavepoint('RELEASE SAVEPOINT');
+
+export const rollbackToSavepoint = onSavepoint('ROLLBACK TO SAVEPOINT');
+
 export const commit = end('COMMIT');
 
 export const rollback = end('ROLLBACK');

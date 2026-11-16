@@ -8,6 +8,29 @@ const take = sessionId => {
     return actions;
 };
 
+const lengthsAtSavepoints = new Map();
+
+let lastScope = 0;
+
+const scopeKey = ({ sessionId, name }) => `${sessionId}/${name}`;
+
+export const openScope = ({ input: { sessionId } }) => {
+    lastScope += 1;
+    const scope = { sessionId, name: `sp${lastScope}` };
+    lengthsAtSavepoints.set(scopeKey(scope), (afterCommitActions.get(sessionId) ?? []).length);
+    return scope;
+};
+
+export const closeScope = ({ input }) => {
+    lengthsAtSavepoints.delete(scopeKey(input));
+    return null;
+};
+
+export const dropAfterCommitOfScope = ({ input }) => {
+    afterCommitActions.set(input.sessionId, (afterCommitActions.get(input.sessionId) ?? []).slice(0, lengthsAtSavepoints.get(scopeKey(input))));
+    return closeScope({ input });
+};
+
 const withoutTransaction = _ctx => Object.freeze(Object.fromEntries(Object.entries(_ctx).filter(([key]) => key !== 'transaction')));
 
 const run = action => execute(action).catch(() => null);

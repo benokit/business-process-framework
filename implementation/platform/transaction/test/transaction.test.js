@@ -27,6 +27,27 @@ const operations = {
         ]
     },
     note: { inputMap: { command: `INSERT INTO ${TABLE} (name) VALUES ($1)`, parameters: ['#.input'] }, invoke: 'default-postgresql-database', operation: 'execute' },
+    scopeFailing: {
+        inTransaction: [
+            { inputMap: { name: 'scope-kept' }, invoke: '#.self.id', operation: 'insert' },
+            { try: { inSavepoint: [{ inputMap: { name: 'scope-lost' }, invoke: '#.self.id', operation: 'insert' }, { throw: 'failed on purpose' }] }, catch: { set: 'caught' } },
+            { inputMap: { name: 'scope-after' }, invoke: '#.self.id', operation: 'insert' }
+        ]
+    },
+    scopeSucceeding: { inTransaction: { inSavepoint: { inputMap: { name: 'scope-ok' }, invoke: '#.self.id', operation: 'insert' } } },
+    scopeAfterSqlError: {
+        inTransaction: [
+            { try: { inSavepoint: { inputMap: { command: 'INSERT INTO a_table_nobody_made (name) VALUES (1)' }, invoke: 'default-postgresql-database', operation: 'execute' } }, catch: { set: 'caught' } },
+            { inputMap: { name: 'scope-after-sql-error' }, invoke: '#.self.id', operation: 'insert' }
+        ]
+    },
+    scopeAfterCommit: {
+        inTransaction: [
+            { inputMap: 'scope-outer-note', afterCommit: { invoke: '#.self.id', operation: 'note' } },
+            { try: { inSavepoint: [{ inputMap: 'scope-inner-note', afterCommit: { invoke: '#.self.id', operation: 'note' } }, { throw: 'failed on purpose' }] }, catch: { set: 'caught' } }
+        ]
+    },
+    scopeWithoutTransaction: { inSavepoint: { set: 'never' } },
     noteNow: { afterCommit: { invoke: '#.self.id', operation: 'note' } },
     noteAfterCommit: {
         inTransaction: [
@@ -94,6 +115,32 @@ describe('transaction', function () {
         const error = await invoke('the-user', 'insert', { name: 'lost', fail: true }).catch(e => e);
         expect(error.message).to.equal('failed on purpose');
         expect(await rows()).to.deep.equal(['kept']);
+    });
+
+    it('rolls back the work of a savepoint scope that fails, and keeps what came before and after it', async () => {
+        await invoke('the-user', 'scopeFailing', null);
+        const names = await rows();
+        expect(['scope-kept', 'scope-lost', 'scope-after'].map(name => names.includes(name))).to.deep.equal([true, false, true]);
+    });
+
+    it('keeps the work of a savepoint scope that succeeds', async () => {
+        await invoke('the-user', 'scopeSucceeding', null);
+        expect(await rows()).to.include('scope-ok');
+    });
+
+    it('lets a transaction go on after an SQL error in a savepoint scope, which would abort it otherwise', async () => {
+        await invoke('the-user', 'scopeAfterSqlError', null);
+        expect(await rows()).to.include('scope-after-sql-error');
+    });
+
+    it('drops the afterCommit work registered in a scope that rolled back, and keeps the rest', async () => {
+        await invoke('the-user', 'scopeAfterCommit', null);
+        const names = await rows();
+        expect(['scope-outer-note', 'scope-inner-note'].map(name => names.includes(name))).to.deep.equal([true, false]);
+    });
+
+    it('refuses a savepoint scope outside a transaction', async () => {
+        expect((await invoke('the-user', 'scopeWithoutTransaction', null).catch(e => e)).code).to.equal('invalid');
     });
 
     it('fails on an unknown session', async () => {

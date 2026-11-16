@@ -26,7 +26,10 @@
                 },
                 "begin": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "begin", "effects": ["write"] } } },
                 "commit": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "commit", "effects": ["write"] } } },
-                "rollback": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollback", "effects": ["write"] } } }
+                "rollback": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollback", "effects": ["write"] } } },
+                "savepoint": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "savepoint", "effects": ["write"] } } },
+                "releaseSavepoint": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "releaseSavepoint", "effects": ["write"] } } },
+                "rollbackToSavepoint": { "implementation": { "low": { "module": "@business-framework/postgresql", "export": "rollbackToSavepoint", "effects": ["write"] } } }
             },
             "lifecycle": {
                 "start": { "inputMap": { "$func/settings": "#.self.id" }, "low": { "module": "@business-framework/postgresql", "export": "connect", "effects": ["irreversible"] } },

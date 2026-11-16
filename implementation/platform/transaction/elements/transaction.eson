@@ -23,6 +23,29 @@
                         { "low": { "module": "@business-framework/transaction", "export": "dropAfterCommit", "effects": [] } },
                         { "invoke": { "instanceOf": "database" }, "operation": "rollback" }
                     ]
+                },
+                "savepoint": {
+                    "input": "@database-session",
+                    "output": "@database-savepoint",
+                    "implementation": [
+                        { "outputKey": "scope", "low": { "module": "@business-framework/transaction", "export": "openScope", "effects": [] } },
+                        { "inputMap": "#.scope", "invoke": { "instanceOf": "database" }, "operation": "savepoint" },
+                        { "set": "#.scope" }
+                    ]
+                },
+                "releaseSavepoint": {
+                    "input": "@database-savepoint",
+                    "implementation": [
+                        { "invoke": { "instanceOf": "database" }, "operation": "releaseSavepoint" },
+                        { "low": { "module": "@business-framework/transaction", "export": "closeScope", "effects": [] } }
+                    ]
+                },
+                "rollbackToSavepoint": {
+                    "input": "@database-savepoint",
+                    "implementation": [
+                        { "invoke": { "instanceOf": "database" }, "operation": "rollbackToSavepoint" },
+                        { "low": { "module": "@business-framework/transaction", "export": "dropAfterCommitOfScope", "effects": [] } }
+                    ]
                 }
             }
         }
@@ -56,6 +79,33 @@
                         ]
                     }
                 ]
+            }
+        }
+    },
+    {
+        "id": "in-savepoint",
+        "kind": "transaction-execution-node-wrapper",
+        "data": {
+            "keyword": "inSavepoint",
+            "node": { "!inSavepoint": "@method" },
+            "effects": { "bound": ["read", "write", "trace"] },
+            "implementation": {
+                "if": "#._ctx.transaction",
+                "then": [
+                    { "outputKey": "scope", "inputMap": "#._ctx.transaction", "invoke": "transaction", "operation": "savepoint" },
+                    {
+                        "try": [
+                            { "outputKey": "result", "next": true },
+                            { "inputMap": "#.scope", "invoke": "transaction", "operation": "releaseSavepoint" },
+                            { "return": "#.result" }
+                        ],
+                        "catch": [
+                            { "inputMap": "#.scope", "invoke": "transaction", "operation": "rollbackToSavepoint" },
+                            { "throw": "#.error" }
+                        ]
+                    }
+                ],
+                "else": { "throw": { "code": "invalid", "message": "inSavepoint needs a transaction: wrap the work in inTransaction" } }
             }
         }
     },

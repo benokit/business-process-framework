@@ -15,6 +15,11 @@
         "data": { "!sessionId": "number" }
     },
     {
+        "id": "database-savepoint",
+        "kind": "schema",
+        "data": { "!sessionId": "number", "!name": "string" }
+    },
+    {
         "id": "migration",
         "kind": "schema",
         "data": { "command": "string", "run": "@method" }
@@ -53,6 +58,9 @@
                 "begin": { "input": { "!isolation=1": ["read committed", "repeatable read", "serializable"] }, "output": "@database-session" },
                 "commit": { "input": "@database-session" },
                 "rollback": { "input": "@database-session" },
+                "savepoint": { "input": "@database-savepoint" },
+                "releaseSavepoint": { "input": "@database-savepoint" },
+                "rollbackToSavepoint": { "input": "@database-savepoint" },
                 "migrate": {
                     "input": "@any",
                     "output": { "!applied[]": "string" },
