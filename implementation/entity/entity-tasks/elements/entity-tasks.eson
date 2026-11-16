@@ -163,6 +163,15 @@
         }
     },
     {
+        "id": "task-search-document",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entity-tasks/tasks",
+            "export": "searchDocument"
+        }
+    },
+    {
         "id": "task-relations-of",
         "kind": "pure-function",
         "data": {

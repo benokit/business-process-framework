@@ -12,3 +12,13 @@ export const outcomeSchemas = () => selvesOf('entity-type').flatMap(({ id }) => 
 export const taskRelations = record => record.data.task?.status === 'open'
     ? (record.data.task.about ?? []).map(({ entityType, businessKey }) => ({ targetEntityType: entityType, targetEntityBusinessKey: businessKey, relationType: 'about' }))
     : [];
+
+export const searchDocument = record => ({
+    entityType: record.entityType,
+    status: record.data.task.status,
+    actor: record.data.task.actor ?? null,
+    assignedTo: record.data.task.assignedTo ?? null,
+    dueOn: record.data.task.dueOn === undefined ? null : Date.parse(record.data.task.dueOn),
+    outcome: record.data.task.outcome ?? null,
+    about: (record.data.task.about ?? []).map(({ entityType, businessKey }) => `${entityType}/${businessKey}`)
+});

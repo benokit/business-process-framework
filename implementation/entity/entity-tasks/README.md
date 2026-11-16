@@ -28,4 +28,8 @@ An outcome with `answer` (`true` or the schema of the result) is one a **user ma
 
 While a task is open, each entity it is `about` is held by an [entity relation](../entity-relations/README.md) of the type `about` (a fill of `relations` on every entity type, none for a closed task): "the tasks about this contract" is `entity-relations-to({ targetEntityId, relationType: "about" })`, and the entity can't be deleted (`referenced`) while a task about it is open. The package therefore needs `entity-relations`.
 
-Not built: the grant of `answer` by outcome (the authorization sees the operation, not the outcome as a closed set), and a work list by actor. The process side, the `resolve` of a `when` entry and the withdrawal of tasks, is in [entity-processes](../entity-processes/README.md#tasks).
+## Work list
+
+Every task has the same shape, so one list shows the tasks of an actor across task types. `$func/task-search-document` maps a task record to `{ entityType, status, actor, assignedTo, dueOn (epoch milliseconds), outcome, about ("<entity type>/<business key>" each) }`; an application fills the `searchIndex` of each task type with one shared index and that mapping (`{ "set": { "$func/task-search-document": "#.input" } }`), declares the attributes it filters on, and a [search query](../../platform/search/README.md) such as `status = open AND actor = …` is the list. A closed task leaves the list when it is reindexed by its event.
+
+Not built: the grant of `answer` by outcome (the authorization sees the operation, not the outcome as a closed set). The process side, the `resolve` of a `when` entry and the withdrawal of tasks, is in [entity-processes](../entity-processes/README.md#tasks).
