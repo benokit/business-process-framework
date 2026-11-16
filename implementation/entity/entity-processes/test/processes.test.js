@@ -30,6 +30,9 @@ const TIMEDLATERDEF = `timedlater-process-${run}`;
 const BREAKING = `breaking-process-${run}`;
 const BREAKINGS = `breakings-${run}`;
 
+const NOTICING = `noticing-process-${run}`;
+const NOTICINGS = `noticings-${run}`;
+
 const BINDING = `binding-process-${run}`;
 const BINDINGS = `bindings-${run}`;
 const REBINDING = `rebinding-process-${run}`;
@@ -196,6 +199,19 @@ const elements = [
         }
     },
     { id: TRESPASSINGS, kind: 'process-entity-type', data: { definition: TRESPASSING } },
+    {
+        id: NOTICING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'hold',
+            steps: {
+                hold: { wait: { when: [{ test: { $eq: ['#.entities.contract.data.body.name', 'Ready'] }, then: 'done' }] } },
+                done: { set: { name: '#.entities.contract.data.body.name' }, end: true }
+            }
+        }
+    },
+    { id: NOTICINGS, kind: 'process-entity-type', data: { definition: NOTICING } },
     { id: `flaky-error-${run}`, kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky-for-test', transient: true } } },
     {
         id: BREAKING,
@@ -391,6 +407,35 @@ describe('processes', function () {
             const before = await readProcess(BREAKINGS, 'p-down');
             expect((await invoke(BREAKINGS, 'wake', GO('p-down')).catch(failed => failed)).code).to.equal('unavailable');
             expect((await readProcess(BREAKINGS, 'p-down')).revision).to.equal(before.revision);
+        });
+    });
+
+    describe('a wait on a fact', () => {
+        const CHECK = businessKey => ({ kind: 'check', entityType: NOTICINGS, businessKey });
+
+        it('goes on at once when the fact already holds as the wait begins', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-ready', traits: { body: { name: 'Ready' } } });
+            const ended = await invoke(NOTICINGS, 'start', { businessKey: 'p-ready', entities: { contract: 'c-ready' } });
+            expect([ended.data.process.step, ended.data.state.status, ended.data.body]).to.deep.equal(['done', 'ended', { name: 'Ready' }]);
+        });
+
+        it('waits while the fact does not hold, and a check on the current data takes the step once it does', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-notice', traits: { body: { name: 'Draft' } } });
+            const waiting = await invoke(NOTICINGS, 'start', { businessKey: 'p-notice', entities: { contract: 'c-notice' } });
+            expect(waiting.data.process.step).to.equal('hold');
+            await invoke(NOTICINGS, 'wake', CHECK('p-notice'));
+            expect((await readProcess(NOTICINGS, 'p-notice')).revision).to.equal(waiting.revision);
+            const contract = await invoke(CONTRACT, 'read', { businessKey: 'c-notice' });
+            await invoke(CONTRACT, 'run', { businessKey: 'c-notice', revision: contract.revision, trait: 'body', operation: 'update', input: { value: { name: 'Ready' } } });
+            await invoke(NOTICINGS, 'wake', CHECK('p-notice'));
+            const ended = await readProcess(NOTICINGS, 'p-notice');
+            expect([ended.data.process.step, ended.data.state.status, ended.data.body, ended.data.process.wait]).to.deep.equal(['done', 'ended', { name: 'Ready' }, undefined]);
+        });
+
+        it('drops a check for a process that is not waiting any more', async () => {
+            const ended = await readProcess(NOTICINGS, 'p-ready');
+            await invoke(NOTICINGS, 'wake', CHECK('p-ready'));
+            expect((await readProcess(NOTICINGS, 'p-ready')).revision).to.equal(ended.revision);
         });
     });
 

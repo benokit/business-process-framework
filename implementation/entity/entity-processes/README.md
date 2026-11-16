@@ -10,7 +10,7 @@ An element of the kind `process-definition` declares the **roles** (the entities
 |---|---|
 | `next: <step>` | continue with that step, in the same transaction |
 | `choose: [[test, <step>], …, ["else", <step>]]` | a decision over the process and its participants |
-| `wait: { signals?, until? }` | stop; `signals` maps a name to `{ to, by, payload? }` (the step it starts and the role that addresses the instance), `until` is `{ at \| after, then }`: a date from a mapping, or an elapsed duration `{ days?, hours?, minutes? }` |
+| `wait: { when?, signals?, until? }` | stop; `when` lists conditions `{ test, then }`: a pure mapping over `{ process, entities }` that is tried as the wait begins (a fact already true doesn't wait) and again by every `check` wake-up, on the current data of the participants, the first that holds taking its `then`; `signals` maps a name to `{ to, by, payload? }` (the step it starts and the role that addresses the instance), `until` is `{ at \| after, then }`: a date from a mapping, or an elapsed duration `{ days?, hours?, minutes? }` |
 | `end: true` | the process is finished |
 
 A step may also declare `onError: [{ catches: [<code>], set?, then }]`, the way it leaves when its `do` failed; only terminal [error types](../../core/README.md#error-types) can be caught.
@@ -47,6 +47,7 @@ Everything that moves a process after its start arrives as one message on the ch
 |---|---|---|
 | `start` | `entities`, `input?` | `start`, once however often the message is delivered: a start that finds the entity already there is a `duplicate`, and is dropped |
 | `signal` | `name`, `payload?` | runs the step the wait names for that signal, with the payload as `#.input.signal`, if the process waits for it |
+| `check` | | evaluates the `when` entries of the wait on the current data and runs the step of the first that holds; nothing if the process doesn't wait or none holds |
 | `timer` | `token`, `step` | runs the step of the `until`, if the token is the one of the wait |
 
 A wake-up the process can't use is dropped and acknowledged, never an error: the process isn't `running` (suspended, aborted, ended), it doesn't wait for that signal, or the token isn't the one of its wait (a timer of a wait it left). The token is the revision of the process entity when the wait began, so a message that arrives twice finds the revision moved and is dropped: no table of handled messages, no lock.

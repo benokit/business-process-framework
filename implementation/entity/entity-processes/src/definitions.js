@@ -12,6 +12,7 @@ const immediateTargetsOf = step => [
 ];
 
 const waitTargetsOf = step => [
+    ...(step.wait?.when ?? []).map(({ then }) => then),
     ...Object.values(step.wait?.signals ?? {}).map(({ to }) => to),
     ...step.wait?.until === undefined ? [] : [step.wait.until.then]
 ];
@@ -45,7 +46,7 @@ const untilProblems = (name, until) => until === undefined || [until.at, until.a
     : [`step '${name}' waits until a date or after a duration: exactly one of at and after`];
 
 const waitProblems = (roles, name, wait) => wait === undefined ? [] : [
-    ...Object.keys(wait.signals ?? {}).length === 0 && wait.until === undefined ? [`step '${name}' waits for nothing: it needs a signal or an until`] : [],
+    ...(wait.when ?? []).length === 0 && Object.keys(wait.signals ?? {}).length === 0 && wait.until === undefined ? [`step '${name}' waits for nothing: it needs a when, a signal or an until`] : [],
     ...Object.entries(wait.signals ?? {}).filter(([, { by }]) => roles[by] === undefined).map(([signal, { by }]) => `step '${name}' signal '${signal}' is addressed by the role '${by}', which the process doesn't declare`),
     ...untilProblems(name, wait.until)
 ];

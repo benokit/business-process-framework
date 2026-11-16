@@ -81,8 +81,18 @@ describe('process definitions', function () {
         expect(messages).to.include.members([
             "step 'ask' signal 'answered' is addressed by the role 'nobody', which the process doesn't declare",
             "step 'ask' waits until a date or after a duration: exactly one of at and after",
-            "step 'remind' waits for nothing: it needs a signal or an until"
+            "step 'remind' waits for nothing: it needs a when, a signal or an until"
         ]);
+    });
+
+    it('reports a when that leads to an unknown step and counts the step it leads to as reachable', async () => {
+        const messages = await messagesAfterBooting({
+            ...GOOD,
+            begin: { next: 'ask' },
+            ask: { wait: { when: [{ test: true, then: 'remind' }, { test: false, then: 'nowhere' }] } },
+            remind: { next: 'finish' }
+        });
+        expect(messages).to.deep.equal(["step 'ask' leads to unknown step 'nowhere'"]);
     });
 
     it('reports an onError that catches nothing, an unregistered code and a transient one, and accepts a terminal code or its parent', async () => {

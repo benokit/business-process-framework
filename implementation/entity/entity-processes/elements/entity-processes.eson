@@ -20,9 +20,14 @@
         "data": { "at": "@mapping", "after": "@process-duration", "!then": "string", "*": "never" }
     },
     {
+        "id": "process-condition",
+        "kind": "schema",
+        "data": { "!test": "@mapping", "!then": "string", "*": "never" }
+    },
+    {
         "id": "process-wait",
         "kind": "schema",
-        "data": { "signals{}": "@process-signal", "until": "@process-until", "*": "never" }
+        "data": { "when[]": "@process-condition", "signals{}": "@process-signal", "until": "@process-until", "*": "never" }
     },
     {
         "id": "process-error-exit",
@@ -190,10 +195,19 @@
         }
     },
     {
+        "id": "process-held-exit",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!exit": "@any", "entities": "@any", "!scope": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "heldExit"
+        }
+    },
+    {
         "id": "process-wakeup-target",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!process": "@any", "!wakeup": "@any" }, "output": "@any" },
+            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "entities": "@any" }, "output": "@any" },
             "module": "@business-framework/entity-processes/process",
             "export": "wakeupTarget"
         }
@@ -202,7 +216,7 @@
         "id": "process-wakeup",
         "kind": "schema",
         "data": {
-            "!kind=1": ["start", "signal", "timer"],
+            "!kind=1": ["start", "signal", "timer", "check"],
             "!entityType": "string",
             "!businessKey": "string",
             "entities": "@any",
@@ -411,14 +425,30 @@
                             }
                         },
                         {
-                            "if": { "$eq": ["#.exit.kind", "next"] },
+                            "outputKey": "fresh",
+                            "if": { "$and": [{ "$eq": ["#.exit.kind", "wait"] }, "#.step.wait.when"] },
+                            "then": { "inputMap": "#.exit.entities", "invoke": "#.self.id", "operation": "loadParticipants" }
+                        },
+                        {
+                            "outputKey": "settled",
+                            "set": {
+                                "$func/process-held-exit": {
+                                    "step": "#.step",
+                                    "exit": "#.exit",
+                                    "entities": "#.fresh",
+                                    "scope": { "$merge": ["#.scope", { "process": { "$merge": ["#.scope.process", { "data": { "$merge": ["#.scope.process.data", { "body": "#.exit.variables" }] } }] } }] }
+                                }
+                            }
+                        },
+                        {
+                            "if": { "$eq": ["#.settled.kind", "next"] },
                             "then": {
-                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.exit.step", "variables": "#.exit.variables", "entities": "#.exit.entities", "input": "#.input.input", "depth": { "$sum": ["#.input.depth", 1] } },
+                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.settled.step", "variables": "#.settled.variables", "entities": "#.settled.entities", "input": "#.input.input", "depth": { "$sum": ["#.input.depth", 1] } },
                                 "invoke": "#.self.id",
                                 "operation": "advance"
                             },
                             "else": {
-                                "inputMap": { "businessKey": "#.input.businessKey", "process": "#.process", "step": "#.input.step", "exit": "#.exit" },
+                                "inputMap": { "businessKey": "#.input.businessKey", "process": "#.process", "step": "#.input.step", "exit": "#.settled" },
                                 "invoke": "#.self.id",
                                 "operation": "settle"
                             }
@@ -488,7 +518,12 @@
                             },
                             "else": [
                                 { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
-                                { "outputKey": "target", "set": { "$func/process-wakeup-target": { "process": "#.process", "wakeup": "#.input" } } },
+                                {
+                                    "outputKey": "entities",
+                                    "if": { "$eq": ["#.input.kind", "check"] },
+                                    "then": { "inputMap": "#.process.data.process.entities", "invoke": "#.self.id", "operation": "loadParticipants" }
+                                },
+                                { "outputKey": "target", "set": { "$func/process-wakeup-target": { "process": "#.process", "wakeup": "#.input", "entities": "#.entities" } } },
                                 {
                                     "if": "#.target",
                                     "then": {

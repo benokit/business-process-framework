@@ -105,6 +105,13 @@ export const resolvedWait = ({ wait, now }) => wait.until === undefined || wait.
     ? wait
     : { ...wait, until: { at: new Date(Date.parse(now) + durationInMilliseconds(wait.until.after)).toISOString(), then: wait.until.then } };
 
+export const heldExit = ({ step, exit, entities, scope }) => {
+    const held = exit.kind === 'wait' && entities !== undefined
+        ? (step.wait.when ?? []).find(({ test }) => evaluated(test, { ...scope, entities }))
+        : undefined;
+    return held === undefined ? exit : { kind: 'next', step: held.then, variables: exit.variables, entities: exit.entities };
+};
+
 const stepsOf = ({ definition }) => definitionOf(definition).steps;
 
 const signalTarget = (process, { name, payload }) => process.data.process.wait?.signals.includes(name)
@@ -115,9 +122,19 @@ const timerTarget = (process, { token, step }) => process.data.process.wait?.tok
     ? { step, signal: null }
     : null;
 
-export const wakeupTarget = ({ process, wakeup }) => process.data.state.status !== 'running'
+const checkTarget = (process, entities) => {
+    const position = process.data.process;
+    const held = position.wait === undefined
+        ? undefined
+        : (stepsOf(position)[position.step].wait.when ?? []).find(({ test }) => evaluated(test, { process, entities }));
+    return held === undefined ? null : { step: held.then, signal: null };
+};
+
+const targetOfKind = { signal: signalTarget, timer: timerTarget, check: (process, { entities }) => checkTarget(process, entities) };
+
+export const wakeupTarget = ({ process, wakeup, entities }) => process.data.state.status !== 'running'
     ? null
-    : wakeup.kind === 'signal' ? signalTarget(process, wakeup) : timerTarget(process, wakeup);
+    : targetOfKind[wakeup.kind](process, { ...wakeup, entities });
 
 export const processPosition = ({ process, step, wait, entities }) => ({
     definition: process.definition,
