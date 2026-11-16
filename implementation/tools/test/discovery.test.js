@@ -16,7 +16,7 @@ describe('discovery', () => {
         expect(source).to.match(/demo\/contracts\/construction\.eson$/);
         expect(operations.find(op => op.name === 'create')).to.include({ declaredBy: 'entity-type', implementedBy: 'entity-type' });
         expect(slots.find(slot => slot.name === 'reactions').fills.map(fill => fill.id))
-            .to.deep.equal(['maintain-entity-relations', 'publish-entity-events', 'refuse-forbidden-initial-states', 'contract-activation-events', 'contract-sum-insured-within-line-limit', 'contract-terms-end-after-start']);
+            .to.deep.equal(['maintain-entity-relations', 'publish-entity-events', 'publish-process-view-changes', 'refuse-forbidden-initial-states', 'contract-activation-events', 'contract-sum-insured-within-line-limit', 'contract-terms-end-after-start']);
     });
 
     it('explains the data of an instance at the level of each kind, where a kind maps it', () => {
@@ -71,7 +71,7 @@ describe('discovery', () => {
     });
 
     it('lists the instances of a kind and its subkinds', () => {
-        expect(list('message-channel').map(element => element.id)).to.have.members(['entity-events', 'contract-events', 'process-wakeups']);
+        expect(list('message-channel').map(element => element.id)).to.have.members(['entity-events', 'contract-events', 'process-wakeups', 'entity-view-changes']);
         expect(list('entity-type').map(element => element.id)).to.include.members(['user', 'construction']);
     });
 

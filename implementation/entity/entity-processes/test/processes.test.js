@@ -33,6 +33,9 @@ const BREAKINGS = `breakings-${run}`;
 const NOTICING = `noticing-process-${run}`;
 const NOTICINGS = `noticings-${run}`;
 
+const SELFTOUCHING = `selftouching-process-${run}`;
+const SELFTOUCHINGS = `selftouchings-${run}`;
+
 const BINDING = `binding-process-${run}`;
 const BINDINGS = `bindings-${run}`;
 const REBINDING = `rebinding-process-${run}`;
@@ -212,6 +215,20 @@ const elements = [
         }
     },
     { id: NOTICINGS, kind: 'process-entity-type', data: { definition: NOTICING } },
+    {
+        id: SELFTOUCHING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'touch',
+            steps: {
+                touch: { do: { inputMap: { businessKey: '#.input.entities.contract.businessKey', revision: '#.input.entities.contract.revision', trait: 'body', operation: 'update', input: { value: { name: 'Changed' } } }, invoke: CONTRACT, operation: 'run' }, next: 'hold' },
+                hold: { wait: { when: [{ test: { $eq: ['#.entities.contract.data.body.name', 'Never'] }, then: 'done' }] } },
+                done: { end: true }
+            }
+        }
+    },
+    { id: SELFTOUCHINGS, kind: 'process-entity-type', data: { definition: SELFTOUCHING } },
     { id: `flaky-error-${run}`, kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky-for-test', transient: true } } },
     {
         id: BREAKING,
@@ -430,6 +447,40 @@ describe('processes', function () {
             await invoke(NOTICINGS, 'wake', CHECK('p-notice'));
             const ended = await readProcess(NOTICINGS, 'p-notice');
             expect([ended.data.process.step, ended.data.state.status, ended.data.body, ended.data.process.wait]).to.deep.equal(['done', 'ended', { name: 'Ready' }, undefined]);
+        });
+
+        const update = async (businessKey, name) => {
+            const { revision } = await invoke(CONTRACT, 'read', { businessKey });
+            return invoke(CONTRACT, 'run', { businessKey, revision, trait: 'body', operation: 'update', input: { value: { name } } });
+        };
+
+        const viewChanges = async businessKey => (await getPool().query('SELECT count(*)::int AS count FROM transactional_outbox WHERE channel = $1 AND message_group = $2', ['entity-view-changes', `${CONTRACT}/${businessKey}`])).rows[0].count;
+
+        it('is woken by a change of what its tests read: the publisher puts the change, the watcher a check for each process holding the entity', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-watched', traits: { body: { name: 'Draft' } } });
+            await invoke(NOTICINGS, 'start', { businessKey: 'p-watched', entities: { contract: 'c-watched' } });
+            await update('c-watched', 'Ready');
+            await eventually(async () => (await readProcess(NOTICINGS, 'p-watched')).data.state.status === 'ended');
+            expect((await readProcess(NOTICINGS, 'p-watched')).data.body).to.deep.equal({ name: 'Ready' });
+        });
+
+        it('publishes nothing for a write that changes no view, and nothing for an entity type no process reads', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-quiet', traits: { body: { name: 'Draft' } } });
+            await invoke(NOTICINGS, 'start', { businessKey: 'p-quiet', entities: { contract: 'c-quiet' } });
+            expect(await viewChanges('c-quiet')).to.equal(1);
+            await update('c-quiet', 'Draft');
+            expect(await viewChanges('c-quiet')).to.equal(1);
+            await invoke(OTHER, 'create', { businessKey: 'o-quiet', traits: { body: { name: 'x' } } });
+            expect((await getPool().query('SELECT count(*)::int AS count FROM transactional_outbox WHERE channel = $1 AND message_group = $2', ['entity-view-changes', `${OTHER}/o-quiet`])).rows[0].count).to.equal(0);
+        });
+
+        it('does not check the process whose own step made the change, and checks the others that hold the entity', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-self', traits: { body: { name: 'Draft' } } });
+            await invoke(NOTICINGS, 'start', { businessKey: 'p-control', entities: { contract: 'c-self' } });
+            await invoke(SELFTOUCHINGS, 'start', { businessKey: 'p-self', entities: { contract: 'c-self' } });
+            const checks = async (entityType, businessKey) => (await getPool().query("SELECT count(*)::int AS count FROM transactional_outbox WHERE channel = 'process-wakeups' AND message_group = $1 AND envelope->'message'->>'kind' = 'check'", [`${entityType}/${businessKey}`])).rows[0].count;
+            await eventually(async () => await checks(NOTICINGS, 'p-control') === 1);
+            expect(await checks(SELFTOUCHINGS, 'p-self')).to.equal(0);
         });
 
         it('drops a check for a process that is not waiting any more', async () => {

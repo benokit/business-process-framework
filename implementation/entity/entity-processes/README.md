@@ -47,12 +47,22 @@ Everything that moves a process after its start arrives as one message on the ch
 |---|---|---|
 | `start` | `entities`, `input?` | `start`, once however often the message is delivered: a start that finds the entity already there is a `duplicate`, and is dropped |
 | `signal` | `name`, `payload?` | runs the step the wait names for that signal, with the payload as `#.input.signal`, if the process waits for it |
-| `check` | | evaluates the `when` entries of the wait on the current data and runs the step of the first that holds; nothing if the process doesn't wait or none holds |
+| `check` | `role?`, `revision?` | evaluates the `when` entries of the wait on the current data and runs the step of the first that holds; nothing if the process doesn't wait or none holds |
 | `timer` | `token`, `step` | runs the step of the `until`, if the token is the one of the wait |
 
 A wake-up the process can't use is dropped and acknowledged, never an error: the process isn't `running` (suspended, aborted, ended), it doesn't wait for that signal, or the token isn't the one of its wait (a timer of a wait it left). The token is the revision of the process entity when the wait began, so a message that arrives twice finds the revision moved and is dropped: no table of handled messages, no lock.
 
 A wait with `until` puts its timer in the same transaction that writes the wait: a message with `deliverAt` (the date the wait names, or the time of the wait plus the duration of `after`, read from the `clock` as an effect, so the steps stay deterministic and a test stubs the clock) in the group `<entity type>/<business key>/timer/<token>`, so a timer far in the future never holds back the signals of its process. The wait is stored with the date resolved: `{ token, signals, until: { at, then } }`.
+
+## Noticing a fact
+
+A `when` is woken by a change of what its tests read, never by a message that carries the fact:
+
+- **The publisher** is a `reactions` fill of `entity-type`. In the transaction of the write it computes the **views** of the entity type, derived from the `when` tests of every `process-definition`: one view per definition and role, the paths the tests read as `#.entities.<role>.<path>` (the whole record when a test reads the role bare or the role is `many`). If a view differs between `before` and `after`, it puts `{ entityType, id, businessKey, revision, changed: ["<definition>/<role>", …], via? }` on the channel `entity-view-changes`, committed with the write. Only names cross the broker, never values; a write that changes no view publishes nothing, and `via` is the process whose step made the write.
+- **The watcher** (`process-watcher`, as the system) looks up, for each changed view, the processes that hold the entity in that role (`entity-relations-to`, so only running ones), skips the process of `via`, and puts a `check` wake-up for each, in that process's group.
+- **The runner** evaluates the tests on the current data (see `check` above); a duplicate or late check finds nothing to do.
+
+Not built: the revision narrowing (`wait.watch`, a check that isn't news is dropped without reading the participants) and the slot `signalViews` for explicit views; every check costs one read of the participants.
 
 ## Binding, relations and the footprint
 
@@ -80,4 +90,4 @@ An error nobody caught is handled by a **circuit breaker** when a wake-up fails 
 
 `suspend`, `resume` and `abort` are transitions of `status` through the existing transition endpoint, granted by the application to a role: `{ "area": "states", "resource": "<process entity type>", "action": ["suspend", "resume", "abort"] }`. A wake-up for a process that isn't `running` is dropped. `resume` replays the wake-up that caused the fault, puts the timer of the wait again (the date may have passed while the process was suspended, and is simply due), and clears `fault` and `failures`; `abort` clears them and replays nothing. A reaction of the trait `process` does it, in the transaction of the transition.
 
-Not built yet: tasks and `when` (R5.3b), the demo (R5.3c), the triggers that put `start` and `signal` and the derived business key (R5.3d), the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`), and an actor that grants the operator's transitions (the demo declares it).
+Not built yet: tasks and the `resolve` of a `when` (R5.3b), the demo (R5.3c), the triggers that put `start` and `signal` and the derived business key (R5.3d), the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`), and an actor that grants the operator's transitions (the demo declares it).

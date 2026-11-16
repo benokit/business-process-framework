@@ -2,6 +2,8 @@ import { CoreError, invoke } from '@business-framework/core';
 import { errorTypeOf, isKindOfError } from '@business-framework/core/error-types';
 import { selvesOf } from '@business-framework/core/kinds';
 import { applyMapping } from '@business-framework/core/mappings';
+import { memo } from '@business-framework/core/registry';
+import { isDeepStrictEqual } from 'node:util';
 
 const definitionOf = id => selvesOf('process-definition').find(element => element.id === id).data;
 
@@ -150,6 +152,7 @@ const transition = name => ({ key: 'state', operation: 'transition', input: { tr
 export const processVerdict = ({ process, wakeup, error, attempts }) => {
     const { transient, outage } = errorTypeOf(error.code);
     if (outage || wakeup.kind === 'start') return { action: 'rethrow', operations: [] };
+    if (process.data.state.status !== 'running') return { action: 'drop', operations: [] };
     const position = process.data.process;
     const step = wakeupTarget({ process, wakeup })?.step ?? position.step;
     const count = (position.failures?.step === step ? position.failures.count : 0) + 1;
@@ -171,3 +174,43 @@ const isBound = (bindings, { entityType, businessKey }) => Object.values(binding
 export const footprintAllows = ({ process, change, entityType }) => change.operation === 'create'
     ? Object.values(definitionOf(process.definition).entities).some(role => role.entityType === entityType)
     : isBound(process.entities, change.before);
+
+const ENTITY_PATH = /^#\.entities\.([^.]+)(?:\.(.*))?$/;
+
+const readsOf = value => typeof value === 'string'
+    ? [value.match(ENTITY_PATH)].filter(Boolean).map(([, role, path]) => ({ role, path }))
+    : typeof value === 'object' && value !== null ? Object.values(value).flatMap(readsOf) : [];
+
+const conditionsOf = ({ steps }) => Object.values(steps).flatMap(step => step.wait?.when ?? []);
+
+const pathsOf = (reads, many) => many || reads.some(({ path }) => path === undefined) ? null : [...new Set(reads.map(({ path }) => path))];
+
+const viewsOf = memo(entityType => selvesOf('process-definition').flatMap(({ id, data }) => Object.entries(data.entities)
+    .filter(([, role]) => role.entityType === entityType)
+    .map(([role, { many }]) => ({ name: `${id}/${role}`, reads: conditionsOf(data).flatMap(({ test }) => readsOf(test)).filter(read => read.role === role), many }))
+    .filter(({ reads }) => reads.length > 0)
+    .map(({ name, reads, many }) => ({ name, paths: pathsOf(reads, many) }))));
+
+const at = (value, path) => path.split('.').reduce((current, key) => current?.[key], value);
+
+const viewed = (paths, record) => paths === null ? record?.data : paths.map(path => at(record, path));
+
+export const changedViews = ({ entityType, before, after }) => {
+    const names = viewsOf(entityType)
+        .filter(({ paths }) => !isDeepStrictEqual(viewed(paths, before), viewed(paths, after)))
+        .map(({ name }) => name);
+    return names.length === 0 ? null : names;
+};
+
+export const viewRoles = ({ changed }) => changed.map(name => ({ definition: name.slice(0, name.indexOf('/')), role: name.slice(name.indexOf('/') + 1) }));
+
+export const processChecks = ({ message, view, sources }) => {
+    const types = selvesOf('process-entity-type').filter(({ data }) => data.definition === view.definition).map(({ id }) => id);
+    return sources
+        .filter(({ sourceEntityType, sourceEntityBusinessKey }) => types.includes(sourceEntityType)
+            && !(message.via?.definition === view.definition && message.via.businessKey === sourceEntityBusinessKey))
+        .map(({ sourceEntityType, sourceEntityBusinessKey }) => ({
+            message: { kind: 'check', entityType: sourceEntityType, businessKey: sourceEntityBusinessKey, role: view.role, revision: message.revision },
+            group: `${sourceEntityType}/${sourceEntityBusinessKey}`
+        }));
+};

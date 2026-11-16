@@ -61,7 +61,7 @@
             "value": {
                 "provider": "postgresql-database",
                 "implementation": {
-                    "statement": "SELECT source_entity_id AS \"sourceEntityId\", relation_type AS \"relationType\" FROM entity_relations WHERE target_entity_id = $1 AND ($2::text IS NULL OR relation_type = $2)",
+                    "statement": "SELECT r.source_entity_id AS \"sourceEntityId\", s.entity_type AS \"sourceEntityType\", s.business_key AS \"sourceEntityBusinessKey\", r.relation_type AS \"relationType\" FROM entity_relations r JOIN entities s ON s.id = r.source_entity_id WHERE r.target_entity_id = $1 AND ($2::text IS NULL OR r.relation_type = $2)",
                     "read": true,
                     "parameters": ["#.targetEntityId", "#.relationType"]
                 }

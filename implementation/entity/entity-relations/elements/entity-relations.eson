@@ -22,7 +22,7 @@
     {
         "id": "entity-relation-source",
         "kind": "schema",
-        "data": { "!sourceEntityId": "string", "!relationType": "string" }
+        "data": { "!sourceEntityId": "string", "!sourceEntityType": "string", "!sourceEntityBusinessKey": "string", "!relationType": "string" }
     },
     {
         "id": "set-entity-relations",
