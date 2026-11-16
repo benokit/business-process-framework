@@ -1,0 +1,69 @@
+[
+    {
+        "id": "process-role",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "late": "boolean", "many": "boolean", "*": "never" }
+    },
+    {
+        "id": "process-signal",
+        "kind": "schema",
+        "data": { "!to": "string", "!by": "string", "payload": "@schema", "*": "never" }
+    },
+    {
+        "id": "process-duration",
+        "kind": "schema",
+        "data": { "days": "integer", "hours": "integer", "minutes": "integer", "*": "never" }
+    },
+    {
+        "id": "process-until",
+        "kind": "schema",
+        "data": { "at": "@mapping", "after": "@process-duration", "!then": "string", "*": "never" }
+    },
+    {
+        "id": "process-wait",
+        "kind": "schema",
+        "data": { "signals{}": "@process-signal", "until": "@process-until", "*": "never" }
+    },
+    {
+        "id": "process-error-exit",
+        "kind": "schema",
+        "data": { "!catches[]": "string", "set": "@mapping", "!then": "string", "*": "never" }
+    },
+    {
+        "id": "process-step",
+        "kind": "schema",
+        "data": {
+            "do": "@method",
+            "set": "@mapping",
+            "next": "string",
+            "choose[]": "@any",
+            "wait": "@process-wait",
+            "end": "boolean",
+            "onError[]": "@process-error-exit",
+            "*": "never"
+        }
+    },
+    {
+        "id": "process-definition-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entity-processes/definitions",
+            "export": "processDefinitionProblems"
+        }
+    },
+    {
+        "id": "process-definition",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "!entities{}": "@process-role",
+                "input": "@schema",
+                "variables": "@schema",
+                "!start": "string",
+                "!steps{}": "@process-step"
+            },
+            "lifecycle": { "validate": { "$func/process-definition-problems": "#.self.id" } }
+        }
+    }
+]

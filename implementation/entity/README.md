@@ -8,6 +8,7 @@ The entity store and the traits and features built on it: states, validations, v
 | [entity-amendments](entity-amendments/README.md) | Amendments of an entity with a versioned body as entities of their own: propose, apply, revert, discard, with a ledger of one open amendment, as one trait |
 | [entity-events](entity-events/README.md) | An event per entity write, through the outbox |
 | [entity-ownership](entity-ownership/README.md) | The `ownership` trait: access-relevant facts of an entity, derived from its data at every write by a rule |
+| [entity-processes](entity-processes/README.md) | Durable processes: the `process-definition` kind, a graph of named steps with waits (in progress, [design](../../design/durable-processes.md)) |
 | [entity-relations](entity-relations/README.md) | The `relations` slot and relation maintenance |
 | [entity-row-access](entity-row-access/README.md) | Access permissions: access profiles say which rows a user reaches; guards, reactions and a search filter apply them |
 | [entity-search](entity-search/README.md) | The `searchIndex` slot, indexing from entity events, search |
