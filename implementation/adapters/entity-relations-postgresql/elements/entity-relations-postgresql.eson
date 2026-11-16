@@ -53,6 +53,32 @@
         }
     },
     {
+        "id": "entity-relations-to-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-relations-to",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": {
+                    "statement": "SELECT source_entity_id AS \"sourceEntityId\", relation_type AS \"relationType\" FROM entity_relations WHERE target_entity_id = $1 AND ($2::text IS NULL OR relation_type = $2)",
+                    "read": true,
+                    "parameters": ["#.targetEntityId", "#.relationType"]
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-relations-target-index",
+        "kind": "slot-fill",
+        "/data": {
+            "target": "postgresql-database",
+            "slot": "migrations",
+            "after": ["entity-relations-table"],
+            "value": { "command": { "/uri": "@business-framework/entity-relations-postgresql/sql/entity-relations-target-index.sql" } }
+        }
+    },
+    {
         "id": "entity-relations-restrict-target",
         "kind": "slot-fill",
         "/data": {

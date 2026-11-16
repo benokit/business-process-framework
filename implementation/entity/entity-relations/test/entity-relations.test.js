@@ -61,6 +61,17 @@ describe('entity-relations', function () {
         expect((await invoke(PARTY, 'delete', { businessKey: 'carl', revision: 1 })).businessKey).to.equal('carl');
     });
 
+    it('finds the sources of the relations a target is in, of one type or of all, through an index on the target', async () => {
+        const dora = await invoke(PARTY, 'create', { businessKey: 'dora', traits: { body: { name: 'dora' } } });
+        const asHolder = await invoke(CONTRACT, 'create', { businessKey: 'c-5', traits: { body: { holder: 'dora' } } });
+        const asBroker = await invoke(CONTRACT, 'create', { businessKey: 'c-6', traits: { body: { holder: 'ada', broker: 'dora' } } });
+        const sourcesOf = async filter => (await invoke('entity-relations-to', 'run', { targetEntityId: dora.id, ...filter })).map(({ sourceEntityId, relationType }) => `${sourceEntityId} ${relationType}`).sort();
+        expect(await sourcesOf({})).to.deep.equal([`${asHolder.id} holder`, `${asBroker.id} broker`].sort());
+        expect(await sourcesOf({ relationType: 'broker' })).to.deep.equal([`${asBroker.id} broker`]);
+        const { rows } = await invoke('default-postgresql-database', 'read', { command: "SELECT indexname FROM pg_indexes WHERE tablename = 'entity_relations'" });
+        expect(rows.map(({ indexname }) => indexname)).to.include('entity_relations_target');
+    });
+
     it('deletes the relations of a deleted source', async () => {
         const created = await invoke(CONTRACT, 'create', { businessKey: 'c-4', traits: { body: { holder: 'ada' } } });
         await invoke(CONTRACT, 'delete', { businessKey: 'c-4', revision: 1 });

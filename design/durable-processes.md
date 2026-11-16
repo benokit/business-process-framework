@@ -344,11 +344,10 @@ The framework has no now (P23): nothing starts a process because "it is the firs
 
 A schedule element and a recurring trigger are a later addition (§13, R5.3c), after the delayed start message exists.
 
-### 6.4 The lookup by participant: not there yet
+### 6.4 The lookup by participant
 
-Every message of a participant type runs "processes holding entity E in role R", so the lookup by target must be indexed. **Checked against [entity-relations](../implementation/entity/entity-relations/README.md): it doesn't exist.** The table `entity_relations` has the primary key (source, target, type), so a lookup by target would scan it, and the one query, `entity-relations-of`, is by source. What R5.3a adds to it:
+Every message of a participant type runs "processes holding entity E in role R", so the lookup by target must be indexed. The table `entity_relations` had the primary key (source, target, type), so a lookup by target would have scanned it, and the one query, `entity-relations-of`, was by source. **Built (R5.7):** `entity-relations-to({ targetEntityId, relationType? })` and the index on (target, relation type) ([entity-relations](../implementation/entity/entity-relations/README.md)). What R5.3a adds to it:
 
-- a query `entity-relations-to({ targetEntityId, relationType? })` and an index on (`target_entity_id`, `relation_type`), by a migration;
 - a `relations` fill on the process entity type that maps `data.process.entities` to relations, the **role** being the `relationType` (the relation slot's rules already receive the written record; targets must exist, and a late-bound entity does, since the step created it earlier in the same transaction);
 - **the relations of a finished process are dropped**: the rule returns none once `status` is `ended` or `aborted`. Targets are `ON DELETE RESTRICT`, so otherwise a participant of a finished process could never be deleted. The relation then means "a **running** process holds this entity in this role", which is exactly what the watcher and the signals need.
 
@@ -519,7 +518,7 @@ Each step leaves the system working, with its tests passing.
 ### 13.1 Prerequisites in existing packages (checked against the code)
 
 1. **Outbox:** `deliverAt` in `put` and `publish` (the column and the claim already exist, §5.2); `cancel`; a validation of the channel. No change of `claim` and `lock-batch` with a group per timer.
-2. **entity-relations:** the query by target and its index, and the migration (§6.4); the process entity type's `relations` fill.
+2. **entity-relations:** the query by target and its index, and the migration (§6.4): built as R5.7; the process entity type's `relations` fill remains.
 3. **Optional, not required by processes: static shapes of trait values.** Each trait kind declares the structure of its value as the `output` of `initialize` and of its operations (`trait-command` has `value: @any` today), which `invoke` already checks at run time and the data flow reads; the body-like kinds are overridden by their configured `schema`, in one shared record type that replaces the copies in ownership and amendments. Nothing configuration-dependent (dimension names, state names, outcome names) is written into a shape: that would be a second source of truth. A shape derived from the configuration has no consumer today and is not built. It is a separate improvement, to be recorded in the critique on its own.
 4. **A schema of the task outcome names**, registered at load, for the authorization dimension of `answer` (§7.2).
 5. **entity-search:** the `searchIndex` fill of the process entity type, a date filter and a reindex without the 200 limit (§10).

@@ -20,6 +20,11 @@
         "data": { "!targetEntityId": "string", "!relationType": "string" }
     },
     {
+        "id": "entity-relation-source",
+        "kind": "schema",
+        "data": { "!sourceEntityId": "string", "!relationType": "string" }
+    },
+    {
         "id": "set-entity-relations",
         "kind": "query",
         "data": { "input": { "!sourceEntityId": "string", "!relations[]": "@entity-relation" }, "output": "@any", "errors": ["not-found"] }
@@ -28,6 +33,11 @@
         "id": "entity-relations-of",
         "kind": "query",
         "data": { "input": { "!sourceEntityId": "string" }, "output": "[@entity-relation-target]" }
+    },
+    {
+        "id": "entity-relations-to",
+        "kind": "query",
+        "data": { "input": { "!targetEntityId": "string", "relationType": "string" }, "output": "[@entity-relation-source]" }
     },
     {
         "id": "maintain-entity-relations",
