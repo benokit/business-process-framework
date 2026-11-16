@@ -40,6 +40,14 @@ const REVIEWTASK = `reviewtask-${run}`;
 const ASKING = `asking-process-${run}`;
 const ASKINGS = `askings-${run}`;
 
+const KEYED = `keyed-process-${run}`;
+const KEYEDS = `keyeds-${run}`;
+
+const PARTNER = `partner-events-${run}`;
+
+const EXTENSIBLE = `extensible-process-${run}`;
+const EXTENSIBLES = `extensibles-${run}`;
+
 const BINDING = `binding-process-${run}`;
 const BINDINGS = `bindings-${run}`;
 const REBINDING = `rebinding-process-${run}`;
@@ -261,6 +269,36 @@ const elements = [
         }
     },
     { id: ASKINGS, kind: 'process-entity-type', data: { definition: ASKING } },
+    { id: KEYED, kind: 'process-definition', data: { entities: roles, key: ['#.input.year'], start: 'finish', steps: { finish: { end: true } } } },
+    { id: KEYEDS, kind: 'process-entity-type', data: { definition: KEYED } },
+    { id: PARTNER, kind: 'message-channel', data: { broker: { instanceOf: 'message-broker' }, topology: 'topic', name: PARTNER, publisher: { transactionalOutbox: true } } },
+    {
+        id: `partner-start-trigger-${run}`,
+        kind: 'process-trigger',
+        data: {
+            on: { channel: PARTNER, test: { $eq: ['#.type', 'contract-issued'] } },
+            start: { process: SIGNALLINGS, entities: { contract: '#.contractKey' } }
+        }
+    },
+    {
+        id: `partner-reply-trigger-${run}`,
+        kind: 'process-trigger',
+        data: {
+            on: { channel: PARTNER, subject: 'replies' },
+            signal: { process: SIGNALLINGS, name: 'go', entity: { entityType: CONTRACT, businessKey: '#.contractKey' }, payload: { by: '#.by' } }
+        }
+    },
+    { id: EXTENSIBLE, kind: 'process-definition', data: { entities: roles, start: 'work', steps: { work: { extensible: true, set: { done: true }, end: true } } } },
+    { id: EXTENSIBLES, kind: 'process-entity-type', data: { definition: EXTENSIBLE } },
+    {
+        id: `compliance-check-${run}`,
+        kind: 'slot-fill',
+        data: {
+            target: EXTENSIBLE,
+            slot: 'stepExtensions',
+            value: { step: 'work', do: { if: { $eq: ['#.input.entities.contract.data.body.name', 'Forbidden'] }, then: { throw: { code: 'invalid', message: 'compliance refuses' } } } }
+        }
+    },
     { id: `flaky-error-${run}`, kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky-for-test', transient: true } } },
     {
         id: BREAKING,
@@ -375,6 +413,66 @@ describe('processes', function () {
         await wakeUp(start);
         await pause(500);
         expect((await readProcess(TIMEDS, 'p-message')).revision).to.equal(revision);
+    });
+
+    describe('the derived business key', () => {
+        const startOf = (entityType, extra) => ({ kind: 'start', entityType, entities: { contract: 'c-1' }, ...extra });
+
+        it('is the definition and the keys of the roles bound at the start, so a second start for the same participants finds the key taken and is dropped', async () => {
+            await wakeUp(startOf(TIMEDS), `${TIMEDS}/derived`);
+            await eventually(async () => (await readProcess(TIMEDS, `${TIMED}/c-1`))?.data.state.status === 'ended');
+            const revision = (await readProcess(TIMEDS, `${TIMED}/c-1`)).revision;
+            await wakeUp(startOf(TIMEDS), `${TIMEDS}/derived`);
+            await pause(500);
+            expect((await readProcess(TIMEDS, `${TIMED}/c-1`)).revision).to.equal(revision);
+        });
+
+        it('adds what the definition says distinguishes the runs, so a renewal may run again for the same participants', async () => {
+            await wakeUp(startOf(KEYEDS, { input: { year: '2027' } }), `${KEYEDS}/a`);
+            await wakeUp(startOf(KEYEDS, { input: { year: '2028' } }), `${KEYEDS}/b`);
+            await eventually(async () => (await readProcess(KEYEDS, `${KEYED}/c-1/2027`)) !== null && (await readProcess(KEYEDS, `${KEYED}/c-1/2028`)) !== null);
+        });
+    });
+
+    describe('extensions of a step', () => {
+        it('runs what another module filled into an extensible step, in the step and its transaction: a refusal fails the step', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-ext-1', traits: { body: { name: 'Fine' } } });
+            await invoke(CONTRACT, 'create', { businessKey: 'c-ext-2', traits: { body: { name: 'Forbidden' } } });
+            const ended = await invoke(EXTENSIBLES, 'start', { businessKey: 'p-ext-1', entities: { contract: 'c-ext-1' } });
+            expect(ended.data.state.status).to.equal('ended');
+            const error = await invoke(EXTENSIBLES, 'start', { businessKey: 'p-ext-2', entities: { contract: 'c-ext-2' } }).catch(failed => failed);
+            expect([error.code, error.message, await readProcess(EXTENSIBLES, 'p-ext-2')]).to.deep.equal(['invalid', 'compliance refuses', null]);
+        });
+    });
+
+    describe('triggers', () => {
+        const say = (message, subject) => invoke(PARTNER, 'publish', { message, subject, group: 'partner' });
+
+        const processOf = key => readProcess(SIGNALLINGS, `${SIGNALLING}/${key}`);
+
+        it('starts a process from a message that its test accepts, once however often the message comes, and ignores one it does not', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-trig', traits: { body: { name: 'Trig' } } });
+            await say({ type: 'something-else', contractKey: 'c-trig' });
+            await say({ type: 'contract-issued', contractKey: 'c-trig' });
+            await eventually(async () => (await processOf('c-trig'))?.data.state.status === 'running');
+            const revision = (await processOf('c-trig')).revision;
+            await say({ type: 'contract-issued', contractKey: 'c-trig' });
+            await pause(600);
+            expect((await processOf('c-trig')).revision).to.equal(revision);
+        });
+
+        it('signals the processes that hold the entity the message is about, with the payload the trigger maps', async () => {
+            await say({ contractKey: 'c-trig', by: 'ada' }, 'replies');
+            await eventually(async () => (await processOf('c-trig')).data.state.status === 'ended');
+            expect((await processOf('c-trig')).data.body).to.deep.equal({ by: 'ada' });
+        });
+
+        it('leaves a process that does not hold the entity alone', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-trig-2', traits: { body: { name: 'Trig' } } });
+            await say({ contractKey: 'c-trig-2', by: 'bob' }, 'replies');
+            await pause(600);
+            expect(await processOf('c-trig-2')).to.equal(null);
+        });
     });
 
     describe('the circuit breaker', () => {

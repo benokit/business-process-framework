@@ -64,6 +64,31 @@ A `when` is woken by a change of what its tests read, never by a message that ca
 
 Not built: the revision narrowing (`wait.watch`, a check that isn't news is dropped without reading the participants) and the slot `signalViews` for explicit views; every check costs one read of the participants.
 
+## Starting a process and signalling it
+
+The **business key** of a process is derived, not generated: `<definition>/<key of each non-late role, in the order of the definition>` (`contract-review-process/CON-2026-0001`), plus what the optional `key` of the definition (a mapping over `{ entities, input }` giving a list of strings) adds, for a process that may run again for the same participants (`key: ["#.input.year"]` gives `renewal/C-1042/2027`). A `start` without a key derives it, so a second start for the same participants finds the key taken (`duplicate`), which the runner drops as already started: the uniqueness of the key is the only arbiter. `$func/process-business-key` gives the key (a trigger needs it for the ordering group).
+
+A **`process-trigger`** is an adapter outside the definition: a `message-consumer` (a subkind, so it is a consumer of its channel, run as the system) that maps a message to a wake-up. `on` is `{ channel, subject?, test? }` (a `subject` is the broker's filter, `test` a pure mapping over the message that says whether it applies); the effect is exactly one of:
+
+- `start: { process, entities, input? }`: `process` is the process entity type, `entities` a mapping from the message to the bindings of the roles that aren't `late`; it puts a `start` wake-up with the derived key;
+- `signal: { process, name, entity, payload? }`: `entity` is a mapping from the message to `{ entityType, businessKey }`, the domain entity the message is about. The trigger finds the running processes that hold it in the role `by` of the signal the definition declares (the relation index) and puts a `signal` wake-up for each; a process that doesn't wait for the signal drops it as stale.
+
+```json
+{ "kind": "process-trigger", "data": {
+    "on": { "channel": "partner-events", "test": { "$eq": ["#.type", "contract-issued"] } },
+    "start": { "process": "contract-review-processes", "entities": { "contract": "#.contractKey" } } } }
+```
+
+`validate()` reports a trigger that does neither or both, names a process entity type that doesn't exist, or signals a name the definition doesn't wait for.
+
+## Extending a step
+
+A step marked `extensible: true` is public API: after its `do`, the runner executes the `do` of every fill of the slot `stepExtensions` of the definition whose `step` is that step (ordered by `position`, `after`, `before`), in the same savepoint and the same transaction, so a refusal fails the step like its own. A module adds a check to a step of a definition it doesn't own without touching it: `{ "kind": "slot-fill", "data": { "target": "<definition>", "slot": "stepExtensions", "value": { "step": "issue", "do": … } } }`. The graph (the edges and waits) is not extensible. `validate()` reports a fill at a step that doesn't exist or isn't extensible.
+
+## Finding stuck processes
+
+A process is an entity, so a stuck one is found by data. `$func/process-search-document` maps a record to `{ definition, step, status, waitingUntil (epoch milliseconds, a number the engine can compare), faultCode, failures, entities }`, which an application's `searchIndex` fill of the process entity type uses as its mapping (`{ "set": { "$func/process-search-document": "#.input" } }`), declaring the attributes it filters on in the index settings. "Suspended" or "waiting for a date that has passed" is then a [search query](../../platform/search/README.md). A reindex still loads only the first 200 records ([F38](../../../design/critique.md)).
+
 ## Tasks
 
 A `when` entry may list `resolve: { <role>: <outcome> }`: the tasks (roles whose entity type has the [`task` trait](../entity-tasks/README.md)) it closes, with the outcome each gets. The process verifies the fact, then closes the task: when an entry holds, the runner resolves the tasks it lists, and **withdraws what is left**: the tasks named in the `resolve` of the wait that are still open are cancelled when the process leaves the wait by another entry, a signal or the timer. A process that ends or is aborted cancels every task it holds that is still open. All in the transaction of the step, as the system.
@@ -96,4 +121,4 @@ An error nobody caught is handled by a **circuit breaker** when a wake-up fails 
 
 `suspend`, `resume` and `abort` are transitions of `status` through the existing transition endpoint, granted by the application to a role: `{ "area": "states", "resource": "<process entity type>", "action": ["suspend", "resume", "abort"] }`. A wake-up for a process that isn't `running` is dropped. `resume` replays the wake-up that caused the fault, puts the timer of the wait again (the date may have passed while the process was suspended, and is simply due), and clears `fault` and `failures`; `abort` clears them and replays nothing. A reaction of the trait `process` does it, in the transaction of the transition.
 
-Not built yet: the work list and the relations of a task's `about` (R5.3b2 leftovers), the demo (R5.3c), the triggers that put `start` and `signal` and the derived business key (R5.3d), the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`), and an actor that grants the operator's transitions (the demo declares it).
+Not built yet: schedules (a delayed start message already does the job; a schedule is data an application adds), the work list and the relations of a task's `about`, the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`, [F80](../../../design/critique.md)), and an actor that grants the operator's transitions (the demo declares it).

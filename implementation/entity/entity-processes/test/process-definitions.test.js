@@ -19,10 +19,10 @@ const definition = (steps, start) => ({
     }
 });
 
-const messagesAfterBooting = async (steps, start) => {
+const messagesAfterBooting = async (steps, start, extra = []) => {
     await boot({
         paths: packages,
-        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start)]
+        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start), ...extra]
     });
     return validate().flatMap(({ data }) => data.messages ?? []);
 };
@@ -103,6 +103,33 @@ describe('process definitions', function () {
         expect(await messagesAfterBooting(waiting([{ test: true, resolve: { approval: 'nonsense' }, then: 'finish' }]))).to.include("step 'ask' resolves 'approval' with 'nonsense', an outcome its task doesn't declare");
         expect(await messagesAfterBooting(waiting(routed))).to.deep.equal(["step 'ask' waits on 'approval' but no entry resolves the outcome 'rejected' a user may give"]);
         expect(await messagesAfterBooting(waiting([...routed, { test: false, resolve: { approval: 'rejected' }, then: 'finish' }]))).to.deep.equal([]);
+    });
+
+    it('reports an extension at a step that does not exist or is not extensible', async () => {
+        const fill = step => ({ id: `extension-at-${step}`, kind: 'slot-fill', data: { target: 'sample-process', slot: 'stepExtensions', value: { step, do: { set: null } } } });
+        expect(await messagesAfterBooting(GOOD, undefined, [fill('finish'), fill('nowhere')])).to.have.members([
+            "sample-process is extended at the step 'finish', which isn't marked extensible",
+            "sample-process is extended at the step 'nowhere', which doesn't exist"
+        ]);
+    });
+
+    it('reports a trigger that does neither or both, names no process type, or signals what the process does not wait for', async () => {
+        const trigger = (id, data) => ({ id, kind: 'process-trigger', data: { on: { channel: 'trigger-channel' }, ...data } });
+        const extra = [
+            { id: 'trigger-channel', kind: 'message-channel', data: { broker: { instanceOf: 'message-broker' }, topology: 'topic', name: 'trigger-channel' } },
+            { id: 'sample-processes', kind: 'process-entity-type', data: { definition: 'sample-process' } },
+            trigger('doing-nothing', {}),
+            trigger('doing-both', { start: { process: 'sample-processes', entities: {} }, signal: { process: 'sample-processes', name: 'answered', entity: {} } }),
+            trigger('naming-nothing', { start: { process: 'nowhere', entities: {} } }),
+            trigger('signalling-the-unknown', { signal: { process: 'sample-processes', name: 'nobody-waits', entity: {} } }),
+            trigger('signalling-the-known', { signal: { process: 'sample-processes', name: 'answered', entity: {} } })
+        ];
+        expect(await messagesAfterBooting(GOOD, undefined, extra)).to.have.members([
+            'doing-nothing must either start or signal a process, not neither',
+            'doing-both must either start or signal a process, not both',
+            'naming-nothing names nowhere, which is no process entity type',
+            "signalling-the-unknown signals 'nobody-waits', which sample-process doesn't wait for"
+        ]);
     });
 
     it('reports an onError that catches nothing, an unregistered code and a transient one, and accepts a terminal code or its parent', async () => {

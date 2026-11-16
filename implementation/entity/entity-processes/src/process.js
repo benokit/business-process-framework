@@ -1,6 +1,7 @@
 import { CoreError, invoke } from '@business-framework/core';
 import { errorTypeOf, isKindOfError } from '@business-framework/core/error-types';
 import { selvesOf } from '@business-framework/core/kinds';
+import { slotValues } from '@business-framework/core/slots';
 import { applyMapping } from '@business-framework/core/mappings';
 import { memo } from '@business-framework/core/registry';
 import { isDeepStrictEqual } from 'node:util';
@@ -41,6 +42,14 @@ const boundBy = (definition, roles, role, current, businessKeys) => {
 
 const bindingsAfter = (definition, bindings, bind = {}) => Object.entries(bind)
     .reduce((current, [role, businessKeys]) => ({ ...current, [role]: boundBy(definition, definitionOf(definition).entities, role, current[role], businessKeys) }), bindings);
+
+export const processBusinessKey = ({ entityType, entities, input }) => {
+    const definition = selvesOf('process-entity-type').find(({ id }) => id === entityType).data.definition;
+    const { entities: roles, key } = definitionOf(definition);
+    const keys = Object.entries(roles).filter(([, { late }]) => !late).flatMap(([role]) => [entities[role]].flat());
+    const distinguishing = key === undefined ? [] : evaluated(key, { entities, input: input ?? null });
+    return [definition, ...keys, ...distinguishing].join('/');
+};
 
 export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step];
 
@@ -226,3 +235,32 @@ export const processChecks = ({ message, view, sources }) => {
             group: `${sourceEntityType}/${sourceEntityBusinessKey}`
         }));
 };
+
+const definitionOfType = entityType => selvesOf('process-entity-type').find(({ id }) => id === entityType).data.definition;
+
+export const signalRole = ({ entityType, name }) => Object.values(definitionOf(definitionOfType(entityType)).steps)
+    .flatMap(step => Object.entries(step.wait?.signals ?? {}))
+    .find(([signal]) => signal === name)?.[1].by;
+
+export const signalWakeups = ({ entityType, name, payload, sources }) => sources
+    .filter(({ sourceEntityType }) => sourceEntityType === entityType)
+    .map(({ sourceEntityBusinessKey }) => ({
+        message: { kind: 'signal', entityType, businessKey: sourceEntityBusinessKey, name, ...payload === null || payload === undefined ? {} : { payload } },
+        group: `${entityType}/${sourceEntityBusinessKey}`
+    }));
+
+export const extensionsOf = definition => slotValues({ element: definition, slot: 'stepExtensions' });
+
+export const stepExtensions = ({ definition, step }) => definitionOf(definition).steps[step].extensible
+    ? extensionsOf(definition).filter(extension => extension.step === step)
+    : [];
+
+export const searchDocument = record => ({
+    definition: record.data.process.definition,
+    step: record.data.process.step,
+    status: record.data.state.status,
+    waitingUntil: record.data.process.wait?.until?.at === undefined ? null : Date.parse(record.data.process.wait.until.at),
+    faultCode: record.data.process.fault?.code ?? null,
+    failures: record.data.process.failures?.count ?? 0,
+    entities: Object.values(record.data.process.entities).flatMap(binding => [binding].flat()).map(({ businessKey }) => businessKey)
+});

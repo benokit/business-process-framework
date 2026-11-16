@@ -2,6 +2,7 @@ import { errorTypeOf, isRegistered } from '@business-framework/core/error-types'
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { findElement } from '@business-framework/core/registry';
 import { traitsOf } from '@business-framework/entities/traits';
+import { extensionsOf } from './process.js';
 
 const EXITS = ['next', 'choose', 'wait', 'end'];
 
@@ -95,10 +96,30 @@ const reachabilityProblems = ({ start, steps }) => steps[start] === undefined
 const loopProblems = ({ steps }) => [...new Set(Object.keys(steps).flatMap(name => loopsOf(steps, name).map(loop => [...loop].sort().join(', '))))]
     .map(loop => `the steps ${loop} lead to each other without ever waiting: an endless chain of immediate steps`);
 
+const signalNamesOf = steps => Object.values(steps).flatMap(step => Object.keys(step.wait?.signals ?? {}));
+
+export const processTriggerProblems = id => {
+    const { data } = selvesOf('process-trigger').find(element => element.id === id);
+    const effects = ['start', 'signal'].filter(effect => data[effect] !== undefined);
+    const target = effects.length === 1 ? data[effects[0]].process : undefined;
+    const definition = selvesOf('process-entity-type').find(element => element.id === target)?.data.definition;
+    const steps = selvesOf('process-definition').find(element => element.id === definition)?.data.steps ?? {};
+    return [
+        ...effects.length === 1 ? [] : [`${id} must either start or signal a process, not ${effects.length === 0 ? 'neither' : 'both'}`],
+        ...effects.length === 1 && definition === undefined ? [`${id} names ${target}, which is no process entity type`] : [],
+        ...data.signal !== undefined && definition !== undefined && !signalNamesOf(steps).includes(data.signal.name) ? [`${id} signals '${data.signal.name}', which ${definition} doesn't wait for`] : []
+    ];
+};
+
+const extensionProblems = (id, steps) => extensionsOf(id)
+    .filter(({ step }) => steps[step]?.extensible !== true)
+    .map(({ step }) => `${id} is extended at the step '${step}', which ${steps[step] === undefined ? "doesn't exist" : "isn't marked extensible"}`);
+
 export const processDefinitionProblems = definition => {
     const { data } = selvesOf('process-definition').find(({ id }) => id === definition);
     return [
         ...startProblems(data),
+        ...extensionProblems(definition, data.steps),
         ...Object.entries(data.steps).flatMap(stepProblems(data.steps, data.entities)),
         ...reachabilityProblems(data),
         ...loopProblems(data)
