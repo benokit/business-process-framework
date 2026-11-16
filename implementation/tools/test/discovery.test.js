@@ -71,7 +71,7 @@ describe('discovery', () => {
     });
 
     it('lists the instances of a kind and its subkinds', () => {
-        expect(list('message-channel').map(element => element.id)).to.have.members(['entity-events', 'contract-events']);
+        expect(list('message-channel').map(element => element.id)).to.have.members(['entity-events', 'contract-events', 'process-wakeups']);
         expect(list('entity-type').map(element => element.id)).to.include.members(['user', 'construction']);
     });
 

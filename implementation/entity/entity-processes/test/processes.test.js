@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { getPool } from '@business-framework/postgresql';
 import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
 
 const run = Date.now();
@@ -19,7 +20,35 @@ const SIGNALLINGS = `signallings-${run}`;
 const TIMED = `timed-process-${run}`;
 const TIMEDS = `timeds-${run}`;
 
+const RECOVERING = `recovering-process-${run}`;
+const RECOVERINGS = `recoverings-${run}`;
+const STALING = `staling-process-${run}`;
+const STALINGS = `stalings-${run}`;
+
+const TIMEDLATER = `timedlaters-${run}`;
+const TIMEDLATERDEF = `timedlater-process-${run}`;
+const BREAKING = `breaking-process-${run}`;
+const BREAKINGS = `breakings-${run}`;
+
+const BINDING = `binding-process-${run}`;
+const BINDINGS = `bindings-${run}`;
+const REBINDING = `rebinding-process-${run}`;
+const REBINDINGS = `rebindings-${run}`;
+
+const OTHER = `other-${run}`;
+const TRESPASSING = `trespassing-process-${run}`;
+const TRESPASSINGS = `trespassings-${run}`;
+
 const roles = { contract: { entityType: CONTRACT } };
+
+const withReview = { contract: { entityType: CONTRACT }, review: { entityType: REVIEW, late: true } };
+
+const failsFor = (name, code) => ({ if: { $eq: ['#.input.entities.contract.data.body.name', name] }, then: { throw: { code, message: `${name} fails` } } });
+
+const halfDone = code => [
+    { inputMap: { businessKey: '#.input.entities.contract.businessKey', revision: '#.input.entities.contract.revision', trait: 'body', operation: 'update', input: { value: { name: 'Half' } } }, invoke: CONTRACT, operation: 'run' },
+    { throw: { code, message: 'no way' } }
+];
 
 const eventually = async (check, timeout = 8000) => {
     const deadline = Date.now() + timeout;
@@ -33,7 +62,7 @@ const wakeUp = (message, group) => invoke('process-wakeups', 'publish', { messag
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-processes'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-processes'];
 
 const elements = [
     { id: CONTRACT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
@@ -102,7 +131,85 @@ const elements = [
         kind: 'process-definition',
         data: { entities: roles, start: 'hold', steps: { hold: { wait: { until: { after: { minutes: 0 }, then: 'ring' } } }, ring: { set: { rang: true }, end: true } } }
     },
-    { id: TIMEDS, kind: 'process-entity-type', data: { definition: TIMED } }
+    { id: TIMEDS, kind: 'process-entity-type', data: { definition: TIMED } },
+    {
+        id: RECOVERING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'begin',
+            steps: {
+                begin: { do: halfDone('state-refused'), onError: [{ catches: ['conflict'], set: { refusal: '#.error.message' }, then: 'report' }], next: 'finish' },
+                report: { end: true },
+                finish: { end: true }
+            }
+        }
+    },
+    { id: RECOVERINGS, kind: 'process-entity-type', data: { definition: RECOVERING } },
+    {
+        id: STALING,
+        kind: 'process-definition',
+        data: { entities: roles, start: 'begin', steps: { begin: { do: halfDone('stale'), onError: [{ catches: ['conflict'], then: 'report' }], next: 'report' }, report: { end: true } } }
+    },
+    { id: STALINGS, kind: 'process-entity-type', data: { definition: STALING } },
+    {
+        id: TIMEDLATERDEF,
+        kind: 'process-definition',
+        data: { entities: roles, start: 'hold', steps: { hold: { wait: { until: { at: '2030-01-01', then: 'ring' } } }, ring: { end: true } } }
+    },
+    { id: TIMEDLATER, kind: 'process-entity-type', data: { definition: TIMEDLATERDEF } },
+    {
+        id: BINDING,
+        kind: 'process-definition',
+        data: {
+            entities: withReview,
+            start: 'begin',
+            steps: {
+                begin: {
+                    do: [{ inputMap: { businessKey: 'r-bound', traits: { body: { outcome: 'pending' } } }, invoke: REVIEW, operation: 'create' }, { set: { bind: { review: 'r-bound' } } }],
+                    next: 'use'
+                },
+                use: { set: { outcome: '#.entities.review.data.body.outcome' }, end: true }
+            }
+        }
+    },
+    { id: BINDINGS, kind: 'process-entity-type', data: { definition: BINDING } },
+    {
+        id: REBINDING,
+        kind: 'process-definition',
+        data: { entities: withReview, start: 'begin', steps: { begin: { do: { set: { bind: { contract: 'c-1' } } }, end: true } } }
+    },
+    { id: REBINDINGS, kind: 'process-entity-type', data: { definition: REBINDING } },
+    { id: OTHER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { name: 'string' } } } } } },
+    {
+        id: TRESPASSING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'begin',
+            steps: {
+                begin: {
+                    do: { if: { $eq: ['#.input.input.mode', 'update'] }, then: { inputMap: { businessKey: 'c-1', revision: '#.input.input.revision', trait: 'body', operation: 'update', input: { value: { name: 'Hijacked' } } }, invoke: CONTRACT, operation: 'run' }, else: { inputMap: { businessKey: 'o-1', traits: { body: { name: 'Stranger' } } }, invoke: OTHER, operation: 'create' } },
+                    end: true
+                }
+            }
+        }
+    },
+    { id: TRESPASSINGS, kind: 'process-entity-type', data: { definition: TRESPASSING } },
+    { id: `flaky-error-${run}`, kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky-for-test', transient: true } } },
+    {
+        id: BREAKING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'hold',
+            steps: {
+                hold: { wait: { signals: { go: { to: 'work', by: 'contract' } } } },
+                work: { do: [failsFor('Failing', 'flaky-for-test'), failsFor('Refusing', 'invalid'), failsFor('Down', 'unavailable')], end: true }
+            }
+        }
+    },
+    { id: BREAKINGS, kind: 'process-entity-type', data: { definition: BREAKING } }
 ];
 
 describe('processes', function () {
@@ -115,6 +222,9 @@ describe('processes', function () {
         await start();
         await migrate();
         await invoke(CONTRACT, 'create', { businessKey: 'c-1', traits: { body: { name: 'Ada' } } });
+        await invoke(CONTRACT, 'create', { businessKey: 'c-2', traits: { body: { name: 'Original' } } });
+        await invoke(CONTRACT, 'create', { businessKey: 'c-3', traits: { body: { name: 'Original' } } });
+        await Promise.all([['c-4', 'Failing'], ['c-5', 'Refusing'], ['c-6', 'Down']].map(([businessKey, name]) => invoke(CONTRACT, 'create', { businessKey, traits: { body: { name } } })));
     });
 
     after(async () => {
@@ -145,6 +255,19 @@ describe('processes', function () {
         expect(waiting.data.process.step).to.equal('hold');
         expect(waiting.data.state).to.deep.equal({ status: 'running' });
         expect(waiting.data.process.wait).to.deep.equal({ token: waiting.revision, signals: ['go'], until: { then: 'done', at: '2030-01-01' } });
+    });
+
+    it('takes the onError exit of a step that fails for good, with the work of the step rolled back whole and the error read by the entry', async () => {
+        const recovered = await invoke(RECOVERINGS, 'start', { businessKey: 'p-recovered', entities: { contract: 'c-2' } });
+        expect([recovered.data.process.step, recovered.data.state, recovered.data.body]).to.deep.equal(['report', { status: 'ended' }, { refusal: 'no way' }]);
+        expect((await invoke(CONTRACT, 'read', { businessKey: 'c-2' })).data.body.name).to.equal('Original');
+    });
+
+    it('does not catch a transient error, whatever the entry says: it fails the start and leaves nothing', async () => {
+        const error = await invoke(STALINGS, 'start', { businessKey: 'p-stale-step', entities: { contract: 'c-3' } }).catch(failed => failed);
+        expect(error.code).to.equal('stale');
+        expect((await readProcess(STALINGS, 'p-stale-step'))).to.equal(null);
+        expect((await invoke(CONTRACT, 'read', { businessKey: 'c-3' })).data.body.name).to.equal('Original');
     });
 
     it('leaves nothing behind when a step fails: no process entity', async () => {
@@ -187,6 +310,118 @@ describe('processes', function () {
         await wakeUp(start);
         await pause(500);
         expect((await readProcess(TIMEDS, 'p-message')).revision).to.equal(revision);
+    });
+
+    describe('the circuit breaker', () => {
+        const GO = businessKey => ({ kind: 'signal', entityType: BREAKINGS, businessKey, name: 'go' });
+
+        it('suspends a process at once when a step fails for good, keeping the wake-up that was being handled, and acknowledges it', async () => {
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-refusing', entities: { contract: 'c-5' } });
+            await invoke(BREAKINGS, 'wake', GO('p-refusing'));
+            const suspended = await readProcess(BREAKINGS, 'p-refusing');
+            expect(suspended.data.state).to.deep.equal({ status: 'suspended' });
+            expect(suspended.data.process.step).to.equal('hold');
+            expect(suspended.data.process.fault).to.deep.equal({ step: 'work', code: 'invalid', message: 'Refusing fails', attempts: 1, wakeup: GO('p-refusing') });
+        });
+
+        it('retries a transient failure, counting consecutive failures of the step, and suspends after the limit', async () => {
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-failing', entities: { contract: 'c-4' } });
+            const failures = [];
+            for (const attempt of [1, 2]) {
+                const error = await invoke(BREAKINGS, 'wake', GO('p-failing')).catch(failed => failed);
+                failures.push([error.code, (await readProcess(BREAKINGS, 'p-failing')).data.process.failures]);
+                expect(attempt).to.be.lessThan(3);
+            }
+            expect(failures).to.deep.equal([['flaky-for-test', { step: 'work', count: 1 }], ['flaky-for-test', { step: 'work', count: 2 }]]);
+            expect(await invoke(BREAKINGS, 'wake', GO('p-failing'))).to.equal(null);
+            const suspended = await readProcess(BREAKINGS, 'p-failing');
+            expect([suspended.data.state.status, suspended.data.process.fault.attempts, suspended.data.process.fault.code]).to.deep.equal(['suspended', 3, 'flaky-for-test']);
+        });
+
+        it('forgets the failures once the step succeeds', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-7', traits: { body: { name: 'Failing' } } });
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-recovering', entities: { contract: 'c-7' } });
+            await invoke(BREAKINGS, 'wake', GO('p-recovering')).catch(() => null);
+            expect((await readProcess(BREAKINGS, 'p-recovering')).data.process.failures).to.deep.equal({ step: 'work', count: 1 });
+            const contract = await invoke(CONTRACT, 'read', { businessKey: 'c-7' });
+            await invoke(CONTRACT, 'run', { businessKey: 'c-7', revision: contract.revision, trait: 'body', operation: 'update', input: { value: { name: 'Fine' } } });
+            await invoke(BREAKINGS, 'wake', GO('p-recovering'));
+            const ended = await readProcess(BREAKINGS, 'p-recovering');
+            expect([ended.data.state.status, ended.data.process.failures]).to.deep.equal(['ended', undefined]);
+        });
+
+        const transition = async (businessKey, name) => {
+            const record = await readProcess(BREAKINGS, businessKey);
+            return invoke(BREAKINGS, 'run', { businessKey, revision: record.revision, trait: 'state', operation: 'transition', input: { transition: name } });
+        };
+
+        it('replays the wake-up that caused the fault when an operator resumes the process, and clears the fault', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-8', traits: { body: { name: 'Refusing' } } });
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-resumed', entities: { contract: 'c-8' } });
+            await invoke(BREAKINGS, 'wake', GO('p-resumed'));
+            expect((await readProcess(BREAKINGS, 'p-resumed')).data.state.status).to.equal('suspended');
+            const contract = await invoke(CONTRACT, 'read', { businessKey: 'c-8' });
+            await invoke(CONTRACT, 'run', { businessKey: 'c-8', revision: contract.revision, trait: 'body', operation: 'update', input: { value: { name: 'Fine' } } });
+            await transition('p-resumed', 'resume');
+            await eventually(async () => (await readProcess(BREAKINGS, 'p-resumed')).data.state.status === 'ended');
+            const ended = await readProcess(BREAKINGS, 'p-resumed');
+            expect([ended.data.process.step, ended.data.process.fault]).to.deep.equal(['work', undefined]);
+        });
+
+        it('clears the fault when an operator aborts the process, and replays nothing', async () => {
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-aborted', entities: { contract: 'c-5' } });
+            await invoke(BREAKINGS, 'wake', GO('p-aborted'));
+            await transition('p-aborted', 'abort');
+            const aborted = await readProcess(BREAKINGS, 'p-aborted');
+            expect([aborted.data.state.status, aborted.data.process.fault]).to.deep.equal(['aborted', undefined]);
+        });
+
+        it('puts the timer of the wait again when an operator resumes the process, for a date that may have passed while it was suspended', async () => {
+            await invoke(TIMEDLATER, 'start', { businessKey: 'p-rearmed', entities: { contract: 'c-1' } });
+            const timers = async () => (await getPool().query('SELECT count(*)::int AS count FROM transactional_outbox WHERE message_group LIKE $1 AND status = 0', [`${TIMEDLATER}/p-rearmed/timer/%`])).rows[0].count;
+            expect(await timers()).to.equal(1);
+            const suspended = await invoke(TIMEDLATER, 'run', { businessKey: 'p-rearmed', revision: (await invoke(TIMEDLATER, 'read', { businessKey: 'p-rearmed' })).revision, trait: 'state', operation: 'transition', input: { transition: 'suspend' } });
+            expect(suspended.data.state.status).to.equal('suspended');
+            await invoke(TIMEDLATER, 'run', { businessKey: 'p-rearmed', revision: suspended.revision, trait: 'state', operation: 'transition', input: { transition: 'resume' } });
+            expect(await timers()).to.equal(2);
+        });
+
+        it('does not count an outage: the process stays as it was and the error goes on', async () => {
+            await invoke(BREAKINGS, 'start', { businessKey: 'p-down', entities: { contract: 'c-6' } });
+            const before = await readProcess(BREAKINGS, 'p-down');
+            expect((await invoke(BREAKINGS, 'wake', GO('p-down')).catch(failed => failed)).code).to.equal('unavailable');
+            expect((await readProcess(BREAKINGS, 'p-down')).revision).to.equal(before.revision);
+        });
+    });
+
+    it('binds a late role to the entity a step created, which the steps after it read, and records the binding', async () => {
+        const ended = await invoke(BINDINGS, 'start', { businessKey: 'p-bound', entities: { contract: 'c-1' } });
+        expect(ended.data.process.entities.review).to.deep.equal({ entityType: REVIEW, businessKey: 'r-bound' });
+        expect(ended.data.body).to.deep.equal({ outcome: 'pending' });
+    });
+
+    it('refuses to bind a role that the start bound: a role is never rebound', async () => {
+        const error = await invoke(REBINDINGS, 'start', { businessKey: 'p-rebound', entities: { contract: 'c-1' } }).catch(failed => failed);
+        expect([error.code, error.message]).to.deep.equal(['conflict', "the role 'contract' is bound at the start and never rebound"]);
+    });
+
+    it('holds its participants by relations while it runs, so none can be deleted, and lets go when it ends', async () => {
+        await invoke(CONTRACT, 'create', { businessKey: 'c-9', traits: { body: { name: 'Held' } } });
+        await invoke(WAITINGS, 'start', { businessKey: 'p-held', entities: { contract: 'c-9' } });
+        const contract = () => invoke(CONTRACT, 'read', { businessKey: 'c-9' });
+        expect((await invoke(CONTRACT, 'delete', { businessKey: 'c-9', revision: (await contract()).revision }).catch(failed => failed)).code).to.equal('referenced');
+        await invoke(WAITINGS, 'wake', { kind: 'signal', entityType: WAITINGS, businessKey: 'p-held', name: 'go' });
+        expect((await invoke(CONTRACT, 'delete', { businessKey: 'c-9', revision: (await contract()).revision })).businessKey).to.equal('c-9');
+    });
+
+    it('refuses a step that writes to an entity that is not one of its participants, or creates one of a type no role declares', async () => {
+        const { revision } = await invoke(CONTRACT, 'read', { businessKey: 'c-1' });
+        const start = (businessKey, mode) => invoke(TRESPASSINGS, 'start', { businessKey, entities: { contract: 'c-2' }, input: { mode, revision } }).catch(failed => failed);
+        const updating = await start('p-trespass-1', 'update');
+        const creating = await start('p-trespass-2', 'create');
+        expect([updating.code, creating.code]).to.deep.equal(['outside-process-footprint', 'outside-process-footprint']);
+        expect(updating.message).to.include("may not").and.to.include("it isn't one of its participants");
+        expect((await invoke(CONTRACT, 'read', { businessKey: 'c-1' })).data.body.name).to.not.equal('Hijacked');
     });
 
     it('refuses a start that leaves a role unbound, binds a late role or names a role the process lacks', async () => {

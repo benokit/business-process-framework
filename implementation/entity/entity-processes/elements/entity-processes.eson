@@ -103,9 +103,81 @@
         "id": "process-exit",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer" }, "output": "@any" },
+            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer", "!bindings": "@any" }, "output": "@any" },
             "module": "@business-framework/entity-processes/process",
             "export": "processExit"
+        }
+    },
+    {
+        "id": "process-recovery",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!error": "@any", "!bindings": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processErrorExit"
+        }
+    },
+    {
+        "id": "process-position",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!step": "string", "wait": "@any", "entities": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processPosition"
+        }
+    },
+    {
+        "id": "process-verdict",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "!error": "@any", "!attempts": "integer" }, "output": { "!action=1": ["rethrow", "count", "suspend"], "!operations[]": "@any" } },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processVerdict"
+        }
+    },
+    {
+        "id": "process-relations-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[@entity-relation]" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processRelations"
+        }
+    },
+    {
+        "id": "process-relations",
+        "kind": "slot-fill",
+        "data": { "target": "process-entity-type", "slot": "relations", "value": { "set": { "relations": { "$func/process-relations-of": "#.input" } } } }
+    },
+    {
+        "id": "process-footprint-allows",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!change": "@any", "!entityType": "string" }, "output": "boolean" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "footprintAllows"
+        }
+    },
+    { "id": "outside-process-footprint-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "outside-process-footprint", "extends": "forbidden" } } },
+    {
+        "id": "process-footprint-guard",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "requestGuards",
+            "on": ["create", "trait", "delete"],
+            "value": {
+                "if": "#._ctx.process",
+                "then": {
+                    "if": { "$not": { "$func/process-footprint-allows": { "process": "#._ctx.process", "change": "#.input", "entityType": "#.self.id" } } },
+                    "then": {
+                        "throw": {
+                            "code": "outside-process-footprint",
+                            "message": { "$str": ["the process ", "#._ctx.process.businessKey", " (", "#._ctx.process.definition", ") may not ", { "$coalesce": ["#.input.entityOperation", "#.input.operation"] }, " ", "#.self.id", " '", { "$coalesce": ["#.input.before.businessKey", "#.input.after.businessKey"] }, "': it isn't one of its participants"] }
+                        }
+                    }
+                }
+            }
         }
     },
     {
@@ -164,7 +236,7 @@
     {
         "id": "process-context",
         "kind": "schema",
-        "data": { "!definition": "string", "!businessKey": "string", "!step": "string", "!token": "integer" }
+        "data": { "!definition": "string", "!businessKey": "string", "!step": "string", "!token": "integer", "!entities": "@any" }
     },
     { "id": "process-chain-limit-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "process-chain-limit" } } },
     {
@@ -194,7 +266,56 @@
     {
         "id": "process",
         "kind": "process-trait",
-        "data": { "configuration": "@process-configuration" }
+        "data": {
+            "configuration": "@process-configuration",
+            "react": [
+                {
+                    "outputKey": "resumed",
+                    "set": { "$func/state-moved": { "before": "#.input.change.before", "after": "#.input.change.after", "dimension": "status", "from": "suspended", "to": "running" } }
+                },
+                {
+                    "outputKey": "aborted",
+                    "set": {
+                        "$and": [
+                            { "$eq": ["#.input.change.after.data.state.status", "aborted"] },
+                            { "$neq": ["#.input.change.before.data.state.status", "aborted"] }
+                        ]
+                    }
+                },
+                { "outputKey": "position", "set": "#.input.change.after.data.process" },
+                {
+                    "if": { "$and": ["#.resumed", "#.position.fault"] },
+                    "then": {
+                        "inputMap": { "message": "#.position.fault.wakeup", "group": { "$str": ["#.self.id", "/", "#.input.change.after.businessKey"] } },
+                        "publish": "process-wakeups"
+                    }
+                },
+                {
+                    "if": { "$and": ["#.resumed", "#.position.wait.until"] },
+                    "then": {
+                        "inputMap": {
+                            "message": { "kind": "timer", "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "token": "#.position.wait.token", "step": "#.position.wait.until.then" },
+                            "group": { "$str": ["#.self.id", "/", "#.input.change.after.businessKey", "/timer/", "#.position.wait.token"] },
+                            "deliverAt": "#.position.wait.until.at"
+                        },
+                        "publish": "process-wakeups"
+                    }
+                },
+                {
+                    "if": { "$and": [{ "$or": ["#.resumed", "#.aborted"] }, { "$or": ["#.position.fault", "#.position.failures"] }] },
+                    "then": {
+                        "inputMap": {
+                            "businessKey": "#.input.change.after.businessKey",
+                            "revision": "#.input.change.after.revision",
+                            "entityOperation": "settle",
+                            "operations": [{ "key": "process", "operation": "move", "input": { "process": { "$func/process-position": { "process": "#.position", "step": "#.position.step", "wait": "#.position.wait" } } } }]
+                        },
+                        "invoke": "#.self.id",
+                        "operation": "writeTraitOperationsAsOneChange"
+                    }
+                }
+            ]
+        }
     },
     {
         "id": "process-entity-type",
@@ -203,7 +324,7 @@
             "extends": "entity-type",
             "shape": { "!definition": "@ref/process-definition", "traits{}": "@entity-trait-entry" },
             "mapping": { "traits": { "$merge": ["#.data.traits", { "process": { "configuration": { "definition": "#.data.definition" } } }] } },
-            "settings": { "shape": { "!maxChain": "integer" }, "defaults": { "maxChain": 100 } },
+            "settings": { "shape": { "!maxChain": "integer", "!breaker": { "!attempts": "integer" } }, "defaults": { "maxChain": 100, "breaker": { "attempts": 3 } } },
             "context": { "manages": { "process": "@process-context" } },
             "operations": {
                 "start": {
@@ -218,7 +339,7 @@
                                 "operation": "create"
                             },
                             {
-                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.created.data.process.step", "variables": {}, "input": "#.input.input", "depth": 0 },
+                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.created.data.process.step", "variables": {}, "entities": "#.created.data.process.entities", "input": "#.input.input", "depth": 0 },
                                 "invoke": "#.self.id",
                                 "operation": "advance"
                             }
@@ -233,7 +354,7 @@
                 },
                 "advance": {
                     "private": true,
-                    "input": { "!businessKey": "string", "!step": "string", "!variables": "object", "input": "@any", "signal": "@any", "!depth": "integer" },
+                    "input": { "!businessKey": "string", "!step": "string", "!variables": "object", "entities": "@any", "input": "@any", "signal": "@any", "!depth": "integer" },
                     "output": "@viewed-entity-record",
                     "implementation": [
                         { "outputKey": "settings", "set": { "$func/settings": "#.self.id" } },
@@ -243,7 +364,8 @@
                         },
                         { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                         { "outputKey": "step", "set": { "$func/process-step-of": { "definition": "#.process.data.process.definition", "step": "#.input.step" } } },
-                        { "outputKey": "entities", "inputMap": "#.process.data.process.entities", "invoke": "#.self.id", "operation": "loadParticipants" },
+                        { "outputKey": "bindings", "set": { "$coalesce": ["#.input.entities", "#.process.data.process.entities"] } },
+                        { "outputKey": "entities", "inputMap": "#.bindings", "invoke": "#.self.id", "operation": "loadParticipants" },
                         {
                             "outputKey": "scope",
                             "set": {
@@ -254,28 +376,44 @@
                             }
                         },
                         {
-                            "outputKey": "output",
-                            "if": "#.step.do",
-                            "then": {
-                                "withContext": { "process": { "definition": "#.process.data.process.definition", "businessKey": "#.input.businessKey", "step": "#.input.step", "token": "#.process.revision" } },
-                                "do": { "inputMap": "#.scope", "execute": "#.step.do" }
-                            }
+                            "outputKey": "attempt",
+                            "try": [
+                                {
+                                    "outputKey": "output",
+                                    "if": "#.step.do",
+                                    "then": {
+                                        "inSavepoint": {
+                                            "withContext": { "process": { "definition": "#.process.data.process.definition", "businessKey": "#.input.businessKey", "step": "#.input.step", "token": "#.process.revision", "entities": "#.bindings" } },
+                                            "do": { "inputMap": "#.scope", "execute": "#.step.do" }
+                                        }
+                                    }
+                                },
+                                { "set": { "output": "#.output", "error": null } }
+                            ],
+                            "catch": { "set": { "output": null, "error": "#.error" } }
                         },
                         {
                             "outputKey": "exit",
                             "set": {
-                                "$func/process-exit": {
-                                    "name": "#.input.step",
-                                    "step": "#.step",
-                                    "scope": { "$merge": ["#.scope", { "output": "#.output" }] },
-                                    "revision": "#.process.revision"
-                                }
+                                "$if": [
+                                    "#.attempt.error",
+                                    { "$func/process-recovery": { "name": "#.input.step", "step": "#.step", "scope": "#.scope", "error": "#.attempt.error", "bindings": "#.bindings" } },
+                                    {
+                                        "$func/process-exit": {
+                                            "name": "#.input.step",
+                                            "step": "#.step",
+                                            "scope": { "$merge": ["#.scope", { "output": "#.attempt.output" }] },
+                                            "revision": "#.process.revision",
+                                            "bindings": "#.bindings"
+                                        }
+                                    }
+                                ]
                             }
                         },
                         {
                             "if": { "$eq": ["#.exit.kind", "next"] },
                             "then": {
-                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.exit.step", "variables": "#.exit.variables", "input": "#.input.input", "depth": { "$sum": ["#.input.depth", 1] } },
+                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.exit.step", "variables": "#.exit.variables", "entities": "#.exit.entities", "input": "#.input.input", "depth": { "$sum": ["#.input.depth", 1] } },
                                 "invoke": "#.self.id",
                                 "operation": "advance"
                             },
@@ -311,7 +449,7 @@
                                             {
                                                 "key": "process",
                                                 "operation": "move",
-                                                "input": { "process": { "$merge": ["#.input.process.data.process", { "step": "#.input.step" }, { "$if": ["#.wait", { "wait": "#.wait" }, {}] }] } }
+                                                "input": { "process": { "$func/process-position": { "process": "#.input.process.data.process", "step": "#.input.step", "wait": "#.wait", "entities": "#.input.exit.entities" } } }
                                             }
                                         ],
                                         { "$if": [{ "$eq": ["#.input.exit.kind", "end"] }, [{ "key": "state", "operation": "transition", "input": { "transition": "end" } }], []] }
@@ -335,7 +473,8 @@
                         { "set": "#.written" }
                     ]
                 },
-                "wake": {
+                "handle": {
+                    "private": true,
                     "input": "@process-wakeup",
                     "output": "@any",
                     "implementation": {
@@ -358,6 +497,52 @@
                                         "operation": "advance"
                                     }
                                 }
+                            ]
+                        }
+                    }
+                },
+                "wake": {
+                    "input": "@process-wakeup",
+                    "output": "@any",
+                    "implementation": [
+                        {
+                            "outputKey": "outcome",
+                            "try": [
+                                { "inputMap": "#.input", "invoke": "#.self.id", "operation": "handle" },
+                                { "set": { "rethrow": false } }
+                            ],
+                            "catch": [
+                                { "outputKey": "verdict", "inputMap": { "businessKey": "#.input.businessKey", "wakeup": "#.input", "error": "#.error" }, "invoke": "#.self.id", "operation": "failed" },
+                                { "set": { "rethrow": "#.verdict.rethrow", "error": "#.error" } }
+                            ]
+                        },
+                        { "if": "#.outcome.rethrow", "then": { "throw": "#.outcome.error" } }
+                    ]
+                },
+                "failed": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "!wakeup": "@process-wakeup", "!error": "@any" },
+                    "output": { "!rethrow": "boolean" },
+                    "implementation": {
+                        "if": { "$eq": ["#.input.wakeup.kind", "start"] },
+                        "then": { "set": { "rethrow": true } },
+                        "else": {
+                            "inTransaction": [
+                                { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                                { "outputKey": "settings", "set": { "$func/settings": "#.self.id" } },
+                                {
+                                    "outputKey": "verdict",
+                                    "set": { "$func/process-verdict": { "process": "#.process", "wakeup": "#.input.wakeup", "error": "#.input.error", "attempts": "#.settings.breaker.attempts" } }
+                                },
+                                {
+                                    "if": { "$neq": ["#.verdict.action", "rethrow"] },
+                                    "then": {
+                                        "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.process.revision", "entityOperation": "fail", "operations": "#.verdict.operations" },
+                                        "invoke": "#.self.id",
+                                        "operation": "writeTraitOperationsAsOneChange"
+                                    }
+                                },
+                                { "set": { "rethrow": { "$neq": ["#.verdict.action", "suspend"] } } }
                             ]
                         }
                     }

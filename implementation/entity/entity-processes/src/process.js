@@ -1,18 +1,19 @@
 import { CoreError, invoke } from '@business-framework/core';
+import { errorTypeOf, isKindOfError } from '@business-framework/core/error-types';
 import { selvesOf } from '@business-framework/core/kinds';
 import { applyMapping } from '@business-framework/core/mappings';
 
 const definitionOf = id => selvesOf('process-definition').find(element => element.id === id).data;
+
+const bindingOf = ({ entityType, many }) => businessKeys => many
+    ? [businessKeys].flat().map(businessKey => ({ entityType, businessKey }))
+    : { entityType, businessKey: businessKeys };
 
 const unbound = (roles, entities) => Object.entries(roles).filter(([role, { late }]) => !late && entities[role] === undefined).map(([role]) => role);
 
 const lateBound = (roles, entities) => Object.entries(roles).filter(([role, { late }]) => late && entities[role] !== undefined).map(([role]) => role);
 
 const unknown = (roles, entities) => Object.keys(entities).filter(role => roles[role] === undefined);
-
-const bindingOf = ({ entityType, many }) => businessKeys => many
-    ? [businessKeys].flat().map(businessKey => ({ entityType, businessKey }))
-    : { entityType, businessKey: businessKeys };
 
 export const initialProcessValue = ({ definition, entities }) => {
     const { entities: roles, start } = definitionOf(definition);
@@ -28,6 +29,16 @@ export const initialProcessValue = ({ definition, entities }) => {
         entities: Object.fromEntries(Object.entries(entities).map(([role, businessKeys]) => [role, bindingOf(roles[role])(businessKeys)]))
     };
 };
+
+const boundBy = (definition, roles, role, current, businessKeys) => {
+    const declared = roles[role] ?? (() => { throw new CoreError('invalid', `${definition} has no role '${role}'`, { definition, role }); })();
+    if (!declared.late) throw new CoreError('conflict', `the role '${role}' is bound at the start and never rebound`, { definition, role });
+    if (!declared.many && current !== undefined) throw new CoreError('conflict', `the role '${role}' is already bound`, { definition, role });
+    return declared.many ? [...current ?? [], ...bindingOf(declared)(businessKeys)] : bindingOf(declared)(businessKeys);
+};
+
+const bindingsAfter = (definition, bindings, bind = {}) => Object.entries(bind)
+    .reduce((current, [role, businessKeys]) => ({ ...current, [role]: boundBy(definition, definitionOf(definition).entities, role, current[role], businessKeys) }), bindings);
 
 export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step];
 
@@ -55,11 +66,27 @@ const exitOf = (name, step, scope, revision) => step.end
             ? { kind: 'next', step: targetOf(name, step.choose, scope) }
             : { kind: 'wait', wait: waitOf(step.wait, scope, revision) };
 
+const catchesError = error => entry => !errorTypeOf(error.code).transient && entry.catches.some(code => isKindOfError(error.code, code));
+
+export const processErrorExit = ({ name, step, scope, error, bindings }) => {
+    const entry = (step.onError ?? []).find(catchesError(error));
+    if (entry === undefined) throw error;
+    const failure = { code: error.code, message: error.message, data: error.data };
+    return {
+        kind: 'next',
+        step: entry.then,
+        entities: bindings,
+        variables: { ...scope.process.data.body, ...entry.set === undefined ? {} : evaluated(entry.set, { ...scope, error: failure }) },
+        recovered: name
+    };
+};
+
 const withVariables = (scope, variables) => ({ ...scope, process: { ...scope.process, data: { ...scope.process.data, body: variables } } });
 
-export const processExit = ({ name, step, scope, revision }) => {
+export const processExit = ({ name, step, scope, revision, bindings }) => {
     const variables = { ...scope.process.data.body, ...step.set === undefined ? {} : evaluated(step.set, scope) };
-    return { variables, ...exitOf(name, step, withVariables(scope, variables), revision) };
+    const entities = bindingsAfter(scope.process.data.process.definition, bindings, scope.output?.bind);
+    return { variables, entities, ...exitOf(name, step, withVariables(scope, variables), revision) };
 };
 
 const sequentially = (items, run) => items.reduce(async (done, item) => [...await done, await run(item)], Promise.resolve([]));
@@ -91,3 +118,39 @@ const timerTarget = (process, { token, step }) => process.data.process.wait?.tok
 export const wakeupTarget = ({ process, wakeup }) => process.data.state.status !== 'running'
     ? null
     : wakeup.kind === 'signal' ? signalTarget(process, wakeup) : timerTarget(process, wakeup);
+
+export const processPosition = ({ process, step, wait, entities }) => ({
+    definition: process.definition,
+    step,
+    entities: entities ?? process.entities,
+    ...wait === undefined || wait === null ? {} : { wait }
+});
+
+const moved = process => ({ key: 'process', operation: 'move', input: { process } });
+
+const transition = name => ({ key: 'state', operation: 'transition', input: { transition: name } });
+
+export const processVerdict = ({ process, wakeup, error, attempts }) => {
+    const { transient, outage } = errorTypeOf(error.code);
+    if (outage || wakeup.kind === 'start') return { action: 'rethrow', operations: [] };
+    const position = process.data.process;
+    const step = wakeupTarget({ process, wakeup })?.step ?? position.step;
+    const count = (position.failures?.step === step ? position.failures.count : 0) + 1;
+    return !transient || count >= attempts
+        ? { action: 'suspend', operations: [moved({ ...position, fault: { step, code: error.code, message: error.message, attempts: count, wakeup } }), transition('suspend')] }
+        : { action: 'count', operations: [moved({ ...position, failures: { step, count } })] };
+};
+
+const FINISHED = ['ended', 'aborted'];
+
+export const processRelations = record => FINISHED.includes(record.data.state.status)
+    ? []
+    : Object.entries(record.data.process.entities).flatMap(([role, binding]) => [binding].flat()
+        .map(({ entityType, businessKey }) => ({ targetEntityType: entityType, targetEntityBusinessKey: businessKey, relationType: role })));
+
+const isBound = (bindings, { entityType, businessKey }) => Object.values(bindings).flatMap(binding => [binding].flat())
+    .some(bound => bound.entityType === entityType && bound.businessKey === businessKey);
+
+export const footprintAllows = ({ process, change, entityType }) => change.operation === 'create'
+    ? Object.values(definitionOf(process.definition).entities).some(role => role.entityType === entityType)
+    : isBound(process.entities, change.before);
