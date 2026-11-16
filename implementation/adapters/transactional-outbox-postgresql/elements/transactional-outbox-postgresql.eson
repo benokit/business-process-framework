@@ -11,7 +11,7 @@
                     {
                         "outputKey": "rows",
                         "statement": "INSERT INTO transactional_outbox (channel, message_id, message_group, envelope, process_after_timestamp_utc) VALUES ($1, $2, $3, $4, $5) RETURNING message_id AS \"messageId\"",
-                        "parameters": ["#.channel", "#.envelope.messageId", "#.envelope.group", "#.envelope", "#.now"]
+                        "parameters": ["#.channel", "#.envelope.messageId", "#.envelope.group", "#.envelope", "#.processAfter"]
                     },
                     { "set": { "$head": "#.rows" } }
                 ]
@@ -183,6 +183,25 @@
                         "statement": "WITH changed AS (UPDATE transactional_outbox SET status = 3 WHERE status = 2 AND message_id = ANY($1) RETURNING 1) SELECT COUNT(*)::int AS count FROM changed",
                         "parameters": ["#.messageIds"],
                         "irreversible": true
+                    },
+                    { "set": { "$head": "#.rows" } }
+                ]
+            }
+        }
+    },
+    {
+        "id": "outbox-cancel-postgresql",
+        "kind": "slot-fill",
+        "data": {
+            "target": "outbox-cancel",
+            "slot": "implementations",
+            "value": {
+                "provider": "postgresql-database",
+                "implementation": [
+                    {
+                        "outputKey": "rows",
+                        "statement": "WITH changed AS (DELETE FROM transactional_outbox WHERE status = 0 AND message_id = $1 RETURNING 1) SELECT COUNT(*)::int AS count FROM changed",
+                        "parameters": ["#.messageId"]
                     },
                     { "set": { "$head": "#.rows" } }
                 ]

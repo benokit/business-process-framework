@@ -31,11 +31,20 @@ const elements = [
         kind: 'kind',
         data: {
             operations: {
+                cancelWithin: {
+                    input: '@any',
+                    implementation: {
+                        inTransaction: [
+                            { inputMap: { messageId: '#.input.messageId' }, invoke: 'default-transactional-outbox', operation: 'cancel' },
+                            { if: '#.input.fail', then: { throw: 'rolled back' } }
+                        ]
+                    }
+                },
                 place: {
                     input: '@any',
                     implementation: {
                         inTransaction: [
-                            { inputMap: { message: '#.input.message', group: '#.input.group' }, publish: CHANNEL },
+                            { inputMap: { message: '#.input.message', group: '#.input.group', deliverAt: '#.input.deliverAt' }, publish: CHANNEL },
                             { if: '#.input.fail', then: { throw: 'rolled back' } }
                         ]
                     }
@@ -43,7 +52,8 @@ const elements = [
             }
         }
     },
-    { id: 'the-orders', kind: 'orders', data: {} }
+    { id: 'the-orders', kind: 'orders', data: {} },
+    { id: 'direct-channel', kind: 'message-channel', data: { broker: 'flaky', topology: 'topic', name: `direct-${run}` } }
 ];
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'messaging', 'transactional-outbox', 'transactional-outbox-postgresql'].map(name => packageElements(`@business-framework/${name}`));
@@ -59,6 +69,8 @@ const place = (id, extra = {}) => invoke('the-orders', 'place', { message: { id:
 const statusOf = async messageId => (await getPool().query('SELECT status FROM transactional_outbox WHERE message_id = $1', [messageId])).rows[0]?.status;
 
 const messageIdOf = async id => (await getPool().query("SELECT message_id FROM transactional_outbox WHERE envelope->'message'->>'id' = $1", [`${run}-${id}`])).rows[0].message_id;
+
+const soon = ms => new Date(Date.now() + ms).toISOString();
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -94,6 +106,51 @@ describe('transactional-outbox', function () {
         await place('marker');
         await eventually(() => deliveredIds().includes('marker'));
         expect(deliveredIds()).to.not.include('rolled');
+    });
+
+    it('delivers a message with deliverAt only once it is due, and at once for a date that has passed', async () => {
+        await place('later', { deliverAt: soon(1200) });
+        await place('past-date', { deliverAt: '2020-01-01' });
+        expect(deliveredIds()).to.include('past-date');
+        await pause(400);
+        expect(deliveredIds()).to.not.include('later');
+        await eventually(() => deliveredIds().includes('later'));
+    });
+
+    it('holds back a delayed message and the later messages of its group, and not the other groups', async () => {
+        await place('timer', { group: 'ticking', deliverAt: soon(1200) });
+        await place('behind-the-timer', { group: 'ticking' });
+        await place('elsewhere');
+        await eventually(() => deliveredIds().includes('elsewhere'));
+        expect(deliveredIds().filter(id => ['timer', 'behind-the-timer'].includes(id))).to.deep.equal([]);
+        await eventually(() => deliveredIds().includes('behind-the-timer'));
+        expect(deliveredIds().filter(id => ['timer', 'behind-the-timer'].includes(id))).to.deep.equal(['timer', 'behind-the-timer']);
+    });
+
+    it('cancels a pending message, which is then never delivered, and nothing else', async () => {
+        await place('cancelled', { deliverAt: soon(900) });
+        const messageId = await messageIdOf('cancelled');
+        expect(await invoke('default-transactional-outbox', 'cancel', { messageId })).to.deep.equal({ count: 1 });
+        expect(await statusOf(messageId)).to.equal(undefined);
+        await pause(1300);
+        expect(deliveredIds()).to.not.include('cancelled');
+        expect(await invoke('default-transactional-outbox', 'cancel', { messageId })).to.deep.equal({ count: 0 });
+        const deliveredMessageId = await messageIdOf('committed');
+        expect(await invoke('default-transactional-outbox', 'cancel', { messageId: deliveredMessageId })).to.deep.equal({ count: 0 });
+        expect(await statusOf(deliveredMessageId)).to.equal(1);
+    });
+
+    it('cancels in the transaction of the caller, so a cancel that rolled back keeps the message', async () => {
+        await place('kept-timer', { deliverAt: soon(800) });
+        const messageId = await messageIdOf('kept-timer');
+        expect((await invoke('the-orders', 'cancelWithin', { messageId, fail: true }).catch(e => e)).message).to.equal('rolled back');
+        expect(await statusOf(messageId)).to.equal(0);
+        await eventually(() => deliveredIds().includes('kept-timer'));
+    });
+
+    it('refuses deliverAt on a channel without an outbox, and one that is not a date', async () => {
+        expect((await invoke('direct-channel', 'publish', { message: {}, deliverAt: '2030-01-01' }).catch(e => e)).code).to.equal('invalid');
+        expect((await invoke(CHANNEL, 'publish', { message: {}, deliverAt: 'tomorrow' }).catch(e => e)).code).to.equal('invalid');
     });
 
     it('retries delivery when the broker fails', async () => {

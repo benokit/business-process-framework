@@ -36,8 +36,8 @@ export const claim = ({ input: { messageId } }) =>
     run('outbox-claim', { messageId, now: now(), lockedUntil: later(settings.lockInterval), pausedChannels: pausedChannels() });
 
 export const markDelivered = async ({ input: { messageId } }) => {
-    const { channel } = await run('outbox-mark-delivered', { messageId, processedAt: now() });
-    pauses.delete(channel);
+    const delivered = await run('outbox-mark-delivered', { messageId, processedAt: now() });
+    pauses.delete(delivered?.channel);
     return null;
 };
 

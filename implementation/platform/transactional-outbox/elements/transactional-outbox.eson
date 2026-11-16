@@ -15,10 +15,13 @@
                 "put": {
                     "implementation": [
                         { "outputKey": "now", "invoke": "clock", "operation": "now" },
-                        { "outputKey": "put", "inputMap": { "$merge": ["#.input", { "now": "#.now" }] }, "invoke": "outbox-insert", "operation": "run" },
+                        { "outputKey": "put", "inputMap": { "channel": "#.input.channel", "envelope": "#.input.envelope", "processAfter": { "$coalesce": ["#.input.deliverAt", "#.now"] } }, "invoke": "outbox-insert", "operation": "run" },
                         { "inputMap": { "messageId": "#.put.messageId" }, "afterCommit": { "invoke": "#.self.id", "operation": "deliverNow" } },
                         { "set": "#.put" }
                     ]
+                },
+                "cancel": {
+                    "implementation": { "invoke": "outbox-cancel", "operation": "run" }
                 },
                 "claim": {
                     "input": { "!messageId": "string" },
@@ -78,7 +81,7 @@
         "data": {}
     },
     { "id": "outbox-item", "kind": "schema", "data": { "!id": "string", "!messageId": "string", "!channel": "string", "!envelope": "@message-envelope", "!retryCount": "number" } },
-    { "id": "outbox-insert", "kind": "query", "data": { "input": { "!channel": "string", "!envelope": "@message-envelope", "!now": "string" }, "output": { "!messageId": "string" } } },
+    { "id": "outbox-insert", "kind": "query", "data": { "input": { "!channel": "string", "!envelope": "@message-envelope", "!processAfter": "string" }, "output": { "!messageId": "string" } } },
     { "id": "outbox-claim", "kind": "query", "data": { "input": { "!messageId": "string", "!now": "string", "!lockedUntil": "string", "!pausedChannels[]": "string" }, "output": { "!claimed": "boolean", "channel": "string", "envelope": "@message-envelope" } } },
     { "id": "outbox-mark-delivered", "kind": "query", "data": { "input": { "!messageId": "string", "!processedAt": "string" }, "output": { "!channel": "string" } } },
     { "id": "outbox-entry", "kind": "query", "data": { "input": { "!messageId": "string" }, "output": { "!id": "string", "!channel": "string", "!retryCount": "number" } } },
@@ -88,5 +91,6 @@
     { "id": "outbox-lock-batch", "kind": "query", "data": { "input": { "!now": "string", "!lockedUntil": "string", "!pausedChannels[]": "string", "!batchSize": "number" }, "output": "[@outbox-item]" } },
     { "id": "outbox-replay", "kind": "query", "data": { "input": { "messageIds[]": "string", "channel": "string", "from": "string", "to": "string", "!now": "string" }, "output": { "!count": "number" } } },
     { "id": "outbox-skip-failed", "kind": "query", "data": { "input": { "!messageIds[]": "string" }, "output": { "!count": "number" } } },
+    { "id": "outbox-cancel", "kind": "query", "data": { "input": { "!messageId": "string" }, "output": { "!count": "number" } } },
     { "id": "outbox-purge", "kind": "query", "data": { "input": { "!deliveredBefore": "string" }, "output": { "!count": "number" } } }
 ]

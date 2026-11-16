@@ -5,6 +5,11 @@
         "data": "string:^[A-Za-z0-9_-]+$"
     },
     {
+        "id": "message-instant",
+        "kind": "schema",
+        "data": "string:^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z)?$"
+    },
+    {
         "id": "message-envelope",
         "kind": "schema",
         "data": { "!messageId": "string", "!timestampUTC": "string", "!group": "string", "subject": "@message-subject", "!correlation": "string", "!message": "object" }
@@ -17,7 +22,7 @@
     {
         "id": "outgoing-message",
         "kind": "schema",
-        "data": { "!message": "object", "group": "string", "subject": "@message-subject", "messageId": "string", "timestampUTC": "string" }
+        "data": { "!message": "object", "group": "string", "subject": "@message-subject", "messageId": "string", "timestampUTC": "string", "deliverAt": "@message-instant" }
     },
     {
         "id": "message-broker",
@@ -36,7 +41,8 @@
         "kind": "kind",
         "data": {
             "operations": {
-                "put": { "input": { "!channel": "string", "!envelope": "@message-envelope" }, "output": { "!messageId": "string" } }
+                "put": { "input": { "!channel": "string", "!envelope": "@message-envelope", "deliverAt": "@message-instant" }, "output": { "!messageId": "string" } },
+                "cancel": { "input": { "!messageId": "string" }, "output": { "!count": "number" } }
             }
         }
     },
@@ -56,10 +62,14 @@
                     "input": "@outgoing-message",
                     "output": { "!messageId": "string" },
                     "implementation": [
+                        {
+                            "if": { "$and": ["#.input.deliverAt", { "$not": "#.self.data.publisher.transactionalOutbox" }] },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.self.id", " has no transactional outbox, so it can't deliver a message later"] } } }
+                        },
                         { "outputKey": "envelope", "invoke": "#.self.id", "operation": "envelope" },
                         {
                             "if": "#.self.data.publisher.transactionalOutbox",
-                            "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope" }, "invoke": { "instanceOf": "message-outbox" }, "operation": "put" },
+                            "then": { "inputMap": { "channel": "#.self.id", "envelope": "#.envelope", "deliverAt": "#.input.deliverAt" }, "invoke": { "instanceOf": "message-outbox" }, "operation": "put" },
                             "else": { "inputMap": "#.envelope", "invoke": "#.self.id", "operation": "deliver" }
                         }
                     ]
