@@ -99,6 +99,8 @@ export const loadParticipants = async ({ input: bindings, _ctx }) => Object.from
     Object.entries(bindings),
     async ([role, binding]) => [role, Array.isArray(binding) ? await sequentially(binding, readerOf(_ctx)) : await readerOf(_ctx)(binding)]));
 
+export const applyClosures = ({ input: closures, _ctx }) => sequentially(closures, ({ entityType, businessKey, revision, operation, input }) => invoke(entityType, 'run', { businessKey, revision, trait: 'task', operation, input }, _ctx));
+
 const MINUTE = 60 * 1000;
 
 const durationInMilliseconds = ({ days = 0, hours = 0, minutes = 0 }) => ((days * 24 + hours) * 60 + minutes) * MINUTE;
@@ -111,7 +113,7 @@ export const heldExit = ({ step, exit, entities, scope }) => {
     const held = exit.kind === 'wait' && entities !== undefined
         ? (step.wait.when ?? []).find(({ test }) => evaluated(test, { ...scope, entities }))
         : undefined;
-    return held === undefined ? exit : { kind: 'next', step: held.then, variables: exit.variables, entities: exit.entities };
+    return held === undefined ? exit : { kind: 'next', step: held.then, variables: exit.variables, entities: exit.entities, resolve: held.resolve ?? {} };
 };
 
 const stepsOf = ({ definition }) => definitionOf(definition).steps;
@@ -129,8 +131,18 @@ const checkTarget = (process, entities) => {
     const held = position.wait === undefined
         ? undefined
         : (stepsOf(position)[position.step].wait.when ?? []).find(({ test }) => evaluated(test, { process, entities }));
-    return held === undefined ? null : { step: held.then, signal: null };
+    return held === undefined ? null : { step: held.then, signal: null, resolve: held.resolve ?? {} };
 };
+
+const waitedRoles = step => [...new Set((step.wait?.when ?? []).flatMap(({ resolve }) => Object.keys(resolve ?? {})))];
+
+const closureOf = (resolve, record, role) => resolve[role] === undefined
+    ? { operation: 'cancel' }
+    : { operation: 'resolve', input: { outcome: resolve[role] } };
+
+export const taskClosures = ({ step, entities, resolve }) => (step === null ? Object.keys(entities) : waitedRoles(step))
+    .flatMap(role => [entities[role]].flat().filter(record => record?.data.task?.status === 'open')
+        .map(record => ({ entityType: record.entityType, businessKey: record.businessKey, revision: record.revision, ...closureOf(resolve, record, role) })));
 
 const targetOfKind = { signal: signalTarget, timer: timerTarget, check: (process, { entities }) => checkTarget(process, entities) };
 

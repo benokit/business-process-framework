@@ -64,6 +64,12 @@ A `when` is woken by a change of what its tests read, never by a message that ca
 
 Not built: the revision narrowing (`wait.watch`, a check that isn't news is dropped without reading the participants) and the slot `signalViews` for explicit views; every check costs one read of the participants.
 
+## Tasks
+
+A `when` entry may list `resolve: { <role>: <outcome> }`: the tasks (roles whose entity type has the [`task` trait](../entity-tasks/README.md)) it closes, with the outcome each gets. The process verifies the fact, then closes the task: when an entry holds, the runner resolves the tasks it lists, and **withdraws what is left**: the tasks named in the `resolve` of the wait that are still open are cancelled when the process leaves the wait by another entry, a signal or the timer. A process that ends or is aborted cancels every task it holds that is still open. All in the transaction of the step, as the system.
+
+`validate()` checks each `resolve`: the role is declared and is a task, the outcome is one the task declares, and every outcome a user may give is routed by some entry of the wait, so an answer can't lead to a dead end.
+
 ## Binding, relations and the footprint
 
 A step binds a `late` role by returning `bind` from its `do`: `{ bind: { review: "RT-77" } }`, the business key of the entity it created (a list for a `many` role, which it may only add to). The binding is visible to the steps after it in the same chain and is written with the position. A role bound at the start is never rebound (`conflict`), nor a role bound twice; a role the definition lacks is `invalid`.
@@ -90,4 +96,4 @@ An error nobody caught is handled by a **circuit breaker** when a wake-up fails 
 
 `suspend`, `resume` and `abort` are transitions of `status` through the existing transition endpoint, granted by the application to a role: `{ "area": "states", "resource": "<process entity type>", "action": ["suspend", "resume", "abort"] }`. A wake-up for a process that isn't `running` is dropped. `resume` replays the wake-up that caused the fault, puts the timer of the wait again (the date may have passed while the process was suspended, and is simply due), and clears `fault` and `failures`; `abort` clears them and replays nothing. A reaction of the trait `process` does it, in the transaction of the transition.
 
-Not built yet: tasks and the `resolve` of a `when` (R5.3b), the demo (R5.3c), the triggers that put `start` and `signal` and the derived business key (R5.3d), the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`), and an actor that grants the operator's transitions (the demo declares it).
+Not built yet: the work list and the relations of a task's `about` (R5.3b2 leftovers), the demo (R5.3c), the triggers that put `start` and `signal` and the derived business key (R5.3d), the data-flow typing of a `do` (a misspelled path in a step fails at run time, not in `validate()`), and an actor that grants the operator's transitions (the demo declares it).

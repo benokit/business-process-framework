@@ -1,5 +1,7 @@
 import { errorTypeOf, isRegistered } from '@business-framework/core/error-types';
-import { selvesOf } from '@business-framework/core/kinds';
+import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
+import { findElement } from '@business-framework/core/registry';
+import { traitsOf } from '@business-framework/entities/traits';
 
 const EXITS = ['next', 'choose', 'wait', 'end'];
 
@@ -45,10 +47,29 @@ const untilProblems = (name, until) => until === undefined || [until.at, until.a
     ? []
     : [`step '${name}' waits until a date or after a duration: exactly one of at and after`];
 
+const taskOutcomesOf = entityType => findElement('task-trait') === undefined
+    ? undefined
+    : Object.values(traitsOf(entityType)).find(({ trait }) => isInstanceOf({ element: trait, kind: 'task-trait' }))?.configuration.outcomes;
+
+const resolveProblems = (roles, name, wait) => {
+    const entries = (wait?.when ?? []).flatMap(({ resolve }) => Object.entries(resolve ?? {}));
+    const declared = entries.filter(([role]) => roles[role] !== undefined);
+    return [
+        ...entries.filter(([role]) => roles[role] === undefined).map(([role]) => `step '${name}' resolves the role '${role}', which the process doesn't declare`),
+        ...declared.filter(([role]) => taskOutcomesOf(roles[role].entityType) === undefined).map(([role]) => `step '${name}' resolves the role '${role}', which isn't a task`),
+        ...declared.filter(([role, outcome]) => taskOutcomesOf(roles[role].entityType) !== undefined && taskOutcomesOf(roles[role].entityType)[outcome] === undefined)
+            .map(([role, outcome]) => `step '${name}' resolves '${role}' with '${outcome}', an outcome its task doesn't declare`),
+        ...[...new Set(declared.map(([role]) => role))].flatMap(role => Object.entries(taskOutcomesOf(roles[role].entityType) ?? {})
+            .filter(([outcome, declaration]) => declaration !== true && declaration.answer !== undefined && !declared.some(([other, resolved]) => other === role && resolved === outcome))
+            .map(([outcome]) => `step '${name}' waits on '${role}' but no entry resolves the outcome '${outcome}' a user may give`))
+    ];
+};
+
 const waitProblems = (roles, name, wait) => wait === undefined ? [] : [
     ...(wait.when ?? []).length === 0 && Object.keys(wait.signals ?? {}).length === 0 && wait.until === undefined ? [`step '${name}' waits for nothing: it needs a when, a signal or an until`] : [],
     ...Object.entries(wait.signals ?? {}).filter(([, { by }]) => roles[by] === undefined).map(([signal, { by }]) => `step '${name}' signal '${signal}' is addressed by the role '${by}', which the process doesn't declare`),
-    ...untilProblems(name, wait.until)
+    ...untilProblems(name, wait.until),
+    ...resolveProblems(roles, name, wait)
 ];
 
 const catchProblems = (name, entry) => [

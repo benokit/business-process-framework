@@ -22,7 +22,7 @@
     {
         "id": "process-condition",
         "kind": "schema",
-        "data": { "!test": "@mapping", "!then": "string", "*": "never" }
+        "data": { "!test": "@mapping", "resolve{}": "string", "!then": "string", "*": "never" }
     },
     {
         "id": "process-wait",
@@ -303,6 +303,15 @@
         }
     },
     {
+        "id": "process-task-closures",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!entities": "@any", "!resolve": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "taskClosures"
+        }
+    },
+    {
         "id": "process-wakeup-target",
         "kind": "pure-function",
         "data": {
@@ -417,6 +426,10 @@
                     }
                 },
                 {
+                    "if": "#.aborted",
+                    "then": { "inputMap": { "step": null, "bindings": "#.position.entities", "resolve": {} }, "invoke": "#.self.id", "operation": "closeTasks" }
+                },
+                {
                     "if": { "$and": [{ "$or": ["#.resumed", "#.aborted"] }, { "$or": ["#.position.fault", "#.position.failures"] }] },
                     "then": {
                         "inputMap": {
@@ -466,6 +479,28 @@
                     "input": "@any",
                     "output": "@any",
                     "implementation": { "low": { "module": "@business-framework/entity-processes/process", "export": "loadParticipants", "effects": ["read"] } }
+                },
+                "closeTasks": {
+                    "private": true,
+                    "input": { "!step": "@any", "!bindings": "@any", "!resolve": "@any" },
+                    "output": "@any",
+                    "implementation": [
+                        {
+                            "outputKey": "entities",
+                            "if": { "$or": [{ "$eq": ["#.input.step", null] }, "#.input.step.wait.when"] },
+                            "then": { "inputMap": "#.input.bindings", "invoke": "#.self.id", "operation": "loadParticipants" }
+                        },
+                        { "outputKey": "closures", "set": { "$func/process-task-closures": { "step": "#.input.step", "entities": { "$coalesce": ["#.entities", {}] }, "resolve": "#.input.resolve" } } },
+                        {
+                            "asSystem": { "inputMap": "#.closures", "invoke": "#.self.id", "operation": "applyClosures" }
+                        }
+                    ]
+                },
+                "applyClosures": {
+                    "private": true,
+                    "input": "@any",
+                    "output": "@any",
+                    "implementation": { "low": { "module": "@business-framework/entity-processes/process", "export": "applyClosures", "effects": ["read", "write"] } }
                 },
                 "advance": {
                     "private": true,
@@ -539,6 +574,14 @@
                                     "entities": "#.fresh",
                                     "scope": { "$merge": ["#.scope", { "process": { "$merge": ["#.scope.process", { "data": { "$merge": ["#.scope.process.data", { "body": "#.exit.variables" }] } }] } }] }
                                 }
+                            }
+                        },
+                        {
+                            "if": { "$or": [{ "$eq": ["#.settled.kind", "end"] }, { "$and": [{ "$eq": ["#.exit.kind", "wait"] }, { "$eq": ["#.settled.kind", "next"] }] }] },
+                            "then": {
+                                "inputMap": { "step": { "$if": [{ "$eq": ["#.settled.kind", "end"] }, null, "#.step"] }, "bindings": "#.settled.entities", "resolve": { "$coalesce": ["#.settled.resolve", {}] } },
+                                "invoke": "#.self.id",
+                                "operation": "closeTasks"
                             }
                         },
                         {
@@ -627,11 +670,18 @@
                                 { "outputKey": "target", "set": { "$func/process-wakeup-target": { "process": "#.process", "wakeup": "#.input", "entities": "#.entities" } } },
                                 {
                                     "if": "#.target",
-                                    "then": {
-                                        "inputMap": { "businessKey": "#.input.businessKey", "step": "#.target.step", "variables": "#.process.data.body", "signal": "#.target.signal", "depth": 0 },
-                                        "invoke": "#.self.id",
-                                        "operation": "advance"
-                                    }
+                                    "then": [
+                                        {
+                                            "inputMap": { "step": { "$func/process-step-of": { "definition": "#.process.data.process.definition", "step": "#.process.data.process.step" } }, "bindings": "#.process.data.process.entities", "resolve": { "$coalesce": ["#.target.resolve", {}] } },
+                                            "invoke": "#.self.id",
+                                            "operation": "closeTasks"
+                                        },
+                                        {
+                                            "inputMap": { "businessKey": "#.input.businessKey", "step": "#.target.step", "variables": "#.process.data.body", "signal": "#.target.signal", "depth": 0 },
+                                            "invoke": "#.self.id",
+                                            "operation": "advance"
+                                        }
+                                    ]
                                 }
                             ]
                         }

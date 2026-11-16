@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { boot, packageElements, validate } from '@business-framework/core';
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-processes'].map(name => packageElements(`@business-framework/${name}`));
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks', 'entity-processes'].map(name => packageElements(`@business-framework/${name}`));
 
 const typed = { traits: { body: { configuration: { schema: { name: 'string' } } } } };
 
@@ -13,7 +13,7 @@ const definition = (steps, start) => ({
     id: 'sample-process',
     kind: 'process-definition',
     data: {
-        entities: { contract: { entityType: 'contract-type' }, review: { entityType: 'review-type', late: true } },
+        entities: { contract: { entityType: 'contract-type' }, review: { entityType: 'review-type', late: true }, approval: { entityType: 'task-type', late: true } },
         start: start ?? 'begin',
         steps
     }
@@ -22,7 +22,7 @@ const definition = (steps, start) => ({
 const messagesAfterBooting = async (steps, start) => {
     await boot({
         paths: packages,
-        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, stale, definition(steps, start)]
+        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start)]
     });
     return validate().flatMap(({ data }) => data.messages ?? []);
 };
@@ -93,6 +93,16 @@ describe('process definitions', function () {
             remind: { next: 'finish' }
         });
         expect(messages).to.deep.equal(["step 'ask' leads to unknown step 'nowhere'"]);
+    });
+
+    it('reports a resolve of an undeclared role, of a role that is no task, of an outcome the task lacks, and an answer no entry routes', async () => {
+        const waiting = whens => ({ begin: GOOD.begin, ask: { wait: { when: whens } }, finish: GOOD.finish });
+        const routed = [{ test: true, resolve: { approval: 'approved' }, then: 'finish' }];
+        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { nobody: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves the role 'nobody', which the process doesn't declare");
+        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { review: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves the role 'review', which isn't a task");
+        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { approval: 'nonsense' }, then: 'finish' }]))).to.include("step 'ask' resolves 'approval' with 'nonsense', an outcome its task doesn't declare");
+        expect(await messagesAfterBooting(waiting(routed))).to.deep.equal(["step 'ask' waits on 'approval' but no entry resolves the outcome 'rejected' a user may give"]);
+        expect(await messagesAfterBooting(waiting([...routed, { test: false, resolve: { approval: 'rejected' }, then: 'finish' }]))).to.deep.equal([]);
     });
 
     it('reports an onError that catches nothing, an unregistered code and a transient one, and accepts a terminal code or its parent', async () => {

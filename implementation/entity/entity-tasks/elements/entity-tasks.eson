@@ -1,0 +1,166 @@
+[
+    {
+        "id": "task-outcome",
+        "kind": "schema",
+        "data": { "$data#": ["boolean", { "!answer": "@any", "*": "never" }] }
+    },
+    {
+        "id": "task-configuration",
+        "kind": "schema",
+        "data": { "actor": "string", "!outcomes{}": "@task-outcome", "*": "never" }
+    },
+    {
+        "id": "task-about",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!businessKey": "string" }
+    },
+    {
+        "id": "task-origin",
+        "kind": "schema",
+        "data": { "!process": "string", "!step": "string" }
+    },
+    {
+        "id": "task-creation",
+        "kind": "schema",
+        "data": { "origin": "@task-origin", "about[]": "@task-about", "actor": "string", "dueOn": "@date", "*": "never" }
+    },
+    {
+        "id": "task-answer-input",
+        "kind": "schema",
+        "data": { "!outcome": "string", "result": "@any" }
+    },
+    {
+        "id": "task-resolve-input",
+        "kind": "schema",
+        "data": { "!outcome": "string" }
+    },
+    {
+        "id": "task-outcome-schemas",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[object]" },
+            "module": "@business-framework/entity-tasks/tasks",
+            "export": "outcomeSchemas"
+        }
+    },
+    {
+        "id": "task-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": {
+                            "$merge": [
+                                { "status": "open" },
+                                { "$if": ["#.input.configuration.actor", { "actor": "#.input.configuration.actor" }, {}] },
+                                { "$coalesce": ["#.input.input", {}] }
+                            ]
+                        }
+                    }
+                },
+                "answer": {
+                    "public": true,
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@task-answer-input" }] },
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$neq": ["#.input.value.status", "open"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["the task is ", "#.input.value.status", ", not open"] } } }
+                        },
+                        { "outputKey": "outcome", "set": { "$get": { "object": "#.input.configuration.outcomes", "path": "#.input.input.outcome" } } },
+                        {
+                            "if": { "$negate": "#.outcome.answer" },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["a user can't give the outcome ", "#.input.input.outcome", " of this task"] } } }
+                        },
+                        {
+                            "if": { "$neq": ["#.outcome.answer", true] },
+                            "then": {
+                                "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/outcome/", "#.input.input.outcome"] }, "value": "#.input.input.result" },
+                                "invoke": "ajv",
+                                "operation": "assert"
+                            }
+                        },
+                        {
+                            "set": {
+                                "command": "answer",
+                                "value": { "$merge": ["#.input.value", { "answer": { "outcome": "#.input.input.outcome", "result": "#.input.input.result", "by": "#._ctx.user.userId" } }] }
+                            }
+                        }
+                    ]
+                },
+                "claim": {
+                    "public": true,
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$neq": ["#.input.value.status", "open"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["the task is ", "#.input.value.status", ", not open"] } } }
+                        },
+                        { "set": { "command": "claim", "value": { "$merge": ["#.input.value", { "assignedTo": "#._ctx.user.userId" }] } } }
+                    ]
+                },
+                "resolve": {
+                    "public": true,
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": "@task-resolve-input" }] },
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$neq": ["#.input.value.status", "open"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["the task is ", "#.input.value.status", ", not open"] } } }
+                        },
+                        {
+                            "if": { "$negate": { "$get": { "object": "#.input.configuration.outcomes", "path": "#.input.input.outcome" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["the task has no outcome ", "#.input.input.outcome"] } } }
+                        },
+                        { "set": { "command": "resolve", "value": { "$merge": ["#.input.value", { "status": "resolved", "outcome": "#.input.input.outcome" }] } } }
+                    ]
+                },
+                "cancel": {
+                    "public": true,
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": [
+                        {
+                            "if": { "$neq": ["#.input.value.status", "open"] },
+                            "then": { "throw": { "code": "conflict", "message": { "$str": ["the task is ", "#.input.value.status", ", not open"] } } }
+                        },
+                        { "set": { "command": "cancel", "value": { "$merge": ["#.input.value", { "status": "cancelled" }] } } }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "task",
+        "kind": "task-trait",
+        "data": {
+            "configuration": "@task-configuration",
+            "guard": {
+                "if": {
+                    "$and": [
+                        { "$eq": ["#.input.change.operation", "trait"] },
+                        { "$any": { "collection": { "$func/change-command": { "commands": "#.input.change.commands", "key": "#.input.key" } }, "as": "command", "predicate": { "$or": [{ "$eq": ["@command.command", "resolve"] }, { "$eq": ["@command.command", "cancel"] }] } } },
+                        { "$not": { "$any": { "collection": { "$coalesce": ["#._ctx.user.roles", []] }, "as": "role", "predicate": { "$eq": ["@role", "system"] } } } }
+                    ]
+                },
+                "then": { "throw": { "code": "private-operation", "message": "a task is closed by the process that asked for it, never by a user" } }
+            }
+        }
+    },
+    {
+        "id": "entity-task-writer",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "$func/task-outcome-schemas": null },
+                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
+                }
+            }
+        }
+    },
+    { "id": "entity-tasks", "kind": "entity-task-writer", "data": {} }
+]
