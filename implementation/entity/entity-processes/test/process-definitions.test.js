@@ -3,7 +3,7 @@ import { boot, packageElements, validate } from '@business-framework/core';
 
 const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks', 'entity-processes'].map(name => packageElements(`@business-framework/${name}`));
 
-const typed = { traits: { body: { configuration: { schema: { name: 'string' } } } } };
+const typed = { traits: { body: { configuration: { schema: { name: 'string', '*': 'never' } } } } };
 
 const lifecycle = { states: { status: { draft: true } }, transitions: { keep: { status: { draft: 'draft' } } }, initialStates: { default: { status: 'draft' } } };
 
@@ -103,6 +103,21 @@ describe('process definitions', function () {
         expect(await messagesAfterBooting(waiting([{ test: true, resolve: { approval: 'nonsense' }, then: 'finish' }]))).to.include("step 'ask' resolves 'approval' with 'nonsense', an outcome its task doesn't declare");
         expect(await messagesAfterBooting(waiting(routed))).to.deep.equal(["step 'ask' waits on 'approval' but no entry resolves the outcome 'rejected' a user may give"]);
         expect(await messagesAfterBooting(waiting([...routed, { test: false, resolve: { approval: 'rejected' }, then: 'finish' }]))).to.deep.equal([]);
+    });
+
+    it('reports a path of a step that its roles, input and variables do not have, in a do and in a mapping', async () => {
+        const messages = await messagesAfterBooting({
+            begin: {
+                do: { set: { name: '#.input.entities.contract.data.body.nme', by: '#.input.entities.nobody.data.body.name', fine: '#.input.entities.contract.data.body.name' } },
+                set: { copied: '#.entities.contract.data.body.nmae', fine: '#.entities.contract.data.body.name' },
+                next: 'ask'
+            },
+            ask: { wait: { when: [{ test: { $eq: ['#.entities.review.data.body.nme', 'x'] }, then: 'finish' }] } },
+            finish: { end: true }
+        });
+        expect(messages).to.have.length(4);
+        expect(messages.join('\n')).to.include('steps.begin.do').and.to.include('nme').and.to.include('nmae');
+        expect(messages.join('\n')).to.not.include('fine');
     });
 
     it('reports an extension at a step that does not exist or is not extensible', async () => {

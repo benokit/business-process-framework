@@ -294,6 +294,12 @@ export const mappingType = (code, input, expected) => expected === undefined
     ? infer(code, { input, primitives: pureFunctions() })
     : infer({ [EXPECTED]: code }, { input, primitives: { ...pureFunctions(), [EXPECTED]: typed(argument => argument, { takes: expected, returns: ANY }) } });
 
+export const methodType = ({ author, code, input, path }) => {
+    const walk = { at: { author }, kind: undefined, problems: [], returns: [], targets: undefined };
+    const type = method(walk, code, { input, self: ANY_SELF, _ctx: contextType() }, path);
+    return { type, problems: walk.problems };
+};
+
 const methodStart = (author, path) => {
     const _ctx = contextType();
     if (author.kind === 'kind') {

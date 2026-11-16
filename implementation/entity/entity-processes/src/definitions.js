@@ -2,6 +2,8 @@ import { errorTypeOf, isRegistered } from '@business-framework/core/error-types'
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { findElement } from '@business-framework/core/registry';
 import { traitsOf } from '@business-framework/entities/traits';
+import { standardOf } from '@business-framework/core/schemas';
+import { methodType, mappingType } from '@business-framework/core/data-flow';
 import { extensionsOf } from './process.js';
 
 const EXITS = ['next', 'choose', 'wait', 'end'];
@@ -115,10 +117,67 @@ const extensionProblems = (id, steps) => extensionsOf(id)
     .filter(({ step }) => steps[step]?.extensible !== true)
     .map(({ step }) => `${id} is extended at the step '${step}', which ${steps[step] === undefined ? "doesn't exist" : "isn't marked extensible"}`);
 
+const traitType = ({ trait, configuration }) => isInstanceOf({ element: trait, kind: 'body-trait' }) && configuration.schema !== undefined ? standardOf(configuration.schema) : {};
+
+const recordType = (data = {}) => ({
+    type: 'object',
+    properties: {
+        id: { type: 'string' },
+        entityType: { type: 'string' },
+        businessKey: { type: 'string' },
+        revision: { type: 'number' },
+        timestampUtc: { type: 'string' },
+        data: { type: 'object', properties: data, additionalProperties: false }
+    },
+    additionalProperties: false
+});
+
+const participantType = ({ entityType, many }) => {
+    const record = recordType(Object.fromEntries(Object.entries(traitsOf(entityType)).map(([key, use]) => [key, traitType(use)])));
+    return many ? { type: 'array', items: record } : record;
+};
+
+const processType = variables => recordType({ process: {}, state: {}, body: variables === undefined ? {} : standardOf(variables) });
+
+const scopeOf = definition => ({
+    process: processType(definition.variables),
+    entities: { type: 'object', properties: Object.fromEntries(Object.entries(definition.entities).map(([role, declaration]) => [role, participantType(declaration)])), additionalProperties: false },
+    input: definition.input === undefined ? {} : standardOf(definition.input),
+    signal: {},
+    output: {}
+});
+
+const unknownPaths = thunks => thunks.flatMap(thunk => {
+    try {
+        thunk();
+        return [];
+    } catch (error) {
+        return error.code === 'unknown-path' ? [error.message] : [];
+    }
+});
+
+const mappingsOf = step => [
+    ...step.set === undefined ? [] : [['set', step.set, {}]],
+    ...(step.choose ?? []).filter(Array.isArray).map(([test], index) => [`choose[${index}]`, test, {}]),
+    ...(step.wait?.when ?? []).map(({ test }, index) => [`wait.when[${index}].test`, test, {}]),
+    ...step.wait?.until?.at === undefined ? [] : [['wait.until.at', step.wait.until.at, {}]],
+    ...(step.onError ?? []).filter(entry => entry.set !== undefined).map((entry, index) => [`onError[${index}].set`, entry.set, { error: { type: 'object', properties: { code: { type: 'string' }, message: { type: 'string' }, data: {} } } }])
+];
+
+const typingProblems = (id, data) => {
+    const author = { id, kind: 'process-definition' };
+    const scope = scopeOf(data);
+    return Object.entries(data.steps).flatMap(([name, step]) => [
+        ...step.do === undefined ? [] : unknownPaths(methodType({ author, code: step.do, input: { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, signal: scope.signal }, additionalProperties: false }, path: `steps.${name}.do` }).problems),
+        ...mappingsOf(step).flatMap(([where, code, extra]) => unknownPaths(mappingType(code, { type: 'object', properties: { ...scope, ...extra }, additionalProperties: false }).problems.map(problem => () => { throw Object.assign(new Error(`step '${name}' ${where}: ${problem.message}`), { code: problem.code }); })))
+    ]);
+};
+
 export const processDefinitionProblems = definition => {
     const { data } = selvesOf('process-definition').find(({ id }) => id === definition);
     return [
         ...startProblems(data),
+        ...typingProblems(definition, data),
         ...extensionProblems(definition, data.steps),
         ...Object.entries(data.steps).flatMap(stepProblems(data.steps, data.entities)),
         ...reachabilityProblems(data),
