@@ -12,6 +12,6 @@ Each route's [operation](../../services/authorization/README.md) is `{ area: "en
 | `PUT` | `/entities/:entityType/:businessKey` | `update` of the trait `body` of the entity type (body `{ body }`, `If-Match` required) | 200 | yes |
 | `DELETE` | `/entities/:entityType/:businessKey` | `delete` (`If-Match` required) | 200 | |
 
-The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../platform/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409.
+The ETag is the quoted revision (`"5"`); `If-Match` takes it back. Errors map as in [http-server](../../platform/http-server/README.md): `invalid` 400, `not-found` 404, `conflict` 409 (and its kinds `stale`, `duplicate`, `referenced`, `state-refused`).
 
 Only these operations are exposed; trait operations are private to the entity unless the trait makes them public, and are reached through `run` by the endpoints of the trait packages ([entity-states-http](../entity-states-http/README.md)), and an operation that an entity class adds by an [`http-endpoint`](../../platform/http-server/README.md#http-endpoint) written for it.

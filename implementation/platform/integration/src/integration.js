@@ -2,6 +2,7 @@ import { CoreError, findElement } from '@business-framework/core';
 import { kindChain, selfOf, selvesOf } from '@business-framework/core/kinds';
 import { resolveReference } from '@business-framework/core/references';
 import { slotValues } from '@business-framework/core/slots';
+import { isRegistered } from '@business-framework/core/error-types';
 
 const implementationFor = (implementations, kind) => kindChain(kind).map(({ id }) => id).reverse()
     .map(id => implementations.find(({ provider }) => provider === id))
@@ -22,7 +23,12 @@ export const providerImplementation = ({ provider, implementations }) =>
 export const integrationProblems = integration => {
     const { data: { provider } } = instance('integration', integration);
     const implementations = slotValues({ element: integration, slot: 'implementations' });
-    return selvesOf(provider)
-        .filter(({ kind }) => !implementationFor(implementations, kind))
-        .map(({ id, kind }) => `no implementation for ${kind} (${id})`);
+    return [
+        ...selvesOf(provider)
+            .filter(({ kind }) => !implementationFor(implementations, kind))
+            .map(({ id, kind }) => `no implementation for ${kind} (${id})`),
+        ...(instance('integration', integration).data.errors ?? [])
+            .filter(code => !isRegistered(code))
+            .map(code => `declares the error '${code}', which no package registers`)
+    ];
 };

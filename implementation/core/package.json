@@ -12,6 +12,7 @@
     "./mappings": "./src/mappings.js",
     "./settings": "./src/settings.js",
     "./clock": "./src/effects/clock.js",
+    "./error-types": "./src/error-types.js",
     "./introspection": "./src/analysis/introspection.js",
     "./effects": "./src/analysis/effect-inference.js",
     "./data-flow": "./src/analysis/data-flow.js",

@@ -25,7 +25,7 @@
         "data": {
             "input": "@entity-create-input",
             "output": "@entity-record",
-            "errors": ["conflict"]
+            "errors": ["duplicate"]
         }
     },
     {
@@ -36,12 +36,12 @@
     {
         "id": "update-entity",
         "kind": "query",
-        "data": { "input": "@entity-update-input", "output": "@entity-record", "errors": ["conflict"] }
+        "data": { "input": "@entity-update-input", "output": "@entity-record", "errors": ["stale"] }
     },
     {
         "id": "delete-entity",
         "kind": "query",
-        "data": { "input": "@entity-delete-input", "output": "@entity-record", "errors": ["conflict"] }
+        "data": { "input": "@entity-delete-input", "output": "@entity-record", "errors": ["stale", "referenced"] }
     },
     {
         "id": "list-entities",

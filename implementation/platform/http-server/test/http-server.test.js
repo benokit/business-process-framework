@@ -9,7 +9,8 @@ const echo = {
             echo: { input: '@any', implementation: { set: '#.input' } },
             correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.trace.correlation' } } },
             strict: { input: { '!amount': 'number' }, implementation: { set: '#.input' } },
-            fail: { input: '@any', implementation: { throw: 'broken' } }
+            fail: { input: '@any', implementation: { throw: 'broken' } },
+            raise: { input: '@any', implementation: { throw: { code: '#.input.code', message: 'raised' } } }
         }
     }
 };
@@ -31,6 +32,8 @@ const elements = [
     endpoint('strict', 'POST', '/strict', 'strict'),
     endpoint('shaped', 'POST', '/shaped', 'echo', { body: { '!name': 'string', tagged: 'boolean', '*': 'never' } }),
     endpoint('failing', 'GET', '/fail', 'fail'),
+    endpoint('raising', 'POST', '/raise', 'raise'),
+    { id: 'stale-error', kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'stale', extends: 'conflict', transient: true } } },
     fill('tag-request', { inputMap: { $merge: ['#.input', { body: { tagged: true } }] }, next: true }),
     fill('block-forbidden', { if: { $eq: ['#.input.headers.x-block', 'yes'] }, then: { set: { status: 403, body: { error: 'blocked' } } }, else: { next: true } }, { position: 'first' })
 ];
@@ -86,6 +89,11 @@ describe('http-server', () => {
         const failing = await call('/fail');
         expect([invalid.status, invalid.body.error.code]).to.deep.equal([400, 'invalid']);
         expect([failing.status, failing.body.error.message]).to.deep.equal([500, 'broken']);
+    });
+
+    it('maps an error to the status of its type, also through a parent', async () => {
+        const { status, body } = await call('/raise', { method: 'POST', body: { code: 'stale' } });
+        expect([status, body.error.code]).to.deep.equal([409, 'stale']);
     });
 
     it('rejects a body that does not match the body schema of the endpoint', async () => {

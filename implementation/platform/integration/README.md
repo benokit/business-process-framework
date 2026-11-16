@@ -2,7 +2,7 @@
 
 An abstract kind's contract is owned by the provider (`database.execute`); an integration's is owned by the consumer: a logical operation a module needs, implemented once per provider kind by an adapter package, so the module stays independent of the provider ([G9](../../../design/project-goals.md)).
 
-The kind `integration`: `provider` (a kind), `input` and `output` (schemas), `errors` (the codes it may raise). Its slot `implementations` holds `{ provider: <kind>, implementation: <method> }` fills; `run(input)`:
+The kind `integration`: `provider` (a kind), `input` and `output` (schemas), `errors` (the codes it may raise, which `validate()` checks are [registered](../../core/README.md#error-types); an outage, the error type `unavailable` for instance, passes whether or not it is declared, since it says nothing about the contract). Its slot `implementations` holds `{ provider: <kind>, implementation: <method> }` fills; `run(input)`:
 
 1. checks the input against `input`;
 2. takes the bound or single instance of `provider` and runs the implementation for the most specific kind in its chain, with the input as `#.input`;

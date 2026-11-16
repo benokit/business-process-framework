@@ -127,7 +127,7 @@ describe('entity-amendments', function () {
 
     it('proposes an amendment only for an entity its model allows to amend, of a type it lists', async () => {
         await policy('a-draft', { activate: false });
-        expect((await errorOf(propose('a-draft', '2026-07-01', 110))).code).to.equal('conflict');
+        expect((await errorOf(propose('a-draft', '2026-07-01', 110))).code).to.equal('state-refused');
         await policy('a-1');
         expect((await errorOf(propose('a-1', '2026-07-01', 110, OTHER))).code).to.equal('invalid');
         const before = await read('a-1');
@@ -234,7 +234,7 @@ describe('entity-amendments', function () {
         await apply('a-11', proposed);
         const cancelled = await read('a-11');
         expect([cancelled.data.state.status, cancelled.data.body.endDate, cancelled.revision]).to.deep.equal(['cancelled', '2026-07-01', before.revision + 2]);
-        expect((await errorOf(propose('a-11', '2026-08-01', 120))).code).to.equal('conflict');
+        expect((await errorOf(propose('a-11', '2026-08-01', 120))).code).to.equal('state-refused');
         await revert('a-11', proposed);
         const reactivated = await read('a-11');
         expect([reactivated.data.state.status, reactivated.data.body.endDate]).to.deep.equal(['active', undefined]);
@@ -245,7 +245,7 @@ describe('entity-amendments', function () {
         const proposed = await propose('a-12', '2026-07-01', undefined, END, { reason: 'lapsed' });
         const current = await read('a-12');
         await invoke(POLICY, 'run', { businessKey: 'a-12', revision: current.revision, trait: 'state', operation: 'transition', input: { transition: 'cancel' } });
-        expect((await errorOf(apply('a-12', proposed))).code).to.equal('conflict');
+        expect((await errorOf(apply('a-12', proposed))).code).to.equal('state-refused');
         expect((await read('a-12')).data.body.endDate).to.equal(undefined);
     });
 

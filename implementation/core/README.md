@@ -20,6 +20,12 @@ interpret({ stubs, effects });                         // replaces effects, see 
 
 Errors are `CoreError` with `code`, `message`, `data` and optionally a `cause`. An error that escapes collects its route in `data.frames`, outermost first: `<element>.<operation>` per `invoke`, the id of a slot fill or node template whose code runs, and `step <n> <keyword>` (or `step <n> inputMap`) per node; nothing is recorded on success. A `low` module's foreign error becomes `low-failed` (`data.module`, `data.export`, `cause`). `describeError` renders `code: message` and the route. Values are never put in `data` by the framework (`invalid` names schema and paths only); HTTP responses carry code, message and correlation only; the [http-server](../platform/http-server/README.md) and the NATS consumer log the route.
 
+### Error types
+
+A code says what failed, and the **error registry** says what it means: the singleton `default-error-registry` (kind `error-registry`) has the slot `errorTypes`, and every package fills it for the codes it throws, as `{ code, http?, transient?, outage?, extends? }` (the value is `@error-type`). `http` is the status at the HTTP boundary (400-599, default 500). `transient` says that repeating the same work later can succeed; the default is *terminal*: the same input fails the same way. `outage` (only with `transient`) says a dependency is down, not the work, so the attempt isn't counted. `extends` takes the properties of a parent, which the child overrides. The core registers `invalid` (400), `unauthorized` (401), `forbidden` (403), `not-found` (404), `conflict` (409), `unavailable` (503, transient, an outage) and `internal` (500, with `low-failed` under it).
+
+`$func/error-type-lookup` (`errorTypeOf` of `@business-framework/core`) resolves a code to `{ http, transient, outage }`; a code nobody registered, and a failure without a code, is a terminal 500. The error itself stays `{ code, message, data }`. The registry only classifies: the mechanisms that react (the HTTP status, the retry of a consumer, the attempts of the outbox, a process's breaker) read it and keep their own settings, as attempts and backoff. `validate()` reports a code registered twice, a parent nobody registers, a cycle of parents, an outage that isn't transient, a status outside 400-599 and a code that isn't an id; it also reports a `throw` node whose literal `code` no package registers (`unknown-error-code`; a computed code isn't checked).
+
 ## Modules
 
 | Module | Owns |
@@ -34,6 +40,7 @@ Errors are `CoreError` with `code`, `message`, `data` and optionally a `cause`. 
 | [context.js](src/context.js) | code authors, binding rights |
 | [execution/](src/execution) | pipelines, node executors, templates and wrappers, `invoke`, the interpreter |
 | [lifecycle.js](src/lifecycle.js) | `load`/`start`/`stop` hooks (the `validate` and `explain` hooks belong to the analysis) |
+| [error-types.js](src/error-types.js) | the error registry: the resolved type of a code, and its checks |
 | [settings.js](src/settings.js) | the effective settings of an element: defaults, `app-config`, environment; checked at start |
 | [references.js](src/references.js) | element references: an id, or `{ instanceOf: <kind> }` resolved to an instance; bindings |
 | [primitives.js](src/primitives.js) | the LambdaJSON primitives, read from `lambdajson-js` |

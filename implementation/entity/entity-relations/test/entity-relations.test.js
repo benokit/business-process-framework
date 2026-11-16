@@ -54,7 +54,7 @@ describe('entity-relations', function () {
     it('refuses to delete the target of a relation, and deletes it once nothing refers to it', async () => {
         await invoke(PARTY, 'create', { businessKey: 'carl', traits: { body: { name: 'carl' } } });
         const created = await invoke(CONTRACT, 'create', { businessKey: 'c-3', traits: { body: { holder: 'carl' } } });
-        expect((await invoke(PARTY, 'delete', { businessKey: 'carl', revision: 1 }).catch(e => e)).code).to.equal('conflict');
+        expect((await invoke(PARTY, 'delete', { businessKey: 'carl', revision: 1 }).catch(e => e)).code).to.equal('referenced');
         expect((await invoke(PARTY, 'read', { businessKey: 'carl' })).businessKey).to.equal('carl');
         expect(await relationsOf(created)).to.deep.equal(['holder']);
         await invoke(CONTRACT, 'run', { businessKey: 'c-3', revision: 1, trait: 'body', operation: 'update', input: { value: { holder: 'ada' } } });

@@ -47,6 +47,25 @@ describe('integration', () => {
         expect([error.code, error.data.error.code]).to.deep.equal(['undeclared-error', 'error']);
     });
 
+    it('passes an outage whether or not it is declared, since it says nothing about the contract', async () => {
+        await bootWith({ fills: [implementation('greeter', { throw: { code: 'unavailable', message: 'down' } })] });
+        expect((await errorOf(invoke('greeting', 'run', { name: 'Ann' }))).code).to.equal('unavailable');
+    });
+
+    it('reports a declared error that no package registers', async () => {
+        await boot({
+            paths: [packageElements('@business-framework/integration')],
+            elements: [
+                { id: 'greeter', kind: 'kind', data: { shape: {} } },
+                { id: 'english', kind: 'greeter', data: {} },
+                { kind: 'binding', data: { abstraction: 'greeter', instance: 'english' } },
+                { id: 'greeting', kind: 'integration', data: { provider: 'greeter', input: 'string', output: 'string', errors: ['nobody-registered-this'] } },
+                implementation('greeter', { set: 'hello' })
+            ]
+        });
+        expect(validate().map(({ message }) => message)).to.deep.equal(["greeting: declares the error 'nobody-registered-this', which no package registers"]);
+    });
+
     it('reports every provider instance without an implementation', async () => {
         await bootWith({ fills: [implementation('polite-greeter', greet)] });
         expect(validate().map(({ message }) => message)).to.deep.equal(['greeting: no implementation for greeter (pirate)']);

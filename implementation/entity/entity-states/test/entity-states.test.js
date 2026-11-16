@@ -64,7 +64,7 @@ describe('entity-states', function () {
         expect((await errorOf(transition('s-4', 'confirm'))).code).to.equal('invalid');
         const confirmed = await transition('s-4', 'confirm', 1);
         expect([confirmed.revision, confirmed.data]).to.deep.equal([2, { 'business-key': 's-4', body: { amount: 7 }, state: { status: 'confirmed' } }]);
-        expect((await errorOf(transition('s-4', 'confirm', 2))).code).to.equal('conflict');
+        expect((await errorOf(transition('s-4', 'confirm', 2))).code).to.equal('state-refused');
         expect((await errorOf(transition('s-4', 'ship', 2))).code).to.equal('invalid');
     });
 
@@ -75,8 +75,8 @@ describe('entity-states', function () {
         expect(changed.data.body.amount).to.equal(2);
         const confirmed = await transition('o-1', 'confirm', changed.revision);
         const refused = await errorOf(put('o-1', confirmed.revision, 3));
-        expect([refused.code, refused.message]).to.deep.equal(['conflict', `${ORDER} doesn't allow update in its current state`]);
-        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-1', revision: confirmed.revision }))).code).to.equal('conflict');
+        expect([refused.code, refused.message]).to.deep.equal(['state-refused', `${ORDER} doesn't allow update in its current state`]);
+        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-1', revision: confirmed.revision }))).code).to.equal('state-refused');
         const cancelled = await transition('o-1', 'cancel', confirmed.revision);
         expect((await invoke(ORDER, 'delete', { businessKey: 'o-1', revision: cancelled.revision })).businessKey).to.equal('o-1');
     });

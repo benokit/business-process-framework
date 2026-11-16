@@ -50,7 +50,7 @@
                             "if": { "$and": ["#.input.revision", { "$neq": ["#.input.revision", "#.input.change.before.revision"] }] },
                             "then": {
                                 "throw": {
-                                    "code": "conflict",
+                                    "code": "stale",
                                     "message": { "$str": ["#.self.id", " '", "#.input.change.before.businessKey", "' is not at revision ", "#.input.revision"] }
                                 }
                             }
@@ -216,7 +216,7 @@
                             { "outputKey": "viewedRecord", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                             {
                                 "if": { "$and": ["#.input.revision", { "$neq": ["#.input.revision", "#.viewedRecord.revision"] }] },
-                                "then": { "throw": { "code": "conflict", "message": { "$str": ["#.self.id", " '", "#.input.businessKey", "' is not at revision ", "#.input.revision"] } } }
+                                "then": { "throw": { "code": "stale", "message": { "$str": ["#.self.id", " '", "#.input.businessKey", "' is not at revision ", "#.input.revision"] } } }
                             },
                             {
                                 "inputMap": { "change": { "operation": "trait", "entityOperation": "#.input.operation", "commands": { "$literal": [] }, "before": "#.storedRecord" } },

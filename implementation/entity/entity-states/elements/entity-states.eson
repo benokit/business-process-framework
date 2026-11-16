@@ -115,7 +115,7 @@
                         { "outputKey": "state", "set": { "$func/apply-transition": { "model": "#.input.configuration", "state": "#.input.value", "transition": "#.input.input.transition" } } },
                         {
                             "if": { "$negate": "#.state" },
-                            "then": { "throw": { "code": "conflict", "message": { "$str": ["transition ", "#.input.input.transition", " isn't allowed from the current state"] } } }
+                            "then": { "throw": { "code": "state-refused", "message": { "$str": ["transition ", "#.input.input.transition", " isn't allowed from the current state"] } } }
                         },
                         { "set": { "command": "#.input.input.transition", "value": "#.state" } }
                     ]
@@ -126,6 +126,7 @@
             }
         }
     },
+    { "id": "state-refused-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "state-refused", "extends": "conflict" } } },
     {
         "id": "state-machine",
         "kind": "kind",
@@ -145,7 +146,7 @@
                 },
                 "then": {
                     "throw": {
-                        "code": "conflict",
+                        "code": "state-refused",
                         "message": { "$str": ["#.input.entityType", " doesn't allow ", "#.input.change.entityOperation", " in its current state"] }
                     }
                 }

@@ -83,7 +83,7 @@ describe('entity-validations', function () {
     it('blocks a transition that needs a valid entity until the errors are fixed', async () => {
         await invoke(INVOICE, 'create', { businessKey: 'i-2', traits: { body: { amount: 5 } } });
         const blocked = await errorOf(invoke(INVOICE, 'run', { businessKey: 'i-2', revision: 1, trait: 'state', operation: 'transition', input: { transition: 'issue' } }));
-        expect(blocked.code).to.equal('conflict');
+        expect(blocked.code).to.equal('state-refused');
         const fixed = await invoke(INVOICE, 'run', { businessKey: 'i-2', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 5, customer: 'acme' } } });
         expect([fixed.revision, fixed.data.validation, fixed.data.state.validity]).to.deep.equal([2, {}, 'valid']);
         const issued = await invoke(INVOICE, 'run', { businessKey: 'i-2', revision: fixed.revision, trait: 'state', operation: 'transition', input: { transition: 'issue' } });

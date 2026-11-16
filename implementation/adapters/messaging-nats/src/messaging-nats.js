@@ -1,5 +1,5 @@
 import { connect, consumerOpts, createInbox, ErrorCode, JSONCodec, RetentionPolicy } from 'nats';
-import { CoreError, describeError, invoke } from '@business-framework/core';
+import { CoreError, describeError, errorTypeOf, invoke } from '@business-framework/core';
 
 const codec = JSONCodec();
 const connections = new Map();
@@ -107,12 +107,13 @@ const handleWithRetry = async (consumer, envelope, { attempts = 3, backoff = 100
         await invoke(consumer, 'handle', envelope);
         return true;
     } catch (error) {
-        if (attempt >= attempts) {
+        const { transient, outage } = errorTypeOf(error?.code);
+        if (!transient || (!outage && attempt >= attempts)) {
             console.error(`[${envelope.correlation}] ${describeError(error)}`);
             return false;
         }
         await sleep(backoff);
-        return handleWithRetry(consumer, envelope, { attempts, backoff }, attempt + 1);
+        return handleWithRetry(consumer, envelope, { attempts, backoff }, outage ? attempt : attempt + 1);
     }
 };
 

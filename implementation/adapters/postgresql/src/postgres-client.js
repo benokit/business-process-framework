@@ -47,7 +47,13 @@ const jsonValue = value => value instanceof Date ? value.toISOString() : value;
 
 const jsonRow = row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, jsonValue(value)]));
 
-const normalized = error => ERRORS[error.code] ? new CoreError(ERRORS[error.code], error.message, { constraint: error.constraint }) : error;
+const OUTAGES = ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE', '57P01', '57P03', '53300'];
+
+const isOutage = ({ code, message }) => OUTAGES.includes(String(code)) || String(code).startsWith('08') || String(message).startsWith('Connection terminated');
+
+export const normalized = error => isOutage(error)
+    ? new CoreError('unavailable', `postgresql is unavailable: ${error.message}`, { code: error.code }, error)
+    : ERRORS[error.code] ? new CoreError(ERRORS[error.code], error.message, { constraint: error.constraint }) : error;
 
 export const execute = async ({ input, _ctx }) => {
     try {
@@ -59,17 +65,23 @@ export const execute = async ({ input, _ctx }) => {
 };
 
 export const begin = async ({ input: { isolation } }) => {
-    const client = await getPool().connect();
-    await client.query(`BEGIN ISOLATION LEVEL ${isolation}`);
-    lastSessionId += 1;
-    sessions.set(lastSessionId, client);
-    return { sessionId: lastSessionId };
+    try {
+        const client = await getPool().connect();
+        await client.query(`BEGIN ISOLATION LEVEL ${isolation}`);
+        lastSessionId += 1;
+        sessions.set(lastSessionId, client);
+        return { sessionId: lastSessionId };
+    } catch (error) {
+        throw normalized(error);
+    }
 };
 
 const end = statement => async ({ input: { sessionId } }) => {
     const client = clientOf(sessionId);
     try {
         await client.query(statement);
+    } catch (error) {
+        throw normalized(error);
     } finally {
         client.release();
         sessions.delete(sessionId);

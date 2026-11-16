@@ -45,7 +45,7 @@
                             "if": { "$eq": ["#.error.code", "unique-violation"] },
                             "then": {
                                 "throw": {
-                                    "code": "conflict",
+                                    "code": "duplicate",
                                     "message": { "$str": ["#.input.entityType", " '", "#.input.businessKey", "' already exists"] },
                                     "data": { "entityType": "#.input.entityType", "businessKey": "#.input.businessKey" }
                                 }
@@ -129,7 +129,7 @@
                         "if": { "$negate": { "$head": "#.rows" } },
                         "then": {
                             "throw": {
-                                "code": "conflict",
+                                "code": "stale",
                                 "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] },
                                 "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
                             }
@@ -160,7 +160,7 @@
                             "if": { "$eq": ["#.error.code", "foreign-key-violation"] },
                             "then": {
                                 "throw": {
-                                    "code": "conflict",
+                                    "code": "referenced",
                                     "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is still referenced and can't be deleted"] },
                                     "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey" }
                                 }
@@ -172,7 +172,7 @@
                         "if": { "$negate": { "$head": "#.rows" } },
                         "then": {
                             "throw": {
-                                "code": "conflict",
+                                "code": "stale",
                                 "message": { "$str": ["#.input.before.entityType", " '", "#.input.before.businessKey", "' is no longer at revision ", "#.input.before.revision"] },
                                 "data": { "entityType": "#.input.before.entityType", "businessKey": "#.input.before.businessKey", "revision": "#.input.before.revision" }
                             }

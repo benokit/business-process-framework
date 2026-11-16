@@ -335,7 +335,7 @@ describe('entities', function () {
             errorOf(invoke(ORDER, 'create', { businessKey: 'o-1', traits: { body: { amount: 1 } } })),
             errorOf(invoke(ORDER, 'read', { businessKey: 'nothing' }))
         ]);
-        expect(codes.map(error => error.code)).to.deep.equal(['invalid', 'invalid', 'conflict', 'not-found']);
+        expect(codes.map(error => error.code)).to.deep.equal(['invalid', 'invalid', 'duplicate', 'not-found']);
     });
 
     it('runs guards before the write', async () => {
@@ -375,7 +375,7 @@ describe('entities', function () {
         await invoke(ORDER, 'create', { businessKey: 'o-4', traits: { body: { amount: 1 } } });
         const updated = await invoke(ORDER, 'run', { businessKey: 'o-4', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 2 } } });
         expect([updated.revision, updated.data.body, updated.data[NOTE]]).to.deep.equal([2, { amount: 2 }, 'order: new']);
-        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-4', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-4', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('stale');
         expect((await invoke(ORDER, 'read', { businessKey: 'o-4', revision: 1 })).data.body.amount).to.equal(1);
     });
 
@@ -391,7 +391,7 @@ describe('entities', function () {
         const written = await invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 1, amount: 2, note: 'changed' });
         expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 2, 'changed']);
         expect((await invoke(ORDER, 'read', { businessKey: 'o-multi', revision: 1 })).data[NOTE]).to.equal('order: new');
-        expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 1, amount: 3, note: 'late' }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 1, amount: 3, note: 'late' }))).code).to.equal('stale');
         expect((await errorOf(invoke(ORDER, 'writeTraits', { businessKey: 'o-multi', revision: 2, amount: 'x', note: 'refused' }))).code).to.equal('invalid');
         const unchanged = await invoke(ORDER, 'read', { businessKey: 'o-multi' });
         expect([unchanged.revision, unchanged.data.body.amount, unchanged.data[NOTE]]).to.deep.equal([2, 2, 'changed']);
@@ -548,7 +548,7 @@ describe('entities', function () {
 
     it('refuses a write when the record changed after it was read', async () => {
         await invoke(ORDER, 'create', { businessKey: 'o-raced', traits: { body: { amount: 1 } } });
-        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-raced', revision: 1 }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'delete', { businessKey: 'o-raced', revision: 1 }))).code).to.equal('stale');
         const raced = await invoke(ORDER, 'read', { businessKey: 'o-raced' });
         expect([raced.revision, raced.data.body.amount]).to.deep.equal([2, 2]);
     });
@@ -584,7 +584,7 @@ describe('entities', function () {
         expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 2, trait: 'body', operation: 'initialize', input: {} }))).code).to.equal('private-operation');
         expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 2, trait: 'nothing', operation: 'update', input: { value: {} } }))).code).to.equal('private-operation');
         expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('invalid');
-        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('conflict');
+        expect((await errorOf(invoke(ORDER, 'run', { businessKey: 'o-run', revision: 1, trait: 'body', operation: 'update', input: { value: { amount: 3 } } }))).code).to.equal('stale');
     });
 
     it('reports two traits that offer the same public operation', async () => {

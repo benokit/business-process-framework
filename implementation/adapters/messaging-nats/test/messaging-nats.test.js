@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { connect } from 'nats';
-import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
+import { boot, CoreError, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { publish } from '../src/messaging-nats.js';
 
 const NATS_URL = process.env.NATS_URL ?? 'nats://localhost:4222';
@@ -10,9 +10,9 @@ const SHIPMENTS = `${STREAM}-shipments`;
 const received = [];
 
 export const record = ({ input, _ctx }) => {
-    if (input.failFirst && !received.some(entry => entry.input.id === input.id && entry.failed)) {
+    if (input.failWith && !received.some(entry => entry.input.id === input.id && entry.failed)) {
         received.push({ input, failed: true });
-        throw new Error('first attempt fails');
+        throw new CoreError(input.failWith, 'first attempt fails');
     }
     received.push({ input, correlation: _ctx.trace?.correlation, subject: _ctx.message.subject });
     return null;
@@ -27,6 +27,7 @@ const consumer = (id, data = {}) => ({
 });
 
 const elements = [
+    { id: 'flaky-error', kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky', http: 502, transient: true } } },
     { kind: 'app-config', data: { 'nats-broker': { url: NATS_URL } } },
     { id: 'orders', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: STREAM, consumer: { retry: { attempts: 2, backoff: 50 } } } },
     { id: 'archive', kind: 'message-channel', data: { broker: 'default-nats-broker', topology: 'topic', name: LIMITS_STREAM } },
@@ -40,6 +41,11 @@ const elements = [
     consumer('express-shipments', { channel: 'shipments', filter: ['express', 'urgent'] }),
     consumer('express-cache', { channel: 'shipments', broadcast: true, filter: ['express'] })
 ];
+
+const retriedByItsFailedConsumer = id => {
+    const failed = received.find(entry => entry.input.id === id && entry.failed);
+    return failed !== undefined && received.some(entry => entry.input.id === id && !entry.failed && entry.input.by === failed.input.by);
+};
 
 const receivers = id => received.filter(entry => entry.input.id === id && !entry.failed).map(entry => entry.input.by).sort();
 
@@ -94,9 +100,16 @@ describe('messaging-nats', function () {
         expect(messageId).to.be.a('string');
     });
 
-    it('retries a failing handler', async () => {
-        await invoke('orders', 'publish', { message: { id: 'o-2', failFirst: true } });
-        await eventually(() => received.some(entry => entry.input.id === 'o-2' && !entry.failed));
+    it('retries a handler that fails transiently', async () => {
+        await invoke('orders', 'publish', { message: { id: 'o-2', failWith: 'flaky' } });
+        await eventually(() => retriedByItsFailedConsumer('o-2'));
+    });
+
+    it('does not retry a handler that fails for good', async () => {
+        await invoke('orders', 'publish', { message: { id: 'o-2b', failWith: 'conflict' } });
+        await eventually(() => received.some(entry => entry.input.id === 'o-2b' && entry.failed));
+        await new Promise(resolve => setTimeout(resolve, 400));
+        expect(retriedByItsFailedConsumer('o-2b')).to.equal(false);
     });
 
     it('delivers a message once per consumer name, shared by its instances, and to every broadcast subscription', async () => {

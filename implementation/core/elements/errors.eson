@@ -1,0 +1,46 @@
+[
+    {
+        "id": "error-type",
+        "kind": "schema",
+        "data": { "!code": "string", "http": "integer", "transient": "boolean", "outage": "boolean", "extends": "string" }
+    },
+    {
+        "id": "error-registry",
+        "kind": "kind",
+        "data": {
+            "slots": { "errorTypes": { "cardinality": "many", "value": "@error-type" } },
+            "lifecycle": { "validate": { "$func/error-registry-problems": "#.self.id" } }
+        }
+    },
+    {
+        "id": "default-error-registry",
+        "kind": "error-registry",
+        "data": {}
+    },
+    {
+        "id": "error-type-lookup",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": { "!http": "integer", "!transient": "boolean", "!outage": "boolean" } },
+            "module": "@business-framework/core/error-types",
+            "export": "errorTypeOf"
+        }
+    },
+    {
+        "id": "error-registry-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/core/error-types",
+            "export": "errorRegistryProblems"
+        }
+    },
+    { "id": "internal-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "internal", "http": 500 } } },
+    { "id": "low-failed-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "low-failed", "extends": "internal" } } },
+    { "id": "invalid-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "invalid", "http": 400 } } },
+    { "id": "unauthorized-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "unauthorized", "http": 401 } } },
+    { "id": "forbidden-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "forbidden", "http": 403 } } },
+    { "id": "not-found-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "not-found", "http": 404 } } },
+    { "id": "conflict-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "conflict", "http": 409 } } },
+    { "id": "unavailable-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "unavailable", "http": 503, "transient": true, "outage": true } } }
+]

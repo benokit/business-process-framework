@@ -33,7 +33,7 @@ Every endpoint states what it does for authorization: `operation`, a mapping fro
 }
 ```
 
-A response is `{ status? (200), headers?, body? }`. A `CoreError` maps to a status by code (`invalid` 400, `unauthorized` 401, `forbidden` 403, `not-found` 404, `conflict` 409, else 500), with body `{ error: { code, message } }`.
+A response is `{ status? (200), headers?, body? }`. A `CoreError` maps to the status of its [error type](../../core/README.md#error-types) (500 for a code nobody registered), with body `{ error: { code, message } }`.
 
 ## Request middleware
 

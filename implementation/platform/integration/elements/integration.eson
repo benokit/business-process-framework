@@ -17,6 +17,7 @@
             "export": "providerImplementation"
         }
     },
+    { "id": "integration-undeclared-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "undeclared-error" } } },
     {
         "id": "integration-problems",
         "kind": "pure-function",
@@ -54,7 +55,12 @@
                             "outputKey": "output",
                             "try": { "execute": "#.implementation" },
                             "catch": {
-                                "if": { "$includes": { "collection": { "$coalesce": ["#.self.data.errors", []] }, "value": "#.error.code" } },
+                                "if": {
+                                    "$or": [
+                                        { "$includes": { "collection": { "$coalesce": ["#.self.data.errors", []] }, "value": "#.error.code" } },
+                                        { "$get": { "object": { "$func/error-type-lookup": "#.error.code" }, "path": "outage" } }
+                                    ]
+                                },
                                 "then": { "throw": "#.error" },
                                 "else": {
                                     "throw": {

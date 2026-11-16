@@ -1,4 +1,4 @@
-import { CoreError, findElement, invoke } from '@business-framework/core';
+import { CoreError, errorTypeOf, findElement, invoke } from '@business-framework/core';
 
 const run = (query, input) => invoke(query, 'run', input);
 
@@ -41,11 +41,13 @@ export const markDelivered = async ({ input: { messageId } }) => {
     return null;
 };
 
+const markFailed = ({ id }) => run('outbox-mark-failed', { id });
+
 const markFailedAttempt = ({ id, channel, retryCount }) => {
     const { attempts, backoff } = retryOf(channel);
     return retryCount < attempts
         ? run('outbox-retry-later', { id, processAfter: later(cappedBackoff(backoff, retryCount)) })
-        : run('outbox-mark-failed', { id });
+        : markFailed({ id });
 };
 
 const markUnavailable = ({ id, channel }) => {
@@ -53,7 +55,9 @@ const markUnavailable = ({ id, channel }) => {
     return run('outbox-release', { id, processAfter: now() });
 };
 
-const recordFailureOf = (item, error) => (error?.code === 'unavailable' ? markUnavailable : markFailedAttempt)(item);
+const reactionTo = ({ transient, outage }) => outage ? markUnavailable : transient ? markFailedAttempt : markFailed;
+
+const recordFailureOf = (item, error) => reactionTo(errorTypeOf(error?.code))(item);
 
 export const recordFailure = async ({ input: { messageId, error } }) => {
     await recordFailureOf(await run('outbox-entry', { messageId }), error);

@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { boot, invoke, packageElements, start, stop, validate } from '@business-framework/core';
 import { getPool } from '@business-framework/postgresql';
 import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/helpers.js';
-import { delivered, failures, outage } from './flaky-broker.js';
+import { delivered, failures, outage, refusals } from './flaky-broker.js';
 
 const BROKER = new URL('./flaky-broker.js', import.meta.url).href;
 const CHANNEL = `outbox-test-${Date.now()}`;
@@ -24,6 +24,7 @@ const elements = [
         }
     },
     { id: 'flaky', kind: 'flaky-broker', data: {} },
+    { id: 'flaky-error', kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky', http: 502, transient: true } } },
     { id: CHANNEL, kind: 'message-channel', data: { broker: 'flaky', topology: 'topic', name: CHANNEL, publisher: { transactionalOutbox: true, retry: { attempts: 3, backoff: 10 } } } },
     {
         id: 'orders',
@@ -99,6 +100,15 @@ describe('transactional-outbox', function () {
         failures.remaining = 2;
         await place('retried');
         await eventually(() => deliveredIds().includes('retried'));
+    });
+
+    it('marks a message failed at once when the broker refuses it for good', async () => {
+        refusals.remaining = 1;
+        await place('refused');
+        const messageId = await messageIdOf('refused');
+        await eventually(async () => (await statusOf(messageId)) === 2);
+        await pause(200);
+        expect(deliveredIds()).to.not.include('refused');
     });
 
     it('delivers the messages of one group in order', async () => {

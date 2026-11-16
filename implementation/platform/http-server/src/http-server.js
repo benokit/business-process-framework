@@ -1,8 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
-import { CoreError, describeError, invoke } from '@business-framework/core';
-
-const STATUS_BY_CODE = { invalid: 400, unauthorized: 401, forbidden: 403, 'not-found': 404, conflict: 409 };
+import { CoreError, describeError, errorTypeOf, invoke } from '@business-framework/core';
 
 const newApp = () => express().use(express.json());
 
@@ -12,7 +10,7 @@ let server = null;
 const errorResponse = correlation => error => {
     console.error(`[${correlation}] ${describeError(error)}`);
     return error instanceof CoreError
-        ? { status: STATUS_BY_CODE[error.code] ?? 500, body: { error: { code: error.code, message: error.message, correlation } } }
+        ? { status: errorTypeOf(error.code).http, body: { error: { code: error.code, message: error.message, correlation } } }
         : { status: 500, body: { error: { code: 'error', message: String(error?.message ?? error), correlation } } };
 };
 

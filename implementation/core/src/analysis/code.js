@@ -10,6 +10,7 @@ import { findTemplate } from '../execution/templates.js';
 import { EFFECTS, NODE_KEYS, nodeForms, PIPELINE_KEYS } from '../execution/nodes/forms.js';
 import { isKindReference } from '../references.js';
 import { fail } from '../errors.js';
+import { isRegistered } from '../error-types.js';
 
 export const targetKind = target => {
     const element = findElement(target);
@@ -89,7 +90,11 @@ const bindingProblems = (node, at, path) => {
         problem(at, path, 'context-right', `may not bind context '${key}': ${at.author.id ?? 'it'} doesn't manage it`, { key }));
 };
 
-const NODE_CHECKS = { invoke: invokeProblems, low: lowProblems, withContext: bindingProblems };
+const throwProblems = (node, at, path) => isPlainObject(node.throw) && isLiteral(node.throw.code) && !isRegistered(literalOf(node.throw.code))
+    ? [problem(at, path, 'unknown-error-code', `throws '${literalOf(node.throw.code)}', which no package registers`)]
+    : [];
+
+const NODE_CHECKS = { invoke: invokeProblems, low: lowProblems, withContext: bindingProblems, throw: throwProblems };
 
 const isReferenced = (code, element, kind, extending) => {
     if (kind === undefined) return true;
