@@ -17,6 +17,11 @@ describe('error types', () => {
             .to.deep.equal([400, 401, 403, 404, 409, 503]);
     });
 
+    it('answers a private operation reached from outside as forbidden', async () => {
+        await bootWith([]);
+        expect(errorTypeOf('private-operation')).to.deep.equal({ http: 403, transient: false, outage: false });
+    });
+
     it('takes the properties of the parent, overridden by the child', async () => {
         await bootWith([
             registered('stale-error', { code: 'stale', extends: 'conflict', transient: true }),

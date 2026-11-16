@@ -2,6 +2,5 @@
     { "id": "stale-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "stale", "extends": "conflict", "transient": true } } },
     { "id": "duplicate-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "duplicate", "extends": "conflict" } } },
     { "id": "referenced-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "referenced", "extends": "conflict" } } },
-    { "id": "private-operation-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "private-operation" } } },
     { "id": "derivation-limit-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "derivation-limit" } } }
 ]
