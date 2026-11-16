@@ -5,7 +5,7 @@
         "data": {
             "operations": {
                 "answer": {
-                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!outcome": "string", "result": "@any" },
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!outcome": "@task-outcome-name", "result": "@any" },
                     "output": "@entity-record",
                     "implementation": [
                         {
@@ -34,8 +34,8 @@
             "method": "POST",
             "path": "/entities/:entityType/:businessKey/task/answer",
             "target": { "element": "entity-task-gateway", "operation": "answer" },
-            "body": { "!outcome": "string", "result": "@any", "*": "never" },
-            "operation": { "area": "tasks", "resource": "#.input.entityType", "action": "answer" },
+            "body": { "!outcome": "@task-outcome-name", "result": "@any", "*": "never" },
+            "operation": { "area": "tasks", "resource": "#.input.entityType", "action": "#.input.outcome" },
             "request": {
                 "entityType": "#.params.entityType",
                 "businessKey": "#.params.businessKey",
@@ -49,6 +49,6 @@
     {
         "id": "entity-task-worker-actor",
         "kind": "actor",
-        "data": { "grants": [{ "area": "tasks", "action": ["answer"] }] }
+        "data": { "grants": [{ "area": "tasks" }] }
     }
 ]

@@ -35,6 +35,15 @@
         "data": { "!outcome": "string" }
     },
     {
+        "id": "task-outcome-name-schema",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entity-tasks/tasks",
+            "export": "outcomeNameSchema"
+        }
+    },
+    {
         "id": "task-outcome-schemas",
         "kind": "pure-function",
         "data": {
@@ -155,10 +164,17 @@
         "kind": "kind",
         "data": {
             "lifecycle": {
-                "load": {
-                    "inputMap": { "$func/task-outcome-schemas": null },
-                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
-                }
+                "load": [
+                    {
+                        "inputMap": { "$func/task-outcome-schemas": null },
+                        "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
+                    },
+                    {
+                        "inputMap": { "id": "task-outcome-name", "schema": { "$func/task-outcome-name-schema": null } },
+                        "invoke": "ajv",
+                        "operation": "add"
+                    }
+                ]
             }
         }
     },

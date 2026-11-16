@@ -12,10 +12,12 @@ const elements = [
     { id: REVIEW, kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: { '!reason': 'string' } } } } } } } },
     { id: NOTE, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { text: 'string' } } } } } },
     { id: 'worker-role', kind: 'role', data: { actors: ['entity-task-worker-actor'] } },
+    { id: 'approver-actor', kind: 'actor', data: { grants: [{ area: 'tasks', action: 'approved' }] } },
+    { id: 'approver-role', kind: 'role', data: { actors: ['approver-actor'] } },
     ...headerPrincipal
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-tasks', 'http-server', 'security', 'authorization', 'entities-http', 'entity-tasks-http'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks', 'http-server', 'security', 'authorization', 'entities-http', 'entity-tasks-http'];
 
 const post = async (path, body, headers = {}, role = 'worker-role') => {
     const { port } = await invoke('http-server', 'address', null);
@@ -46,6 +48,14 @@ describe('entity-tasks-http', function () {
         expect([answered.status, answered.etag, answered.body.data.task.answer.outcome, answered.body.data.task.status]).to.deep.equal([200, '"2"', 'approved', 'open']);
         await invoke(NOTE, 'create', { businessKey: 'n-1', traits: { body: { text: 'x' } } });
         expect((await post(`/entities/${NOTE}/n-1/task/answer`, { outcome: 'approved' }, { 'if-match': '"1"' })).status).to.equal(400);
+    });
+
+    it('grants an outcome at a time: a role that may approve is refused the rejection, and an unknown outcome is invalid for a role that may answer anything', async () => {
+        await invoke(REVIEW, 'create', { businessKey: 't-3', traits: { task: {} } });
+        const answer = body => post(`/entities/${REVIEW}/t-3/task/answer`, body, { 'if-match': '"1"' }, 'approver-role');
+        expect((await answer({ outcome: 'rejected', result: { reason: 'no' } })).status).to.equal(403);
+        expect((await post(`/entities/${REVIEW}/t-3/task/answer`, { outcome: 'nonsense' }, { 'if-match': '"1"' })).status).to.equal(400);
+        expect((await answer({ outcome: 'approved' })).status).to.equal(200);
     });
 
     it('refuses a principal whose role does not grant the area', async () => {

@@ -3,6 +3,15 @@ import { traitsOf } from '@business-framework/entities/traits';
 
 const hasSchema = outcome => outcome !== true && typeof outcome?.answer === 'object';
 
+const taskConfigurations = () => selvesOf('entity-type').flatMap(({ id }) => Object.values(traitsOf(id))
+    .filter(({ trait }) => isInstanceOf({ element: trait, kind: 'task-trait' }))
+    .map(({ configuration }) => configuration));
+
+export const outcomeNames = () => [...new Set(taskConfigurations()
+    .flatMap(({ outcomes }) => Object.entries(outcomes).filter(([, outcome]) => outcome !== true && outcome.answer !== undefined).map(([name]) => name)))].sort();
+
+export const outcomeNameSchema = () => outcomeNames().length === 0 ? 'never' : { '$data=1': outcomeNames() };
+
 export const outcomeSchemas = () => selvesOf('entity-type').flatMap(({ id }) => Object.entries(traitsOf(id))
     .filter(([, { trait }]) => isInstanceOf({ element: trait, kind: 'task-trait' }))
     .flatMap(([key, { configuration }]) => Object.entries(configuration.outcomes)
