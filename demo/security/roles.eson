@@ -22,7 +22,7 @@
     {
         "id": "underwriter-role",
         "kind": "role",
-        "data": { "actors": ["underwriter-actor", "entity-reader-actor"] }
+        "data": { "actors": ["underwriter-actor", "entity-reader-actor", "entity-task-worker-actor"] }
     },
     {
         "id": "viewer-role",

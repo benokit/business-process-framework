@@ -1,0 +1,54 @@
+[
+    {
+        "id": "entity-task-gateway-kind",
+        "kind": "kind",
+        "data": {
+            "operations": {
+                "answer": {
+                    "input": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "number", "!outcome": "string", "result": "@any" },
+                    "output": "@entity-record",
+                    "implementation": [
+                        {
+                            "if": { "$negate": { "$func/is-instance-of": { "element": "#.input.entityType", "kind": "entity-type" } } },
+                            "then": { "throw": { "code": "not-found", "message": { "$str": ["no entity type ", "#.input.entityType"] } } }
+                        },
+                        {
+                            "if": { "$negate": { "$func/entity-public-operation": { "entityType": "#.input.entityType", "key": "task", "operation": "answer" } } },
+                            "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " is not a task"] } } }
+                        },
+                        {
+                            "inputMap": { "businessKey": "#.input.businessKey", "revision": "#.input.revision", "trait": "task", "operation": "answer", "input": { "outcome": "#.input.outcome", "result": "#.input.result" } },
+                            "invoke": "#.input.entityType",
+                            "operation": "run"
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    { "id": "entity-task-gateway", "kind": "entity-task-gateway-kind", "data": {} },
+    {
+        "id": "entity-task-answer-endpoint",
+        "kind": "http-endpoint",
+        "data": {
+            "method": "POST",
+            "path": "/entities/:entityType/:businessKey/task/answer",
+            "target": { "element": "entity-task-gateway", "operation": "answer" },
+            "body": { "!outcome": "string", "result": "@any", "*": "never" },
+            "operation": { "area": "tasks", "resource": "#.input.entityType", "action": "answer" },
+            "request": {
+                "entityType": "#.params.entityType",
+                "businessKey": "#.params.businessKey",
+                "revision": { "$func/if-match-revision": "#.headers.if-match" },
+                "outcome": "#.body.outcome",
+                "result": "#.body.result"
+            },
+            "response": { "headers": { "ETag": { "$func/revision-etag": "#.output.revision" } }, "body": "#.output" }
+        }
+    },
+    {
+        "id": "entity-task-worker-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "tasks", "action": ["answer"] }] }
+    }
+]

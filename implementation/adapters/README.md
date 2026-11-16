@@ -9,6 +9,7 @@ Packages that bind a technology (PostgreSQL, NATS, Meilisearch, HTTP) to an abst
 | [entity-relations-postgresql](entity-relations-postgresql/README.md) | Relation queries in PostgreSQL |
 | [entity-search-http](entity-search-http/README.md) | `POST /entity-search/:entityType` |
 | [entity-states-http](entity-states-http/README.md) | `POST /entities/:entityType/:businessKey/transitions/:transition` |
+| [entity-tasks-http](entity-tasks-http/README.md) | `POST /entities/:entityType/:businessKey/task/answer` |
 | [meilisearch](meilisearch/README.md) | Meilisearch search engine |
 | [messaging-nats](messaging-nats/README.md) | NATS JetStream broker |
 | [postgresql](postgresql/README.md) | Connection pool owned by the `default-postgresql-database` element's lifecycle; `execute` |

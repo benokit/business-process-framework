@@ -288,6 +288,73 @@ describe('server with the demo', function () {
         expect([late.status, late.body.error.message]).to.deep.equal([409, "construction doesn't allow update in its current state"]);
     });
 
+    describe('the contract review process', () => {
+        const eventually = async (check, timeout = 10000) => {
+            const deadline = Date.now() + timeout;
+            while (!(await check()) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+            expect(await check()).to.equal(true);
+        };
+
+        const startReview = async (token, body = { project: 'viaduct' }) => {
+            const contract = await contractOf('construction', body, token);
+            await invoke('process-wakeups', 'publish', { message: { kind: 'start', entityType: 'contract-review-processes', businessKey: contract.businessKey, entities: { contract: contract.businessKey } }, group: `contract-review-processes/${contract.businessKey}` });
+            await eventually(async () => (await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).status === 200);
+            return contract;
+        };
+
+        const processOf = async key => (await invoke('contract-review-processes', 'read', { businessKey: key }));
+
+        const answer = async (key, body, token) => {
+            const task = (await call('GET', `/entities/contract-review-task/${key}`, null, token)).body;
+            return call('POST', `/entities/contract-review-task/${key}/task/answer`, body, token, { 'if-match': `"${task.revision}"` });
+        };
+
+        const ended = key => async () => (await processOf(key)).data.state.status === 'ended';
+
+        it('asks for a review in a task, and issues the contract once the underwriter approves', async () => {
+            const token = await userWith(`reviewer-a-${run}`, ['underwriter-role']);
+            const contract = await startReview(token);
+            expect((await processOf(contract.businessKey)).data.process.step).to.equal('await-review');
+            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task).to.deep.include({ status: 'open', actor: 'underwriter-role' });
+            const answered = await answer(contract.businessKey, { outcome: 'approved' }, token);
+            expect([answered.status, answered.body.data.task.status]).to.deep.equal([200, 'open']);
+            await eventually(ended(contract.businessKey));
+            expect((await read(contract, token)).data.state.status).to.equal('issued');
+            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task).to.deep.include({ status: 'resolved', outcome: 'approved' });
+        });
+
+        it('discards the contract when the underwriter rejects it, and keeps the reason', async () => {
+            const token = await userWith(`reviewer-r-${run}`, ['underwriter-role']);
+            const contract = await startReview(token);
+            expect((await answer(contract.businessKey, { outcome: 'rejected', result: { reason: 'too risky' } }, token)).status).to.equal(200);
+            await eventually(ended(contract.businessKey));
+            expect([(await read(contract, token)).data.state.status, (await processOf(contract.businessKey)).data.body.reason]).to.deep.equal(['discarded', 'too risky']);
+        });
+
+        it('takes the onError exit when the contract can no longer be issued', async () => {
+            const token = await userWith(`reviewer-e-${run}`, ['underwriter-role']);
+            const contract = await startReview(token);
+            await move(contract, 'issue', token);
+            await answer(contract.businessKey, { outcome: 'approved' }, token);
+            await eventually(ended(contract.businessKey));
+            const record = await processOf(contract.businessKey);
+            expect([record.data.process.step, record.data.body.failure]).to.deep.equal(['not-issued', "transition issue isn't allowed from the current state"]);
+        });
+
+        it('puts the timer of the wait three days ahead, and withdraws the task when the timer ends the wait', async () => {
+            const token = await userWith(`reviewer-t-${run}`, ['underwriter-role']);
+            const contract = await startReview(token);
+            const waiting = await processOf(contract.businessKey);
+            const { at, then } = waiting.data.process.wait.until;
+            expect([then, Math.abs(Date.parse(at) - Date.now() - 3 * 24 * 60 * 60 * 1000) < 60000]).to.deep.equal(['expired', true]);
+            await invoke('process-wakeups', 'publish', { message: { kind: 'timer', entityType: 'contract-review-processes', businessKey: contract.businessKey, token: waiting.data.process.wait.token, step: 'expired' }, group: `contract-review-processes/${contract.businessKey}/timer/${waiting.data.process.wait.token}-now` });
+            await eventually(ended(contract.businessKey));
+            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task.status).to.equal('cancelled');
+            expect((await answer(contract.businessKey, { outcome: 'approved' }, token)).status).to.equal(409);
+            expect((await read(contract, token)).data.state.status).to.equal('draft');
+        });
+    });
+
     it('lets an underwriter discard a contract that is draft or issued, and cancel an active one only through an administrator', async () => {
         const [underwriter, administrator] = await Promise.all([userWith(`canceller-${run}`, ['underwriter-role']), userWith(`canceller-admin-${run}`, ['administrator-role'])]);
         const draft = await contractOf('construction', { project: 'dam' }, underwriter);

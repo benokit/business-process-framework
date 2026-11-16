@@ -1,0 +1,74 @@
+[
+    {
+        "id": "contract-review-task",
+        "kind": "entity-type",
+        "data": {
+            "traits": {
+                "task": {
+                    "configuration": {
+                        "actor": "underwriter-role",
+                        "outcomes": {
+                            "approved": { "answer": true },
+                            "rejected": { "answer": { "!reason": "string" } }
+                        }
+                    }
+                },
+                "body": { "configuration": { "schema": { "!contract": "string" } } }
+            }
+        }
+    },
+    {
+        "id": "contract-review-process",
+        "kind": "process-definition",
+        "data": {
+            "entities": {
+                "contract": { "entityType": "construction" },
+                "review": { "entityType": "contract-review-task", "late": true }
+            },
+            "variables": { "reason": "string", "failure": "string" },
+            "start": "request-review",
+            "steps": {
+                "request-review": {
+                    "do": [
+                        {
+                            "inputMap": {
+                                "businessKey": "#.input.entities.contract.businessKey",
+                                "traits": {
+                                    "task": { "origin": { "process": "#.input.process.businessKey", "step": "request-review" }, "about": [{ "entityType": "construction", "businessKey": "#.input.entities.contract.businessKey" }] },
+                                    "body": { "contract": "#.input.entities.contract.businessKey" }
+                                }
+                            },
+                            "invoke": "contract-review-task",
+                            "operation": "create"
+                        },
+                        { "set": { "bind": { "review": "#.input.entities.contract.businessKey" } } }
+                    ],
+                    "next": "await-review"
+                },
+                "await-review": {
+                    "wait": {
+                        "when": [
+                            { "test": { "$eq": ["#.entities.review.data.task.answer.outcome", "approved"] }, "resolve": { "review": "approved" }, "then": "issue" },
+                            { "test": { "$eq": ["#.entities.review.data.task.answer.outcome", "rejected"] }, "resolve": { "review": "rejected" }, "then": "discard" }
+                        ],
+                        "until": { "after": { "days": 3 }, "then": "expired" }
+                    }
+                },
+                "expired": { "set": { "reason": "no review within three days" }, "end": true },
+                "issue": {
+                    "do": { "inputMap": { "businessKey": "#.input.entities.contract.businessKey", "revision": "#.input.entities.contract.revision", "trait": "state", "operation": "transition", "input": { "transition": "issue" } }, "invoke": "construction", "operation": "run" },
+                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-issued" }],
+                    "end": true
+                },
+                "discard": {
+                    "set": { "reason": "#.entities.review.data.task.answer.result.reason" },
+                    "do": { "inputMap": { "businessKey": "#.input.entities.contract.businessKey", "revision": "#.input.entities.contract.revision", "trait": "state", "operation": "transition", "input": { "transition": "discard" } }, "invoke": "construction", "operation": "run" },
+                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-issued" }],
+                    "end": true
+                },
+                "not-issued": { "end": true }
+            }
+        }
+    },
+    { "id": "contract-review-processes", "kind": "process-entity-type", "data": { "definition": "contract-review-process" } }
+]
