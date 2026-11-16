@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { boot, packageElements, validate } from '@business-framework/core';
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql', 'entity-states', 'entity-processes'].map(name => packageElements(`@business-framework/${name}`));
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-processes'].map(name => packageElements(`@business-framework/${name}`));
 
 const typed = { traits: { body: { configuration: { schema: { name: 'string' } } } } };
 

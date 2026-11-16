@@ -65,5 +65,328 @@
             },
             "lifecycle": { "validate": { "$func/process-definition-problems": "#.self.id" } }
         }
+    },
+    {
+        "id": "process-configuration",
+        "kind": "schema",
+        "data": { "!definition": "@ref/process-definition" }
+    },
+    {
+        "id": "process-binding",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!businessKey": "string" }
+    },
+    {
+        "id": "process-start-input",
+        "kind": "schema",
+        "data": { "!entities{}": "@any", "input": "@any" }
+    },
+    {
+        "id": "initial-process-value",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!entities{}": "@any" }, "output": { "!definition": "string", "!step": "string", "!entities{}": "@any" } },
+            "module": "@business-framework/entity-processes/process",
+            "export": "initialProcessValue"
+        }
+    },
+    {
+        "id": "process-step-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!step": "string" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processStepOf"
+        }
+    },
+    {
+        "id": "process-exit",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "processExit"
+        }
+    },
+    {
+        "id": "resolved-wait",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!wait": "@any", "!now": "string" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "resolvedWait"
+        }
+    },
+    {
+        "id": "process-wakeup-target",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!wakeup": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "wakeupTarget"
+        }
+    },
+    {
+        "id": "process-wakeup",
+        "kind": "schema",
+        "data": {
+            "!kind=1": ["start", "signal", "timer"],
+            "!entityType": "string",
+            "!businessKey": "string",
+            "entities": "@any",
+            "input": "@any",
+            "name": "string",
+            "payload": "@any",
+            "token": "integer",
+            "step": "string",
+            "*": "never"
+        }
+    },
+    {
+        "id": "process-wakeups",
+        "kind": "message-channel",
+        "data": {
+            "broker": { "instanceOf": "message-broker" },
+            "topology": "topic",
+            "name": "process-wakeups",
+            "publisher": { "transactionalOutbox": true, "retry": { "attempts": 5, "backoff": 500 } },
+            "consumer": { "retry": { "attempts": 5, "backoff": 500 } }
+        }
+    },
+    {
+        "id": "process-runner",
+        "kind": "message-consumer",
+        "data": {
+            "channel": "process-wakeups",
+            "handler": { "asSystem": { "inputMap": "#.input", "invoke": "#.input.entityType", "operation": "wake" } }
+        }
+    },
+    {
+        "id": "process-context",
+        "kind": "schema",
+        "data": { "!definition": "string", "!businessKey": "string", "!step": "string", "!token": "integer" }
+    },
+    { "id": "process-chain-limit-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "process-chain-limit" } } },
+    {
+        "id": "process-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": {
+                            "$func/initial-process-value": {
+                                "definition": "#.input.configuration.definition",
+                                "entities": { "$coalesce": ["#.input.input.entities", {}] }
+                            }
+                        }
+                    }
+                },
+                "move": {
+                    "input": { "$data#&": ["@trait-operation-input", { "!input": { "!process{}": "@any" } }] },
+                    "output": "@trait-command",
+                    "implementation": { "set": { "command": "move", "value": "#.input.input.process" } }
+                }
+            }
+        }
+    },
+    {
+        "id": "process",
+        "kind": "process-trait",
+        "data": { "configuration": "@process-configuration" }
+    },
+    {
+        "id": "process-entity-type",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "shape": { "!definition": "@ref/process-definition", "traits{}": "@entity-trait-entry" },
+            "mapping": { "traits": { "$merge": ["#.data.traits", { "process": { "configuration": { "definition": "#.data.definition" } } }] } },
+            "settings": { "shape": { "!maxChain": "integer" }, "defaults": { "maxChain": 100 } },
+            "context": { "manages": { "process": "@process-context" } },
+            "operations": {
+                "start": {
+                    "input": { "!businessKey": "string", "!entities": "object", "input": "@any" },
+                    "output": "@viewed-entity-record",
+                    "implementation": {
+                        "inTransaction": [
+                            {
+                                "outputKey": "created",
+                                "inputMap": { "businessKey": "#.input.businessKey", "traits": { "process": { "entities": "#.input.entities" }, "body": {} } },
+                                "invoke": "#.self.id",
+                                "operation": "create"
+                            },
+                            {
+                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.created.data.process.step", "variables": {}, "input": "#.input.input", "depth": 0 },
+                                "invoke": "#.self.id",
+                                "operation": "advance"
+                            }
+                        ]
+                    }
+                },
+                "loadParticipants": {
+                    "private": true,
+                    "input": "@any",
+                    "output": "@any",
+                    "implementation": { "low": { "module": "@business-framework/entity-processes/process", "export": "loadParticipants", "effects": ["read"] } }
+                },
+                "advance": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "!step": "string", "!variables": "object", "input": "@any", "signal": "@any", "!depth": "integer" },
+                    "output": "@viewed-entity-record",
+                    "implementation": [
+                        { "outputKey": "settings", "set": { "$func/settings": "#.self.id" } },
+                        {
+                            "if": { "$gt": ["#.input.depth", "#.settings.maxChain"] },
+                            "then": { "throw": { "code": "process-chain-limit", "message": { "$str": ["#.self.id", " ran more than ", "#.settings.maxChain", " steps in a row"] } } }
+                        },
+                        { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                        { "outputKey": "step", "set": { "$func/process-step-of": { "definition": "#.process.data.process.definition", "step": "#.input.step" } } },
+                        { "outputKey": "entities", "inputMap": "#.process.data.process.entities", "invoke": "#.self.id", "operation": "loadParticipants" },
+                        {
+                            "outputKey": "scope",
+                            "set": {
+                                "process": { "$merge": ["#.process", { "data": { "$merge": ["#.process.data", { "body": "#.input.variables" }] } }] },
+                                "entities": "#.entities",
+                                "input": "#.input.input",
+                                "signal": "#.input.signal"
+                            }
+                        },
+                        {
+                            "outputKey": "output",
+                            "if": "#.step.do",
+                            "then": {
+                                "withContext": { "process": { "definition": "#.process.data.process.definition", "businessKey": "#.input.businessKey", "step": "#.input.step", "token": "#.process.revision" } },
+                                "do": { "inputMap": "#.scope", "execute": "#.step.do" }
+                            }
+                        },
+                        {
+                            "outputKey": "exit",
+                            "set": {
+                                "$func/process-exit": {
+                                    "name": "#.input.step",
+                                    "step": "#.step",
+                                    "scope": { "$merge": ["#.scope", { "output": "#.output" }] },
+                                    "revision": "#.process.revision"
+                                }
+                            }
+                        },
+                        {
+                            "if": { "$eq": ["#.exit.kind", "next"] },
+                            "then": {
+                                "inputMap": { "businessKey": "#.input.businessKey", "step": "#.exit.step", "variables": "#.exit.variables", "input": "#.input.input", "depth": { "$sum": ["#.input.depth", 1] } },
+                                "invoke": "#.self.id",
+                                "operation": "advance"
+                            },
+                            "else": {
+                                "inputMap": { "businessKey": "#.input.businessKey", "process": "#.process", "step": "#.input.step", "exit": "#.exit" },
+                                "invoke": "#.self.id",
+                                "operation": "settle"
+                            }
+                        }
+                    ]
+                },
+                "settle": {
+                    "private": true,
+                    "input": { "!businessKey": "string", "!process": "@any", "!step": "string", "!exit": "@any" },
+                    "output": "@viewed-entity-record",
+                    "implementation": [
+                        { "outputKey": "now", "invoke": "clock", "operation": "now" },
+                        {
+                            "outputKey": "wait",
+                            "if": { "$eq": ["#.input.exit.kind", "wait"] },
+                            "then": { "set": { "$func/resolved-wait": { "wait": "#.input.exit.wait", "now": "#.now" } } }
+                        },
+                        {
+                            "outputKey": "written",
+                            "inputMap": {
+                                "businessKey": "#.input.businessKey",
+                                "revision": "#.input.process.revision",
+                                "entityOperation": "advance",
+                                "operations": {
+                                    "$concat": [
+                                        [
+                                            { "key": "body", "operation": "update", "input": { "value": "#.input.exit.variables" } },
+                                            {
+                                                "key": "process",
+                                                "operation": "move",
+                                                "input": { "process": { "$merge": ["#.input.process.data.process", { "step": "#.input.step" }, { "$if": ["#.wait", { "wait": "#.wait" }, {}] }] } }
+                                            }
+                                        ],
+                                        { "$if": [{ "$eq": ["#.input.exit.kind", "end"] }, [{ "key": "state", "operation": "transition", "input": { "transition": "end" } }], []] }
+                                    ]
+                                }
+                            },
+                            "invoke": "#.self.id",
+                            "operation": "writeTraitOperationsAsOneChange"
+                        },
+                        {
+                            "if": "#.wait.until",
+                            "then": {
+                                "inputMap": {
+                                    "message": { "kind": "timer", "entityType": "#.self.id", "businessKey": "#.input.businessKey", "token": "#.wait.token", "step": "#.wait.until.then" },
+                                    "group": { "$str": ["#.self.id", "/", "#.input.businessKey", "/timer/", "#.wait.token"] },
+                                    "deliverAt": "#.wait.until.at"
+                                },
+                                "publish": "process-wakeups"
+                            }
+                        },
+                        { "set": "#.written" }
+                    ]
+                },
+                "wake": {
+                    "input": "@process-wakeup",
+                    "output": "@any",
+                    "implementation": {
+                        "inTransaction": {
+                            "if": { "$eq": ["#.input.kind", "start"] },
+                            "then": {
+                                "try": {
+                                    "inSavepoint": { "inputMap": { "businessKey": "#.input.businessKey", "entities": "#.input.entities", "input": "#.input.input" }, "invoke": "#.self.id", "operation": "start" }
+                                },
+                                "catch": { "if": { "$neq": ["#.error.code", "duplicate"] }, "then": { "throw": "#.error" } }
+                            },
+                            "else": [
+                                { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
+                                { "outputKey": "target", "set": { "$func/process-wakeup-target": { "process": "#.process", "wakeup": "#.input" } } },
+                                {
+                                    "if": "#.target",
+                                    "then": {
+                                        "inputMap": { "businessKey": "#.input.businessKey", "step": "#.target.step", "variables": "#.process.data.body", "signal": "#.target.signal", "depth": 0 },
+                                        "invoke": "#.self.id",
+                                        "operation": "advance"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "fixed": {
+                "traits": {
+                    "body": { "configuration": { "schema": { "*": "@any" } } },
+                    "state": {
+                        "configuration": {
+                            "states": {
+                                "status": {
+                                    "running": { "initial": true, "to": ["suspended", "aborted", "ended"] },
+                                    "suspended": { "to": ["running", "aborted"] },
+                                    "aborted": { "to": [] },
+                                    "ended": { "to": [] }
+                                }
+                            },
+                            "transitions": {
+                                "suspend": { "status": { "running": "suspended" } },
+                                "resume": { "status": { "suspended": "running" } },
+                                "abort": { "status": { "running": "aborted", "suspended": "aborted" } },
+                                "end": { "status": { "running": "ended" } }
+                            },
+                            "initialStates": { "default": { "status": "running" } }
+                        }
+                    }
+                }
+            }
+        }
     }
 ]
