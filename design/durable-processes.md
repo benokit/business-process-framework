@@ -1,6 +1,6 @@
 # Durable processes
 
-Status: **draft, for discussion**. Scope: [R5.3](refactoring-plan.md) and [R5.4](refactoring-plan.md); the open question is [Q3](critique.md), the constraints are P14, P13, P18, P23 and G5–G10. Nothing here is built. Points that need a decision are marked **Decision** and collected at the end.
+Status: **built** (R5.3a–d and R5.4, with the deviations of §13.2). Scope: [R5.3](refactoring-plan.md) and [R5.4](refactoring-plan.md); the open question was [Q3](critique.md), the constraints are P14, P13, P18, P23 and G5–G10. The packages are [entity-processes](../implementation/entity/entity-processes/README.md) and [entity-tasks](../implementation/entity/entity-tasks/README.md); this document keeps the reasoning, the READMEs own the facts. Points that needed a decision are marked **Decision** and collected at the end.
 
 ## 1. The problem
 
@@ -514,6 +514,19 @@ A failure is handled by what it *is*, and today nothing says: an error code is a
 5. **R5.3d**: `process-trigger` with the derived key of §6.2, the extension slot (§8), the stuck-process query (§10); the circuit breaker with `failures` and `fault` and the `onError` exit with its savepoint (§10.2, prerequisite 10) belong to R5.3a, since the runner needs them from the start; then schedules (§6.3).
 
 Each step leaves the system working, with its tests passing.
+
+### 13.2 What was built, and where it differs from the design
+
+All steps of §13 are built and tested (R5.5, R5.6, R5.7, R5.4, R5.3a–d). The differences, each recorded in the README that owns it:
+
+- **The channel of the publisher** is `entity-view-changes` (the schema `entity-change` is a write), and its message is `{ entityType, id, businessKey, revision, changed, via? }`; `via` is the definition and key of the process whose step wrote. **Not built:** the slot `signalViews` (no consumer before triggers needed it), the revision narrowing of the runner (`wait.watch`: a relevant change costs one read of the participants), and `via` in `entity-events`.
+- **`resolve` and `cancel` of a task are public operations refused by a guard of the trait** with `private-operation` (403) for a principal without the role `system`. A private operation can only be invoked by the element itself, so the process couldn't call it on a task type. The runner and the closing of tasks run as the system (`asSystem`), as §3.0 says.
+- **The grant of `answer` by outcome** (prerequisite 4) isn't built; the authorization grants the operation `answer`, not the outcome. The relations of `about` and the work list by actor aren't built either.
+- **The demo's timer is a timeout, not a reminder.** Leaving a wait cancels its tasks (§7.3, 6), so a reminder that waits again would sit on a cancelled task; a reminder needs a second task or a wait that keeps the first.
+- **`unknown-definition`** (§9) isn't built: a missing step or definition fails as a `low-failed` error, terminal, so the breaker suspends the process all the same.
+- **The data flow of a step's `do`** isn't typed (F80): a misspelled path in a step fails at run time.
+- **Triggers** are a subkind of `message-consumer` whose handler calls the trigger's own operation `convert` (the test and the mappings are data of the instance, run with `$func/apply-mapping`); the signal's target is found by the relation index. **Schedules** aren't built (a delayed start message already does the job). **The reindex without the 200 limit** is still F38.
+- **The extension slot** is `stepExtensions` of `process-definition` with `{ step, do }` values, run after the `do` of a step marked `extensible`.
 
 ### 13.1 Prerequisites in existing packages (checked against the code)
 
