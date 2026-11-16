@@ -121,6 +121,8 @@ An error nobody caught is handled by a **circuit breaker** when a wake-up fails 
 
 **Suspending** records `fault: { step, code, message, attempts, wakeup }` (the wake-up that was being handled) and moves `status` to `suspended`, leaving the position as it was; the wake-up is acknowledged. A step that succeeds forgets `failures`.
 
+A wake-up for a process whose stored definition or step the loaded elements don't contain fails with the terminal error `unknown-definition`, so the breaker suspends it with the fault recorded: an edit in place that removed a step is visible and recoverable (the author owns the consistency of live processes, [design](../../../design/durable-processes.md#9-versioning-running-processes)).
+
 ## The operator
 
 `suspend`, `resume` and `abort` are transitions of `status` through the existing transition endpoint, granted by the application to a role: `{ "area": "states", "resource": "<process entity type>", "action": ["suspend", "resume", "abort"] }`. A wake-up for a process that isn't `running` is dropped. `resume` replays the wake-up that caused the fault, puts the timer of the wait again (the date may have passed while the process was suspended, and is simply due), and clears `fault` and `failures`; `abort` clears them and replays nothing. A reaction of the trait `process` does it, in the transaction of the transition.

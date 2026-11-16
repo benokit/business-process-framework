@@ -8,8 +8,7 @@
             "!id": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "key": "string",
-            "command": "string",
+            "commands[]": { "!key": "string", "!command": "string" },
             "by": "string"
         }
     },

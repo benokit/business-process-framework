@@ -6,7 +6,8 @@ import { applyMapping } from '@business-framework/core/mappings';
 import { memo } from '@business-framework/core/registry';
 import { isDeepStrictEqual } from 'node:util';
 
-const definitionOf = id => selvesOf('process-definition').find(element => element.id === id).data;
+const definitionOf = id => selvesOf('process-definition').find(element => element.id === id)?.data
+    ?? (() => { throw new CoreError('unknown-definition', `the process definition '${id}' isn't loaded`, { definition: id }); })();
 
 const bindingOf = ({ entityType, many }) => businessKeys => many
     ? [businessKeys].flat().map(businessKey => ({ entityType, businessKey }))
@@ -51,7 +52,8 @@ export const processBusinessKey = ({ entityType, entities, input }) => {
     return [definition, ...keys, ...distinguishing].join('/');
 };
 
-export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step];
+export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step]
+    ?? (() => { throw new CoreError('unknown-definition', `the process definition '${definition}' has no step '${step}'`, { definition, step }); })();
 
 const evaluated = (mapping, scope) => applyMapping({ mapping, input: scope });
 
@@ -125,10 +127,8 @@ export const heldExit = ({ step, exit, entities, scope }) => {
     return held === undefined ? exit : { kind: 'next', step: held.then, variables: exit.variables, entities: exit.entities, resolve: held.resolve ?? {} };
 };
 
-const stepsOf = ({ definition }) => definitionOf(definition).steps;
-
 const signalTarget = (process, { name, payload }) => process.data.process.wait?.signals.includes(name)
-    ? { step: stepsOf(process.data.process)[process.data.process.step].wait.signals[name].to, signal: payload ?? null }
+    ? { step: processStepOf(process.data.process).wait.signals[name].to, signal: payload ?? null }
     : null;
 
 const timerTarget = (process, { token, step }) => process.data.process.wait?.token === token && process.data.process.wait.until?.then === step
@@ -139,7 +139,7 @@ const checkTarget = (process, entities) => {
     const position = process.data.process;
     const held = position.wait === undefined
         ? undefined
-        : (stepsOf(position)[position.step].wait.when ?? []).find(({ test }) => evaluated(test, { process, entities }));
+        : (processStepOf(position).wait.when ?? []).find(({ test }) => evaluated(test, { process, entities }));
     return held === undefined ? null : { step: held.then, signal: null, resolve: held.resolve ?? {} };
 };
 
@@ -170,12 +170,20 @@ const moved = process => ({ key: 'process', operation: 'move', input: { process 
 
 const transition = name => ({ key: 'state', operation: 'transition', input: { transition: name } });
 
+const targetStepOf = (process, wakeup) => {
+    try {
+        return wakeupTarget({ process, wakeup })?.step;
+    } catch {
+        return undefined;
+    }
+};
+
 export const processVerdict = ({ process, wakeup, error, attempts }) => {
     const { transient, outage } = errorTypeOf(error.code);
     if (outage || wakeup.kind === 'start') return { action: 'rethrow', operations: [] };
     if (process.data.state.status !== 'running') return { action: 'drop', operations: [] };
     const position = process.data.process;
-    const step = wakeupTarget({ process, wakeup })?.step ?? position.step;
+    const step = targetStepOf(process, wakeup) ?? position.step;
     const count = (position.failures?.step === step ? position.failures.count : 0) + 1;
     return !transient || count >= attempts
         ? { action: 'suspend', operations: [moved({ ...position, fault: { step, code: error.code, message: error.message, attempts: count, wakeup } }), transition('suspend')] }

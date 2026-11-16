@@ -475,6 +475,14 @@ describe('processes', function () {
         });
     });
 
+    it('suspends a process whose stored step the loaded definition no longer has, with the fault unknown-definition', async () => {
+        await invoke(WAITINGS, 'start', { businessKey: 'p-renamed', entities: { contract: 'c-1' } });
+        await getPool().query("UPDATE entities SET data = jsonb_set(data, '{process,step}', '\"gone\"') WHERE entity_type = $1 AND business_key = $2", [WAITINGS, 'p-renamed']);
+        await invoke(WAITINGS, 'wake', { kind: 'signal', entityType: WAITINGS, businessKey: 'p-renamed', name: 'go' }).catch(() => null);
+        const suspended = await readProcess(WAITINGS, 'p-renamed');
+        expect([suspended.data.state.status, suspended.data.process.fault.code]).to.deep.equal(['suspended', 'unknown-definition']);
+    });
+
     describe('the circuit breaker', () => {
         const GO = businessKey => ({ kind: 'signal', entityType: BREAKINGS, businessKey, name: 'go' });
 

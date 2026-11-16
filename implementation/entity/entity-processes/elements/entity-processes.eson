@@ -499,6 +499,7 @@
         "kind": "schema",
         "data": { "!definition": "string", "!businessKey": "string", "!step": "string", "!token": "integer", "!entities": "@any" }
     },
+    { "id": "unknown-definition-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "unknown-definition" } } },
     { "id": "process-chain-limit-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "process-chain-limit" } } },
     {
         "id": "process-trait",
