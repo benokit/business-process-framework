@@ -4,8 +4,10 @@ import { migrate, skipWithoutPostgres } from '../../../adapters/postgresql/test/
 
 const run = Date.now();
 const REVIEW = `review-task-${run}`;
+const CONTRACT = `contract-${run}`;
 
 const elements = [
+    { id: CONTRACT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { name: 'string' } } } } } },
     {
         id: REVIEW,
         kind: 'entity-type',
@@ -23,7 +25,7 @@ const elements = [
     }
 ];
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'security', 'entities', 'entities-postgresql', 'entity-tasks'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'security', 'entities', 'entities-postgresql', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks'];
 
 const errorOf = promise => promise.then(() => null, error => error);
 
@@ -39,11 +41,12 @@ describe('entity-tasks', function () {
         await boot({ paths: packages.map(name => packageElements(`@business-framework/${name}`)), elements });
         await start();
         await migrate();
+        await invoke(CONTRACT, 'create', { businessKey: 'c-1', traits: { body: { name: 'Ada' } } });
     });
 
     after(stop);
 
-    const created = businessKey => invoke(REVIEW, 'create', { businessKey, traits: { task: { origin: { process: 'p-1', step: 'ask' }, about: [{ entityType: 'contract', businessKey: 'c-1' }], dueOn: '2030-01-01' }, body: {} } });
+    const created = businessKey => invoke(REVIEW, 'create', { businessKey, traits: { task: { origin: { process: 'p-1', step: 'ask' }, about: [{ entityType: CONTRACT, businessKey: 'c-1' }], dueOn: '2030-01-01' }, body: {} } });
 
     it('validates', () => {
         expect(validate()).to.deep.equal([]);
@@ -51,7 +54,7 @@ describe('entity-tasks', function () {
 
     it('creates an open task with the actor of its type, its origin, what it is about and its due date', async () => {
         const { data } = await created('t-1');
-        expect(data.task).to.deep.equal({ status: 'open', actor: 'underwriter', origin: { process: 'p-1', step: 'ask' }, about: [{ entityType: 'contract', businessKey: 'c-1' }], dueOn: '2030-01-01' });
+        expect(data.task).to.deep.equal({ status: 'open', actor: 'underwriter', origin: { process: 'p-1', step: 'ask' }, about: [{ entityType: CONTRACT, businessKey: 'c-1' }], dueOn: '2030-01-01' });
     });
 
     it('records what a user answered, with who said it, and replaces it while the task is open, closing nothing', async () => {
@@ -89,6 +92,15 @@ describe('entity-tasks', function () {
         expect(resolved.data.task).to.deep.include({ status: 'resolved', outcome: 'timed-out' });
         const codes = await Promise.all([operate('t-6', resolved.revision, 'answer', { outcome: 'approved' }, user('ada')), operate('t-6', resolved.revision, 'cancel', undefined, system), operate('t-6', resolved.revision, 'resolve', { outcome: 'approved' }, system)].map(errorOf));
         expect(codes.map(error => error.code)).to.deep.equal(['conflict', 'conflict', 'conflict']);
+    });
+
+    it('holds the entity the task is about while the task is open, so it cannot be deleted, and lets go when the task is closed', async () => {
+        await invoke(CONTRACT, 'create', { businessKey: 'c-about', traits: { body: { name: 'About' } } });
+        const task = await invoke(REVIEW, 'create', { businessKey: 't-about', traits: { task: { about: [{ entityType: CONTRACT, businessKey: 'c-about' }] }, body: {} } });
+        const contract = () => invoke(CONTRACT, 'read', { businessKey: 'c-about' });
+        expect((await errorOf(invoke(CONTRACT, 'delete', { businessKey: 'c-about', revision: (await contract()).revision }))).code).to.equal('referenced');
+        await operate('t-about', task.revision, 'cancel', undefined, system);
+        expect((await invoke(CONTRACT, 'delete', { businessKey: 'c-about', revision: (await contract()).revision })).businessKey).to.equal('c-about');
     });
 
     it('cancels an open task', async () => {

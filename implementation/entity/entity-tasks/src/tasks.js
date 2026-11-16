@@ -8,3 +8,7 @@ export const outcomeSchemas = () => selvesOf('entity-type').flatMap(({ id }) => 
     .flatMap(([key, { configuration }]) => Object.entries(configuration.outcomes)
         .filter(([, outcome]) => hasSchema(outcome))
         .map(([name, outcome]) => ({ id: `${id}/${key}/outcome/${name}`, schema: outcome.answer }))));
+
+export const taskRelations = record => record.data.task?.status === 'open'
+    ? (record.data.task.about ?? []).map(({ entityType, businessKey }) => ({ targetEntityType: entityType, targetEntityBusinessKey: businessKey, relationType: 'about' }))
+    : [];

@@ -162,5 +162,19 @@
             }
         }
     },
+    {
+        "id": "task-relations-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[@entity-relation]" },
+            "module": "@business-framework/entity-tasks/tasks",
+            "export": "taskRelations"
+        }
+    },
+    {
+        "id": "task-relations",
+        "kind": "slot-fill",
+        "data": { "target": "entity-type", "slot": "relations", "value": { "set": { "relations": { "$func/task-relations-of": "#.input" } } } }
+    },
     { "id": "entity-tasks", "kind": "entity-task-writer", "data": {} }
 ]

@@ -127,4 +127,4 @@ A wake-up for a process whose stored definition or step the loaded elements don'
 
 `suspend`, `resume` and `abort` are transitions of `status` through the existing transition endpoint, granted by the application to a role: `{ "area": "states", "resource": "<process entity type>", "action": ["suspend", "resume", "abort"] }`. A wake-up for a process that isn't `running` is dropped. `resume` replays the wake-up that caused the fault, puts the timer of the wait again (the date may have passed while the process was suspended, and is simply due), and clears `fault` and `failures`; `abort` clears them and replays nothing. A reaction of the trait `process` does it, in the transaction of the transition.
 
-Not built yet: schedules (a delayed start message already does the job; a schedule is data an application adds), the work list and the relations of a task's `about`, and an actor that grants the operator's transitions (the demo declares it).
+Not built yet: schedules (a delayed start message already does the job; a schedule is data an application adds), the work list, and an actor that grants the operator's transitions (the demo declares it).

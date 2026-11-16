@@ -26,4 +26,6 @@ An outcome with `answer` (`true` or the schema of the result) is one a **user ma
 
 `resolve` and `cancel` are refused with `private-operation` (403) for any principal without the role `system`: a guard of the trait. The runner of a process acts as the system, so only it closes a task. An operation on a closed task is a `conflict`: the revision decides the race between an answer and a withdrawal.
 
-Not built: the relations of `about` (a task is not yet found by the entity it concerns), the grant of `answer` by outcome (the authorization sees the operation, not the outcome as a closed set), and a work list by actor. The process side, the `resolve` of a `when` entry and the withdrawal of tasks, is in [entity-processes](../entity-processes/README.md#tasks).
+While a task is open, each entity it is `about` is held by an [entity relation](../entity-relations/README.md) of the type `about` (a fill of `relations` on every entity type, none for a closed task): "the tasks about this contract" is `entity-relations-to({ targetEntityId, relationType: "about" })`, and the entity can't be deleted (`referenced`) while a task about it is open. The package therefore needs `entity-relations`.
+
+Not built: the grant of `answer` by outcome (the authorization sees the operation, not the outcome as a closed set), and a work list by actor. The process side, the `resolve` of a `when` entry and the withdrawal of tasks, is in [entity-processes](../entity-processes/README.md#tasks).
