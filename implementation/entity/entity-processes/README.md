@@ -79,6 +79,12 @@ A **`process-trigger`** is an adapter outside the definition: a `message-consume
     "start": { "process": "contract-review-processes", "entities": { "contract": "#.contractKey" } } } }
 ```
 
+A **`state-process-trigger`** is the same trigger declared in the vocabulary of a state: `{ entityType, transition, process, role }` starts `process` when a `transition` of the state of an `entityType` entity is run, binding the entity to `role`. It is a subkind of `process-trigger` that maps its data to the `on` (the channel `entity-events`, the subject `entityType`, a `test` over the `commands` of the event) and the `start` of its parent, so everything above applies to it; `npx bpf explain <id>` shows the resolved trigger.
+
+```json
+{ "kind": "state-process-trigger", "data": { "entityType": "construction", "transition": "issue", "process": "contract-review-processes", "role": "contract" } }
+```
+
 `validate()` reports a trigger that does neither or both, names a process entity type that doesn't exist, or signals a name the definition doesn't wait for.
 
 ## Extending a step

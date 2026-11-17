@@ -384,6 +384,36 @@
         "data": { "!channel": "@ref/message-channel", "subject": "@message-subject", "test": "@mapping", "*": "never" }
     },
     {
+        "id": "state-process-trigger",
+        "kind": "kind",
+        "data": {
+            "extends": "process-trigger",
+            "shape": { "!entityType": "@ref/entity-type", "!transition": "string", "!process": "string", "!role": "string", "*": "never" },
+            "mapping": {
+                "on": {
+                    "channel": "entity-events",
+                    "subject": "#.data.entityType",
+                    "test": {
+                        "$template": {
+                            "with": { "transition": "#.data.transition" },
+                            "mapping": {
+                                "$any": {
+                                    "collection": "#.commands",
+                                    "as": "command",
+                                    "predicate": { "$eq": ["@command", { "$literal": { "key": "state", "command": "@transition" } }] }
+                                }
+                            }
+                        }
+                    }
+                },
+                "start": {
+                    "process": "#.data.process",
+                    "entities": { "$template": { "with": { "role": "#.data.role" }, "mapping": { "@role": "#.businessKey" } } }
+                }
+            }
+        }
+    },
+    {
         "id": "process-trigger",
         "kind": "kind",
         "data": {

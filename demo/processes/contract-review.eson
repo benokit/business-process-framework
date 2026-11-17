@@ -48,27 +48,32 @@
                 "await-review": {
                     "wait": {
                         "when": [
-                            { "test": { "$eq": ["#.entities.review.data.task.answer.outcome", "approved"] }, "resolve": { "review": "approved" }, "then": "issue" },
+                            { "test": { "$eq": ["#.entities.review.data.task.answer.outcome", "approved"] }, "resolve": { "review": "approved" }, "then": "activate" },
                             { "test": { "$eq": ["#.entities.review.data.task.answer.outcome", "rejected"] }, "resolve": { "review": "rejected" }, "then": "discard" }
                         ],
                         "until": { "after": { "days": 3 }, "then": "expired" }
                     }
                 },
                 "expired": { "set": { "reason": "no review within three days" }, "end": true },
-                "issue": {
-                    "do": { "inputMap": { "businessKey": "#.input.entities.contract.businessKey", "revision": "#.input.entities.contract.revision", "trait": "state", "operation": "transition", "input": { "transition": "issue" } }, "invoke": "construction", "operation": "run" },
-                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-issued" }],
+                "activate": {
+                    "do": { "inputMap": { "businessKey": "#.input.entities.contract.businessKey", "revision": "#.input.entities.contract.revision", "trait": "state", "operation": "transition", "input": { "transition": "activate" } }, "invoke": "construction", "operation": "run" },
+                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-activated" }],
                     "end": true
                 },
                 "discard": {
                     "set": { "reason": "#.entities.review.data.task.answer.result.reason" },
                     "do": { "inputMap": { "businessKey": "#.input.entities.contract.businessKey", "revision": "#.input.entities.contract.revision", "trait": "state", "operation": "transition", "input": { "transition": "discard" } }, "invoke": "construction", "operation": "run" },
-                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-issued" }],
+                    "onError": [{ "catches": ["state-refused"], "set": { "failure": "#.error.message" }, "then": "not-activated" }],
                     "end": true
                 },
-                "not-issued": { "end": true }
+                "not-activated": { "end": true }
             }
         }
     },
-    { "id": "contract-review-processes", "kind": "process-entity-type", "data": { "definition": "contract-review-process" } }
+    { "id": "contract-review-processes", "kind": "process-entity-type", "data": { "definition": "contract-review-process" } },
+    {
+        "id": "issued-contract-review-trigger",
+        "kind": "state-process-trigger",
+        "data": { "entityType": "construction", "transition": "issue", "process": "contract-review-processes", "role": "contract" }
+    }
 ]

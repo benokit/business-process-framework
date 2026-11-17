@@ -80,7 +80,7 @@ const wakeUp = (message, group) => invoke('process-wakeups', 'publish', { messag
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks', 'entity-processes'];
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'transactional-outbox', 'transactional-outbox-postgresql', 'messaging', 'messaging-nats', 'security', 'entities', 'entities-postgresql', 'entity-states', 'entity-events', 'entity-relations', 'entity-relations-postgresql', 'entity-tasks', 'entity-processes'];
 
 const elements = [
     { id: CONTRACT, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { '!name': 'string' } } } } } },
