@@ -27,6 +27,15 @@
         }
     },
     {
+        "id": "is-kind-of-error",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!code": "string", "!ancestor": "string" }, "output": "boolean" },
+            "module": "@business-framework/core/error-types",
+            "export": "errorIsKindOf"
+        }
+    },
+    {
         "id": "error-registry-problems",
         "kind": "pure-function",
         "data": {

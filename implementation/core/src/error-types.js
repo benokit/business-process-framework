@@ -23,6 +23,8 @@ const chainOf = (code, seen = []) => {
 
 export const isKindOfError = (code, ancestor) => chainOf(code).some(declaration => declaration.code === ancestor);
 
+export const errorIsKindOf = ({ code, ancestor }) => isKindOfError(code, ancestor);
+
 export const errorTypeOf = code => chainOf(code).reduce(
     (type, { http, transient, outage }) => ({
         http: http ?? type.http,

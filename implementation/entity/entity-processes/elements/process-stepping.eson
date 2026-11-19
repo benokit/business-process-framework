@@ -347,8 +347,47 @@
                 "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!error": "@any", "!bindings": "@any" },
                 "output": "@any"
             },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processErrorExit"
+            "mapping": {
+                "$let": {
+                    "type": { "$func/error-type-lookup": "#.error.code" },
+                    "caught": {
+                        "$find": {
+                            "collection": { "$coalesce": ["#.step.onError", []] },
+                            "as": "entry",
+                            "predicate": {
+                                "$and": [
+                                    { "$not": "@type.transient" },
+                                    {
+                                        "$any": {
+                                            "collection": "@entry.catches",
+                                            "as": "code",
+                                            "predicate": { "$func/is-kind-of-error": { "code": "#.error.code", "ancestor": "@code" } }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "failure": { "code": "#.error.code", "message": "#.error.message", "data": "#.error.data" },
+                    "scope": { "$merge": ["#.scope", { "error": "@failure" }] },
+                    "changes": {
+                        "$if": [{ "$isNil": "@caught.set" }, {}, { "$func/apply-mapping": { "mapping": "@caught.set", "input": "@scope" } }]
+                    }
+                },
+                "$in": {
+                    "$if": [
+                        { "$isNil": "@caught" },
+                        { "$throw": { "code": "@failure.code", "message": "@failure.message", "data": "@failure.data" } },
+                        {
+                            "kind": "next",
+                            "step": "@caught.then",
+                            "entities": "#.bindings",
+                            "variables": { "$merge": ["#.scope.process.data.body", "@changes"] },
+                            "recovered": "#.name"
+                        }
+                    ]
+                }
+            }
         }
     },
     {

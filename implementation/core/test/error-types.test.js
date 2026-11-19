@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { validate } from '../src/index.js';
-import { errorTypeOf, isKindOfError } from '../src/error-types.js';
+import { errorIsKindOf, errorTypeOf, isKindOfError } from '../src/error-types.js';
 import { bootWith, element, kind, operation } from './helpers.js';
 
 const registered = (id, value) => ({ id, kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value } });
@@ -34,6 +34,8 @@ describe('error types', () => {
     it('tells whether a code is a kind of another, through its parents and itself', async () => {
         await bootWith([registered('state-refused-for-test', { code: 'refused-for-test', extends: 'conflict' })]);
         expect(['refused-for-test', 'conflict', 'invalid'].map(ancestor => isKindOfError('refused-for-test', ancestor))).to.deep.equal([true, true, false]);
+        expect(['refused-for-test', 'conflict', 'invalid'].map(ancestor => errorIsKindOf({ code: 'refused-for-test', ancestor }))).to.deep.equal([true, true, false]);
+        expect(errorIsKindOf({ code: 'nobody-registered-this', ancestor: 'nobody-registered-this' })).to.equal(false);
     });
 
     it('treats an unregistered code, and a foreign failure of a low module, as a terminal 500', async () => {
