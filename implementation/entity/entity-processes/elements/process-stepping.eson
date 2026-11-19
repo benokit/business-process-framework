@@ -7,7 +7,7 @@
     {
         "id": "process-binding",
         "kind": "schema",
-        "data": { "!entityType": "string", "!businessKey": "string" }
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string" }
     },
     {
         "id": "process-start-input",

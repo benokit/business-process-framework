@@ -1,5 +1,25 @@
 [
     {
+        "id": "process-record-key",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string" }
+    },
+    {
+        "id": "process-record-creation",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string", "traits": "@any" }
+    },
+    {
+        "id": "process-record-transition",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!transition": "string" }
+    },
+    {
+        "id": "process-record-closure",
+        "kind": "schema",
+        "data": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "integer", "!operation": "string", "input": "@any" }
+    },
+    {
         "id": "process-entity-type",
         "kind": "kind",
         "data": {
@@ -60,10 +80,10 @@
                 },
                 "readEach": {
                     "private": true,
-                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string" } },
+                    "input": "[@process-record-key]",
                     "output": "@any",
                     "implementation": {
-                        "inputMap": "#.input.items",
+                        "inputMap": "#.input",
                         "forEach": {
                             "inputMap": { "businessKey": "#.item.businessKey" },
                             "invoke": "#.item.entityType",
@@ -101,7 +121,7 @@
                                 }
                             }
                         },
-                        { "outputKey": "records", "inputMap": { "items": "#.items" }, "invoke": "#.self.id", "operation": "readEach" },
+                        { "outputKey": "records", "inputMap": "#.items", "invoke": "#.self.id", "operation": "readEach" },
                         {
                             "set": {
                                 "$mapValues": {
@@ -152,16 +172,16 @@
                             }
                         },
                         {
-                            "asSystem": { "inputMap": { "items": "#.closures" }, "invoke": "#.self.id", "operation": "applyClosures" }
+                            "asSystem": { "inputMap": "#.closures", "invoke": "#.self.id", "operation": "applyClosures" }
                         }
                     ]
                 },
                 "applyOpenings": {
                     "private": true,
-                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string", "traits": "@any" } },
+                    "input": "[@process-record-creation]",
                     "output": "@any",
                     "implementation": {
-                        "inputMap": "#.input.items",
+                        "inputMap": "#.input",
                         "forEach": {
                             "inputMap": { "businessKey": "#.item.businessKey", "traits": "#.item.traits" },
                             "invoke": "#.item.entityType",
@@ -171,10 +191,10 @@
                 },
                 "applyTransitions": {
                     "private": true,
-                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!transition": "string" } },
+                    "input": "[@process-record-transition]",
                     "output": "@any",
                     "implementation": {
-                        "inputMap": "#.input.items",
+                        "inputMap": "#.input",
                         "forEach": [
                             {
                                 "outputKey": "current",
@@ -198,18 +218,10 @@
                 },
                 "applyClosures": {
                     "private": true,
-                    "input": {
-                        "!items[]": {
-                            "!entityType": "@ref/entity-type",
-                            "!businessKey": "string",
-                            "!revision": "integer",
-                            "!operation": "string",
-                            "input": "@any"
-                        }
-                    },
+                    "input": "[@process-record-closure]",
                     "output": "@any",
                     "implementation": {
-                        "inputMap": "#.input.items",
+                        "inputMap": "#.input",
                         "forEach": {
                             "inputMap": {
                                 "businessKey": "#.item.businessKey",
@@ -312,9 +324,7 @@
                                             { "inputMap": "#.extensions", "forEach": { "inputMap": "#.scope", "execute": "#.item.do" } },
                                             {
                                                 "asSystem": {
-                                                    "inputMap": {
-                                                        "items": { "$func/process-transitions": { "step": "#.step", "scope": "#.scope" } }
-                                                    },
+                                                    "inputMap": { "$func/process-transitions": { "step": "#.step", "scope": "#.scope" } },
                                                     "invoke": "#.self.id",
                                                     "operation": "applyTransitions"
                                                 }
@@ -332,7 +342,7 @@
                                             },
                                             {
                                                 "asSystem": {
-                                                    "inputMap": { "items": "#.opened.openings" },
+                                                    "inputMap": "#.opened.openings",
                                                     "invoke": "#.self.id",
                                                     "operation": "applyOpenings"
                                                 }
