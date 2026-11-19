@@ -8,7 +8,21 @@
                     { "signature": { "!input": "@schema", "!output": "@schema" } },
                     { "$data#1": ["@js-export", { "!mapping": "@mapping" }] }
                 ]
+            },
+            "lifecycle": {
+                "load": [
+                    { "inputMap": { "id": { "$str": ["mapping/", "#.self.id"] }, "schema": "\\@mapping" }, "invoke": "ajv", "operation": "add" },
+                    { "inputMap": { "id": { "$str": ["method/", "#.self.id"] }, "schema": "\\@method" }, "invoke": "ajv", "operation": "add" }
+                ]
             }
+        }
+    },
+    {
+        "id": "input-type-pure-function",
+        "kind": "kind",
+        "data": {
+            "extends": "pure-function",
+            "fixed": { "signature": { "input": { "!id": "string", "!kind": "string", "!data": "object" }, "output": "object" } }
         }
     },
     {

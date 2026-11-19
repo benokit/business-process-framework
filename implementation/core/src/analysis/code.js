@@ -219,6 +219,7 @@ const positionProblems = author => position => {
     const at = { author, allowsNext: allowsNext(author, path) };
     if (type === 'ref') return referenceProblems(position, at);
     return [
+        ...position.input === undefined ? [] : referenceProblems({ kind: 'input-type-pure-function', code: position.input, path }, at),
         ...type === 'method' ? nodesIn(code, path).flatMap(nodeProblems(at)) : [],
         ...callsIn(code, path).filter(({ key }) => key === '$func/slot-values').flatMap(({ value, path }) => slotValuesProblems(value, at, path))
     ];
@@ -240,9 +241,13 @@ const callReferences = ({ key, value, path }) => [
     ...key === '$func/slot-values' && isPlainObject(value) ? [{ to: nameOf(value.element), path: `${path}.element`, via: 'slot' }] : []
 ];
 
-const positionReferences = ({ type, code, path }) => type === 'ref'
+const positionReferences = ({ type, code, path, input }) => type === 'ref'
     ? [{ to: nameOf(code), path, via: 'ref' }]
-    : [...type === 'method' ? nodesIn(code, path).flatMap(nodeReferences) : [], ...callsIn(code, path).flatMap(callReferences)];
+    : [
+        ...input === undefined ? [] : [{ to: input, path, via: 'input type' }],
+        ...type === 'method' ? nodesIn(code, path).flatMap(nodeReferences) : [],
+        ...callsIn(code, path).flatMap(callReferences)
+    ];
 
 export const referencesOf = element => [
     { to: kindOf(element), path: 'kind', via: 'kind' },

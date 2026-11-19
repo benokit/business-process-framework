@@ -54,7 +54,11 @@ const referenceAt = ref => {
     return ref.startsWith(`${REF}/`) ? { type: 'ref', kind: ref.slice(REF.length + 1) } : undefined;
 };
 
-const typedAt = ref => CODE.has(ref) ? { type: ref.slice(1) } : referenceAt(ref);
+const providerAt = ref => ['method', 'mapping']
+    .filter(type => ref.startsWith(`${uri(type)}/`))
+    .map(type => ({ type, input: ref.slice(uri(type).length + 1) }))[0];
+
+const typedAt = ref => CODE.has(ref) ? { type: ref.slice(1) } : providerAt(ref) ?? referenceAt(ref);
 
 const isInstanceOfReference = value => isPlainObject(value) && Object.keys(value).length === 1 && typeof value.instanceOf === 'string';
 
