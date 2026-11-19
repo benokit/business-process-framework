@@ -171,14 +171,7 @@ export const scopeOf = definition => ({
     output: {}
 });
 
-const unknownPaths = thunks => thunks.flatMap(thunk => {
-    try {
-        thunk();
-        return [];
-    } catch (error) {
-        return error.code === 'unknown-path' ? [error.message] : [];
-    }
-});
+const unknownPathMessages = (problems, label) => problems.filter(({ code }) => code === 'unknown-path').map(({ message, path }) => label(path, message));
 
 const mappingsOf = step => [
     ...step.set === undefined ? [] : [['set', step.set, {}]],
@@ -192,9 +185,12 @@ const mappingsOf = step => [
 const typingProblems = (id, data) => {
     const author = { id, kind: 'process-definition' };
     const scope = scopeOf(data);
+    const doScope = { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, tasks: scope.tasks, signal: scope.signal }, additionalProperties: false };
     return Object.entries(data.steps).flatMap(([name, step]) => [
-        ...step.do === undefined ? [] : unknownPaths(methodType({ author, code: step.do, input: { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, tasks: scope.tasks, signal: scope.signal }, additionalProperties: false }, path: `steps.${name}.do` }).problems),
-        ...mappingsOf(step).flatMap(([where, code, extra]) => unknownPaths(mappingType(code, { type: 'object', properties: { ...scope, ...extra }, additionalProperties: false }).problems.map(problem => () => { throw Object.assign(new Error(`step '${name}' ${where}: ${problem.message}`), { code: problem.code }); })))
+        ...step.do === undefined ? [] : unknownPathMessages(methodType({ author, code: step.do, input: doScope, path: `steps.${name}.do` }).problems, (path, message) => `${id} ${path}: ${message}`),
+        ...mappingsOf(step).flatMap(([where, code, extra]) => unknownPathMessages(
+            mappingType(code, { type: 'object', properties: { ...scope, ...extra }, additionalProperties: false }).problems,
+            (path, message) => `step '${name}' ${where}: ${message}`))
     ]);
 };
 

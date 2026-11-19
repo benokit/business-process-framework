@@ -297,7 +297,7 @@ export const mappingType = (code, input, expected) => expected === undefined
 export const methodType = ({ author, code, input, path }) => {
     const walk = { at: { author }, kind: undefined, problems: [], returns: [], targets: undefined };
     const type = method(walk, code, { input, self: ANY_SELF, _ctx: contextType() }, path);
-    return { type, problems: walk.problems };
+    return { type, problems: walk.problems.map(({ severity, code, path: at, message }) => ({ severity, code, path: at, message })) };
 };
 
 const methodStart = (author, path) => {

@@ -45,6 +45,8 @@ docker compose -f environments/docker-compose.yml up -d
 
 PostgreSQL: `postgresql://admin:password@localhost:5432/app` (override: `POSTGRES_URL`). NATS: `nats://localhost:4222` (`NATS_URL`). Meilisearch: `http://localhost:7700` (`MEILISEARCH_URL`). OAuth identity provider (mock): `http://localhost:8080/default` (`OAUTH_ISSUER`). Tests that need them skip when unavailable; a test that starts with PostgreSQL calls `migrate()` of the postgresql test helpers after `start()`; a test with stubbed effects needs none ([interpreters](implementation/core/README.md#interpreters)). Lint with `npx eslint .`.
 
+`npm test` runs every file and takes minutes. `npm run test:quick` samples instead: it always runs the test files of the packages with uncommitted changes and fills a time budget (`--budget=<seconds>`, default 60) with files drawn at random, weighted towards files that have not run for a while, that failed last time or that belong to a package depending on a changed one. It prints its seed (`--seed=<n>` repeats a run) and keeps the run history in `implementation/.test-history.json`; `--changed` runs only the changed packages, `--dry-run` shows the selection, `--calibrate` runs everything once to record the time of each file. A quick run can miss a failure that a full run finds: run `npm test` before a push.
+
 ## Key conventions
 
 - `.eson` files contain arrays of element objects (or a single object); `//` and `/* */` comments are allowed (the loader blanks them before parsing). Element ids share one namespace: a kind and its instance need different ids. An id is lowercase letters and digits in segments joined by `-` (`invalid-id`), so `/` can separate an id from a path in `{ "/ref": "<id>/<key>/…" }`.

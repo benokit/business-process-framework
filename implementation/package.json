@@ -12,7 +12,9 @@
     "tools"
   ],
   "scripts": {
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "test:quick": "node scripts/quick-test.js",
+    "test:changed": "node scripts/quick-test.js --changed"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

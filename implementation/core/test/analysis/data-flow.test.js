@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { validate } from '../../src/index.js';
+import { mappingType, methodType } from '../../src/analysis/data-flow.js';
 import { bootWith, element, kind, operation, runner } from '../helpers.js';
 
 const PATH = 'operations.run.implementation';
@@ -155,6 +156,17 @@ describe('data flow', () => {
             element('id-of', 'pure-function', { signature: { input: { '!id': 'string' }, output: 'string' }, mapping: '#.id' }),
             kind('shop', { operations: { open: operation({ set: { '$func/id-of': { id: '#.input.store' } } }, { '!store': '@ref/shop' }, 'string') } }));
         expect(problemsOf()).to.deep.equal([]);
+    });
+
+    it('reports the problems of a mapping and of a method in one shape: severity, code, path and message', async () => {
+        await bootWith(runner([]));
+        const input = { type: 'object', properties: { name: { type: 'string' } }, additionalProperties: false };
+        const ofMapping = mappingType('#.nme', input).problems;
+        const ofMethod = methodType({ author: { id: 'the-runner', kind: 'runner' }, code: { set: '#.nme' }, input, path: 'code' }).problems;
+        expect(ofMapping.map(problem => [problem.severity, problem.code, typeof problem.path, typeof problem.message])).to.deep.equal([['error', 'unknown-path', 'string', 'string']]);
+        expect(ofMethod.map(problem => [problem.severity, problem.code, problem.path, typeof problem.message])).to.deep.equal([['error', 'unknown-path', 'code.set', 'string']]);
+        expect(ofMethod[0].message).to.include('nme');
+        expect(Object.keys(ofMethod[0]).sort()).to.deep.equal(Object.keys(ofMapping[0]).sort());
     });
 
     describe('kind mappings', () => {

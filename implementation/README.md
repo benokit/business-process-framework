@@ -19,6 +19,7 @@ The demo application is in [demo](../demo/README.md).
 ```sh
 npm install
 npm test
+npm run test:quick
 npx eslint .
 npx bpf validate ../demo
 ```

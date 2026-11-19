@@ -31,8 +31,9 @@ const positionsOf = element => [
 
 export const codeOf = element => positionsOf(element).filter(({ type }) => type !== 'ref');
 
-export const problem = (at, path, code, message, data = {}) => () =>
-    fail(code, `${at.author.id ?? `a ${at.author.kind}`} ${path}: ${message}`, { element: at.author.id, path, ...data });
+export const problem = (at, path, code, message, data = {}) => Object.assign(
+    () => fail(code, `${at.author.id ?? `a ${at.author.kind}`} ${path}: ${message}`, { element: at.author.id, path, ...data }),
+    { severity: data.severity ?? 'error', code, path, message });
 
 const isNative = key => Object.hasOwn(nodeForms, key);
 
