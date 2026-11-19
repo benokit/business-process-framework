@@ -4,8 +4,31 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "object" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "searchDocument"
+            "mapping": {
+                "definition": "#.data.process.definition",
+                "step": "#.data.process.step",
+                "status": "#.data.state.status",
+                "waitingUntil": {
+                    "$if": [{ "$isNil": "#.data.process.wait.until.at" }, null, { "$func/date-parse": "#.data.process.wait.until.at" }]
+                },
+                "faultCode": { "$coalesce": ["#.data.process.fault.code", null] },
+                "failures": { "$coalesce": ["#.data.process.failures.count", 0] },
+                "entities": {
+                    "$map": {
+                        "over": {
+                            "$concat": {
+                                "$map": {
+                                    "over": { "$values": "#.data.process.entities" },
+                                    "as": "binding",
+                                    "fn": { "$toList": "@binding" }
+                                }
+                            }
+                        },
+                        "as": "bound",
+                        "fn": "@bound.businessKey"
+                    }
+                }
+            }
         }
     },
     {

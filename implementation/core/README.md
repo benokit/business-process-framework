@@ -74,6 +74,7 @@ Besides the bootstrap kinds:
 | `$func/has-operation` | `{ element, operation }`; true for an unknown element, which the reference check reports |
 | `$func/instance-methods` | `{ kind, property }` → `[{ id, method }]`, the method held in `property` of the data of each identified instance of a kind that has one; a driver runs them with `execute`, and the inference counts the effects of the methods an operation lists this way |
 | `$func/changes-of` | `{ element, operation }` → the operation's `write` and `irreversible` effects as `"<effect>: <trace>"` ([Effects](#effects)) |
+| `$func/date-parse`, `$func/date-add` | pure date arithmetic next to the clock: `date-parse` turns an ISO 8601 instant (with `Z` or an offset, or a date alone, which is UTC) into epoch milliseconds, `date-add` `{ date, days, hours, minutes, seconds, milliseconds }` moves an instant by the amounts and returns an ISO UTC string; anything else, a calendar day that does not exist included, fails with `invalid-date` (a kind of `invalid`). The current time is not read by them: pass it in from `clock` |
 | `$func/instances-of` | the `{ id, kind, data }` of every identified instance of a kind |
 | `$func/kind-chain` | the kinds above an element, nearest first (an instance's chain, a kind's ancestors); `[]` for an unknown id |
 

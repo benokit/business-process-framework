@@ -27,14 +27,6 @@ export const processErrorExit = ({ name, step, scope, error, bindings }) => {
     };
 };
 
-const MINUTE = 60 * 1000;
-
-const durationInMilliseconds = ({ days = 0, hours = 0, minutes = 0 }) => ((days * 24 + hours) * 60 + minutes) * MINUTE;
-
-export const resolvedWait = ({ wait, now }) => wait.until === undefined || wait.until.at !== undefined
-    ? wait
-    : { ...wait, until: { at: new Date(Date.parse(now) + durationInMilliseconds(wait.until.after)).toISOString(), then: wait.until.then } };
-
 const ENTITY_PATH = /^#\.(?:entities|tasks)\.([^.]+)(?:\.(.*))?$/;
 
 const readsOf = value => typeof value === 'string'
@@ -63,13 +55,3 @@ export const changedViews = ({ entityType, before, after }) => {
 };
 
 export const extensionsOf = definition => slotValues({ element: definition, slot: 'stepExtensions' });
-
-export const searchDocument = record => ({
-    definition: record.data.process.definition,
-    step: record.data.process.step,
-    status: record.data.state.status,
-    waitingUntil: record.data.process.wait?.until?.at === undefined ? null : Date.parse(record.data.process.wait.until.at),
-    faultCode: record.data.process.fault?.code ?? null,
-    failures: record.data.process.failures?.count ?? 0,
-    entities: Object.values(record.data.process.entities).flatMap(binding => [binding].flat()).map(({ businessKey }) => businessKey)
-});

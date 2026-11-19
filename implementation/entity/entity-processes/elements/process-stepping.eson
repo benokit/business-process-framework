@@ -33,7 +33,7 @@
                                 "$let": {
                                     "references": {
                                         "$map": {
-                                            "over": { "$concat": [[], "@keys"] },
+                                            "over": { "$toList": "@keys" },
                                             "as": "key",
                                             "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
                                         }
@@ -311,7 +311,7 @@
                                     "existing": { "$coalesce": [{ "$get": { "object": "#.bindings", "path": "@role" } }, []] },
                                     "references": {
                                         "$map": {
-                                            "over": { "$concat": [[], "@keys"] },
+                                            "over": { "$toList": "@keys" },
                                             "as": "key",
                                             "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
                                         }

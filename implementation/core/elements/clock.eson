@@ -13,6 +13,27 @@
         }
     },
     {
+        "id": "date-parse",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "number" },
+            "module": "@business-framework/core/dates",
+            "export": "dateParse"
+        }
+    },
+    {
+        "id": "date-add",
+        "kind": "pure-function",
+        "data": {
+            "signature": {
+                "input": { "!date": "string", "days": "number", "hours": "number", "minutes": "number", "seconds": "number", "milliseconds": "number", "*": "never" },
+                "output": "string"
+            },
+            "module": "@business-framework/core/dates",
+            "export": "dateAdd"
+        }
+    },
+    {
         "id": "clock",
         "kind": "clock-source",
         "data": {}

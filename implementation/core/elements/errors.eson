@@ -39,6 +39,7 @@
     { "id": "low-failed-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "low-failed", "extends": "internal" } } },
     { "id": "private-operation-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "private-operation", "extends": "forbidden" } } },
     { "id": "invalid-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "invalid", "http": 400 } } },
+    { "id": "invalid-date-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "invalid-date", "extends": "invalid" } } },
     { "id": "unauthorized-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "unauthorized", "http": 401 } } },
     { "id": "forbidden-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "forbidden", "http": 403 } } },
     { "id": "not-found-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "not-found", "http": 404 } } },

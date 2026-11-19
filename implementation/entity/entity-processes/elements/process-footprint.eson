@@ -8,19 +8,17 @@
                 "$let": {
                     "finished": { "$includes": { "collection": ["ended", "aborted"], "value": "#.data.state.status" } },
                     "relations": {
-                        "$values": {
-                            "$mapValues": {
-                                "of": "#.data.process.entities",
-                                "as": ["binding", "role"],
-                                "fn": {
-                                    "$map": {
-                                        "over": { "$concat": [[], "@binding"] },
-                                        "as": "bound",
-                                        "fn": {
-                                            "targetEntityType": "@bound.entityType",
-                                            "targetEntityBusinessKey": "@bound.businessKey",
-                                            "relationType": "@role"
-                                        }
+                        "$map": {
+                            "over": "#.data.process.entities",
+                            "as": ["binding", "role"],
+                            "fn": {
+                                "$map": {
+                                    "over": { "$toList": "@binding" },
+                                    "as": "bound",
+                                    "fn": {
+                                        "targetEntityType": "@bound.entityType",
+                                        "targetEntityBusinessKey": "@bound.businessKey",
+                                        "relationType": "@role"
                                     }
                                 }
                             }

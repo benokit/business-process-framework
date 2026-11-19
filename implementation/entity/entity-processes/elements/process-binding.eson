@@ -113,13 +113,7 @@
                             "as": ["records", "role"],
                             "fn": {
                                 "$map": {
-                                    "over": {
-                                        "$filter": {
-                                            "collection": { "$concat": [[], "@records"] },
-                                            "as": "record",
-                                            "predicate": { "$not": { "$isNil": "@record" } }
-                                        }
-                                    },
+                                    "over": { "$toList": "@records" },
                                     "as": "record",
                                     "fn": { "entityType": "@record.entityType", "businessKey": "@record.businessKey" }
                                 }
@@ -177,16 +171,14 @@
                         }
                     },
                     "entries": {
-                        "$values": {
-                            "$mapValues": {
-                                "of": { "$coalesce": ["#.step.open", {}] },
-                                "as": ["opening", "task"],
-                                "fn": {
-                                    "task": "@task",
-                                    "opening": "@opening",
-                                    "current": { "$get": { "object": "#.scope.tasks", "path": "@task" } },
-                                    "declared": { "$get": { "object": "@tasks", "path": "@task" } }
-                                }
+                        "$map": {
+                            "over": { "$coalesce": ["#.step.open", {}] },
+                            "as": ["opening", "task"],
+                            "fn": {
+                                "task": "@task",
+                                "opening": "@opening",
+                                "current": { "$get": { "object": "#.scope.tasks", "path": "@task" } },
+                                "declared": { "$get": { "object": "@tasks", "path": "@task" } }
                             }
                         }
                     },
@@ -250,17 +242,15 @@
         "data": {
             "signature": { "input": { "!step": "@any", "!scope": "@any" }, "output": "@any" },
             "mapping": {
-                "$values": {
-                    "$mapValues": {
-                        "of": { "$coalesce": ["#.step.transition", {}] },
-                        "as": ["transition", "role"],
-                        "fn": {
-                            "$let": { "participant": { "$get": { "object": "#.scope.entities", "path": "@role" } } },
-                            "$in": {
-                                "entityType": "@participant.entityType",
-                                "businessKey": "@participant.businessKey",
-                                "transition": "@transition"
-                            }
+                "$map": {
+                    "over": { "$coalesce": ["#.step.transition", {}] },
+                    "as": ["transition", "role"],
+                    "fn": {
+                        "$let": { "participant": { "$get": { "object": "#.scope.entities", "path": "@role" } } },
+                        "$in": {
+                            "entityType": "@participant.entityType",
+                            "businessKey": "@participant.businessKey",
+                            "transition": "@transition"
                         }
                     }
                 }
@@ -299,7 +289,7 @@
                                     "outcome": { "$get": { "object": "#.resolve", "path": "@role" } },
                                     "records": {
                                         "$filter": {
-                                            "collection": { "$concat": [[], { "$get": { "object": "#.entities", "path": "@role" } }] },
+                                            "collection": { "$toList": { "$get": { "object": "#.entities", "path": "@role" } } },
                                             "as": "record",
                                             "predicate": { "$eq": ["@record.data.task.status", "open"] }
                                         }
@@ -364,7 +354,7 @@
                             "$map": {
                                 "over": "@startRoles",
                                 "as": "role",
-                                "fn": { "$concat": [[], { "$get": { "object": "#.entities", "path": "@role" } }] }
+                                "fn": { "$toList": { "$get": { "object": "#.entities", "path": "@role" } } }
                             }
                         }
                     },

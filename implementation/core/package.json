@@ -12,6 +12,7 @@
     "./mappings": "./src/mappings.js",
     "./settings": "./src/settings.js",
     "./clock": "./src/effects/clock.js",
+    "./dates": "./src/dates.js",
     "./error-types": "./src/error-types.js",
     "./introspection": "./src/analysis/introspection.js",
     "./effects": "./src/analysis/effect-inference.js",
@@ -24,7 +25,7 @@
   "dependencies": {
     "@benokit/js-cjsl": "^1.0.0",
     "ajv": "^8.17.1",
-    "lambdajson-js": "^3.7.0",
+    "lambdajson-js": "^3.8.0",
     "lodash-es": "^4.17.21"
   }
 }

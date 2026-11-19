@@ -4,8 +4,23 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!wait": "@any", "!now": "string" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "resolvedWait"
+            "mapping": {
+                "$if": [
+                    { "$or": [{ "$isNil": "#.wait.until" }, { "$not": { "$isNil": "#.wait.until.at" } }] },
+                    "#.wait",
+                    {
+                        "$merge": [
+                            { "$omit": { "object": "#.wait", "keys": ["until"] } },
+                            {
+                                "until": {
+                                    "at": { "$func/date-add": { "$merge": [{ "date": "#.now" }, "#.wait.until.after"] } },
+                                    "then": "#.wait.until.then"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     },
     {

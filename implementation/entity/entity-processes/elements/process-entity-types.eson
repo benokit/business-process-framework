@@ -1,5 +1,10 @@
 [
     {
+        "id": "process-participant",
+        "kind": "schema",
+        "data": { "$data#": ["@process-binding", "[@process-binding]"] }
+    },
+    {
         "id": "process-record-key",
         "kind": "schema",
         "data": { "!entityType": "@ref/entity-type", "!businessKey": "string" }
@@ -78,42 +83,27 @@
                         ]
                     }
                 },
-                "readEach": {
-                    "private": true,
-                    "input": "[@process-record-key]",
-                    "output": "@any",
-                    "implementation": {
-                        "inputMap": "#.input",
-                        "forEach": {
-                            "inputMap": { "businessKey": "#.item.businessKey" },
-                            "invoke": "#.item.entityType",
-                            "operation": "read"
-                        }
-                    }
-                },
                 "loadParticipants": {
                     "private": true,
-                    "input": "@any",
+                    "input": "{@process-participant}",
                     "output": "@any",
                     "implementation": [
                         {
                             "outputKey": "items",
                             "set": {
                                 "$concat": {
-                                    "$values": {
-                                        "$mapValues": {
-                                            "of": "#.input",
-                                            "as": ["binding", "role"],
-                                            "fn": {
-                                                "$map": {
-                                                    "over": { "$concat": [[], "@binding"] },
-                                                    "as": "bound",
-                                                    "fn": {
-                                                        "role": "@role",
-                                                        "many": { "$isNil": "@binding.entityType" },
-                                                        "entityType": "@bound.entityType",
-                                                        "businessKey": "@bound.businessKey"
-                                                    }
+                                    "$map": {
+                                        "over": "#.input",
+                                        "as": ["binding", "role"],
+                                        "fn": {
+                                            "$map": {
+                                                "over": { "$toList": "@binding" },
+                                                "as": "bound",
+                                                "fn": {
+                                                    "role": "@role",
+                                                    "many": { "$isArray": "@binding" },
+                                                    "entityType": "@bound.entityType",
+                                                    "businessKey": "@bound.businessKey"
                                                 }
                                             }
                                         }
@@ -121,7 +111,11 @@
                                 }
                             }
                         },
-                        { "outputKey": "records", "inputMap": "#.items", "invoke": "#.self.id", "operation": "readEach" },
+                        {
+                            "outputKey": "records",
+                            "inputMap": "#.items",
+                            "forEach": { "inputMap": { "businessKey": "#.item.businessKey" }, "invoke": "#.item.entityType", "operation": "read" }
+                        },
                         {
                             "set": {
                                 "$mapValues": {
