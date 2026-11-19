@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import { validate } from '../../src/index.js';
+import { codePositionsOf } from '../../src/analysis/introspection.js';
+import { findElement } from '../../src/registry.js';
 import { bootWith, element, kind, low, operation, runner } from '../helpers.js';
 
 const problemsOf = async (implementation, options) => {
@@ -138,5 +140,15 @@ describe('code checks', () => {
             { id: 'guarded-node', kind: 'execution-node-template', data: { keyword: 'guarded', within: 'vault', implementation: { set: 1 } } },
             element('a-shed', 'shed'));
         expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([['node-outside-context', 'shed', 'operations.open.implementation']]);
+    });
+    it('lists the code of an element as mappings and methods with their paths, found from the schemas of its shape', async () => {
+        await bootWith(kind('form', { shape: { rule: '@mapping', 'checks{}': '@method', 'steps[]': { when: '@mapping', note: 'string' } } }),
+            element('form-one', 'form', { rule: { $sum: [1, 2] }, checks: { first: { set: 1 } }, steps: [{ when: true, note: 'x' }, { when: { $eq: [1, 1] } }] }));
+        expect(codePositionsOf(findElement('form-one')).map(({ type, path }) => [type, path])).to.have.deep.members([
+            ['mapping', 'rule'],
+            ['method', 'checks.first'],
+            ['mapping', 'steps[0].when'],
+            ['mapping', 'steps[1].when']
+        ]);
     });
 });

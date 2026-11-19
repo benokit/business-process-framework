@@ -1,7 +1,6 @@
 import { infer, typed } from 'lambdajson-js';
 import { isPlainObject, mapValues, uniqBy } from 'lodash-es';
-import { allElements, findElement, kindOf, lazy, memo, onReset } from '../registry.js';
-import { applyMapping } from '../mappings.js';
+import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
 import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
 import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
@@ -346,26 +345,11 @@ const mappingInput = (author, path) => {
 
 const expectedOf = (author, path) => author.kind === 'kind' && path === 'mapping' ? dataType(author.data.extends) : undefined;
 
-const provided = new Map();
-
-onReset(() => provided.clear());
-
-const providedType = (author, provider) => {
-    const key = `${author.id}\u0000${provider}`;
-    if (author.id === undefined || !provided.has(key)) {
-        const schema = applyMapping({ mapping: { [`$func/${provider}`]: '#' }, input: { id: author.id, kind: author.kind, data: author.data } });
-        if (author.id === undefined) return closedType(typeOf(schema));
-        provided.set(key, closedType(typeOf(schema)));
-    }
-    return provided.get(key);
-};
-
-const positionWalk = (author, targets) => ({ type, code, path, input: provider }) => {
-    const started = type === 'method' ? methodStart(author, path) : {};
-    const start = provider === undefined || type !== 'method' ? started : { ...started, scope: { ...started.scope, input: providedType(author, provider) } };
+const positionWalk = (author, targets) => ({ type, code, path }) => {
+    const start = type === 'method' ? methodStart(author, path) : {};
     const walk = { at: { author }, kind: start.kind, problems: [], returns: [], targets };
     if (type === 'method') method(walk, code, start.scope, path);
-    else expression(walk, provider === undefined ? mappingInput(author, path) : providedType(author, provider), code, path, expectedOf(author, path));
+    else expression(walk, mappingInput(author, path), code, path, expectedOf(author, path));
     return walk.problems;
 };
 

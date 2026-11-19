@@ -9,13 +9,13 @@ An element of the kind `process-definition` declares the **roles** (`entities`: 
 | Exit | Meaning |
 |---|---|
 | `next: <step>` | continue with that step, in the same transaction |
-| `choose: [[test, <step>], …, ["else", <step>]]` | a decision over the process and its participants |
+| `choose: [{ test, then: <step> }, …, { else: <step> }]` | a decision over the process and its participants |
 | `wait: { when?, signals?, until? }` | stop; `when` lists conditions `{ test, then }`: a pure mapping over `{ process, entities }` that is tried as the wait begins (a fact already true doesn't wait) and again by every `check` wake-up, on the current data of the participants, the first that holds taking its `then`; `signals` maps a name to `{ to, by, payload? }` (the step it starts and the role that addresses the instance), `until` is `{ at \| after, then }`: a date from a mapping, or an elapsed duration `{ days?, hours?, minutes? }` |
 | `end: true` | the process is finished |
 
 A step may also declare `onError: [{ catches: [<code>], set?, then }]`, the way it leaves when its `do` failed; only terminal [error types](../../core/README.md#error-types) can be caught.
 
-`validate()` reports a definition whose start isn't a step, a step with no exit or with several, a step that leads to an unknown step, a step that can't be reached from the start, steps that lead to each other without ever waiting (an endless chain of immediate steps), a choose entry that isn't `[test, step]`, a wait for nothing, an `until` with both `at` and `after` or neither, a signal addressed by a role the process doesn't declare, and an `onError` entry that catches nothing, a code no package registers, or a transient one.
+`validate()` reports a definition whose start isn't a step, a step with no exit or with several, a step that leads to an unknown step, a step that can't be reached from the start, steps that lead to each other without ever waiting (an endless chain of immediate steps), a wait for nothing, an `until` with both `at` and `after` or neither, a signal addressed by a role the process doesn't declare, and an `onError` entry that catches nothing, a code no package registers, or a transient one.
 
 ```json
 { "id": "contract-issue-process", "kind": "process-definition", "data": {
@@ -98,7 +98,7 @@ A process is an entity, so a stuck one is found by data. `$func/process-search-d
 
 ## Typing a step
 
-`validate()` types the paths of a step from the definition: `#.input.process` and `#.process` are the process entity with its `body` typed by `variables`, `#.entities.<role>` is the participant (a list for `many`) with its `body` typed by the body schema of the role's entity type, `#.tasks.<task>` the same for a task, `input` is typed by the definition's `input`, `signal` and `output` are any. A path none of them has is reported (`unknown-path`) in a `do` and in every mapping of the step (`set`, `choose`, `when`, `until.at`, `onError.set`): a misspelled role, an input the process doesn't take, a field of a closed body schema. A body schema that doesn't close itself (`"*": "never"`) lets any other field through, so a misspelled field of it is not found; every other trait is typed as any ([F77](../../../design/critique.md)).
+`validate()` types the paths of a step from the definition: `#.input.process` and `#.process` are the process entity with its `body` typed by `variables`, `#.entities.<role>` is the participant (a list for `many`) with its `body` typed by the body schema of the role's entity type, `#.tasks.<task>` the same for a task, `input` is typed by the definition's `input`, `signal` and `output` are any. The `validate` hook of the kind types every piece of code of the definition against the scope above: it takes the code positions of the definition from the core (`codePositionsOf`, found from the schemas, so a mapping field added to a step schema is checked with no list to extend here); a `do` gets the scope without `output` and an `onError.set` the scope with the `error` the entry catches. A path none of them has is reported (`unknown-path`) at the position of the code in a `do` and in every mapping of the step (`set`, `open.<task>.body|dueOn|assignTo`, `choose[].test`, `when[].test`, `until.at`, `onError.set`): a misspelled role, an input the process doesn't take, a field of a closed body schema. A body schema that doesn't close itself (`"*": "never"`) lets any other field through, so a misspelled field of it is not found; every other trait is typed as any ([F77](../../../design/critique.md)).
 
 ## Tasks
 

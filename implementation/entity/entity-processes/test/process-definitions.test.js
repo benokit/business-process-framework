@@ -64,13 +64,15 @@ describe('process definitions', function () {
     });
 
     it('reports steps that lead to each other without ever waiting, and accepts a loop that waits', async () => {
-        const looping = await messagesAfterBooting({ ...GOOD, begin: { next: 'ask' }, ask: { choose: [[true, 'remind'], ['else', 'finish']] }, remind: { next: 'ask' } });
+        const looping = await messagesAfterBooting({ ...GOOD, begin: { next: 'ask' }, ask: { choose: [{ test: true, then: 'remind' }, { else: 'finish' }] }, remind: { next: 'ask' } });
         expect(looping).to.include('the steps ask, remind lead to each other without ever waiting: an endless chain of immediate steps');
         expect(await messagesAfterBooting(GOOD)).to.deep.equal([]);
     });
 
-    it('reports a choose entry that is not a test and a step', async () => {
-        expect(await messagesAfterBooting({ ...GOOD, begin: { choose: [[true], 'finish'] } })).to.include("step 'begin' has a choose entry that isn't [test, step]");
+    it('reports a choose entry that is not a test and a step, or an else', async () => {
+        await messagesAfterBooting({ ...GOOD, begin: { choose: [{ test: true }, { else: 'finish', test: true }] } });
+        const problems = validate().filter(({ data }) => data.element === 'sample-process');
+        expect(problems.map(({ code }) => code)).to.include('invalid-element');
     });
 
     it('reports a wait for nothing, an until with both a date and a duration, and a signal addressed by an unknown role', async () => {
@@ -123,7 +125,7 @@ describe('process definitions', function () {
         ]);
     });
 
-    it('reports a path of a step that its roles, input and variables do not have, in a do and in a mapping', async () => {
+    it('reports a path of a step that its roles, input and variables do not have, in a do and in a mapping, at the position of the code', async () => {
         const messages = await messagesAfterBooting({
             begin: {
                 open: { approval: {} },
@@ -137,6 +139,18 @@ describe('process definitions', function () {
         expect(messages).to.have.length(4);
         expect(messages.join('\n')).to.include('steps.begin.do').and.to.include('nme').and.to.include('nmae');
         expect(messages.join('\n')).to.not.include('fine');
+    });
+
+    it('types every mapping field the schema of a step declares, with no list of its own: an opening, an until and an onError set', async () => {
+        const messages = await messagesAfterBooting({
+            begin: { open: { approval: { dueOn: '#.entities.contract.data.body.nme' } }, set: { fine: '#.entities.contract.data.body.name' }, next: 'ask' },
+            ask: { wait: { until: { at: '#.entities.review.data.body.nme', then: 'finish' } }, onError: [{ catches: ['conflict'], set: { seen: '#.error.nothing' }, then: 'finish' }] },
+            finish: { end: true }
+        });
+        expect(messages.filter(message => message.includes('steps.begin.open.approval.dueOn'))).to.have.length(1);
+        expect(messages.filter(message => message.includes('steps.ask.wait.until.at'))).to.have.length(1);
+        expect(messages.filter(message => message.includes('steps.ask.onError[0].set'))).to.have.length(1);
+        expect(messages).to.have.length(3);
     });
 
     it('reports an extension at a step that does not exist or is not extensible', async () => {

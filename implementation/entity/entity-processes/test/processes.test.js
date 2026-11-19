@@ -119,7 +119,7 @@ const elements = [
                     set: { count: 1 },
                     next: 'decide'
                 },
-                decide: { choose: [[{ $eq: ['#.process.data.body.count', 1] }, 'finish'], ['else', 'other']] },
+                decide: { choose: [{ test: { $eq: ['#.process.data.body.count', 1] }, then: 'finish' }, { else: 'other' }] },
                 finish: { end: true },
                 other: { end: true }
             }

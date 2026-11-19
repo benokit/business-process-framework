@@ -45,6 +45,16 @@
         "data": { "!catches[]": "string", "set": "@mapping", "!then": "string", "*": "never" }
     },
     {
+        "id": "process-choice",
+        "kind": "schema",
+        "data": {
+            "$data#1": [
+                { "!test": "@mapping", "!then": "string", "*": "never" },
+                { "!else": "string", "*": "never" }
+            ]
+        }
+    },
+    {
         "id": "process-step",
         "kind": "schema",
         "data": {
@@ -53,7 +63,7 @@
             "open{}": "@process-opening",
             "set": "@mapping",
             "next": "string",
-            "choose[]": "@any",
+            "choose[]": "@process-choice",
             "wait": "@process-wait",
             "end": "boolean",
             "onError[]": "@process-error-exit",

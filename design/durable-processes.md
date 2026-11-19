@@ -90,7 +90,7 @@ A step is a pipeline `do`, an optional `set` (§2.4) and **exactly one** of:
 | Exit | Meaning |
 |---|---|
 | `next: <step>` | continue with that step, in the same transaction (a sequence of short steps is one unit) |
-| `choose: [[test, <step>], …, ["else", <step>]]` | `$cond` on the process, its participants and the step's output: a decision, still declared |
+| `choose: [{ test, then: <step> }, …, { else: <step> }]` | `$cond` on the process, its participants and the step's output: a decision, still declared |
 | `wait: { when?, signals?, until? }` | stop. `when` lists conditions `{ test, resolve?, then }`; `signals` maps a signal name to `{ to, by, payload? }`: the step it starts, the role that addresses the instance and the payload schema (§2.4, §6.1); `until` gives `at` (a date) or `after` (a duration) and the step to start when it passes (§5.2) |
 | `end: true` | the process is finished |
 

@@ -1,9 +1,10 @@
 import { errorTypeOf, isRegistered } from '@business-framework/core/error-types';
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { findElement } from '@business-framework/core/registry';
+import { codePositionsOf } from '@business-framework/core/introspection';
+import { methodType, mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
 import { standardOf } from '@business-framework/core/schemas';
-import { methodType, mappingType } from '@business-framework/core/data-flow';
 import { transitionsOfType } from '@business-framework/entity-states/states';
 import { extensionsOf, rolesOf } from './process.js';
 
@@ -13,7 +14,7 @@ const exitsOf = step => EXITS.filter(exit => step[exit] !== undefined);
 
 const immediateTargetsOf = step => [
     ...step.next === undefined ? [] : [step.next],
-    ...(step.choose ?? []).filter(Array.isArray).map(([, target]) => target),
+    ...(step.choose ?? []).map(entry => entry.then ?? entry.else),
     ...(step.onError ?? []).map(({ then }) => then)
 ];
 
@@ -42,10 +43,6 @@ const exitProblems = (name, step) => exitsOf(step).length === 1
 const targetProblems = (steps, name, step) => targetsOf(step)
     .filter(target => steps[target] === undefined)
     .map(target => `step '${name}' leads to unknown step '${target}'`);
-
-const chooseProblems = (name, step) => (step.choose ?? [])
-    .filter(entry => !Array.isArray(entry) || entry.length !== 2 || typeof entry[1] !== 'string')
-    .map(() => `step '${name}' has a choose entry that isn't [test, step]`);
 
 const untilProblems = (name, until) => until === undefined || [until.at, until.after].filter(value => value !== undefined).length === 1
     ? []
@@ -105,7 +102,6 @@ const catchProblems = (name, entry) => [
 const stepProblems = (steps, roles, tasks, entities) => ([name, step]) => [
     ...exitProblems(name, step),
     ...targetProblems(steps, name, step),
-    ...chooseProblems(name, step),
     ...waitProblems(roles, tasks, name, step.wait),
     ...openProblems(tasks, name, step),
     ...transitionProblems(entities, name, step),
@@ -171,28 +167,27 @@ export const scopeOf = definition => ({
     output: {}
 });
 
-const unknownPathMessages = (problems, label) => problems.filter(({ code }) => code === 'unknown-path').map(({ message, path }) => label(path, message));
+const ERROR = { type: 'object', properties: { code: { type: 'string' }, message: { type: 'string' }, data: {} }, additionalProperties: false };
 
-const mappingsOf = step => [
-    ...step.set === undefined ? [] : [['set', step.set, {}]],
-    ...Object.entries(step.open ?? {}).flatMap(([task, opening]) => ['body', 'dueOn', 'assignTo'].filter(key => opening[key] !== undefined).map(key => [`open.${task}.${key}`, opening[key], {}])),
-    ...(step.choose ?? []).filter(Array.isArray).map(([test], index) => [`choose[${index}]`, test, {}]),
-    ...(step.wait?.when ?? []).map(({ test }, index) => [`wait.when[${index}].test`, test, {}]),
-    ...step.wait?.until?.at === undefined ? [] : [['wait.until.at', step.wait.until.at, {}]],
-    ...(step.onError ?? []).filter(entry => entry.set !== undefined).map((entry, index) => [`onError[${index}].set`, entry.set, { error: { type: 'object', properties: { code: { type: 'string' }, message: { type: 'string' }, data: {} } } }])
-];
+const ERROR_EXIT = /\.onError\[\d+\]\.set$/;
 
-const typingProblems = (id, data) => {
-    const author = { id, kind: 'process-definition' };
-    const scope = scopeOf(data);
-    const doScope = { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, tasks: scope.tasks, signal: scope.signal }, additionalProperties: false };
-    return Object.entries(data.steps).flatMap(([name, step]) => [
-        ...step.do === undefined ? [] : unknownPathMessages(methodType({ author, code: step.do, input: doScope, path: `steps.${name}.do` }).problems, (path, message) => `${id} ${path}: ${message}`),
-        ...mappingsOf(step).flatMap(([where, code, extra]) => unknownPathMessages(
-            mappingType(code, { type: 'object', properties: { ...scope, ...extra }, additionalProperties: false }).problems,
-            (path, message) => `step '${name}' ${where}: ${message}`))
-    ]);
-};
+const withoutOutput = scope => Object.fromEntries(Object.entries(scope).filter(([name]) => name !== 'output'));
+
+const inputAt = (scope, { type, path }) => ({
+    type: 'object',
+    properties: type === 'method' ? withoutOutput(scope) : ERROR_EXIT.test(path) ? { ...scope, error: ERROR } : scope,
+    additionalProperties: false
+});
+
+const unknownPathMessages = (id, { type, code, path }, input) => (type === 'method'
+    ? methodType({ author: { id, kind: 'process-definition' }, code, input, path }).problems
+    : mappingType(code, input).problems.map(problem => ({ ...problem, path })))
+    .filter(problem => problem.code === 'unknown-path')
+    .map(problem => `${id} ${problem.path}: ${problem.message}`);
+
+const typingProblems = (id, data) => codePositionsOf(findElement(id))
+    .filter(({ path }) => path !== 'key')
+    .flatMap(position => unknownPathMessages(id, position, inputAt(scopeOf(data), position)));
 
 export const processDefinitionProblems = definition => {
     const { data } = selvesOf('process-definition').find(({ id }) => id === definition);

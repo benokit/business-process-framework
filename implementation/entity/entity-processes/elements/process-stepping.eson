@@ -274,8 +274,8 @@
                             "as": "entry",
                             "predicate": {
                                 "$or": [
-                                    { "$eq": ["@entry.0", "else"] },
-                                    { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
+                                    { "$not": { "$isNil": "@entry.else" } },
+                                    { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@inscope" } }
                                 ]
                             }
                         }
@@ -290,7 +290,7 @@
                                     "data": { "step": "#.name" }
                                 }
                             },
-                            { "kind": "next", "step": "@chosen.1" }
+                            { "kind": "next", "step": { "$coalesce": ["@chosen.then", "@chosen.else"] } }
                         ]
                     },
                     "exit": {
