@@ -295,18 +295,20 @@ describe('server with the demo', function () {
             expect(await check()).to.equal(true);
         };
 
+        const reviewKey = key => `contract-review-process.${key}.review`;
+
         const startReview = async (token, body = { project: 'viaduct' }) => {
             const contract = await contractOf('construction', body, token);
             await move(contract, 'issue', token);
-            await eventually(async () => (await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).status === 200);
+            await eventually(async () => (await call('GET', `/entities/contract-review-task/${reviewKey(contract.businessKey)}`, null, token)).status === 200);
             return contract;
         };
 
         const processOf = async key => (await invoke('contract-review-processes', 'read', { businessKey: `contract-review-process/${key}` }));
 
         const answer = async (key, body, token) => {
-            const task = (await call('GET', `/entities/contract-review-task/${key}`, null, token)).body;
-            return call('POST', `/entities/contract-review-task/${key}/task/answer`, body, token, { 'if-match': `"${task.revision}"` });
+            const task = (await call('GET', `/entities/contract-review-task/${reviewKey(key)}`, null, token)).body;
+            return call('POST', `/entities/contract-review-task/${reviewKey(key)}/task/answer`, body, token, { 'if-match': `"${task.revision}"` });
         };
 
         const ended = key => async () => (await processOf(key)).data.state.status === 'ended';
@@ -315,12 +317,12 @@ describe('server with the demo', function () {
             const token = await userWith(`reviewer-a-${run}`, ['underwriter-role']);
             const contract = await startReview(token);
             expect((await processOf(contract.businessKey)).data.process.step).to.equal('await-review');
-            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task).to.deep.include({ status: 'open', actor: 'underwriter-role' });
+            expect((await call('GET', `/entities/contract-review-task/${reviewKey(contract.businessKey)}`, null, token)).body.data.task).to.deep.include({ status: 'open', actor: 'underwriter-role' });
             const answered = await answer(contract.businessKey, { outcome: 'approved' }, token);
             expect([answered.status, answered.body.data.task.status]).to.deep.equal([200, 'open']);
             await eventually(ended(contract.businessKey));
             expect((await read(contract, token)).data.state.status).to.equal('active');
-            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task).to.deep.include({ status: 'resolved', outcome: 'approved' });
+            expect((await call('GET', `/entities/contract-review-task/${reviewKey(contract.businessKey)}`, null, token)).body.data.task).to.deep.include({ status: 'resolved', outcome: 'approved' });
         });
 
         it('discards the issued contract when the underwriter rejects it, and keeps the reason', async () => {
@@ -349,7 +351,7 @@ describe('server with the demo', function () {
             expect([then, Math.abs(Date.parse(at) - Date.now() - 3 * 24 * 60 * 60 * 1000) < 60000]).to.deep.equal(['expired', true]);
             await invoke('process-wakeups', 'publish', { message: { kind: 'timer', entityType: 'contract-review-processes', businessKey: `contract-review-process/${contract.businessKey}`, token: waiting.data.process.wait.token, step: 'expired' }, group: `contract-review-processes/contract-review-process/${contract.businessKey}/timer/${waiting.data.process.wait.token}-now` });
             await eventually(ended(contract.businessKey));
-            expect((await call('GET', `/entities/contract-review-task/${contract.businessKey}`, null, token)).body.data.task.status).to.equal('cancelled');
+            expect((await call('GET', `/entities/contract-review-task/${reviewKey(contract.businessKey)}`, null, token)).body.data.task.status).to.equal('cancelled');
             expect((await answer(contract.businessKey, { outcome: 'approved' }, token)).status).to.equal(409);
             expect((await read(contract, token)).data.state.status).to.equal('issued');
         });

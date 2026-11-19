@@ -5,6 +5,16 @@
         "data": { "!entityType": "@ref/entity-type", "late": "boolean", "many": "boolean", "*": "never" }
     },
     {
+        "id": "process-task",
+        "kind": "schema",
+        "data": { "!type": "@ref/entity-type", "about[]": "string", "*": "never" }
+    },
+    {
+        "id": "process-opening",
+        "kind": "schema",
+        "data": { "body": "@mapping", "dueOn": "@mapping", "assignTo": "@mapping", "*": "never" }
+    },
+    {
         "id": "process-signal",
         "kind": "schema",
         "data": { "!to": "string", "!by": "string", "payload": "@schema", "*": "never" }
@@ -39,6 +49,8 @@
         "kind": "schema",
         "data": {
             "do": "@method",
+            "transition{}": "string",
+            "open{}": "@process-opening",
             "set": "@mapping",
             "next": "string",
             "choose[]": "@any",
@@ -64,8 +76,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!definition": "string", "!step": "string" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "stepExtensions"
+            "mapping": {"$let": {"data": {"$func/process-definition-of": "#.definition"}, "declared": {"$get": {"object": "@data.steps", "path": "#.step"}}}, "$in": {"$if": ["@declared.extensible", {"$filter": {"collection": {"$func/slot-values": {"element": "#.definition", "slot": "stepExtensions"}}, "as": "extension", "predicate": {"$eq": ["@extension.step", "#.step"]}}}, []]}}
         }
     },
     {
@@ -83,6 +94,7 @@
         "data": {
             "shape": {
                 "!entities{}": "@process-role",
+                "tasks{}": "@process-task",
                 "input": "@schema",
                 "variables": "@schema",
                 "key": "@mapping",
@@ -111,9 +123,8 @@
         "id": "initial-process-value",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!definition": "string", "!entities{}": "@any" }, "output": { "!definition": "string", "!step": "string", "!entities{}": "@any" } },
-            "module": "@business-framework/entity-processes/process",
-            "export": "initialProcessValue"
+            "signature": { "input": { "!definition": "string", "!entities{}": "@any" }, "output": { "!value": { "!definition": "string", "!step": "string", "!entities{}": "@any" }, "!problems[]": "string" } },
+            "mapping": {"$let": {"data": {"$func/process-definition-of": "#.definition"}, "roles": {"$func/process-roles-of": "@data"}}, "$in": {"value": {"definition": "#.definition", "step": "@data.start", "entities": {"$mapValues": {"of": "#.entities", "as": ["keys", "role"], "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$if": ["@declared.many", {"$map": {"over": {"$concat": [[], "@keys"]}, "as": "key", "fn": {"entityType": "@declared.entityType", "businessKey": "@key"}}}, {"entityType": "@declared.entityType", "businessKey": "@keys"}]}}}}}, "problems": {"$concat": [{"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$and": [{"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}}, {"$not": {"$not": {"$isNil": {"$get": {"object": "#.entities", "path": "@role"}}}}}]}}}, "as": "role", "fn": {"$str": ["the role '", "@role", "' must be bound to start ", "#.definition"]}}}, {"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$and": [{"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}, {"$not": {"$isNil": {"$get": {"object": "#.entities", "path": "@role"}}}}]}}}, "as": "role", "fn": {"$str": ["the role '", "@role", "' is late: a step binds it, not the start"]}}}, {"$map": {"over": {"$filter": {"collection": {"$keys": "#.entities"}, "as": "role", "predicate": {"$isNil": {"$get": {"object": "@roles", "path": "@role"}}}}}, "as": "role", "fn": {"$str": ["#.definition", " has no role '", "@role", "'"]}}}]}}}
         }
     },
     {
@@ -130,8 +141,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer", "!bindings": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processExit"
+            "mapping": {"$let": {"definition": "#.scope.process.data.process.definition", "variables": {"$merge": ["#.scope.process.data.body", {"$if": [{"$isNil": "#.step.set"}, {}, {"$func/apply-mapping": {"mapping": "#.step.set", "input": "#.scope"}}]}]}, "roles": {"$func/process-roles-of": {"$func/process-definition-of": "@definition"}}, "bind": {"$coalesce": ["#.scope.output.bind", {}]}, "inscope": {"$merge": ["#.scope", {"process": {"$merge": ["#.scope.process", {"data": {"$merge": ["#.scope.process.data", {"body": "@variables"}]}}]}}]}, "found": {"$head": {"$filter": {"collection": {"$map": {"over": {"$keys": "@bind"}, "as": "role", "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$cond": [[{"$isNil": "@declared"}, {"code": "invalid", "message": {"$str": ["@definition", " has no role '", "@role", "'"]}, "data": {"definition": "@definition", "role": "@role"}}], [{"$not": "@declared.late"}, {"code": "conflict", "message": {"$str": ["the role '", "@role", "' is bound at the start and never rebound"]}, "data": {"definition": "@definition", "role": "@role"}}], [{"$and": [{"$not": "@declared.many"}, {"$not": {"$isNil": {"$get": {"object": "#.bindings", "path": "@role"}}}}]}, {"code": "conflict", "message": {"$str": ["the role '", "@role", "' is already bound"]}, "data": {"definition": "@definition", "role": "@role"}}], ["else", null]]}}}}, "as": "found", "predicate": {"$not": {"$isNil": "@found"}}}}}, "exit": {"$cond": [["#.step.end", {"kind": "end"}], [{"$not": {"$isNil": "#.step.next"}}, {"kind": "next", "step": "#.step.next"}], [{"$not": {"$isNil": "#.step.choose"}}, {"$let": {"chosen": {"$find": {"collection": "#.step.choose", "as": "entry", "predicate": {"$or": [{"$eq": ["@entry.0", "else"]}, {"$func/apply-mapping": {"mapping": "@entry.0", "input": "@inscope"}}]}}}}, "$in": {"$if": [{"$isNil": "@chosen"}, {"problem": {"code": "invalid", "message": {"$str": ["no choose entry of the step '", "#.name", "' holds"]}, "data": {"step": "#.name"}}}, {"kind": "next", "step": "@chosen.1"}]}}], ["else", {"kind": "wait", "wait": {"$merge": [{"token": {"$sum": ["#.revision", 1]}, "signals": {"$keys": {"$coalesce": ["#.step.wait.signals", {}]}}}, {"$if": [{"$isNil": "#.step.wait.until"}, {}, {"until": {"$merge": [{"then": "#.step.wait.until.then"}, {"$if": [{"$isNil": "#.step.wait.until.at"}, {"after": "#.step.wait.until.after"}, {"at": {"$func/apply-mapping": {"mapping": "#.step.wait.until.at", "input": "@inscope"}}}]}]}}]}]}}]]}}, "$in": {"$merge": [{"variables": "@variables", "entities": {"$merge": ["#.bindings", {"$mapValues": {"of": "@bind", "as": ["keys", "role"], "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$if": ["@declared.many", {"$concat": [{"$coalesce": [{"$get": {"object": "#.bindings", "path": "@role"}}, []]}, {"$map": {"over": {"$concat": [[], "@keys"]}, "as": "key", "fn": {"entityType": "@declared.entityType", "businessKey": "@key"}}}]}, {"entityType": "@declared.entityType", "businessKey": "@keys"}]}}}}]}}, "@exit", {"$if": [{"$not": {"$isNil": "@found"}}, {"problem": "@found"}, {}]}]}}
         }
     },
     {
@@ -148,17 +158,15 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!process": "@any", "!step": "string", "wait": "@any", "entities": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processPosition"
+            "mapping": {"$merge": [{"definition": "#.process.definition", "step": "#.step", "entities": {"$coalesce": ["#.entities", "#.process.entities"]}}, {"$if": ["#.wait", {"wait": "#.wait"}, {}]}]}
         }
     },
     {
         "id": "process-verdict",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "!error": "@any", "!attempts": "integer" }, "output": { "!action=1": ["rethrow", "count", "suspend", "drop"], "!operations[]": "@any" } },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processVerdict"
+            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "!error": "@any", "!attempts": "integer", "target": "@any" }, "output": { "!action=1": ["rethrow", "count", "suspend", "drop"], "!operations[]": "@any" } },
+            "mapping": {"$let": {"type": {"$func/error-type-lookup": "#.error.code"}, "step": {"$coalesce": ["#.target.step", "#.process.data.process.step"]}, "count": {"$sum": [{"$if": [{"$eq": ["#.process.data.process.failures.step", "@step"]}, {"$coalesce": ["#.process.data.process.failures.count", 0]}, 0]}, 1]}}, "$in": {"$cond": [[{"$or": ["@type.outage", {"$eq": ["#.wakeup.kind", "start"]}]}, {"action": "rethrow", "operations": []}], [{"$neq": ["#.process.data.state.status", "running"]}, {"action": "drop", "operations": []}], [{"$or": [{"$not": "@type.transient"}, {"$gte": ["@count", "#.attempts"]}]}, {"action": "suspend", "operations": [{"key": "process", "operation": "move", "input": {"process": {"$merge": ["#.process.data.process", {"fault": {"step": "@step", "code": "#.error.code", "message": "#.error.message", "attempts": "@count", "wakeup": "#.wakeup"}}]}}}, {"key": "state", "operation": "transition", "input": {"transition": "suspend"}}]}], ["else", {"action": "count", "operations": [{"key": "process", "operation": "move", "input": {"process": {"$merge": ["#.process.data.process", {"failures": {"step": "@step", "count": "@count"}}]}}}]}]]}}
         }
     },
     {
@@ -166,8 +174,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "[@entity-relation]" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processRelations"
+            "mapping": {"$if": [{"$includes": {"collection": ["ended", "aborted"], "value": "#.data.state.status"}}, [], {"$concat": {"$values": {"$mapValues": {"of": "#.data.process.entities", "as": ["binding", "role"], "fn": {"$map": {"over": {"$concat": [[], "@binding"]}, "as": "bound", "fn": {"targetEntityType": "@bound.entityType", "targetEntityBusinessKey": "@bound.businessKey", "relationType": "@role"}}}}}}}]}
         }
     },
     {
@@ -180,8 +187,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!process": "@any", "!change": "@any", "!entityType": "string" }, "output": "boolean" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "footprintAllows"
+            "mapping": {"$if": [{"$eq": ["#.change.operation", "create"]}, {"$any": {"collection": {"$values": {"$func/process-roles-of": {"$func/process-definition-of": "#.process.definition"}}}, "as": "role", "predicate": {"$eq": ["@role.entityType", "#.entityType"]}}}, {"$any": {"collection": {"$concat": {"$values": "#.process.entities"}}, "as": "bound", "predicate": {"$and": [{"$eq": ["@bound.entityType", "#.change.before.entityType"]}, {"$eq": ["@bound.businessKey", "#.change.before.businessKey"]}]}}}]}
         }
     },
     { "id": "outside-process-footprint-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "outside-process-footprint", "extends": "forbidden" } } },
@@ -220,8 +226,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!step": "@any", "!exit": "@any", "entities": "@any", "!scope": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "heldExit"
+            "mapping": {"$let": {"held": {"$if": [{"$and": [{"$eq": ["#.exit.kind", "wait"]}, {"$not": {"$isNil": "#.entities"}}]}, {"$find": {"collection": {"$coalesce": ["#.step.wait.when", []]}, "as": "entry", "predicate": {"$func/apply-mapping": {"mapping": "@entry.test", "input": {"$func/process-scope": {"definition": "#.scope.process.data.process.definition", "scope": "#.scope", "participants": "#.entities"}}}}}}, null]}}, "$in": {"$if": [{"$isNil": "@held"}, "#.exit", {"kind": "next", "step": "@held.then", "variables": "#.exit.variables", "entities": "#.exit.entities", "resolve": {"$coalesce": ["@held.resolve", {}]}}]}}
         }
     },
     {
@@ -238,8 +243,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "viewRoles"
+            "mapping": {"$map": {"over": "#.changed", "as": "name", "fn": {"definition": {"$head": {"$split": {"separator": "/", "string": "@name"}}}, "role": {"$join": {"separator": "/", "strings": {"$tail": {"$split": {"separator": "/", "string": "@name"}}}}}}}}
         }
     },
     {
@@ -247,8 +251,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!message": "@any", "!view": "@any", "!sources": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processChecks"
+            "mapping": {"$let": {"types": {"$map": {"over": {"$filter": {"collection": {"$func/instances-of": "process-entity-type"}, "as": "element", "predicate": {"$eq": ["@element.data.definition", "#.view.definition"]}}}, "as": "element", "fn": "@element.id"}}}, "$in": {"$map": {"over": {"$filter": {"collection": "#.sources", "as": "source", "predicate": {"$and": [{"$includes": {"collection": "@types", "value": "@source.sourceEntityType"}}, {"$not": {"$and": [{"$eq": ["#.message.via.definition", "#.view.definition"]}, {"$eq": ["#.message.via.businessKey", "@source.sourceEntityBusinessKey"]}]}}]}}}, "as": "source", "fn": {"message": {"kind": "check", "entityType": "@source.sourceEntityType", "businessKey": "@source.sourceEntityBusinessKey", "role": "#.view.role", "revision": "#.message.revision"}, "group": {"$str": ["@source.sourceEntityType", "/", "@source.sourceEntityBusinessKey"]}}}}}
         }
     },
     {
@@ -324,12 +327,61 @@
         }
     },
     {
+        "id": "process-definition-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "definitionOf"
+        }
+    },
+    {
+        "id": "process-roles-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "rolesOf"
+        }
+    },
+    {
+        "id": "process-definition-of-type",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "string" },
+            "mapping": {"$let": {"type": {"$find": {"collection": {"$func/instances-of": "process-entity-type"}, "as": "element", "predicate": {"$eq": ["@element.id", "#"]}}}}, "$in": "@type.data.definition"}
+        }
+    },
+    {
+        "id": "process-scope",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!scope": "@any", "!participants": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"roles": {"$func/process-roles-of": {"$func/process-definition-of": "#.definition"}}}, "$in": {"$merge": ["#.scope", {"entities": {"$pick": {"keys": {"$filter": {"collection": {"$keys": "#.participants"}, "as": "role", "predicate": {"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.task"}}}}, "object": "#.participants"}}, "tasks": {"$pick": {"keys": {"$filter": {"collection": {"$keys": "#.participants"}, "as": "role", "predicate": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.task"}}}, "object": "#.participants"}}}]}}
+        }
+    },
+    {
+        "id": "process-task-openings",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!name": "string", "!step": "@any", "!scope": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"tasks": {"$coalesce": [{"$get": {"object": {"$func/process-definition-of": "#.definition"}, "path": "tasks"}}, {}]}, "entries": {"$values": {"$mapValues": {"of": {"$coalesce": ["#.step.open", {}]}, "as": ["opening", "task"], "fn": {"task": "@task", "opening": "@opening", "current": {"$get": {"object": "#.scope.tasks", "path": "@task"}}, "declared": {"$get": {"object": "@tasks", "path": "@task"}}}}}}, "closed": {"$find": {"collection": "@entries", "as": "entry", "predicate": {"$and": [{"$not": {"$isNil": "@entry.current"}}, {"$neq": ["@entry.current.data.task.status", "open"]}]}}}, "pairs": {"$map": {"over": {"$filter": {"collection": "@entries", "as": "entry", "predicate": {"$isNil": "@entry.current"}}}, "as": "entry", "fn": {"task": "@entry.task", "opening": {"entityType": "@entry.declared.type", "businessKey": {"$str": [{"$replace": {"regex": "/", "substitute": ".", "global": true, "string": "#.scope.process.businessKey"}}, ".", "@entry.task"]}, "traits": {"task": {"$merge": [{"origin": {"process": "#.scope.process.businessKey", "step": "#.name"}, "about": {"$concat": {"$map": {"over": {"$coalesce": ["@entry.declared.about", []]}, "as": "role", "fn": {"$map": {"over": {"$filter": {"collection": {"$concat": [[], {"$get": {"object": "#.scope.entities", "path": "@role"}}]}, "as": "record", "predicate": {"$not": {"$isNil": "@record"}}}}, "as": "record", "fn": {"entityType": "@record.entityType", "businessKey": "@record.businessKey"}}}}}}}, {"$if": [{"$isNil": "@entry.opening.dueOn"}, {}, {"dueOn": {"$func/apply-mapping": {"mapping": "@entry.opening.dueOn", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}}]}, {"$if": [{"$isNil": "@entry.opening.assignTo"}, {}, {"assignedTo": {"$func/apply-mapping": {"mapping": "@entry.opening.assignTo", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}}]}]}, "body": {"$if": [{"$isNil": "@entry.opening.body"}, {}, {"$func/apply-mapping": {"mapping": "@entry.opening.body", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}]}}}}}}}, "$in": {"openings": {"$map": {"over": "@pairs", "as": "pair", "fn": "@pair.opening"}}, "bind": {"$mapValues": {"of": {"$toDictionary": {"by": "@pair.task", "as": "pair", "collection": "@pairs"}}, "as": "pair", "fn": "@pair.opening.businessKey"}}, "conflict": {"$if": [{"$isNil": "@closed"}, null, {"code": "conflict", "message": {"$str": ["the task '", "@closed.task", "' of ", "#.definition", " is ", "@closed.current.data.task.status", ", and a task is opened once"]}, "data": {"definition": "#.definition", "task": "@closed.task"}}]}}}
+        }
+    },
+    {
+        "id": "process-transitions",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!scope": "@any" }, "output": "@any" },
+            "mapping": {"$values": {"$mapValues": {"of": {"$coalesce": ["#.step.transition", {}]}, "as": ["transition", "role"], "fn": {"$let": {"participant": {"$get": {"object": "#.scope.entities", "path": "@role"}}}, "$in": {"entityType": "@participant.entityType", "businessKey": "@participant.businessKey", "transition": "@transition"}}}}}
+        }
+    },
+    {
         "id": "process-task-closures",
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!step": "@any", "!entities": "@any", "!resolve": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "taskClosures"
+            "mapping": {"$let": {"roles": {"$if": [{"$eq": ["#.step", null]}, {"$keys": "#.entities"}, {"$unique": {"$concat": {"$map": {"over": {"$coalesce": ["#.step.wait.when", []]}, "as": "entry", "fn": {"$keys": {"$coalesce": ["@entry.resolve", {}]}}}}}}]}}, "$in": {"$concat": {"$map": {"over": "@roles", "as": "role", "fn": {"$let": {"outcome": {"$get": {"object": "#.resolve", "path": "@role"}}}, "$in": {"$map": {"over": {"$filter": {"collection": {"$concat": [[], {"$get": {"object": "#.entities", "path": "@role"}}]}, "as": "record", "predicate": {"$eq": ["@record.data.task.status", "open"]}}}, "as": "record", "fn": {"$merge": [{"entityType": "@record.entityType", "businessKey": "@record.businessKey", "revision": "@record.revision"}, {"$if": [{"$isNil": "@outcome"}, {"operation": "cancel"}, {"operation": "resolve", "input": {"outcome": "@outcome"}}]}]}}}}}}}}
         }
     },
     {
@@ -337,8 +389,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!entityType": "string", "!entities": "@any", "input": "@any" }, "output": "string" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processBusinessKey"
+            "mapping": {"$let": {"definition": {"$func/process-definition-of-type": "#.entityType"}, "data": {"$func/process-definition-of": "@definition"}, "roles": {"$func/process-roles-of": "@data"}}, "$in": {"$join": {"separator": "/", "strings": {"$concat": [["@definition"], {"$concat": {"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}}}}, "as": "role", "fn": {"$concat": [[], {"$get": {"object": "#.entities", "path": "@role"}}]}}}}, {"$if": [{"$isNil": "@data.key"}, [], {"$func/apply-mapping": {"mapping": "@data.key", "input": {"entities": "#.entities", "input": {"$coalesce": ["#.input", null]}}}}]}]}}}}
         }
     },
     {
@@ -346,8 +397,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!entityType": "string", "!name": "string" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "signalRole"
+            "mapping": {"$let": {"data": {"$func/process-definition-of": {"$func/process-definition-of-type": "#.entityType"}}, "signals": {"$find": {"collection": {"$map": {"over": {"$values": "@data.steps"}, "as": "step", "fn": {"$coalesce": ["@step.wait.signals", {}]}}}, "as": "declared", "predicate": {"$not": {"$isNil": {"$get": {"object": "@declared", "path": "#.name"}}}}}}, "declared": {"$get": {"object": "@signals", "path": "#.name"}}}, "$in": "@declared.by"}
         }
     },
     {
@@ -355,8 +405,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!entityType": "string", "!name": "string", "payload": "@any", "!sources": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "signalWakeups"
+            "mapping": {"$map": {"over": {"$filter": {"collection": "#.sources", "as": "source", "predicate": {"$eq": ["@source.sourceEntityType", "#.entityType"]}}}, "as": "source", "fn": {"message": {"$merge": [{"kind": "signal", "entityType": "#.entityType", "businessKey": "@source.sourceEntityBusinessKey", "name": "#.name"}, {"$if": [{"$isNil": "#.payload"}, {}, {"payload": "#.payload"}]}]}, "group": {"$str": ["#.entityType", "/", "@source.sourceEntityBusinessKey"]}}}}
         }
     },
     {
@@ -483,8 +532,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!process": "@any", "!wakeup": "@any", "entities": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "wakeupTarget"
+            "mapping": {"$cond": [[{"$neq": ["#.process.data.state.status", "running"]}, null], [{"$eq": ["#.wakeup.kind", "signal"]}, {"$if": [{"$includes": {"collection": {"$coalesce": ["#.process.data.process.wait.signals", []]}, "value": "#.wakeup.name"}}, {"$let": {"declared": {"$get": {"object": {"$let": {"definition": {"$func/process-step-of": {"definition": "#.process.data.process.definition", "step": "#.process.data.process.step"}}}, "$in": "@definition.wait.signals"}, "path": "#.wakeup.name"}}}, "$in": {"step": "@declared.to", "signal": {"$coalesce": ["#.wakeup.payload", null]}}}, null]}], [{"$eq": ["#.wakeup.kind", "timer"]}, {"$if": [{"$and": [{"$eq": ["#.process.data.process.wait.token", "#.wakeup.token"]}, {"$eq": ["#.process.data.process.wait.until.then", "#.wakeup.step"]}]}, {"step": "#.wakeup.step", "signal": null}, null]}], ["else", {"$if": [{"$isNil": "#.process.data.process.wait"}, null, {"$let": {"held": {"$find": {"collection": {"$coalesce": [{"$let": {"definition": {"$func/process-step-of": {"definition": "#.process.data.process.definition", "step": "#.process.data.process.step"}}}, "$in": "@definition.wait.when"}, []]}, "as": "entry", "predicate": {"$func/apply-mapping": {"mapping": "@entry.test", "input": {"$func/process-scope": {"definition": "#.process.data.process.definition", "scope": {"process": "#.process"}, "participants": "#.entities"}}}}}}}, "$in": {"$if": [{"$isNil": "@held"}, null, {"step": "@held.then", "signal": null, "resolve": {"$coalesce": ["@held.resolve", {}]}}]}}]}]]}
         }
     },
     {
@@ -538,14 +586,11 @@
             "extends": "valued-entity-trait",
             "operations": {
                 "initialize": {
-                    "implementation": {
-                        "set": {
-                            "$func/initial-process-value": {
-                                "definition": "#.input.configuration.definition",
-                                "entities": { "$coalesce": ["#.input.input.entities", {}] }
-                            }
-                        }
-                    }
+                    "implementation": [
+                        { "outputKey": "initial", "set": { "$func/initial-process-value": { "definition": "#.input.configuration.definition", "entities": { "$coalesce": ["#.input.input.entities", {}] } } } },
+                        { "if": "#.initial.problems.0", "then": { "throw": { "code": "invalid", "message": { "$join": { "separator": "; ", "strings": "#.initial.problems" } }, "data": { "definition": "#.input.configuration.definition" } } } },
+                        { "set": "#.initial.value" }
+                    ]
                 },
                 "move": {
                     "input": { "$data#&": ["@trait-operation-input", { "!input": { "!process{}": "@any" } }] },
@@ -619,7 +664,7 @@
         "data": {
             "extends": "entity-type",
             "shape": { "!definition": "@ref/process-definition", "traits{}": "@entity-trait-entry" },
-            "mapping": { "traits": { "$merge": ["#.data.traits", { "process": { "configuration": { "definition": "#.data.definition" } } }] } },
+            "mapping": {"traits": {"$merge": ["#.data.traits", {"process": {"configuration": {"definition": "#.data.definition"}}}]}},
             "settings": { "shape": { "!maxChain": "integer", "!breaker": { "!attempts": "integer" } }, "defaults": { "maxChain": 100, "breaker": { "attempts": 3 } } },
             "context": { "manages": { "process": "@process-context" } },
             "operations": {
@@ -643,11 +688,21 @@
                         ]
                     }
                 },
+                "readEach": {
+                    "private": true,
+                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string" } },
+                    "output": "@any",
+                    "implementation": { "inputMap": "#.input.items", "forEach": { "inputMap": { "businessKey": "#.item.businessKey" }, "invoke": "#.item.entityType", "operation": "read" } }
+                },
                 "loadParticipants": {
                     "private": true,
                     "input": "@any",
                     "output": "@any",
-                    "implementation": { "low": { "module": "@business-framework/entity-processes/process", "export": "loadParticipants", "effects": ["read"] } }
+                    "implementation": [
+                        { "outputKey": "items", "set": {"$concat": {"$values": {"$mapValues": {"of": "#.input", "as": ["binding", "role"], "fn": {"$map": {"over": {"$concat": [[], "@binding"]}, "as": "bound", "fn": {"role": "@role", "many": {"$isNil": "@binding.entityType"}, "entityType": "@bound.entityType", "businessKey": "@bound.businessKey"}}}}}}} },
+                        { "outputKey": "records", "inputMap": { "items": "#.items" }, "invoke": "#.self.id", "operation": "readEach" },
+                        { "set": {"$mapValues": {"of": {"$group": {"by": "@pair.role", "as": "pair", "collection": {"$zip": {"sequences": ["#.items", "#.records"], "as": ["item", "record"], "with": {"role": "@item.role", "many": "@item.many", "record": "@record"}}}}}, "as": "group", "fn": {"$if": ["@group.0.many", {"$map": {"over": "@group", "as": "pair", "fn": "@pair.record"}}, "@group.0.record"]}}} }
+                    ]
                 },
                 "closeTasks": {
                     "private": true,
@@ -661,15 +716,33 @@
                         },
                         { "outputKey": "closures", "set": { "$func/process-task-closures": { "step": "#.input.step", "entities": { "$coalesce": ["#.entities", {}] }, "resolve": "#.input.resolve" } } },
                         {
-                            "asSystem": { "inputMap": "#.closures", "invoke": "#.self.id", "operation": "applyClosures" }
+                            "asSystem": { "inputMap": { "items": "#.closures" }, "invoke": "#.self.id", "operation": "applyClosures" }
                         }
                     ]
                 },
+                "applyOpenings": {
+                    "private": true,
+                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string", "traits": "@any" } },
+                    "output": "@any",
+                    "implementation": { "inputMap": "#.input.items", "forEach": { "inputMap": { "businessKey": "#.item.businessKey", "traits": "#.item.traits" }, "invoke": "#.item.entityType", "operation": "create" } }
+                },
+                "applyTransitions": {
+                    "private": true,
+                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!transition": "string" } },
+                    "output": "@any",
+                    "implementation": {
+                        "inputMap": "#.input.items",
+                        "forEach": [
+                            { "outputKey": "current", "inputMap": { "businessKey": "#.item.businessKey" }, "invoke": "#.item.entityType", "operation": "read" },
+                            { "inputMap": { "businessKey": "#.item.businessKey", "revision": "#.current.revision", "trait": "state", "operation": "transition", "input": { "transition": "#.item.transition" } }, "invoke": "#.item.entityType", "operation": "run" }
+                        ]
+                    }
+                },
                 "applyClosures": {
                     "private": true,
-                    "input": "@any",
+                    "input": { "!items[]": { "!entityType": "@ref/entity-type", "!businessKey": "string", "!revision": "integer", "!operation": "string", "input": "@any" } },
                     "output": "@any",
-                    "implementation": { "low": { "module": "@business-framework/entity-processes/process", "export": "applyClosures", "effects": ["read", "write"] } }
+                    "implementation": { "inputMap": "#.input.items", "forEach": { "inputMap": { "businessKey": "#.item.businessKey", "revision": "#.item.revision", "trait": "task", "operation": "#.item.operation", "input": "#.item.input" }, "invoke": "#.item.entityType", "operation": "run" } }
                 },
                 "advance": {
                     "private": true,
@@ -688,10 +761,15 @@
                         {
                             "outputKey": "scope",
                             "set": {
-                                "process": { "$merge": ["#.process", { "data": { "$merge": ["#.process.data", { "body": "#.input.variables" }] } }] },
-                                "entities": "#.entities",
-                                "input": "#.input.input",
-                                "signal": "#.input.signal"
+                                "$func/process-scope": {
+                                    "definition": "#.process.data.process.definition",
+                                    "scope": {
+                                        "process": { "$merge": ["#.process", { "data": { "$merge": ["#.process.data", { "body": "#.input.variables" }] } }] },
+                                        "input": "#.input.input",
+                                        "signal": "#.input.signal"
+                                    },
+                                    "participants": "#.entities"
+                                }
                             }
                         },
                         { "outputKey": "extensions", "set": { "$func/process-step-extensions-of": { "definition": "#.process.data.process.definition", "step": "#.input.step" } } },
@@ -705,7 +783,11 @@
                                         "do": [
                                             { "outputKey": "result", "if": "#.step.do", "then": { "inputMap": "#.scope", "execute": "#.step.do" } },
                                             { "inputMap": "#.extensions", "forEach": { "inputMap": "#.scope", "execute": "#.item.do" } },
-                                            { "set": "#.result" }
+                                            { "asSystem": { "inputMap": { "items": { "$func/process-transitions": { "step": "#.step", "scope": "#.scope" } } }, "invoke": "#.self.id", "operation": "applyTransitions" } },
+                                            { "outputKey": "opened", "set": { "$func/process-task-openings": { "definition": "#.process.data.process.definition", "name": "#.input.step", "step": "#.step", "scope": "#.scope" } } },
+                                            { "if": "#.opened.conflict", "then": { "throw": { "code": "#.opened.conflict.code", "message": "#.opened.conflict.message", "data": "#.opened.conflict.data" } } },
+                                            { "asSystem": { "inputMap": { "items": "#.opened.openings" }, "invoke": "#.self.id", "operation": "applyOpenings" } },
+                                            { "set": { "$merge": [{ "$coalesce": ["#.result", {}] }, { "bind": { "$merge": [{ "$coalesce": ["#.result.bind", {}] }, "#.opened.bind"] } }] } }
                                         ]
                                     }
                                 },
@@ -731,6 +813,7 @@
                                 ]
                             }
                         },
+                        { "if": "#.exit.problem", "then": { "throw": { "code": "#.exit.problem.code", "message": "#.exit.problem.message", "data": "#.exit.problem.data" } } },
                         {
                             "outputKey": "fresh",
                             "if": { "$and": [{ "$eq": ["#.exit.kind", "wait"] }, "#.step.wait.when"] },
@@ -888,8 +971,13 @@
                                 { "outputKey": "process", "inputMap": { "businessKey": "#.input.businessKey" }, "invoke": "#.self.id", "operation": "read" },
                                 { "outputKey": "settings", "set": { "$func/settings": "#.self.id" } },
                                 {
+                                    "outputKey": "target",
+                                    "try": { "set": { "$func/process-wakeup-target": { "process": "#.process", "wakeup": "#.input.wakeup" } } },
+                                    "catch": { "set": null }
+                                },
+                                {
                                     "outputKey": "verdict",
-                                    "set": { "$func/process-verdict": { "process": "#.process", "wakeup": "#.input.wakeup", "error": "#.input.error", "attempts": "#.settings.breaker.attempts" } }
+                                    "set": { "$func/process-verdict": { "process": "#.process", "wakeup": "#.input.wakeup", "error": "#.input.error", "attempts": "#.settings.breaker.attempts", "target": "#.target" } }
                                 },
                                 {
                                     "if": { "$not": { "$or": [{ "$eq": ["#.verdict.action", "rethrow"] }, { "$eq": ["#.verdict.action", "drop"] }] } },

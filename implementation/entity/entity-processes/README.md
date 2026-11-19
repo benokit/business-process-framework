@@ -4,7 +4,7 @@ Durable processes outside the core ([design](../../../design/durable-processes.m
 
 ## The definition
 
-An element of the kind `process-definition` declares the **roles** (the entities the process reads and changes, `late` ones bound by a step, `many` ones lists), the `input` and `variables` schemas, the `start` step and the `steps`. A step is a `do` pipeline, an optional `set` (a mapping merged into the variables) and **exactly one** exit:
+An element of the kind `process-definition` declares the **roles** (`entities`: the entities the process reads and changes, `late` ones bound by a step, `many` ones lists), the **tasks** it works with (`tasks`, see [Tasks](#tasks)), the `input` and `variables` schemas, the `start` step and the `steps`. A step is a `do` pipeline, an optional `transition` (the transitions it runs on its roles), an optional `open` (the tasks it creates), an optional `set` (a mapping merged into the variables) and **exactly one** exit:
 
 | Exit | Meaning |
 |---|---|
@@ -19,10 +19,11 @@ A step may also declare `onError: [{ catches: [<code>], set?, then }]`, the way 
 
 ```json
 { "id": "contract-issue-process", "kind": "process-definition", "data": {
-    "entities": { "contract": { "entityType": "insurance-contract" }, "review": { "entityType": "review-task", "late": true } },
+    "entities": { "contract": { "entityType": "insurance-contract" } },
+    "tasks": { "review": { "type": "review-task", "about": ["contract"] } },
     "start": "ask",
     "steps": {
-        "ask":    { "do": [ /* create the review task */ ], "wait": { "signals": { "answered": { "to": "finish", "by": "contract" } }, "until": { "after": { "days": 10 }, "then": "remind" } } },
+        "ask":    { "open": { "review": { "body": { "contract": "#.entities.contract.businessKey" } } }, "wait": { "signals": { "answered": { "to": "finish", "by": "contract" } }, "until": { "after": { "days": 10 }, "then": "remind" } } },
         "remind": { "do": [ /* send a reminder */ ], "next": "ask" },
         "finish": { "end": true }
     }
@@ -97,13 +98,22 @@ A process is an entity, so a stuck one is found by data. `$func/process-search-d
 
 ## Typing a step
 
-`validate()` types the paths of a step from the definition: `#.input.process` and `#.process` are the process entity with its `body` typed by `variables`, `#.entities.<role>` is the participant (a list for `many`) with its `body` typed by the body schema of the role's entity type, `input` is typed by the definition's `input`, `signal` and `output` are any. A path none of them has is reported (`unknown-path`) in a `do` and in every mapping of the step (`set`, `choose`, `when`, `until.at`, `onError.set`): a misspelled role, an input the process doesn't take, a field of a closed body schema. A body schema that doesn't close itself (`"*": "never"`) lets any other field through, so a misspelled field of it is not found; every other trait is typed as any ([F77](../../../design/critique.md)).
+`validate()` types the paths of a step from the definition: `#.input.process` and `#.process` are the process entity with its `body` typed by `variables`, `#.entities.<role>` is the participant (a list for `many`) with its `body` typed by the body schema of the role's entity type, `#.tasks.<task>` the same for a task, `input` is typed by the definition's `input`, `signal` and `output` are any. A path none of them has is reported (`unknown-path`) in a `do` and in every mapping of the step (`set`, `choose`, `when`, `until.at`, `onError.set`): a misspelled role, an input the process doesn't take, a field of a closed body schema. A body schema that doesn't close itself (`"*": "never"`) lets any other field through, so a misspelled field of it is not found; every other trait is typed as any ([F77](../../../design/critique.md)).
 
 ## Tasks
 
-A `when` entry may list `resolve: { <role>: <outcome> }`: the tasks (roles whose entity type has the [`task` trait](../entity-tasks/README.md)) it closes, with the outcome each gets. The process verifies the fact, then closes the task: when an entry holds, the runner resolves the tasks it lists, and **withdraws what is left**: the tasks named in the `resolve` of the wait that are still open are cancelled when the process leaves the wait by another entry, a signal or the timer. A process that ends or is aborted cancels every task it holds that is still open. All in the transaction of the step, as the system.
+A task is a participant of the process that the definition names apart from the roles. `tasks` maps a name to `{ type, about? }`: `type` is an entity type with the [`task` trait](../entity-tasks/README.md), `about` the roles the task is about. A task isn't bound at the start and isn't one of `entities`: mappings read it at `#.tasks.<name>` (and a `do` at `#.input.tasks.<name>`), so which participants are tasks is read off the definition.
 
-`validate()` checks each `resolve`: the role is declared and is a task, the outcome is one the task declares, and every outcome a user may give is routed by some entry of the wait, so an answer can't lead to a dead end.
+A step's **`transition: { <role>: <transition> }`** runs a transition of the `state` trait on the participant bound to the role, after the `do` and before `open`, in the savepoint of the step, as the system. The revision is read when the transition runs, so a `do` that changed the participant first leaves nothing stale, and the transition name alone says its dimension. A transition the participant's state refuses is a `state-refused` error of the step, which an `onError` exit catches like a failing `do`. Only a role bound at the start and holding one entity can be moved; `validate()` reports a role the process lacks, a late or `many` role, and a transition the entity type doesn't have.
+
+Where a task is created and where it is resolved are two declarations, and they are the only places a definition touches a task's life:
+
+- **`open: { <task>: { body?, dueOn?, assignTo? } }`** in a step creates the tasks after the step's `do`, in its savepoint and transaction, as the system. The mappings are over `{ process, entities, tasks, input }` (the scope of the step). The runner derives the key (`<process key>.<name>`, the slashes of the process key replaced by dots, so it is a path segment), fills `origin` (the process and the step) and `about` (the entities bound to the roles of the task's `about`), sets `dueOn` and `assignedTo` (`assignTo`, a user) when given, and binds the task, so the steps after it read it. A task that is still open is left alone when a step opens it again (a loop that asks again changes nothing); one that is closed is a `conflict`, which fails the chain like any step does.
+- **`resolve`** in a `when` entry, below.
+
+A `when` entry may list `resolve: { <task>: <outcome> }`: the tasks it closes, with the outcome each gets. The process verifies the fact, then closes the task: when an entry holds, the runner resolves the tasks it lists, and **withdraws what is left**: the tasks named in the `resolve` of the wait that are still open are cancelled when the process leaves the wait by another entry, a signal or the timer. A process that ends or is aborted cancels every task it holds that is still open. All in the transaction of the step, as the system.
+
+`validate()` checks the tasks: the type has the `task` trait, `about` names roles of the process, no name is both a role and a task, every task is opened by some step, a step opens only declared tasks, and each `resolve` names a task, an outcome it declares, with every outcome a user may give routed by some entry of the wait, so an answer can't lead to a dead end.
 
 ## Binding, relations and the footprint
 

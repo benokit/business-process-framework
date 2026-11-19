@@ -20,6 +20,11 @@
         "data": { "grants": [{ "area": "states", "resource": "underwriting-amendment-type", "action": "activate" }] }
     },
     {
+        "id": "process-operator-actor",
+        "kind": "actor",
+        "data": { "grants": [{ "area": "states", "resource": "contract-review-processes", "action": ["suspend", "resume", "abort"] }] }
+    },
+    {
         "id": "underwriter-role",
         "kind": "role",
         "data": { "actors": ["underwriter-actor", "entity-reader-actor", "entity-task-worker-actor"] }
@@ -32,6 +37,6 @@
     {
         "id": "administrator-role",
         "kind": "role",
-        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor", "user-administrator-actor", "amendment-approver-actor"] }
+        "data": { "actors": ["entity-editor-actor", "entity-lifecycle-actor", "user-administrator-actor", "amendment-approver-actor", "process-operator-actor"] }
     }
 ]

@@ -40,6 +40,10 @@ const REVIEWTASK = `reviewtask-${run}`;
 const ASKING = `asking-process-${run}`;
 const ASKINGS = `askings-${run}`;
 
+const ASKINGAGAIN = `askingagain-process-${run}`;
+const ASKINGAGAINS = `askingagains-${run}`;
+const REASKING = `reasking-process-${run}`;
+const REASKINGS = `reaskings-${run}`;
 const KEYED = `keyed-process-${run}`;
 const KEYEDS = `keyeds-${run}`;
 
@@ -52,6 +56,12 @@ const BINDING = `binding-process-${run}`;
 const BINDINGS = `bindings-${run}`;
 const REBINDING = `rebinding-process-${run}`;
 const REBINDINGS = `rebindings-${run}`;
+
+const POLICY = `policy-${run}`;
+const MOVING = `moving-process-${run}`;
+const MOVINGS = `movings-${run}`;
+const BLOCKED = `blocked-process-${run}`;
+const BLOCKEDS = `blockeds-${run}`;
 
 const OTHER = `other-${run}`;
 const TRESPASSING = `trespassing-process-${run}`;
@@ -246,18 +256,16 @@ const elements = [
         id: ASKING,
         kind: 'process-definition',
         data: {
-            entities: { contract: { entityType: CONTRACT }, review: { entityType: REVIEWTASK, late: true } },
+            entities: { contract: { entityType: CONTRACT } },
+            tasks: { review: { type: REVIEWTASK, about: ['contract'] } },
             start: 'ask',
             steps: {
                 ask: {
-                    do: [
-                        { inputMap: { businessKey: '#.input.entities.contract.businessKey', traits: { task: { origin: { process: ASKINGS, step: 'ask' } }, body: {} } }, invoke: REVIEWTASK, operation: 'create' },
-                        { return: { bind: { review: '#.input.entities.contract.businessKey' } } }
-                    ],
+                    open: { review: {} },
                     wait: {
                         when: [
-                            { test: { $eq: ['#.entities.review.data.task.answer.outcome', 'approved'] }, resolve: { review: 'approved' }, then: 'approved' },
-                            { test: { $eq: ['#.entities.review.data.task.answer.outcome', 'rejected'] }, resolve: { review: 'rejected' }, then: 'rejected' }
+                            { test: { $eq: ['#.tasks.review.data.task.answer.outcome', 'approved'] }, resolve: { review: 'approved' }, then: 'approved' },
+                            { test: { $eq: ['#.tasks.review.data.task.answer.outcome', 'rejected'] }, resolve: { review: 'rejected' }, then: 'rejected' }
                         ],
                         signals: { withdraw: { to: 'withdrawn', by: 'contract' } }
                     }
@@ -269,6 +277,39 @@ const elements = [
         }
     },
     { id: ASKINGS, kind: 'process-entity-type', data: { definition: ASKING } },
+    {
+        id: ASKINGAGAIN,
+        kind: 'process-definition',
+        data: {
+            entities: { contract: { entityType: CONTRACT } },
+            tasks: { review: { type: REVIEWTASK, about: ['contract'] } },
+            variables: { sawTask: 'boolean' },
+            start: 'ask',
+            steps: {
+                ask: { open: { review: { body: { note: '#.entities.contract.data.body.name' }, dueOn: '#.input.due', assignTo: '#.input.assignee' } }, next: 'again' },
+                again: { open: { review: {} }, do: { set: { saw: '#.input.tasks.review.data.task.status' } }, set: { sawTask: { $eq: ['#.tasks.review.data.task.status', 'open'] } }, wait: { signals: { go: { to: 'done', by: 'contract' } } } },
+                done: { end: true }
+            }
+        }
+    },
+    { id: ASKINGAGAINS, kind: 'process-entity-type', data: { definition: ASKINGAGAIN } },
+    {
+        id: REASKING,
+        kind: 'process-definition',
+        data: {
+            entities: { contract: { entityType: CONTRACT } },
+            tasks: { review: { type: REVIEWTASK, about: ['contract'] } },
+            start: 'first',
+            steps: {
+                first: {
+                    open: { review: {} },
+                    wait: { when: [{ test: { $eq: ['#.tasks.review.data.task.answer.outcome', 'approved'] }, resolve: { review: 'approved' }, then: 'second' }, { test: { $eq: ['#.tasks.review.data.task.answer.outcome', 'rejected'] }, resolve: { review: 'rejected' }, then: 'second' }] }
+                },
+                second: { open: { review: {} }, end: true }
+            }
+        }
+    },
+    { id: REASKINGS, kind: 'process-entity-type', data: { definition: REASKING } },
     { id: KEYED, kind: 'process-definition', data: { entities: roles, key: ['#.input.year'], start: 'finish', steps: { finish: { end: true } } } },
     { id: KEYEDS, kind: 'process-entity-type', data: { definition: KEYED } },
     { id: PARTNER, kind: 'message-channel', data: { broker: { instanceOf: 'message-broker' }, topology: 'topic', name: PARTNER, publisher: { transactionalOutbox: true } } },
@@ -312,7 +353,47 @@ const elements = [
             }
         }
     },
-    { id: BREAKINGS, kind: 'process-entity-type', data: { definition: BREAKING } }
+    { id: BREAKINGS, kind: 'process-entity-type', data: { definition: BREAKING } },
+    {
+        id: POLICY,
+        kind: 'entity-type',
+        data: {
+            traits: {
+                body: { configuration: { schema: { '!name': 'string' } } },
+                state: {
+                    configuration: {
+                        states: { status: { draft: true, issued: true, discarded: true } },
+                        transitions: { issue: { status: { draft: 'issued' } }, discard: { status: { draft: 'discarded' } } },
+                        initialStates: { default: { status: 'draft' } }
+                    }
+                }
+            }
+        }
+    },
+    {
+        id: MOVING,
+        kind: 'process-definition',
+        data: {
+            entities: { policy: { entityType: POLICY } },
+            start: 'begin',
+            steps: { begin: { do: { inputMap: { businessKey: '#.input.entities.policy.businessKey', revision: '#.input.entities.policy.revision', trait: 'body', operation: 'update', input: { value: { name: 'Edited first' } } }, invoke: POLICY, operation: 'run' }, transition: { policy: 'issue' }, end: true } }
+        }
+    },
+    { id: MOVINGS, kind: 'process-entity-type', data: { definition: MOVING } },
+    {
+        id: BLOCKED,
+        kind: 'process-definition',
+        data: {
+            entities: { policy: { entityType: POLICY } },
+            variables: { failure: 'string' },
+            start: 'begin',
+            steps: {
+                begin: { transition: { policy: 'discard' }, onError: [{ catches: ['state-refused'], set: { failure: '#.error.message' }, then: 'refused' }], end: true },
+                refused: { end: true }
+            }
+        }
+    },
+    { id: BLOCKEDS, kind: 'process-entity-type', data: { definition: BLOCKED } }
 ];
 
 describe('processes', function () {
@@ -327,6 +408,7 @@ describe('processes', function () {
         await invoke(CONTRACT, 'create', { businessKey: 'c-1', traits: { body: { name: 'Ada' } } });
         await invoke(CONTRACT, 'create', { businessKey: 'c-2', traits: { body: { name: 'Original' } } });
         await invoke(CONTRACT, 'create', { businessKey: 'c-3', traits: { body: { name: 'Original' } } });
+        await Promise.all(['pol-1', 'pol-2'].map(businessKey => invoke(POLICY, 'create', { businessKey, traits: { body: { name: 'Draft' } } })));
         await Promise.all([['c-4', 'Failing'], ['c-5', 'Refusing'], ['c-6', 'Down']].map(([businessKey, name]) => invoke(CONTRACT, 'create', { businessKey, traits: { body: { name } } })));
     });
 
@@ -351,6 +433,20 @@ describe('processes', function () {
         expect(ended.data.state).to.deep.equal({ status: 'ended' });
         expect(ended.data.body).to.deep.equal({ count: 1 });
         expect((await invoke(CONTRACT, 'read', { businessKey: 'c-1' })).data.body.name).to.equal('Touched');
+    });
+
+    it('moves a participant with the transition of a step, from the revision the step left it at', async () => {
+        const ended = await invoke(MOVINGS, 'start', { businessKey: 'p-move', entities: { policy: 'pol-1' } });
+        expect(ended.data.state).to.deep.equal({ status: 'ended' });
+        const policy = await invoke(POLICY, 'read', { businessKey: 'pol-1' });
+        expect([policy.data.body.name, policy.data.state]).to.deep.equal(['Edited first', { status: 'issued' }]);
+    });
+
+    it('hands a refused transition to the onError exits of the step', async () => {
+        await invoke(POLICY, 'run', { businessKey: 'pol-2', revision: 1, trait: 'state', operation: 'transition', input: { transition: 'issue' } });
+        const ended = await invoke(BLOCKEDS, 'start', { businessKey: 'p-blocked', entities: { policy: 'pol-2' } });
+        expect([ended.data.process.step, ended.data.body.failure]).to.deep.equal(['refused', "transition discard isn't allowed from the current state"]);
+        expect((await invoke(POLICY, 'read', { businessKey: 'pol-2' })).data.state).to.deep.equal({ status: 'issued' });
     });
 
     it('stops at a wait and records it with the token, the signals and the date it waits for', async () => {
@@ -638,42 +734,60 @@ describe('processes', function () {
         it('creates the task in the step that asks, and the process closes it with the outcome when the fact holds', async () => {
             await contractFor('c-ask-1');
             const waiting = await invoke(ASKINGS, 'start', { businessKey: 'p-ask-1', entities: { contract: 'c-ask-1' } });
-            expect([waiting.data.process.step, (await taskOf('c-ask-1')).data.task.status]).to.deep.equal(['ask', 'open']);
-            await answer('c-ask-1', 'approved');
+            expect([waiting.data.process.step, (await taskOf('p-ask-1.review')).data.task.status]).to.deep.equal(['ask', 'open']);
+            await answer('p-ask-1.review', 'approved');
             await eventually(async () => (await readProcess(ASKINGS, 'p-ask-1')).data.state.status === 'ended');
             expect((await readProcess(ASKINGS, 'p-ask-1')).data.body).to.deep.equal({ decision: 'approved' });
-            expect((await taskOf('c-ask-1')).data.task).to.deep.include({ status: 'resolved', outcome: 'approved' });
+            expect((await taskOf('p-ask-1.review')).data.task).to.deep.include({ status: 'resolved', outcome: 'approved' });
         });
 
         it('routes another answer to another outcome', async () => {
             await contractFor('c-ask-2');
             await invoke(ASKINGS, 'start', { businessKey: 'p-ask-2', entities: { contract: 'c-ask-2' } });
-            await answer('c-ask-2', 'rejected');
+            await answer('p-ask-2.review', 'rejected');
             await eventually(async () => (await readProcess(ASKINGS, 'p-ask-2')).data.state.status === 'ended');
-            expect([(await readProcess(ASKINGS, 'p-ask-2')).data.body, (await taskOf('c-ask-2')).data.task.outcome]).to.deep.equal([{ decision: 'rejected' }, 'rejected']);
+            expect([(await readProcess(ASKINGS, 'p-ask-2')).data.body, (await taskOf('p-ask-2.review')).data.task.outcome]).to.deep.equal([{ decision: 'rejected' }, 'rejected']);
         });
 
         it('cancels the open task when the process leaves the wait by another way', async () => {
             await contractFor('c-ask-3');
             await invoke(ASKINGS, 'start', { businessKey: 'p-ask-3', entities: { contract: 'c-ask-3' } });
             await invoke(ASKINGS, 'wake', { kind: 'signal', entityType: ASKINGS, businessKey: 'p-ask-3', name: 'withdraw' });
-            expect([(await readProcess(ASKINGS, 'p-ask-3')).data.body, (await taskOf('c-ask-3')).data.task.status]).to.deep.equal([{ decision: 'withdrawn' }, 'cancelled']);
-            expect((await answer('c-ask-3', 'approved').catch(failed => failed)).code).to.equal('conflict');
+            expect([(await readProcess(ASKINGS, 'p-ask-3')).data.body, (await taskOf('p-ask-3.review')).data.task.status]).to.deep.equal([{ decision: 'withdrawn' }, 'cancelled']);
+            expect((await answer('p-ask-3.review', 'approved').catch(failed => failed)).code).to.equal('conflict');
         });
 
         it('cancels the open task when an operator aborts the process', async () => {
             await contractFor('c-ask-4');
             const waiting = await invoke(ASKINGS, 'start', { businessKey: 'p-ask-4', entities: { contract: 'c-ask-4' } });
             await invoke(ASKINGS, 'run', { businessKey: 'p-ask-4', revision: waiting.revision, trait: 'state', operation: 'transition', input: { transition: 'abort' } });
-            expect([(await readProcess(ASKINGS, 'p-ask-4')).data.state.status, (await taskOf('c-ask-4')).data.task.status]).to.deep.equal(['aborted', 'cancelled']);
+            expect([(await readProcess(ASKINGS, 'p-ask-4')).data.state.status, (await taskOf('p-ask-4.review')).data.task.status]).to.deep.equal(['aborted', 'cancelled']);
+        });
+
+        it('opens a task from the declaration: its key, what it is about, where it came from, its due date and its assignee; a second opening while it is open changes nothing', async () => {
+            await contractFor('c-open-1');
+            await invoke(ASKINGAGAINS, 'start', { businessKey: 'p-open-1', entities: { contract: 'c-open-1' }, input: { due: '2030-05-01', assignee: 'ada' } });
+            const task = await taskOf('p-open-1.review');
+            expect(task.data.task).to.deep.include({ status: 'open', origin: { process: 'p-open-1', step: 'ask' }, about: [{ entityType: CONTRACT, businessKey: 'c-open-1' }], dueOn: '2030-05-01', assignedTo: 'ada' });
+            expect([task.revision, task.data.body]).to.deep.equal([1, { note: 'Task' }]);
+            expect((await readProcess(ASKINGAGAINS, 'p-open-1')).data.body).to.deep.equal({ sawTask: true });
+        });
+
+        it('refuses to open a task again once it is resolved: the process is suspended with the conflict and the chain, the resolving included, is rolled back', async () => {
+            await contractFor('c-open-2');
+            await invoke(REASKINGS, 'start', { businessKey: 'p-open-2', entities: { contract: 'c-open-2' } });
+            await answer('p-open-2.review', 'approved');
+            await eventually(async () => (await readProcess(REASKINGS, 'p-open-2')).data.state.status === 'suspended');
+            const record = await readProcess(REASKINGS, 'p-open-2');
+            expect([record.data.process.fault.code, (await taskOf('p-open-2.review')).data.task.status]).to.deep.equal(['conflict', 'open']);
         });
 
         it('takes the step at once when the fact already holds as the wait begins, and a user cannot close the task directly', async () => {
             await contractFor('c-ask-5');
             await invoke(ASKINGS, 'start', { businessKey: 'p-ask-5', entities: { contract: 'c-ask-5' } });
-            const task = await taskOf('c-ask-5');
-            const error = await invoke(REVIEWTASK, 'run', { businessKey: 'c-ask-5', revision: task.revision, trait: 'task', operation: 'resolve', input: { outcome: 'approved' } }, { user: Object.freeze({ userId: 'ada', roles: [] }) }).catch(failed => failed);
-            expect([error.code, (await taskOf('c-ask-5')).data.task.status]).to.deep.equal(['private-operation', 'open']);
+            const task = await taskOf('p-ask-5.review');
+            const error = await invoke(REVIEWTASK, 'run', { businessKey: 'p-ask-5.review', revision: task.revision, trait: 'task', operation: 'resolve', input: { outcome: 'approved' } }, { user: Object.freeze({ userId: 'ada', roles: [] }) }).catch(failed => failed);
+            expect([error.code, (await taskOf('p-ask-5.review')).data.task.status]).to.deep.equal(['private-operation', 'open']);
         });
     });
 

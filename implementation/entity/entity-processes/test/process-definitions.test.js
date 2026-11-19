@@ -9,26 +9,27 @@ const lifecycle = { states: { status: { draft: true } }, transitions: { keep: { 
 
 const stale = { id: 'stale-for-test', kind: 'slot-fill', data: { target: 'error-registry', slot: 'errorTypes', value: { code: 'flaky-for-test', extends: 'unavailable', transient: true } } };
 
-const definition = (steps, start) => ({
+const definition = (steps, start, tasks = { approval: { type: 'task-type', about: ['contract'] } }) => ({
     id: 'sample-process',
     kind: 'process-definition',
     data: {
-        entities: { contract: { entityType: 'contract-type' }, review: { entityType: 'review-type', late: true }, approval: { entityType: 'task-type', late: true } },
+        entities: { contract: { entityType: 'contract-type' }, review: { entityType: 'review-type', late: true } },
+        tasks,
         start: start ?? 'begin',
         steps
     }
 });
 
-const messagesAfterBooting = async (steps, start, extra = []) => {
+const messagesAfterBooting = async (steps, start, extra = [], tasks) => {
     await boot({
         paths: packages,
-        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start), ...extra]
+        elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start, tasks), ...extra]
     });
     return validate().flatMap(({ data }) => data.messages ?? []);
 };
 
 const GOOD = {
-    begin: { do: { set: null }, next: 'ask' },
+    begin: { do: { set: null }, open: { approval: {} }, next: 'ask' },
     ask: { wait: { signals: { answered: { to: 'finish', by: 'contract' } }, until: { after: { days: 10 }, then: 'remind' } } },
     remind: { do: { set: null }, next: 'ask' },
     finish: { end: true }
@@ -88,26 +89,44 @@ describe('process definitions', function () {
     it('reports a when that leads to an unknown step and counts the step it leads to as reachable', async () => {
         const messages = await messagesAfterBooting({
             ...GOOD,
-            begin: { next: 'ask' },
+            begin: { open: { approval: {} }, next: 'ask' },
             ask: { wait: { when: [{ test: true, then: 'remind' }, { test: false, then: 'nowhere' }] } },
             remind: { next: 'finish' }
         });
         expect(messages).to.deep.equal(["step 'ask' leads to unknown step 'nowhere'"]);
     });
 
-    it('reports a resolve of an undeclared role, of a role that is no task, of an outcome the task lacks, and an answer no entry routes', async () => {
+    it('reports a resolve of something that is no task of the process, of an outcome the task lacks, and an answer no entry routes', async () => {
         const waiting = whens => ({ begin: GOOD.begin, ask: { wait: { when: whens } }, finish: GOOD.finish });
         const routed = [{ test: true, resolve: { approval: 'approved' }, then: 'finish' }];
-        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { nobody: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves the role 'nobody', which the process doesn't declare");
-        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { review: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves the role 'review', which isn't a task");
+        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { nobody: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves 'nobody', which isn't a task of the process");
+        expect(await messagesAfterBooting(waiting([{ test: true, resolve: { review: 'approved' }, then: 'finish' }]))).to.include("step 'ask' resolves 'review', which isn't a task of the process");
         expect(await messagesAfterBooting(waiting([{ test: true, resolve: { approval: 'nonsense' }, then: 'finish' }]))).to.include("step 'ask' resolves 'approval' with 'nonsense', an outcome its task doesn't declare");
         expect(await messagesAfterBooting(waiting(routed))).to.deep.equal(["step 'ask' waits on 'approval' but no entry resolves the outcome 'rejected' a user may give"]);
         expect(await messagesAfterBooting(waiting([...routed, { test: false, resolve: { approval: 'rejected' }, then: 'finish' }]))).to.deep.equal([]);
     });
 
+    it('reports an opening of something that is no task, a task that no step opens, a task of a type without the trait, about a role it lacks, and a name used twice', async () => {
+        expect(await messagesAfterBooting({ ...GOOD, begin: { open: { approval: {}, nobody: {} }, next: 'ask' } })).to.deep.equal(["step 'begin' opens 'nobody', which isn't a task of the process"]);
+        expect(await messagesAfterBooting({ ...GOOD, begin: { next: 'ask' } })).to.deep.equal(["the task 'approval' is opened by no step"]);
+        expect(await messagesAfterBooting(GOOD, undefined, [], { approval: { type: 'contract-type' } })).to.deep.equal(["the task 'approval' is of contract-type, which has no task trait"]);
+        expect(await messagesAfterBooting(GOOD, undefined, [], { approval: { type: 'task-type', about: ['nobody'] } })).to.deep.equal(["the task 'approval' is about 'nobody', which isn't a role of the process"]);
+        expect(await messagesAfterBooting(GOOD, undefined, [], { review: { type: 'task-type' } })).to.include.members(["'review' is both a role and a task", "the task 'review' is opened by no step"]);
+    });
+
+    it('reports a transition of a step on something that is no role, a late role, or a transition the type lacks', async () => {
+        expect(await messagesAfterBooting({ ...GOOD, finish: { transition: { contract: 'keep' }, end: true } })).to.deep.equal([]);
+        expect(await messagesAfterBooting({ ...GOOD, finish: { transition: { nobody: 'keep', review: 'keep', contract: 'vanish' }, end: true } })).to.have.members([
+            "step 'finish' moves 'nobody', which isn't a role of the process",
+            "step 'finish' moves 'review', which is late: only a role bound at the start with one entity can be moved",
+            "step 'finish' moves 'contract' by 'vanish', which contract-type has no transition of"
+        ]);
+    });
+
     it('reports a path of a step that its roles, input and variables do not have, in a do and in a mapping', async () => {
         const messages = await messagesAfterBooting({
             begin: {
+                open: { approval: {} },
                 do: { set: { name: '#.input.entities.contract.data.body.nme', by: '#.input.entities.nobody.data.body.name', fine: '#.input.entities.contract.data.body.name' } },
                 set: { copied: '#.entities.contract.data.body.nmae', fine: '#.entities.contract.data.body.name' },
                 next: 'ask'
@@ -151,6 +170,7 @@ describe('process definitions', function () {
         const messages = await messagesAfterBooting({
             ...GOOD,
             begin: {
+                open: { approval: {} },
                 next: 'ask',
                 onError: [
                     { catches: [], then: 'finish' },

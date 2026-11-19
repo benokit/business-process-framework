@@ -22,7 +22,7 @@
     {
         "id": "task-creation",
         "kind": "schema",
-        "data": { "origin": "@task-origin", "about[]": "@task-about", "actor": "string", "dueOn": "@date", "*": "never" }
+        "data": { "origin": "@task-origin", "about[]": "@task-about", "actor": "string", "dueOn": "@date", "assignedTo": "string", "*": "never" }
     },
     {
         "id": "task-answer-input",

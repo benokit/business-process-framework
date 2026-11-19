@@ -4,7 +4,8 @@ import { findElement } from '@business-framework/core/registry';
 import { traitsOf } from '@business-framework/entities/traits';
 import { standardOf } from '@business-framework/core/schemas';
 import { methodType, mappingType } from '@business-framework/core/data-flow';
-import { extensionsOf } from './process.js';
+import { transitionsOfType } from '@business-framework/entity-states/states';
+import { extensionsOf, rolesOf } from './process.js';
 
 const EXITS = ['next', 'choose', 'wait', 'end'];
 
@@ -54,25 +55,45 @@ const taskOutcomesOf = entityType => findElement('task-trait') === undefined
     ? undefined
     : Object.values(traitsOf(entityType)).find(({ trait }) => isInstanceOf({ element: trait, kind: 'task-trait' }))?.configuration.outcomes;
 
-const resolveProblems = (roles, name, wait) => {
+const resolveProblems = (tasks, name, wait) => {
     const entries = (wait?.when ?? []).flatMap(({ resolve }) => Object.entries(resolve ?? {}));
-    const declared = entries.filter(([role]) => roles[role] !== undefined);
+    const declared = entries.filter(([task]) => tasks[task] !== undefined);
+    const outcomesOf = task => taskOutcomesOf(tasks[task].type) ?? {};
     return [
-        ...entries.filter(([role]) => roles[role] === undefined).map(([role]) => `step '${name}' resolves the role '${role}', which the process doesn't declare`),
-        ...declared.filter(([role]) => taskOutcomesOf(roles[role].entityType) === undefined).map(([role]) => `step '${name}' resolves the role '${role}', which isn't a task`),
-        ...declared.filter(([role, outcome]) => taskOutcomesOf(roles[role].entityType) !== undefined && taskOutcomesOf(roles[role].entityType)[outcome] === undefined)
-            .map(([role, outcome]) => `step '${name}' resolves '${role}' with '${outcome}', an outcome its task doesn't declare`),
-        ...[...new Set(declared.map(([role]) => role))].flatMap(role => Object.entries(taskOutcomesOf(roles[role].entityType) ?? {})
-            .filter(([outcome, declaration]) => declaration !== true && declaration.answer !== undefined && !declared.some(([other, resolved]) => other === role && resolved === outcome))
-            .map(([outcome]) => `step '${name}' waits on '${role}' but no entry resolves the outcome '${outcome}' a user may give`))
+        ...entries.filter(([task]) => tasks[task] === undefined).map(([task]) => `step '${name}' resolves '${task}', which isn't a task of the process`),
+        ...declared.filter(([task, outcome]) => outcomesOf(task)[outcome] === undefined)
+            .map(([task, outcome]) => `step '${name}' resolves '${task}' with '${outcome}', an outcome its task doesn't declare`),
+        ...[...new Set(declared.map(([task]) => task))].flatMap(task => Object.entries(outcomesOf(task))
+            .filter(([outcome, declaration]) => declaration !== true && declaration.answer !== undefined && !declared.some(([other, resolved]) => other === task && resolved === outcome))
+            .map(([outcome]) => `step '${name}' waits on '${task}' but no entry resolves the outcome '${outcome}' a user may give`))
     ];
 };
 
-const waitProblems = (roles, name, wait) => wait === undefined ? [] : [
+const openProblems = (tasks, name, step) => Object.keys(step.open ?? {})
+    .filter(task => tasks[task] === undefined)
+    .map(task => `step '${name}' opens '${task}', which isn't a task of the process`);
+
+const transitionProblem = (role, transition, name, declared) => {
+    if (declared === undefined) return [`step '${name}' moves '${role}', which isn't a role of the process`];
+    if (declared.late || declared.many) return [`step '${name}' moves '${role}', which is ${declared.late ? 'late' : 'a list'}: only a role bound at the start with one entity can be moved`];
+    return transitionsOfType(declared.entityType).includes(transition) ? [] : [`step '${name}' moves '${role}' by '${transition}', which ${declared.entityType} has no transition of`];
+};
+
+const transitionProblems = (entities, name, step) => Object.entries(step.transition ?? {})
+    .flatMap(([role, transition]) => transitionProblem(role, transition, name, entities[role]));
+
+const taskProblems = ({ entities, tasks = {}, steps }) => [
+    ...Object.keys(tasks).filter(task => entities[task] !== undefined).map(task => `'${task}' is both a role and a task`),
+    ...Object.entries(tasks).filter(([, { type }]) => taskOutcomesOf(type) === undefined).map(([task, { type }]) => `the task '${task}' is of ${type}, which has no task trait`),
+    ...Object.entries(tasks).flatMap(([task, { about = [] }]) => about.filter(role => entities[role] === undefined).map(role => `the task '${task}' is about '${role}', which isn't a role of the process`)),
+    ...Object.keys(tasks).filter(task => !Object.values(steps).some(step => step.open?.[task] !== undefined)).map(task => `the task '${task}' is opened by no step`)
+];
+
+const waitProblems = (roles, tasks, name, wait) => wait === undefined ? [] : [
     ...(wait.when ?? []).length === 0 && Object.keys(wait.signals ?? {}).length === 0 && wait.until === undefined ? [`step '${name}' waits for nothing: it needs a when, a signal or an until`] : [],
     ...Object.entries(wait.signals ?? {}).filter(([, { by }]) => roles[by] === undefined).map(([signal, { by }]) => `step '${name}' signal '${signal}' is addressed by the role '${by}', which the process doesn't declare`),
     ...untilProblems(name, wait.until),
-    ...resolveProblems(roles, name, wait)
+    ...resolveProblems(tasks, name, wait)
 ];
 
 const catchProblems = (name, entry) => [
@@ -81,11 +102,13 @@ const catchProblems = (name, entry) => [
     ...entry.catches.filter(code => isRegistered(code) && errorTypeOf(code).transient).map(code => `step '${name}' catches '${code}', which is transient: a transient error is retried, so it can't be caught`)
 ];
 
-const stepProblems = (steps, roles) => ([name, step]) => [
+const stepProblems = (steps, roles, tasks, entities) => ([name, step]) => [
     ...exitProblems(name, step),
     ...targetProblems(steps, name, step),
     ...chooseProblems(name, step),
-    ...waitProblems(roles, name, step.wait),
+    ...waitProblems(roles, tasks, name, step.wait),
+    ...openProblems(tasks, name, step),
+    ...transitionProblems(entities, name, step),
     ...(step.onError ?? []).flatMap(entry => catchProblems(name, entry))
 ];
 
@@ -142,6 +165,7 @@ const processType = variables => recordType({ process: {}, state: {}, body: vari
 const scopeOf = definition => ({
     process: processType(definition.variables),
     entities: { type: 'object', properties: Object.fromEntries(Object.entries(definition.entities).map(([role, declaration]) => [role, participantType(declaration)])), additionalProperties: false },
+    tasks: { type: 'object', properties: Object.fromEntries(Object.entries(definition.tasks ?? {}).map(([task, { type }]) => [task, participantType({ entityType: type })])), additionalProperties: false },
     input: definition.input === undefined ? {} : standardOf(definition.input),
     signal: {},
     output: {}
@@ -158,6 +182,7 @@ const unknownPaths = thunks => thunks.flatMap(thunk => {
 
 const mappingsOf = step => [
     ...step.set === undefined ? [] : [['set', step.set, {}]],
+    ...Object.entries(step.open ?? {}).flatMap(([task, opening]) => ['body', 'dueOn', 'assignTo'].filter(key => opening[key] !== undefined).map(key => [`open.${task}.${key}`, opening[key], {}])),
     ...(step.choose ?? []).filter(Array.isArray).map(([test], index) => [`choose[${index}]`, test, {}]),
     ...(step.wait?.when ?? []).map(({ test }, index) => [`wait.when[${index}].test`, test, {}]),
     ...step.wait?.until?.at === undefined ? [] : [['wait.until.at', step.wait.until.at, {}]],
@@ -168,7 +193,7 @@ const typingProblems = (id, data) => {
     const author = { id, kind: 'process-definition' };
     const scope = scopeOf(data);
     return Object.entries(data.steps).flatMap(([name, step]) => [
-        ...step.do === undefined ? [] : unknownPaths(methodType({ author, code: step.do, input: { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, signal: scope.signal }, additionalProperties: false }, path: `steps.${name}.do` }).problems),
+        ...step.do === undefined ? [] : unknownPaths(methodType({ author, code: step.do, input: { type: 'object', properties: { process: scope.process, input: scope.input, entities: scope.entities, tasks: scope.tasks, signal: scope.signal }, additionalProperties: false }, path: `steps.${name}.do` }).problems),
         ...mappingsOf(step).flatMap(([where, code, extra]) => unknownPaths(mappingType(code, { type: 'object', properties: { ...scope, ...extra }, additionalProperties: false }).problems.map(problem => () => { throw Object.assign(new Error(`step '${name}' ${where}: ${problem.message}`), { code: problem.code }); })))
     ]);
 };
@@ -179,7 +204,8 @@ export const processDefinitionProblems = definition => {
         ...startProblems(data),
         ...typingProblems(definition, data),
         ...extensionProblems(definition, data.steps),
-        ...Object.entries(data.steps).flatMap(stepProblems(data.steps, data.entities)),
+        ...taskProblems(data),
+        ...Object.entries(data.steps).flatMap(stepProblems(data.steps, rolesOf(data), data.tasks ?? {}, data.entities)),
         ...reachabilityProblems(data),
         ...loopProblems(data)
     ];

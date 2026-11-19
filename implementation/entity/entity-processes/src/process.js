@@ -1,4 +1,4 @@
-import { CoreError, invoke } from '@business-framework/core';
+import { CoreError } from '@business-framework/core';
 import { errorTypeOf, isKindOfError } from '@business-framework/core/error-types';
 import { selvesOf } from '@business-framework/core/kinds';
 import { slotValues } from '@business-framework/core/slots';
@@ -6,78 +6,18 @@ import { applyMapping } from '@business-framework/core/mappings';
 import { memo } from '@business-framework/core/registry';
 import { isDeepStrictEqual } from 'node:util';
 
-const definitionOf = id => selvesOf('process-definition').find(element => element.id === id)?.data
+export const definitionOf = id => selvesOf('process-definition').find(element => element.id === id)?.data
     ?? (() => { throw new CoreError('unknown-definition', `the process definition '${id}' isn't loaded`, { definition: id }); })();
 
-const bindingOf = ({ entityType, many }) => businessKeys => many
-    ? [businessKeys].flat().map(businessKey => ({ entityType, businessKey }))
-    : { entityType, businessKey: businessKeys };
-
-const unbound = (roles, entities) => Object.entries(roles).filter(([role, { late }]) => !late && entities[role] === undefined).map(([role]) => role);
-
-const lateBound = (roles, entities) => Object.entries(roles).filter(([role, { late }]) => late && entities[role] !== undefined).map(([role]) => role);
-
-const unknown = (roles, entities) => Object.keys(entities).filter(role => roles[role] === undefined);
-
-export const initialProcessValue = ({ definition, entities }) => {
-    const { entities: roles, start } = definitionOf(definition);
-    const refused = [
-        ...unbound(roles, entities).map(role => `the role '${role}' must be bound to start ${definition}`),
-        ...lateBound(roles, entities).map(role => `the role '${role}' is late: a step binds it, not the start`),
-        ...unknown(roles, entities).map(role => `${definition} has no role '${role}'`)
-    ];
-    if (refused.length > 0) throw new CoreError('invalid', refused.join('; '), { definition });
-    return {
-        definition,
-        step: start,
-        entities: Object.fromEntries(Object.entries(entities).map(([role, businessKeys]) => [role, bindingOf(roles[role])(businessKeys)]))
-    };
-};
-
-const boundBy = (definition, roles, role, current, businessKeys) => {
-    const declared = roles[role] ?? (() => { throw new CoreError('invalid', `${definition} has no role '${role}'`, { definition, role }); })();
-    if (!declared.late) throw new CoreError('conflict', `the role '${role}' is bound at the start and never rebound`, { definition, role });
-    if (!declared.many && current !== undefined) throw new CoreError('conflict', `the role '${role}' is already bound`, { definition, role });
-    return declared.many ? [...current ?? [], ...bindingOf(declared)(businessKeys)] : bindingOf(declared)(businessKeys);
-};
-
-const bindingsAfter = (definition, bindings, bind = {}) => Object.entries(bind)
-    .reduce((current, [role, businessKeys]) => ({ ...current, [role]: boundBy(definition, definitionOf(definition).entities, role, current[role], businessKeys) }), bindings);
-
-export const processBusinessKey = ({ entityType, entities, input }) => {
-    const definition = selvesOf('process-entity-type').find(({ id }) => id === entityType).data.definition;
-    const { entities: roles, key } = definitionOf(definition);
-    const keys = Object.entries(roles).filter(([, { late }]) => !late).flatMap(([role]) => [entities[role]].flat());
-    const distinguishing = key === undefined ? [] : evaluated(key, { entities, input: input ?? null });
-    return [definition, ...keys, ...distinguishing].join('/');
-};
+export const rolesOf = ({ entities, tasks = {} }) => ({
+    ...entities,
+    ...Object.fromEntries(Object.entries(tasks).map(([name, { type }]) => [name, { entityType: type, late: true, task: true }]))
+});
 
 export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step]
     ?? (() => { throw new CoreError('unknown-definition', `the process definition '${definition}' has no step '${step}'`, { definition, step }); })();
 
 const evaluated = (mapping, scope) => applyMapping({ mapping, input: scope });
-
-const targetOf = (name, choose, scope) => choose.find(([test]) => test === 'else' || evaluated(test, scope))?.[1]
-    ?? (() => { throw new CoreError('invalid', `no choose entry of the step '${name}' holds`, { step: name }); })();
-
-const untilOf = (until, scope) => ({
-    then: until.then,
-    ...until.at === undefined ? { after: until.after } : { at: evaluated(until.at, scope) }
-});
-
-const waitOf = (wait, scope, revision) => ({
-    token: revision + 1,
-    signals: Object.keys(wait.signals ?? {}),
-    ...wait.until === undefined ? {} : { until: untilOf(wait.until, scope) }
-});
-
-const exitOf = (name, step, scope, revision) => step.end
-    ? { kind: 'end' }
-    : step.next !== undefined
-        ? { kind: 'next', step: step.next }
-        : step.choose !== undefined
-            ? { kind: 'next', step: targetOf(name, step.choose, scope) }
-            : { kind: 'wait', wait: waitOf(step.wait, scope, revision) };
 
 const catchesError = error => entry => !errorTypeOf(error.code).transient && entry.catches.some(code => isKindOfError(error.code, code));
 
@@ -94,24 +34,6 @@ export const processErrorExit = ({ name, step, scope, error, bindings }) => {
     };
 };
 
-const withVariables = (scope, variables) => ({ ...scope, process: { ...scope.process, data: { ...scope.process.data, body: variables } } });
-
-export const processExit = ({ name, step, scope, revision, bindings }) => {
-    const variables = { ...scope.process.data.body, ...step.set === undefined ? {} : evaluated(step.set, scope) };
-    const entities = bindingsAfter(scope.process.data.process.definition, bindings, scope.output?.bind);
-    return { variables, entities, ...exitOf(name, step, withVariables(scope, variables), revision) };
-};
-
-const sequentially = (items, run) => items.reduce(async (done, item) => [...await done, await run(item)], Promise.resolve([]));
-
-const readerOf = _ctx => ({ entityType, businessKey }) => invoke(entityType, 'read', { businessKey }, _ctx);
-
-export const loadParticipants = async ({ input: bindings, _ctx }) => Object.fromEntries(await sequentially(
-    Object.entries(bindings),
-    async ([role, binding]) => [role, Array.isArray(binding) ? await sequentially(binding, readerOf(_ctx)) : await readerOf(_ctx)(binding)]));
-
-export const applyClosures = ({ input: closures, _ctx }) => sequentially(closures, ({ entityType, businessKey, revision, operation, input }) => invoke(entityType, 'run', { businessKey, revision, trait: 'task', operation, input }, _ctx));
-
 const MINUTE = 60 * 1000;
 
 const durationInMilliseconds = ({ days = 0, hours = 0, minutes = 0 }) => ((days * 24 + hours) * 60 + minutes) * MINUTE;
@@ -120,91 +42,7 @@ export const resolvedWait = ({ wait, now }) => wait.until === undefined || wait.
     ? wait
     : { ...wait, until: { at: new Date(Date.parse(now) + durationInMilliseconds(wait.until.after)).toISOString(), then: wait.until.then } };
 
-export const heldExit = ({ step, exit, entities, scope }) => {
-    const held = exit.kind === 'wait' && entities !== undefined
-        ? (step.wait.when ?? []).find(({ test }) => evaluated(test, { ...scope, entities }))
-        : undefined;
-    return held === undefined ? exit : { kind: 'next', step: held.then, variables: exit.variables, entities: exit.entities, resolve: held.resolve ?? {} };
-};
-
-const signalTarget = (process, { name, payload }) => process.data.process.wait?.signals.includes(name)
-    ? { step: processStepOf(process.data.process).wait.signals[name].to, signal: payload ?? null }
-    : null;
-
-const timerTarget = (process, { token, step }) => process.data.process.wait?.token === token && process.data.process.wait.until?.then === step
-    ? { step, signal: null }
-    : null;
-
-const checkTarget = (process, entities) => {
-    const position = process.data.process;
-    const held = position.wait === undefined
-        ? undefined
-        : (processStepOf(position).wait.when ?? []).find(({ test }) => evaluated(test, { process, entities }));
-    return held === undefined ? null : { step: held.then, signal: null, resolve: held.resolve ?? {} };
-};
-
-const waitedRoles = step => [...new Set((step.wait?.when ?? []).flatMap(({ resolve }) => Object.keys(resolve ?? {})))];
-
-const closureOf = (resolve, record, role) => resolve[role] === undefined
-    ? { operation: 'cancel' }
-    : { operation: 'resolve', input: { outcome: resolve[role] } };
-
-export const taskClosures = ({ step, entities, resolve }) => (step === null ? Object.keys(entities) : waitedRoles(step))
-    .flatMap(role => [entities[role]].flat().filter(record => record?.data.task?.status === 'open')
-        .map(record => ({ entityType: record.entityType, businessKey: record.businessKey, revision: record.revision, ...closureOf(resolve, record, role) })));
-
-const targetOfKind = { signal: signalTarget, timer: timerTarget, check: (process, { entities }) => checkTarget(process, entities) };
-
-export const wakeupTarget = ({ process, wakeup, entities }) => process.data.state.status !== 'running'
-    ? null
-    : targetOfKind[wakeup.kind](process, { ...wakeup, entities });
-
-export const processPosition = ({ process, step, wait, entities }) => ({
-    definition: process.definition,
-    step,
-    entities: entities ?? process.entities,
-    ...wait === undefined || wait === null ? {} : { wait }
-});
-
-const moved = process => ({ key: 'process', operation: 'move', input: { process } });
-
-const transition = name => ({ key: 'state', operation: 'transition', input: { transition: name } });
-
-const targetStepOf = (process, wakeup) => {
-    try {
-        return wakeupTarget({ process, wakeup })?.step;
-    } catch {
-        return undefined;
-    }
-};
-
-export const processVerdict = ({ process, wakeup, error, attempts }) => {
-    const { transient, outage } = errorTypeOf(error.code);
-    if (outage || wakeup.kind === 'start') return { action: 'rethrow', operations: [] };
-    if (process.data.state.status !== 'running') return { action: 'drop', operations: [] };
-    const position = process.data.process;
-    const step = targetStepOf(process, wakeup) ?? position.step;
-    const count = (position.failures?.step === step ? position.failures.count : 0) + 1;
-    return !transient || count >= attempts
-        ? { action: 'suspend', operations: [moved({ ...position, fault: { step, code: error.code, message: error.message, attempts: count, wakeup } }), transition('suspend')] }
-        : { action: 'count', operations: [moved({ ...position, failures: { step, count } })] };
-};
-
-const FINISHED = ['ended', 'aborted'];
-
-export const processRelations = record => FINISHED.includes(record.data.state.status)
-    ? []
-    : Object.entries(record.data.process.entities).flatMap(([role, binding]) => [binding].flat()
-        .map(({ entityType, businessKey }) => ({ targetEntityType: entityType, targetEntityBusinessKey: businessKey, relationType: role })));
-
-const isBound = (bindings, { entityType, businessKey }) => Object.values(bindings).flatMap(binding => [binding].flat())
-    .some(bound => bound.entityType === entityType && bound.businessKey === businessKey);
-
-export const footprintAllows = ({ process, change, entityType }) => change.operation === 'create'
-    ? Object.values(definitionOf(process.definition).entities).some(role => role.entityType === entityType)
-    : isBound(process.entities, change.before);
-
-const ENTITY_PATH = /^#\.entities\.([^.]+)(?:\.(.*))?$/;
+const ENTITY_PATH = /^#\.(?:entities|tasks)\.([^.]+)(?:\.(.*))?$/;
 
 const readsOf = value => typeof value === 'string'
     ? [value.match(ENTITY_PATH)].filter(Boolean).map(([, role, path]) => ({ role, path }))
@@ -214,7 +52,7 @@ const conditionsOf = ({ steps }) => Object.values(steps).flatMap(step => step.wa
 
 const pathsOf = (reads, many) => many || reads.some(({ path }) => path === undefined) ? null : [...new Set(reads.map(({ path }) => path))];
 
-const viewsOf = memo(entityType => selvesOf('process-definition').flatMap(({ id, data }) => Object.entries(data.entities)
+const viewsOf = memo(entityType => selvesOf('process-definition').flatMap(({ id, data }) => Object.entries(rolesOf(data))
     .filter(([, role]) => role.entityType === entityType)
     .map(([role, { many }]) => ({ name: `${id}/${role}`, reads: conditionsOf(data).flatMap(({ test }) => readsOf(test)).filter(read => read.role === role), many }))
     .filter(({ reads }) => reads.length > 0)
@@ -231,37 +69,7 @@ export const changedViews = ({ entityType, before, after }) => {
     return names.length === 0 ? null : names;
 };
 
-export const viewRoles = ({ changed }) => changed.map(name => ({ definition: name.slice(0, name.indexOf('/')), role: name.slice(name.indexOf('/') + 1) }));
-
-export const processChecks = ({ message, view, sources }) => {
-    const types = selvesOf('process-entity-type').filter(({ data }) => data.definition === view.definition).map(({ id }) => id);
-    return sources
-        .filter(({ sourceEntityType, sourceEntityBusinessKey }) => types.includes(sourceEntityType)
-            && !(message.via?.definition === view.definition && message.via.businessKey === sourceEntityBusinessKey))
-        .map(({ sourceEntityType, sourceEntityBusinessKey }) => ({
-            message: { kind: 'check', entityType: sourceEntityType, businessKey: sourceEntityBusinessKey, role: view.role, revision: message.revision },
-            group: `${sourceEntityType}/${sourceEntityBusinessKey}`
-        }));
-};
-
-const definitionOfType = entityType => selvesOf('process-entity-type').find(({ id }) => id === entityType).data.definition;
-
-export const signalRole = ({ entityType, name }) => Object.values(definitionOf(definitionOfType(entityType)).steps)
-    .flatMap(step => Object.entries(step.wait?.signals ?? {}))
-    .find(([signal]) => signal === name)?.[1].by;
-
-export const signalWakeups = ({ entityType, name, payload, sources }) => sources
-    .filter(({ sourceEntityType }) => sourceEntityType === entityType)
-    .map(({ sourceEntityBusinessKey }) => ({
-        message: { kind: 'signal', entityType, businessKey: sourceEntityBusinessKey, name, ...payload === null || payload === undefined ? {} : { payload } },
-        group: `${entityType}/${sourceEntityBusinessKey}`
-    }));
-
 export const extensionsOf = definition => slotValues({ element: definition, slot: 'stepExtensions' });
-
-export const stepExtensions = ({ definition, step }) => definitionOf(definition).steps[step].extensible
-    ? extensionsOf(definition).filter(extension => extension.step === step)
-    : [];
 
 export const searchDocument = record => ({
     definition: record.data.process.definition,
