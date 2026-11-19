@@ -177,40 +177,6 @@
                     "$problem": {
                         "$fn": { "as": ["code", "message", "about"], "body": { "code": "@code", "message": "@message", "data": "@about" } }
                     },
-                    "$choice": {
-                        "$fn": {
-                            "as": "entries",
-                            "body": {
-                                "$let": {
-                                    "chosen": {
-                                        "$find": {
-                                            "collection": "@entries",
-                                            "as": "entry",
-                                            "predicate": {
-                                                "$or": [
-                                                    { "$eq": ["@entry.0", "else"] },
-                                                    { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
-                                                ]
-                                            }
-                                        }
-                                    }
-                                },
-                                "$in": {
-                                    "$if": [
-                                        { "$isNil": "@chosen" },
-                                        {
-                                            "$throw": {
-                                                "code": "invalid",
-                                                "message": { "$str": ["no choose entry of the step '", "#.name", "' holds"] },
-                                                "data": { "step": "#.name" }
-                                            }
-                                        },
-                                        { "kind": "next", "step": "@chosen.1" }
-                                    ]
-                                }
-                            }
-                        }
-                    },
                     "problems": {
                         "$map": {
                             "over": { "$keys": "@bind" },
@@ -302,11 +268,36 @@
                             ]
                         }
                     },
+                    "chosen": {
+                        "$find": {
+                            "collection": { "$coalesce": ["#.step.choose", []] },
+                            "as": "entry",
+                            "predicate": {
+                                "$or": [
+                                    { "$eq": ["@entry.0", "else"] },
+                                    { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
+                                ]
+                            }
+                        }
+                    },
+                    "choice": {
+                        "$if": [
+                            { "$isNil": "@chosen" },
+                            {
+                                "$throw": {
+                                    "code": "invalid",
+                                    "message": { "$str": ["no choose entry of the step '", "#.name", "' holds"] },
+                                    "data": { "step": "#.name" }
+                                }
+                            },
+                            { "kind": "next", "step": "@chosen.1" }
+                        ]
+                    },
                     "exit": {
                         "$cond": [
                             ["#.step.end", { "kind": "end" }],
                             [{ "$not": { "$isNil": "#.step.next" } }, { "kind": "next", "step": "#.step.next" }],
-                            [{ "$not": { "$isNil": "#.step.choose" } }, { "$choice": "#.step.choose" }],
+                            [{ "$not": { "$isNil": "#.step.choose" } }, "@choice"],
                             ["else", "@waiting"]
                         ]
                     },

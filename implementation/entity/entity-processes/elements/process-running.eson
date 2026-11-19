@@ -29,43 +29,20 @@
                                     { "$eq": ["@current.wait.until.then", "#.wakeup.step"] }
                                 ]
                             },
-                            "$declaredSignal": {
-                                "$fn": {
-                                    "as": "current",
-                                    "body": {
-                                        "$let": {
-                                            "step": {
-                                                "$func/process-step-of": { "definition": "@current.definition", "step": "@current.step" }
-                                            }
-                                        },
-                                        "$in": { "$get": { "object": "@step.wait.signals", "path": ["#.wakeup.name"] } }
-                                    }
+                            "step": { "$func/process-step-of": { "definition": "@current.definition", "step": "@current.step" } },
+                            "declared": { "$get": { "object": "@step.wait.signals", "path": ["#.wakeup.name"] } },
+                            "scope": {
+                                "$func/process-scope": {
+                                    "definition": "@current.definition",
+                                    "scope": { "process": "#.process" },
+                                    "participants": "#.entities"
                                 }
                             },
-                            "$heldEntry": {
-                                "$fn": {
-                                    "as": "current",
-                                    "body": {
-                                        "$let": {
-                                            "step": {
-                                                "$func/process-step-of": { "definition": "@current.definition", "step": "@current.step" }
-                                            },
-                                            "scope": {
-                                                "$func/process-scope": {
-                                                    "definition": "@current.definition",
-                                                    "scope": { "process": "#.process" },
-                                                    "participants": "#.entities"
-                                                }
-                                            }
-                                        },
-                                        "$in": {
-                                            "$find": {
-                                                "collection": { "$coalesce": ["@step.wait.when", []] },
-                                                "as": "entry",
-                                                "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
-                                            }
-                                        }
-                                    }
+                            "held": {
+                                "$find": {
+                                    "collection": { "$coalesce": ["@step.wait.when", []] },
+                                    "as": "entry",
+                                    "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
                                 }
                             }
                         },
@@ -76,10 +53,7 @@
                                     {
                                         "$if": [
                                             "@signalled",
-                                            {
-                                                "$let": { "declared": { "$declaredSignal": "@current" } },
-                                                "$in": { "step": "@declared.to", "signal": { "$coalesce": ["#.wakeup.payload", null] } }
-                                            },
+                                            { "step": "@declared.to", "signal": { "$coalesce": ["#.wakeup.payload", null] } },
                                             null
                                         ]
                                     }
@@ -95,18 +69,15 @@
                                             { "$isNil": "@current.wait" },
                                             null,
                                             {
-                                                "$let": { "held": { "$heldEntry": "@current" } },
-                                                "$in": {
-                                                    "$if": [
-                                                        { "$isNil": "@held" },
-                                                        null,
-                                                        {
-                                                            "step": "@held.then",
-                                                            "signal": null,
-                                                            "resolve": { "$coalesce": ["@held.resolve", {}] }
-                                                        }
-                                                    ]
-                                                }
+                                                "$if": [
+                                                    { "$isNil": "@held" },
+                                                    null,
+                                                    {
+                                                        "step": "@held.then",
+                                                        "signal": null,
+                                                        "resolve": { "$coalesce": ["@held.resolve", {}] }
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }

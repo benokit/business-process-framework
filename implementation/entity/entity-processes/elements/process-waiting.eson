@@ -15,26 +15,22 @@
             "signature": { "input": { "!step": "@any", "!exit": "@any", "entities": "@any", "!scope": "@any" }, "output": "@any" },
             "mapping": {
                 "$let": {
+                    "scope": {
+                        "$func/process-scope": {
+                            "definition": "#.scope.process.data.process.definition",
+                            "scope": "#.scope",
+                            "participants": "#.entities"
+                        }
+                    },
                     "waiting": { "$and": [{ "$eq": ["#.exit.kind", "wait"] }, { "$not": { "$isNil": "#.entities" } }] },
                     "held": {
                         "$if": [
                             "@waiting",
                             {
-                                "$let": {
-                                    "scope": {
-                                        "$func/process-scope": {
-                                            "definition": "#.scope.process.data.process.definition",
-                                            "scope": "#.scope",
-                                            "participants": "#.entities"
-                                        }
-                                    }
-                                },
-                                "$in": {
-                                    "$find": {
-                                        "collection": { "$coalesce": ["#.step.wait.when", []] },
-                                        "as": "entry",
-                                        "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
-                                    }
+                                "$find": {
+                                    "collection": { "$coalesce": ["#.step.wait.when", []] },
+                                    "as": "entry",
+                                    "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
                                 }
                             },
                             null
