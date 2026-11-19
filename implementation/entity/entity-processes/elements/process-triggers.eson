@@ -71,33 +71,103 @@
                     "implementation": [
                         {
                             "outputKey": "applies",
-                            "set": { "$if": ["#.self.data.on.test", { "$func/apply-mapping": { "mapping": "#.self.data.on.test", "input": "#.input" } }, true] }
+                            "set": {
+                                "$if": [
+                                    "#.self.data.on.test",
+                                    { "$func/apply-mapping": { "mapping": "#.self.data.on.test", "input": "#.input" } },
+                                    true
+                                ]
+                            }
                         },
                         {
                             "if": "#.applies",
                             "then": {
                                 "if": "#.self.data.start",
                                 "then": [
-                                    { "outputKey": "entities", "set": { "$func/apply-mapping": { "mapping": "#.self.data.start.entities", "input": "#.input" } } },
-                                    { "outputKey": "startInput", "set": { "$if": ["#.self.data.start.input", { "$func/apply-mapping": { "mapping": "#.self.data.start.input", "input": "#.input" } }, null] } },
-                                    { "outputKey": "key", "set": { "$func/process-business-key": { "entityType": "#.self.data.start.process", "entities": "#.entities", "input": "#.startInput" } } },
+                                    {
+                                        "outputKey": "entities",
+                                        "set": { "$func/apply-mapping": { "mapping": "#.self.data.start.entities", "input": "#.input" } }
+                                    },
+                                    {
+                                        "outputKey": "startInput",
+                                        "set": {
+                                            "$if": [
+                                                "#.self.data.start.input",
+                                                { "$func/apply-mapping": { "mapping": "#.self.data.start.input", "input": "#.input" } },
+                                                null
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "outputKey": "key",
+                                        "set": {
+                                            "$func/process-business-key": {
+                                                "entityType": "#.self.data.start.process",
+                                                "entities": "#.entities",
+                                                "input": "#.startInput"
+                                            }
+                                        }
+                                    },
                                     {
                                         "inputMap": {
-                                            "message": { "kind": "start", "entityType": "#.self.data.start.process", "businessKey": "#.key", "entities": "#.entities", "input": "#.startInput" },
+                                            "message": {
+                                                "kind": "start",
+                                                "entityType": "#.self.data.start.process",
+                                                "businessKey": "#.key",
+                                                "entities": "#.entities",
+                                                "input": "#.startInput"
+                                            },
                                             "group": { "$str": ["#.self.data.start.process", "/", "#.key"] }
                                         },
                                         "publish": "process-wakeups"
                                     }
                                 ],
                                 "else": [
-                                    { "outputKey": "entity", "set": { "$func/apply-mapping": { "mapping": "#.self.data.signal.entity", "input": "#.input" } } },
-                                    { "outputKey": "payload", "set": { "$if": ["#.self.data.signal.payload", { "$func/apply-mapping": { "mapping": "#.self.data.signal.payload", "input": "#.input" } }, null] } },
-                                    { "outputKey": "domain", "inputMap": { "businessKey": "#.entity.businessKey" }, "invoke": "#.entity.entityType", "operation": "read" },
-                                    { "outputKey": "role", "set": { "$func/process-signal-role": { "entityType": "#.self.data.signal.process", "name": "#.self.data.signal.name" } } },
-                                    { "outputKey": "sources", "inputMap": { "targetEntityId": "#.domain.id", "relationType": "#.role" }, "invoke": "entity-relations-to", "operation": "run" },
+                                    {
+                                        "outputKey": "entity",
+                                        "set": { "$func/apply-mapping": { "mapping": "#.self.data.signal.entity", "input": "#.input" } }
+                                    },
+                                    {
+                                        "outputKey": "payload",
+                                        "set": {
+                                            "$if": [
+                                                "#.self.data.signal.payload",
+                                                { "$func/apply-mapping": { "mapping": "#.self.data.signal.payload", "input": "#.input" } },
+                                                null
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "outputKey": "domain",
+                                        "inputMap": { "businessKey": "#.entity.businessKey" },
+                                        "invoke": "#.entity.entityType",
+                                        "operation": "read"
+                                    },
+                                    {
+                                        "outputKey": "role",
+                                        "set": {
+                                            "$func/process-signal-role": {
+                                                "entityType": "#.self.data.signal.process",
+                                                "name": "#.self.data.signal.name"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "outputKey": "sources",
+                                        "inputMap": { "targetEntityId": "#.domain.id", "relationType": "#.role" },
+                                        "invoke": "entity-relations-to",
+                                        "operation": "run"
+                                    },
                                     {
                                         "outputKey": "wakeups",
-                                        "set": { "$func/process-signal-wakeups": { "entityType": "#.self.data.signal.process", "name": "#.self.data.signal.name", "payload": "#.payload", "sources": "#.sources" } }
+                                        "set": {
+                                            "$func/process-signal-wakeups": {
+                                                "entityType": "#.self.data.signal.process",
+                                                "name": "#.self.data.signal.name",
+                                                "payload": "#.payload",
+                                                "sources": "#.sources"
+                                            }
+                                        }
                                     },
                                     { "inputMap": "#.wakeups", "forEach": { "inputMap": "#.item", "publish": "process-wakeups" } }
                                 ]

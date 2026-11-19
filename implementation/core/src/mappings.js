@@ -16,7 +16,7 @@ onReset(() => {
 const cacheFor = tree => tree !== null && typeof tree === 'object' ? objectCache : valueCache;
 
 const asCoreError = error => error instanceof LambdaJSONError || error instanceof LambdaJSONRuntimeError
-    ? new CoreError(error.code, error.message, { path: error.path })
+    ? new CoreError(error.code, error.message, error.data ?? { path: error.path })
     : error;
 
 const guarded = run => (...args) => {

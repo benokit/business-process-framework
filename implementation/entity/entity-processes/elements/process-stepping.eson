@@ -18,8 +18,110 @@
         "id": "initial-process-value",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!definition": "string", "!entities{}": "@any" }, "output": { "!value": { "!definition": "string", "!step": "string", "!entities{}": "@any" }, "!problems[]": "string" } },
-            "mapping": {"$let": {"data": {"$func/process-definition-of": "#.definition"}, "roles": {"$func/process-roles-of": "@data"}}, "$in": {"value": {"definition": "#.definition", "step": "@data.start", "entities": {"$mapValues": {"of": "#.entities", "as": ["keys", "role"], "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$if": ["@declared.many", {"$map": {"over": {"$concat": [[], "@keys"]}, "as": "key", "fn": {"entityType": "@declared.entityType", "businessKey": "@key"}}}, {"entityType": "@declared.entityType", "businessKey": "@keys"}]}}}}}, "problems": {"$concat": [{"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$and": [{"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}}, {"$not": {"$not": {"$isNil": {"$get": {"object": "#.entities", "path": "@role"}}}}}]}}}, "as": "role", "fn": {"$str": ["the role '", "@role", "' must be bound to start ", "#.definition"]}}}, {"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$and": [{"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}, {"$not": {"$isNil": {"$get": {"object": "#.entities", "path": "@role"}}}}]}}}, "as": "role", "fn": {"$str": ["the role '", "@role", "' is late: a step binds it, not the start"]}}}, {"$map": {"over": {"$filter": {"collection": {"$keys": "#.entities"}, "as": "role", "predicate": {"$isNil": {"$get": {"object": "@roles", "path": "@role"}}}}}, "as": "role", "fn": {"$str": ["#.definition", " has no role '", "@role", "'"]}}}]}}}
+            "signature": {
+                "input": { "!definition": "string", "!entities{}": "@any" },
+                "output": { "!definition": "string", "!step": "string", "!entities{}": "@any" }
+            },
+            "mapping": {
+                "$let": {
+                    "data": { "$func/process-definition-of": "#.definition" },
+                    "roles": { "$func/process-roles-of": "@data" },
+                    "unbound": {
+                        "$filter": {
+                            "collection": { "$keys": "@roles" },
+                            "as": "role",
+                            "predicate": {
+                                "$and": [
+                                    { "$not": { "$get": { "object": "@roles", "path": ["@role", "late"] } } },
+                                    { "$isNil": { "$get": { "object": "#.entities", "path": "@role" } } }
+                                ]
+                            }
+                        }
+                    },
+                    "lateBound": {
+                        "$filter": {
+                            "collection": { "$keys": "@roles" },
+                            "as": "role",
+                            "predicate": {
+                                "$and": [
+                                    { "$get": { "object": "@roles", "path": ["@role", "late"] } },
+                                    { "$not": { "$isNil": { "$get": { "object": "#.entities", "path": "@role" } } } }
+                                ]
+                            }
+                        }
+                    },
+                    "unknown": {
+                        "$filter": {
+                            "collection": { "$keys": "#.entities" },
+                            "as": "role",
+                            "predicate": { "$isNil": { "$get": { "object": "@roles", "path": "@role" } } }
+                        }
+                    },
+                    "problems": {
+                        "$concat": [
+                            {
+                                "$map": {
+                                    "over": "@unbound",
+                                    "as": "role",
+                                    "fn": { "$str": ["the role '", "@role", "' must be bound to start ", "#.definition"] }
+                                }
+                            },
+                            {
+                                "$map": {
+                                    "over": "@lateBound",
+                                    "as": "role",
+                                    "fn": { "$str": ["the role '", "@role", "' is late: a step binds it, not the start"] }
+                                }
+                            },
+                            {
+                                "$map": {
+                                    "over": "@unknown",
+                                    "as": "role",
+                                    "fn": { "$str": ["#.definition", " has no role '", "@role", "'"] }
+                                }
+                            }
+                        ]
+                    },
+                    "entities": {
+                        "$mapValues": {
+                            "of": "#.entities",
+                            "as": ["keys", "role"],
+                            "fn": {
+                                "$let": {
+                                    "declared": { "$get": { "object": "@roles", "path": "@role" } },
+                                    "references": {
+                                        "$map": {
+                                            "over": { "$concat": [[], "@keys"] },
+                                            "as": "key",
+                                            "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
+                                        }
+                                    }
+                                },
+                                "$in": {
+                                    "$if": [
+                                        "@declared.many",
+                                        "@references",
+                                        { "entityType": "@declared.entityType", "businessKey": "@keys" }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "$in": {
+                    "$if": [
+                        { "$not": { "$isNil": "@problems.0" } },
+                        {
+                            "$throw": {
+                                "code": "invalid",
+                                "message": { "$join": { "separator": "; ", "strings": "@problems" } },
+                                "data": { "definition": "#.definition" }
+                            }
+                        },
+                        { "definition": "#.definition", "step": "@data.start", "entities": "@entities" }
+                    ]
+                }
+            }
         }
     },
     {
@@ -27,23 +129,216 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!definition": "string", "!step": "string" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
-            "export": "processStepOf"
+            "mapping": {
+                "$let": {
+                    "data": { "$func/process-definition-of": "#.definition" },
+                    "step": { "$get": { "object": "@data.steps", "path": "#.step" } }
+                },
+                "$in": {
+                    "$if": [
+                        { "$isNil": "@step" },
+                        {
+                            "$throw": {
+                                "code": "unknown-definition",
+                                "message": { "$str": ["the process definition '", "#.definition", "' has no step '", "#.step", "'"] },
+                                "data": { "definition": "#.definition", "step": "#.step" }
+                            }
+                        },
+                        "@step"
+                    ]
+                }
+            }
         }
     },
     {
         "id": "process-exit",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer", "!bindings": "@any" }, "output": "@any" },
-            "mapping": {"$let": {"definition": "#.scope.process.data.process.definition", "variables": {"$merge": ["#.scope.process.data.body", {"$if": [{"$isNil": "#.step.set"}, {}, {"$func/apply-mapping": {"mapping": "#.step.set", "input": "#.scope"}}]}]}, "roles": {"$func/process-roles-of": {"$func/process-definition-of": "@definition"}}, "bind": {"$coalesce": ["#.scope.output.bind", {}]}, "inscope": {"$merge": ["#.scope", {"process": {"$merge": ["#.scope.process", {"data": {"$merge": ["#.scope.process.data", {"body": "@variables"}]}}]}}]}, "found": {"$head": {"$filter": {"collection": {"$map": {"over": {"$keys": "@bind"}, "as": "role", "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$cond": [[{"$isNil": "@declared"}, {"code": "invalid", "message": {"$str": ["@definition", " has no role '", "@role", "'"]}, "data": {"definition": "@definition", "role": "@role"}}], [{"$not": "@declared.late"}, {"code": "conflict", "message": {"$str": ["the role '", "@role", "' is bound at the start and never rebound"]}, "data": {"definition": "@definition", "role": "@role"}}], [{"$and": [{"$not": "@declared.many"}, {"$not": {"$isNil": {"$get": {"object": "#.bindings", "path": "@role"}}}}]}, {"code": "conflict", "message": {"$str": ["the role '", "@role", "' is already bound"]}, "data": {"definition": "@definition", "role": "@role"}}], ["else", null]]}}}}, "as": "found", "predicate": {"$not": {"$isNil": "@found"}}}}}, "exit": {"$cond": [["#.step.end", {"kind": "end"}], [{"$not": {"$isNil": "#.step.next"}}, {"kind": "next", "step": "#.step.next"}], [{"$not": {"$isNil": "#.step.choose"}}, {"$let": {"chosen": {"$find": {"collection": "#.step.choose", "as": "entry", "predicate": {"$or": [{"$eq": ["@entry.0", "else"]}, {"$func/apply-mapping": {"mapping": "@entry.0", "input": "@inscope"}}]}}}}, "$in": {"$if": [{"$isNil": "@chosen"}, {"problem": {"code": "invalid", "message": {"$str": ["no choose entry of the step '", "#.name", "' holds"]}, "data": {"step": "#.name"}}}, {"kind": "next", "step": "@chosen.1"}]}}], ["else", {"kind": "wait", "wait": {"$merge": [{"token": {"$sum": ["#.revision", 1]}, "signals": {"$keys": {"$coalesce": ["#.step.wait.signals", {}]}}}, {"$if": [{"$isNil": "#.step.wait.until"}, {}, {"until": {"$merge": [{"then": "#.step.wait.until.then"}, {"$if": [{"$isNil": "#.step.wait.until.at"}, {"after": "#.step.wait.until.after"}, {"at": {"$func/apply-mapping": {"mapping": "#.step.wait.until.at", "input": "@inscope"}}}]}]}}]}]}}]]}}, "$in": {"$merge": [{"variables": "@variables", "entities": {"$merge": ["#.bindings", {"$mapValues": {"of": "@bind", "as": ["keys", "role"], "fn": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": {"$if": ["@declared.many", {"$concat": [{"$coalesce": [{"$get": {"object": "#.bindings", "path": "@role"}}, []]}, {"$map": {"over": {"$concat": [[], "@keys"]}, "as": "key", "fn": {"entityType": "@declared.entityType", "businessKey": "@key"}}}]}, {"entityType": "@declared.entityType", "businessKey": "@keys"}]}}}}]}}, "@exit", {"$if": [{"$not": {"$isNil": "@found"}}, {"problem": "@found"}, {}]}]}}
+            "signature": {
+                "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!revision": "integer", "!bindings": "@any" },
+                "output": "@any"
+            },
+            "mapping": {
+                "$let": {
+                    "definition": "#.scope.process.data.process.definition",
+                    "changes": {
+                        "$if": [{ "$isNil": "#.step.set" }, {}, { "$func/apply-mapping": { "mapping": "#.step.set", "input": "#.scope" } }]
+                    },
+                    "variables": { "$merge": ["#.scope.process.data.body", "@changes"] },
+                    "roles": { "$func/process-roles-of": { "$func/process-definition-of": "@definition" } },
+                    "bind": { "$coalesce": ["#.scope.output.bind", {}] },
+                    "processData": { "$merge": ["#.scope.process.data", { "body": "@variables" }] },
+                    "inscope": { "$merge": ["#.scope", { "process": { "$merge": ["#.scope.process", { "data": "@processData" }] } }] },
+                    "problems": {
+                        "$map": {
+                            "over": { "$keys": "@bind" },
+                            "as": "role",
+                            "fn": {
+                                "$let": {
+                                    "declared": { "$get": { "object": "@roles", "path": "@role" } },
+                                    "about": { "definition": "@definition", "role": "@role" }
+                                },
+                                "$in": {
+                                    "$cond": [
+                                        [
+                                            { "$isNil": "@declared" },
+                                            {
+                                                "code": "invalid",
+                                                "message": { "$str": ["@definition", " has no role '", "@role", "'"] },
+                                                "data": "@about"
+                                            }
+                                        ],
+                                        [
+                                            { "$not": "@declared.late" },
+                                            {
+                                                "code": "conflict",
+                                                "message": { "$str": ["the role '", "@role", "' is bound at the start and never rebound"] },
+                                                "data": "@about"
+                                            }
+                                        ],
+                                        [
+                                            {
+                                                "$and": [
+                                                    { "$not": "@declared.many" },
+                                                    { "$not": { "$isNil": { "$get": { "object": "#.bindings", "path": "@role" } } } }
+                                                ]
+                                            },
+                                            {
+                                                "code": "conflict",
+                                                "message": { "$str": ["the role '", "@role", "' is already bound"] },
+                                                "data": "@about"
+                                            }
+                                        ],
+                                        ["else", null]
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "found": { "$find": { "collection": "@problems", "as": "problem", "predicate": { "$not": { "$isNil": "@problem" } } } },
+                    "waiting": {
+                        "kind": "wait",
+                        "wait": {
+                            "$merge": [
+                                {
+                                    "token": { "$sum": ["#.revision", 1] },
+                                    "signals": { "$keys": { "$coalesce": ["#.step.wait.signals", {}] } }
+                                },
+                                {
+                                    "$if": [
+                                        { "$isNil": "#.step.wait.until" },
+                                        {},
+                                        {
+                                            "until": {
+                                                "$merge": [
+                                                    { "then": "#.step.wait.until.then" },
+                                                    {
+                                                        "$if": [
+                                                            { "$isNil": "#.step.wait.until.at" },
+                                                            { "after": "#.step.wait.until.after" },
+                                                            {
+                                                                "at": {
+                                                                    "$func/apply-mapping": {
+                                                                        "mapping": "#.step.wait.until.at",
+                                                                        "input": "@inscope"
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "exit": {
+                        "$cond": [
+                            ["#.step.end", { "kind": "end" }],
+                            [{ "$not": { "$isNil": "#.step.next" } }, { "kind": "next", "step": "#.step.next" }],
+                            [
+                                { "$not": { "$isNil": "#.step.choose" } },
+                                {
+                                    "$let": {
+                                        "chosen": {
+                                            "$find": {
+                                                "collection": "#.step.choose",
+                                                "as": "entry",
+                                                "predicate": {
+                                                    "$or": [
+                                                        { "$eq": ["@entry.0", "else"] },
+                                                        { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "$in": {
+                                        "$if": [
+                                            { "$isNil": "@chosen" },
+                                            {
+                                                "$throw": {
+                                                    "code": "invalid",
+                                                    "message": { "$str": ["no choose entry of the step '", "#.name", "' holds"] },
+                                                    "data": { "step": "#.name" }
+                                                }
+                                            },
+                                            { "kind": "next", "step": "@chosen.1" }
+                                        ]
+                                    }
+                                }
+                            ],
+                            ["else", "@waiting"]
+                        ]
+                    },
+                    "bound": {
+                        "$mapValues": {
+                            "of": "@bind",
+                            "as": ["keys", "role"],
+                            "fn": {
+                                "$let": {
+                                    "declared": { "$get": { "object": "@roles", "path": "@role" } },
+                                    "existing": { "$coalesce": [{ "$get": { "object": "#.bindings", "path": "@role" } }, []] },
+                                    "references": {
+                                        "$map": {
+                                            "over": { "$concat": [[], "@keys"] },
+                                            "as": "key",
+                                            "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
+                                        }
+                                    }
+                                },
+                                "$in": {
+                                    "$if": [
+                                        "@declared.many",
+                                        { "$concat": ["@existing", "@references"] },
+                                        { "entityType": "@declared.entityType", "businessKey": "@keys" }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "entities": { "$merge": ["#.bindings", "@bound"] }
+                },
+                "$in": {
+                    "$if": [
+                        { "$not": { "$isNil": "@found" } },
+                        { "$throw": { "code": "@found.code", "message": "@found.message", "data": "@found.data" } },
+                        { "$merge": [{ "variables": "@variables", "entities": "@entities" }, "@exit"] }
+                    ]
+                }
+            }
         }
     },
     {
         "id": "process-recovery",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!error": "@any", "!bindings": "@any" }, "output": "@any" },
+            "signature": {
+                "input": { "!name": "string", "!step": "@any", "!scope": "@any", "!error": "@any", "!bindings": "@any" },
+                "output": "@any"
+            },
             "module": "@business-framework/entity-processes/process",
             "export": "processErrorExit"
         }
@@ -53,15 +348,77 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!process": "@any", "!step": "string", "wait": "@any", "entities": "@any" }, "output": "@any" },
-            "mapping": {"$merge": [{"definition": "#.process.definition", "step": "#.step", "entities": {"$coalesce": ["#.entities", "#.process.entities"]}}, {"$if": ["#.wait", {"wait": "#.wait"}, {}]}]}
+            "mapping": {
+                "$merge": [
+                    {
+                        "definition": "#.process.definition",
+                        "step": "#.step",
+                        "entities": { "$coalesce": ["#.entities", "#.process.entities"] }
+                    },
+                    { "$if": ["#.wait", { "wait": "#.wait" }, {}] }
+                ]
+            }
         }
     },
     {
         "id": "process-verdict",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "!error": "@any", "!attempts": "integer", "target": "@any" }, "output": { "!action=1": ["rethrow", "count", "suspend", "drop"], "!operations[]": "@any" } },
-            "mapping": {"$let": {"type": {"$func/error-type-lookup": "#.error.code"}, "step": {"$coalesce": ["#.target.step", "#.process.data.process.step"]}, "count": {"$sum": [{"$if": [{"$eq": ["#.process.data.process.failures.step", "@step"]}, {"$coalesce": ["#.process.data.process.failures.count", 0]}, 0]}, 1]}}, "$in": {"$cond": [[{"$or": ["@type.outage", {"$eq": ["#.wakeup.kind", "start"]}]}, {"action": "rethrow", "operations": []}], [{"$neq": ["#.process.data.state.status", "running"]}, {"action": "drop", "operations": []}], [{"$or": [{"$not": "@type.transient"}, {"$gte": ["@count", "#.attempts"]}]}, {"action": "suspend", "operations": [{"key": "process", "operation": "move", "input": {"process": {"$merge": ["#.process.data.process", {"fault": {"step": "@step", "code": "#.error.code", "message": "#.error.message", "attempts": "@count", "wakeup": "#.wakeup"}}]}}}, {"key": "state", "operation": "transition", "input": {"transition": "suspend"}}]}], ["else", {"action": "count", "operations": [{"key": "process", "operation": "move", "input": {"process": {"$merge": ["#.process.data.process", {"failures": {"step": "@step", "count": "@count"}}]}}}]}]]}}
+            "signature": {
+                "input": { "!process": "@any", "!wakeup": "@any", "!error": "@any", "!attempts": "integer", "target": "@any" },
+                "output": { "!action=1": ["rethrow", "count", "suspend", "drop"], "!operations[]": "@any" }
+            },
+            "mapping": {
+                "$let": {
+                    "type": { "$func/error-type-lookup": "#.error.code" },
+                    "current": "#.process.data.process",
+                    "step": { "$coalesce": ["#.target.step", "@current.step"] },
+                    "count": {
+                        "$sum": [
+                            { "$if": [{ "$eq": ["@current.failures.step", "@step"] }, { "$coalesce": ["@current.failures.count", 0] }, 0] },
+                            1
+                        ]
+                    },
+                    "faulted": {
+                        "$merge": [
+                            "@current",
+                            {
+                                "fault": {
+                                    "step": "@step",
+                                    "code": "#.error.code",
+                                    "message": "#.error.message",
+                                    "attempts": "@count",
+                                    "wakeup": "#.wakeup"
+                                }
+                            }
+                        ]
+                    },
+                    "counted": { "$merge": ["@current", { "failures": { "step": "@step", "count": "@count" } }] }
+                },
+                "$in": {
+                    "$cond": [
+                        [{ "$or": ["@type.outage", { "$eq": ["#.wakeup.kind", "start"] }] }, { "action": "rethrow", "operations": [] }],
+                        [{ "$neq": ["#.process.data.state.status", "running"] }, { "action": "drop", "operations": [] }],
+                        [
+                            { "$or": [{ "$not": "@type.transient" }, { "$gte": ["@count", "#.attempts"] }] },
+                            {
+                                "action": "suspend",
+                                "operations": [
+                                    { "key": "process", "operation": "move", "input": { "process": "@faulted" } },
+                                    { "key": "state", "operation": "transition", "input": { "transition": "suspend" } }
+                                ]
+                            }
+                        ],
+                        [
+                            "else",
+                            {
+                                "action": "count",
+                                "operations": [{ "key": "process", "operation": "move", "input": { "process": "@counted" } }]
+                            }
+                        ]
+                    ]
+                }
+            }
         }
     }
 ]

@@ -7,9 +7,14 @@
             "operations": {
                 "initialize": {
                     "implementation": [
-                        { "outputKey": "initial", "set": { "$func/initial-process-value": { "definition": "#.input.configuration.definition", "entities": { "$coalesce": ["#.input.input.entities", {}] } } } },
-                        { "if": "#.initial.problems.0", "then": { "throw": { "code": "invalid", "message": { "$join": { "separator": "; ", "strings": "#.initial.problems" } }, "data": { "definition": "#.input.configuration.definition" } } } },
-                        { "set": "#.initial.value" }
+                        {
+                            "set": {
+                                "$func/initial-process-value": {
+                                    "definition": "#.input.configuration.definition",
+                                    "entities": { "$coalesce": ["#.input.input.entities", {}] }
+                                }
+                            }
+                        }
                     ]
                 },
                 "move": {
@@ -28,7 +33,15 @@
             "react": [
                 {
                     "outputKey": "resumed",
-                    "set": { "$func/state-moved": { "before": "#.input.change.before", "after": "#.input.change.after", "dimension": "status", "from": "suspended", "to": "running" } }
+                    "set": {
+                        "$func/state-moved": {
+                            "before": "#.input.change.before",
+                            "after": "#.input.change.after",
+                            "dimension": "status",
+                            "from": "suspended",
+                            "to": "running"
+                        }
+                    }
                 },
                 {
                     "outputKey": "aborted",
@@ -43,7 +56,10 @@
                 {
                     "if": { "$and": ["#.resumed", "#.position.fault"] },
                     "then": {
-                        "inputMap": { "message": "#.position.fault.wakeup", "group": { "$str": ["#.self.id", "/", "#.input.change.after.businessKey"] } },
+                        "inputMap": {
+                            "message": "#.position.fault.wakeup",
+                            "group": { "$str": ["#.self.id", "/", "#.input.change.after.businessKey"] }
+                        },
                         "publish": "process-wakeups"
                     }
                 },
@@ -51,7 +67,13 @@
                     "if": { "$and": ["#.resumed", "#.position.wait.until"] },
                     "then": {
                         "inputMap": {
-                            "message": { "kind": "timer", "entityType": "#.self.id", "businessKey": "#.input.change.after.businessKey", "token": "#.position.wait.token", "step": "#.position.wait.until.then" },
+                            "message": {
+                                "kind": "timer",
+                                "entityType": "#.self.id",
+                                "businessKey": "#.input.change.after.businessKey",
+                                "token": "#.position.wait.token",
+                                "step": "#.position.wait.until.then"
+                            },
                             "group": { "$str": ["#.self.id", "/", "#.input.change.after.businessKey", "/timer/", "#.position.wait.token"] },
                             "deliverAt": "#.position.wait.until.at"
                         },
@@ -60,7 +82,11 @@
                 },
                 {
                     "if": "#.aborted",
-                    "then": { "inputMap": { "step": null, "bindings": "#.position.entities", "resolve": {} }, "invoke": "#.self.id", "operation": "closeTasks" }
+                    "then": {
+                        "inputMap": { "step": null, "bindings": "#.position.entities", "resolve": {} },
+                        "invoke": "#.self.id",
+                        "operation": "closeTasks"
+                    }
                 },
                 {
                     "if": { "$and": [{ "$or": ["#.resumed", "#.aborted"] }, { "$or": ["#.position.fault", "#.position.failures"] }] },
@@ -69,7 +95,21 @@
                             "businessKey": "#.input.change.after.businessKey",
                             "revision": "#.input.change.after.revision",
                             "entityOperation": "settle",
-                            "operations": [{ "key": "process", "operation": "move", "input": { "process": { "$func/process-position": { "process": "#.position", "step": "#.position.step", "wait": "#.position.wait" } } } }]
+                            "operations": [
+                                {
+                                    "key": "process",
+                                    "operation": "move",
+                                    "input": {
+                                        "process": {
+                                            "$func/process-position": {
+                                                "process": "#.position",
+                                                "step": "#.position.step",
+                                                "wait": "#.position.wait"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         "invoke": "#.self.id",
                         "operation": "writeTraitOperationsAsOneChange"

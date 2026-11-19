@@ -76,7 +76,25 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!definition": "string", "!step": "string" }, "output": "@any" },
-            "mapping": {"$let": {"data": {"$func/process-definition-of": "#.definition"}, "declared": {"$get": {"object": "@data.steps", "path": "#.step"}}}, "$in": {"$if": ["@declared.extensible", {"$filter": {"collection": {"$func/slot-values": {"element": "#.definition", "slot": "stepExtensions"}}, "as": "extension", "predicate": {"$eq": ["@extension.step", "#.step"]}}}, []]}}
+            "mapping": {
+                "$let": {
+                    "data": { "$func/process-definition-of": "#.definition" },
+                    "declared": { "$get": { "object": "@data.steps", "path": "#.step" } }
+                },
+                "$in": {
+                    "$if": [
+                        "@declared.extensible",
+                        {
+                            "$filter": {
+                                "collection": { "$func/slot-values": { "element": "#.definition", "slot": "stepExtensions" } },
+                                "as": "extension",
+                                "predicate": { "$eq": ["@extension.step", "#.step"] }
+                            }
+                        },
+                        []
+                    ]
+                }
+            }
         }
     },
     {

@@ -1,4 +1,3 @@
-import { CoreError } from '@business-framework/core';
 import { errorTypeOf, isKindOfError } from '@business-framework/core/error-types';
 import { selvesOf } from '@business-framework/core/kinds';
 import { slotValues } from '@business-framework/core/slots';
@@ -6,16 +5,10 @@ import { applyMapping } from '@business-framework/core/mappings';
 import { memo } from '@business-framework/core/registry';
 import { isDeepStrictEqual } from 'node:util';
 
-export const definitionOf = id => selvesOf('process-definition').find(element => element.id === id)?.data
-    ?? (() => { throw new CoreError('unknown-definition', `the process definition '${id}' isn't loaded`, { definition: id }); })();
-
 export const rolesOf = ({ entities, tasks = {} }) => ({
     ...entities,
     ...Object.fromEntries(Object.entries(tasks).map(([name, { type }]) => [name, { entityType: type, late: true, task: true }]))
 });
-
-export const processStepOf = ({ definition, step }) => definitionOf(definition).steps[step]
-    ?? (() => { throw new CoreError('unknown-definition', `the process definition '${definition}' has no step '${step}'`, { definition, step }); })();
 
 const evaluated = (mapping, scope) => applyMapping({ mapping, input: scope });
 

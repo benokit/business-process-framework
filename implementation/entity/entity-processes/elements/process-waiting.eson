@@ -13,7 +13,48 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!step": "@any", "!exit": "@any", "entities": "@any", "!scope": "@any" }, "output": "@any" },
-            "mapping": {"$let": {"held": {"$if": [{"$and": [{"$eq": ["#.exit.kind", "wait"]}, {"$not": {"$isNil": "#.entities"}}]}, {"$find": {"collection": {"$coalesce": ["#.step.wait.when", []]}, "as": "entry", "predicate": {"$func/apply-mapping": {"mapping": "@entry.test", "input": {"$func/process-scope": {"definition": "#.scope.process.data.process.definition", "scope": "#.scope", "participants": "#.entities"}}}}}}, null]}}, "$in": {"$if": [{"$isNil": "@held"}, "#.exit", {"kind": "next", "step": "@held.then", "variables": "#.exit.variables", "entities": "#.exit.entities", "resolve": {"$coalesce": ["@held.resolve", {}]}}]}}
+            "mapping": {
+                "$let": {
+                    "waiting": { "$and": [{ "$eq": ["#.exit.kind", "wait"] }, { "$not": { "$isNil": "#.entities" } }] },
+                    "held": {
+                        "$if": [
+                            "@waiting",
+                            {
+                                "$let": {
+                                    "scope": {
+                                        "$func/process-scope": {
+                                            "definition": "#.scope.process.data.process.definition",
+                                            "scope": "#.scope",
+                                            "participants": "#.entities"
+                                        }
+                                    }
+                                },
+                                "$in": {
+                                    "$find": {
+                                        "collection": { "$coalesce": ["#.step.wait.when", []] },
+                                        "as": "entry",
+                                        "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
+                                    }
+                                }
+                            },
+                            null
+                        ]
+                    }
+                },
+                "$in": {
+                    "$if": [
+                        { "$isNil": "@held" },
+                        "#.exit",
+                        {
+                            "kind": "next",
+                            "step": "@held.then",
+                            "variables": "#.exit.variables",
+                            "entities": "#.exit.entities",
+                            "resolve": { "$coalesce": ["@held.resolve", {}] }
+                        }
+                    ]
+                }
+            }
         }
     },
     {
@@ -30,7 +71,18 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": "@any", "output": "@any" },
-            "mapping": {"$map": {"over": "#.changed", "as": "name", "fn": {"definition": {"$head": {"$split": {"separator": "/", "string": "@name"}}}, "role": {"$join": {"separator": "/", "strings": {"$tail": {"$split": {"separator": "/", "string": "@name"}}}}}}}}
+            "mapping": {
+                "$map": {
+                    "over": "#.changed",
+                    "as": "name",
+                    "fn": {
+                        "definition": { "$head": { "$split": { "separator": "/", "string": "@name" } } },
+                        "role": {
+                            "$join": { "separator": "/", "strings": { "$tail": { "$split": { "separator": "/", "string": "@name" } } } }
+                        }
+                    }
+                }
+            }
         }
     },
     {
@@ -38,13 +90,73 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!message": "@any", "!view": "@any", "!sources": "@any" }, "output": "@any" },
-            "mapping": {"$let": {"types": {"$map": {"over": {"$filter": {"collection": {"$func/instances-of": "process-entity-type"}, "as": "element", "predicate": {"$eq": ["@element.data.definition", "#.view.definition"]}}}, "as": "element", "fn": "@element.id"}}}, "$in": {"$map": {"over": {"$filter": {"collection": "#.sources", "as": "source", "predicate": {"$and": [{"$includes": {"collection": "@types", "value": "@source.sourceEntityType"}}, {"$not": {"$and": [{"$eq": ["#.message.via.definition", "#.view.definition"]}, {"$eq": ["#.message.via.businessKey", "@source.sourceEntityBusinessKey"]}]}}]}}}, "as": "source", "fn": {"message": {"kind": "check", "entityType": "@source.sourceEntityType", "businessKey": "@source.sourceEntityBusinessKey", "role": "#.view.role", "revision": "#.message.revision"}, "group": {"$str": ["@source.sourceEntityType", "/", "@source.sourceEntityBusinessKey"]}}}}}
+            "mapping": {
+                "$let": {
+                    "types": {
+                        "$map": {
+                            "over": {
+                                "$filter": {
+                                    "collection": { "$func/instances-of": "process-entity-type" },
+                                    "as": "element",
+                                    "predicate": { "$eq": ["@element.data.definition", "#.view.definition"] }
+                                }
+                            },
+                            "as": "element",
+                            "fn": "@element.id"
+                        }
+                    },
+                    "checked": {
+                        "$filter": {
+                            "collection": "#.sources",
+                            "as": "source",
+                            "predicate": { "$includes": { "collection": "@types", "value": "@source.sourceEntityType" } }
+                        }
+                    },
+                    "others": {
+                        "$filter": {
+                            "collection": "@checked",
+                            "as": "source",
+                            "predicate": {
+                                "$not": {
+                                    "$and": [
+                                        { "$eq": ["#.message.via.definition", "#.view.definition"] },
+                                        { "$eq": ["#.message.via.businessKey", "@source.sourceEntityBusinessKey"] }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "$in": {
+                    "$map": {
+                        "over": "@others",
+                        "as": "source",
+                        "fn": {
+                            "message": {
+                                "kind": "check",
+                                "entityType": "@source.sourceEntityType",
+                                "businessKey": "@source.sourceEntityBusinessKey",
+                                "role": "#.view.role",
+                                "revision": "#.message.revision"
+                            },
+                            "group": { "$str": ["@source.sourceEntityType", "/", "@source.sourceEntityBusinessKey"] }
+                        }
+                    }
+                }
+            }
         }
     },
     {
         "id": "process-view-change",
         "kind": "schema",
-        "data": { "!entityType": "string", "!id": "string", "!businessKey": "string", "!revision": "integer", "!changed[]": "string", "via": "@any" }
+        "data": {
+            "!entityType": "string",
+            "!id": "string",
+            "!businessKey": "string",
+            "!revision": "integer",
+            "!changed[]": "string",
+            "via": "@any"
+        }
     },
     {
         "id": "entity-view-changes",
@@ -65,7 +177,16 @@
             "slot": "reactions",
             "value": [
                 { "outputKey": "record", "set": { "$coalesce": ["#.input.after", "#.input.before"] } },
-                { "outputKey": "changed", "set": { "$func/process-changed-views": { "entityType": "#.record.entityType", "before": "#.input.before", "after": "#.input.after" } } },
+                {
+                    "outputKey": "changed",
+                    "set": {
+                        "$func/process-changed-views": {
+                            "entityType": "#.record.entityType",
+                            "before": "#.input.before",
+                            "after": "#.input.after"
+                        }
+                    }
+                },
                 {
                     "if": "#.changed",
                     "then": {
@@ -76,10 +197,18 @@
                                 "businessKey": "#.record.businessKey",
                                 "revision": "#.record.revision",
                                 "changed": "#.changed",
-                                "via": { "$if": ["#._ctx.process", { "definition": "#._ctx.process.definition", "businessKey": "#._ctx.process.businessKey" }, null] }
+                                "via": {
+                                    "$if": [
+                                        "#._ctx.process",
+                                        { "definition": "#._ctx.process.definition", "businessKey": "#._ctx.process.businessKey" },
+                                        null
+                                    ]
+                                }
                             },
                             "subject": "#.record.entityType",
-                            "messageId": { "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation", "views"], "separator": "-" } },
+                            "messageId": {
+                                "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation", "views"], "separator": "-" }
+                            },
                             "group": { "$join": { "strings": ["#.record.entityType", "#.record.businessKey"], "separator": "/" } }
                         },
                         "publish": "entity-view-changes"

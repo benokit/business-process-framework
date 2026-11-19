@@ -68,6 +68,12 @@ describe('pipelines', () => {
         expect([error.constructor.name, error.code, error.data.path]).to.deep.equal(['CoreError', 'missing-operand', '/$sum']);
     });
 
+    it('raises the error of a $throw in a mapping as a CoreError with its data, and only when its branch is taken', async () => {
+        const error = await run({ set: { $if: [true, { $throw: { code: 'invalid', message: { $str: ['no ', 'x'] }, data: { role: 'x' } } }, 1] } }).catch(e => e);
+        expect([error.constructor.name, error.code, error.message, error.data.role]).to.deep.equal(['CoreError', 'invalid', 'no x', 'x']);
+        expect(await run({ set: { $if: [false, { $throw: { code: 'invalid', message: 'm' } }, 1] } })).to.equal(1);
+    });
+
     it('fails on an unknown node keyword', async () => {
         const error = await run({ nonsense: true }).catch(e => e);
         expect(error.code).to.equal('unknown-keyword');
