@@ -68,8 +68,7 @@ describe('task work list', function () {
             invoke(SIGNOFF, 'create', { businessKey: 't-2', traits: { task: {} } }),
             invoke(SIGNOFF, 'create', { businessKey: 't-3', traits: { task: { actor: 'auditor' } } })
         ]);
-        await eventually(async () => (await keysOf('underwriter')).length === 2);
-        expect((await keysOf('auditor')).length).to.equal(1);
+        await eventually(async () => (await keysOf('underwriter')).length === 2 && (await keysOf('auditor')).length === 1);
         await invoke(REVIEW, 'run', { businessKey: 't-1', revision: first.revision, trait: 'task', operation: 'cancel' }, { user: Object.freeze({ userId: 'system', roles: ['system'] }) });
         await eventually(async () => (await keysOf('underwriter')).length === 1);
         expect([second.businessKey, other.businessKey]).to.deep.equal(['t-2', 't-3']);
