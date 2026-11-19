@@ -28,6 +28,45 @@
                                     { "$eq": ["@current.wait.token", "#.wakeup.token"] },
                                     { "$eq": ["@current.wait.until.then", "#.wakeup.step"] }
                                 ]
+                            },
+                            "$declaredSignal": {
+                                "$fn": {
+                                    "as": "current",
+                                    "body": {
+                                        "$let": {
+                                            "step": {
+                                                "$func/process-step-of": { "definition": "@current.definition", "step": "@current.step" }
+                                            }
+                                        },
+                                        "$in": { "$get": { "object": "@step.wait.signals", "path": ["#.wakeup.name"] } }
+                                    }
+                                }
+                            },
+                            "$heldEntry": {
+                                "$fn": {
+                                    "as": "current",
+                                    "body": {
+                                        "$let": {
+                                            "step": {
+                                                "$func/process-step-of": { "definition": "@current.definition", "step": "@current.step" }
+                                            },
+                                            "scope": {
+                                                "$func/process-scope": {
+                                                    "definition": "@current.definition",
+                                                    "scope": { "process": "#.process" },
+                                                    "participants": "#.entities"
+                                                }
+                                            }
+                                        },
+                                        "$in": {
+                                            "$find": {
+                                                "collection": { "$coalesce": ["@step.wait.when", []] },
+                                                "as": "entry",
+                                                "predicate": { "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" } }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         },
                         "$in": {
@@ -38,15 +77,7 @@
                                         "$if": [
                                             "@signalled",
                                             {
-                                                "$let": {
-                                                    "step": {
-                                                        "$func/process-step-of": {
-                                                            "definition": "@current.definition",
-                                                            "step": "@current.step"
-                                                        }
-                                                    },
-                                                    "declared": { "$get": { "object": "@step.wait.signals", "path": ["#.wakeup.name"] } }
-                                                },
+                                                "$let": { "declared": { "$declaredSignal": "@current" } },
                                                 "$in": { "step": "@declared.to", "signal": { "$coalesce": ["#.wakeup.payload", null] } }
                                             },
                                             null
@@ -64,30 +95,7 @@
                                             { "$isNil": "@current.wait" },
                                             null,
                                             {
-                                                "$let": {
-                                                    "step": {
-                                                        "$func/process-step-of": {
-                                                            "definition": "@current.definition",
-                                                            "step": "@current.step"
-                                                        }
-                                                    },
-                                                    "scope": {
-                                                        "$func/process-scope": {
-                                                            "definition": "@current.definition",
-                                                            "scope": { "process": "#.process" },
-                                                            "participants": "#.entities"
-                                                        }
-                                                    },
-                                                    "held": {
-                                                        "$find": {
-                                                            "collection": { "$coalesce": ["@step.wait.when", []] },
-                                                            "as": "entry",
-                                                            "predicate": {
-                                                                "$func/apply-mapping": { "mapping": "@entry.test", "input": "@scope" }
-                                                            }
-                                                        }
-                                                    }
-                                                },
+                                                "$let": { "held": { "$heldEntry": "@current" } },
                                                 "$in": {
                                                     "$if": [
                                                         { "$isNil": "@held" },

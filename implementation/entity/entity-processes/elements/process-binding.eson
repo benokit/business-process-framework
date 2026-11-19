@@ -126,6 +126,56 @@
                             }
                         }
                     },
+                    "$evaluated": {
+                        "$fn": { "as": "mapping", "body": { "$func/apply-mapping": { "mapping": "@mapping", "input": "@stepScope" } } }
+                    },
+                    "$pairOf": {
+                        "$fn": {
+                            "as": "entry",
+                            "body": {
+                                "$let": {
+                                    "task": "@entry.task",
+                                    "opening": "@entry.opening",
+                                    "declared": "@entry.declared",
+                                    "about": {
+                                        "$concat": {
+                                            "$map": {
+                                                "over": { "$coalesce": ["@declared.about", []] },
+                                                "as": "role",
+                                                "fn": { "$coalesce": [{ "$get": { "object": "@references", "path": "@role" } }, []] }
+                                            }
+                                        }
+                                    },
+                                    "due": { "$if": [{ "$isNil": "@opening.dueOn" }, {}, { "dueOn": { "$evaluated": "@opening.dueOn" } }] },
+                                    "assigned": {
+                                        "$if": [
+                                            { "$isNil": "@opening.assignTo" },
+                                            {},
+                                            { "assignedTo": { "$evaluated": "@opening.assignTo" } }
+                                        ]
+                                    },
+                                    "body": { "$if": [{ "$isNil": "@opening.body" }, {}, { "$evaluated": "@opening.body" }] }
+                                },
+                                "$in": {
+                                    "task": "@task",
+                                    "opening": {
+                                        "entityType": "@declared.type",
+                                        "businessKey": { "$str": ["@keyPrefix", ".", "@task"] },
+                                        "traits": {
+                                            "task": {
+                                                "$merge": [
+                                                    { "origin": { "process": "@processKey", "step": "#.name" }, "about": "@about" },
+                                                    "@due",
+                                                    "@assigned"
+                                                ]
+                                            },
+                                            "body": "@body"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "entries": {
                         "$values": {
                             "$mapValues": {
@@ -156,64 +206,7 @@
                         "$map": {
                             "over": { "$filter": { "collection": "@entries", "as": "entry", "predicate": { "$isNil": "@entry.current" } } },
                             "as": "entry",
-                            "fn": {
-                                "$let": {
-                                    "task": "@entry.task",
-                                    "opening": "@entry.opening",
-                                    "declared": "@entry.declared",
-                                    "about": {
-                                        "$concat": {
-                                            "$map": {
-                                                "over": { "$coalesce": ["@declared.about", []] },
-                                                "as": "role",
-                                                "fn": { "$coalesce": [{ "$get": { "object": "@references", "path": "@role" } }, []] }
-                                            }
-                                        }
-                                    },
-                                    "due": {
-                                        "$if": [
-                                            { "$isNil": "@opening.dueOn" },
-                                            {},
-                                            { "dueOn": { "$func/apply-mapping": { "mapping": "@opening.dueOn", "input": "@stepScope" } } }
-                                        ]
-                                    },
-                                    "assigned": {
-                                        "$if": [
-                                            { "$isNil": "@opening.assignTo" },
-                                            {},
-                                            {
-                                                "assignedTo": {
-                                                    "$func/apply-mapping": { "mapping": "@opening.assignTo", "input": "@stepScope" }
-                                                }
-                                            }
-                                        ]
-                                    },
-                                    "body": {
-                                        "$if": [
-                                            { "$isNil": "@opening.body" },
-                                            {},
-                                            { "$func/apply-mapping": { "mapping": "@opening.body", "input": "@stepScope" } }
-                                        ]
-                                    }
-                                },
-                                "$in": {
-                                    "task": "@task",
-                                    "opening": {
-                                        "entityType": "@declared.type",
-                                        "businessKey": { "$str": ["@keyPrefix", ".", "@task"] },
-                                        "traits": {
-                                            "task": {
-                                                "$merge": [
-                                                    { "origin": { "process": "@processKey", "step": "#.name" }, "about": "@about" },
-                                                    "@due",
-                                                    "@assigned"
-                                                ]
-                                            },
-                                            "body": "@body"
-                                        }
-                                    }
-                                }
-                            }
+                            "fn": { "$pairOf": "@entry" }
                         }
                     },
                     "openings": { "$map": { "over": "@pairs", "as": "pair", "fn": "@pair.opening" } },
@@ -298,11 +291,10 @@
                             }
                         ]
                     },
-                    "closures": {
-                        "$map": {
-                            "over": "@roles",
+                    "$closuresOf": {
+                        "$fn": {
                             "as": "role",
-                            "fn": {
+                            "body": {
                                 "$let": {
                                     "outcome": { "$get": { "object": "#.resolve", "path": "@role" } },
                                     "records": {
@@ -338,7 +330,8 @@
                                 }
                             }
                         }
-                    }
+                    },
+                    "closures": { "$map": { "over": "@roles", "as": "role", "fn": { "$closuresOf": "@role" } } }
                 },
                 "$in": { "$concat": "@closures" }
             }

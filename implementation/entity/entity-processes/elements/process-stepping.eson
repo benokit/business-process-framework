@@ -26,6 +26,29 @@
                 "$let": {
                     "data": { "$func/process-definition-of": "#.definition" },
                     "roles": { "$func/process-roles-of": "@data" },
+                    "$referencesOf": {
+                        "$fn": {
+                            "as": ["declared", "keys"],
+                            "body": {
+                                "$let": {
+                                    "references": {
+                                        "$map": {
+                                            "over": { "$concat": [[], "@keys"] },
+                                            "as": "key",
+                                            "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
+                                        }
+                                    }
+                                },
+                                "$in": {
+                                    "$if": [
+                                        "@declared.many",
+                                        "@references",
+                                        { "entityType": "@declared.entityType", "businessKey": "@keys" }
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "unbound": {
                         "$filter": {
                             "collection": { "$keys": "@roles" },
@@ -86,25 +109,7 @@
                         "$mapValues": {
                             "of": "#.entities",
                             "as": ["keys", "role"],
-                            "fn": {
-                                "$let": {
-                                    "declared": { "$get": { "object": "@roles", "path": "@role" } },
-                                    "references": {
-                                        "$map": {
-                                            "over": { "$concat": [[], "@keys"] },
-                                            "as": "key",
-                                            "fn": { "entityType": "@declared.entityType", "businessKey": "@key" }
-                                        }
-                                    }
-                                },
-                                "$in": {
-                                    "$if": [
-                                        "@declared.many",
-                                        "@references",
-                                        { "entityType": "@declared.entityType", "businessKey": "@keys" }
-                                    ]
-                                }
-                            }
+                            "fn": { "$referencesOf": [{ "$get": { "object": "@roles", "path": "@role" } }, "@keys"] }
                         }
                     }
                 },
@@ -169,6 +174,43 @@
                     "bind": { "$coalesce": ["#.scope.output.bind", {}] },
                     "processData": { "$merge": ["#.scope.process.data", { "body": "@variables" }] },
                     "inscope": { "$merge": ["#.scope", { "process": { "$merge": ["#.scope.process", { "data": "@processData" }] } }] },
+                    "$problem": {
+                        "$fn": { "as": ["code", "message", "about"], "body": { "code": "@code", "message": "@message", "data": "@about" } }
+                    },
+                    "$choice": {
+                        "$fn": {
+                            "as": "entries",
+                            "body": {
+                                "$let": {
+                                    "chosen": {
+                                        "$find": {
+                                            "collection": "@entries",
+                                            "as": "entry",
+                                            "predicate": {
+                                                "$or": [
+                                                    { "$eq": ["@entry.0", "else"] },
+                                                    { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                },
+                                "$in": {
+                                    "$if": [
+                                        { "$isNil": "@chosen" },
+                                        {
+                                            "$throw": {
+                                                "code": "invalid",
+                                                "message": { "$str": ["no choose entry of the step '", "#.name", "' holds"] },
+                                                "data": { "step": "#.name" }
+                                            }
+                                        },
+                                        { "kind": "next", "step": "@chosen.1" }
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "problems": {
                         "$map": {
                             "over": { "$keys": "@bind" },
@@ -183,17 +225,21 @@
                                         [
                                             { "$isNil": "@declared" },
                                             {
-                                                "code": "invalid",
-                                                "message": { "$str": ["@definition", " has no role '", "@role", "'"] },
-                                                "data": "@about"
+                                                "$problem": [
+                                                    "invalid",
+                                                    { "$str": ["@definition", " has no role '", "@role", "'"] },
+                                                    "@about"
+                                                ]
                                             }
                                         ],
                                         [
                                             { "$not": "@declared.late" },
                                             {
-                                                "code": "conflict",
-                                                "message": { "$str": ["the role '", "@role", "' is bound at the start and never rebound"] },
-                                                "data": "@about"
+                                                "$problem": [
+                                                    "conflict",
+                                                    { "$str": ["the role '", "@role", "' is bound at the start and never rebound"] },
+                                                    "@about"
+                                                ]
                                             }
                                         ],
                                         [
@@ -204,9 +250,11 @@
                                                 ]
                                             },
                                             {
-                                                "code": "conflict",
-                                                "message": { "$str": ["the role '", "@role", "' is already bound"] },
-                                                "data": "@about"
+                                                "$problem": [
+                                                    "conflict",
+                                                    { "$str": ["the role '", "@role", "' is already bound"] },
+                                                    "@about"
+                                                ]
                                             }
                                         ],
                                         ["else", null]
@@ -258,38 +306,7 @@
                         "$cond": [
                             ["#.step.end", { "kind": "end" }],
                             [{ "$not": { "$isNil": "#.step.next" } }, { "kind": "next", "step": "#.step.next" }],
-                            [
-                                { "$not": { "$isNil": "#.step.choose" } },
-                                {
-                                    "$let": {
-                                        "chosen": {
-                                            "$find": {
-                                                "collection": "#.step.choose",
-                                                "as": "entry",
-                                                "predicate": {
-                                                    "$or": [
-                                                        { "$eq": ["@entry.0", "else"] },
-                                                        { "$func/apply-mapping": { "mapping": "@entry.0", "input": "@inscope" } }
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "$in": {
-                                        "$if": [
-                                            { "$isNil": "@chosen" },
-                                            {
-                                                "$throw": {
-                                                    "code": "invalid",
-                                                    "message": { "$str": ["no choose entry of the step '", "#.name", "' holds"] },
-                                                    "data": { "step": "#.name" }
-                                                }
-                                            },
-                                            { "kind": "next", "step": "@chosen.1" }
-                                        ]
-                                    }
-                                }
-                            ],
+                            [{ "$not": { "$isNil": "#.step.choose" } }, { "$choice": "#.step.choose" }],
                             ["else", "@waiting"]
                         ]
                     },
