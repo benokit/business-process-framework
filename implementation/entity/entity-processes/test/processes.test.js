@@ -184,7 +184,7 @@ const elements = [
             start: 'begin',
             steps: {
                 begin: {
-                    do: [{ inputMap: { businessKey: 'r-bound', traits: { body: { outcome: 'pending' } } }, invoke: REVIEW, operation: 'create' }, { set: { bind: { review: 'r-bound' } } }],
+                    do: [{ inputMap: { businessKey: 'r-bound', traits: { body: { outcome: 'pending' } } }, invoke: REVIEW, operation: 'create' }, { return: { bind: { review: 'r-bound' } } }],
                     next: 'use'
                 },
                 use: { set: { outcome: '#.entities.review.data.body.outcome' }, end: true }
@@ -195,7 +195,7 @@ const elements = [
     {
         id: REBINDING,
         kind: 'process-definition',
-        data: { entities: withReview, start: 'begin', steps: { begin: { do: { set: { bind: { contract: 'c-1' } } }, end: true } } }
+        data: { entities: withReview, start: 'begin', steps: { begin: { do: { return: { bind: { contract: 'c-1' } } }, end: true } } }
     },
     { id: REBINDINGS, kind: 'process-entity-type', data: { definition: REBINDING } },
     { id: OTHER, kind: 'entity-type', data: { traits: { body: { configuration: { schema: { name: 'string' } } } } } },
@@ -252,7 +252,7 @@ const elements = [
                 ask: {
                     do: [
                         { inputMap: { businessKey: '#.input.entities.contract.businessKey', traits: { task: { origin: { process: ASKINGS, step: 'ask' } }, body: {} } }, invoke: REVIEWTASK, operation: 'create' },
-                        { set: { bind: { review: '#.input.entities.contract.businessKey' } } }
+                        { return: { bind: { review: '#.input.entities.contract.businessKey' } } }
                     ],
                     wait: {
                         when: [

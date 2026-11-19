@@ -41,7 +41,7 @@
                             "invoke": "contract-review-task",
                             "operation": "create"
                         },
-                        { "set": { "bind": { "review": "#.input.entities.contract.businessKey" } } }
+                        { "return": { "bind": { "review": "#.input.entities.contract.businessKey" } } }
                     ],
                     "next": "await-review"
                 },
