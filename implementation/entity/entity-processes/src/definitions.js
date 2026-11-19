@@ -162,7 +162,7 @@ const participantType = ({ entityType, many }) => {
 
 const processType = variables => recordType({ process: {}, state: {}, body: variables === undefined ? {} : standardOf(variables) });
 
-const scopeOf = definition => ({
+export const scopeOf = definition => ({
     process: processType(definition.variables),
     entities: { type: 'object', properties: Object.fromEntries(Object.entries(definition.entities).map(([role, declaration]) => [role, participantType(declaration)])), additionalProperties: false },
     tasks: { type: 'object', properties: Object.fromEntries(Object.entries(definition.tasks ?? {}).map(([task, { type }]) => [task, participantType({ entityType: type })])), additionalProperties: false },

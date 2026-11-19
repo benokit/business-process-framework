@@ -73,7 +73,7 @@
         "kind": "pure-function",
         "data": {
             "signature": { "input": { "!entityType": "string", "before": "@any", "after": "@any" }, "output": "@any" },
-            "module": "@business-framework/entity-processes/process",
+            "module": "@business-framework/entity-processes/views",
             "export": "changedViews"
         }
     },

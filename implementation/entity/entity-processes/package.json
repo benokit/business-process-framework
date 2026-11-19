@@ -5,7 +5,8 @@
   "exports": {
     "./package.json": "./package.json",
     "./definitions": "./src/definitions.js",
-    "./process": "./src/process.js"
+    "./process": "./src/process.js",
+    "./views": "./src/views.js"
   },
   "scripts": {
     "test": "mocha --exit"

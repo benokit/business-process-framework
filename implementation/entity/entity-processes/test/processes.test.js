@@ -32,6 +32,8 @@ const BREAKINGS = `breakings-${run}`;
 
 const NOTICING = `noticing-process-${run}`;
 const NOTICINGS = `noticings-${run}`;
+const SURVEYING = `surveying-process-${run}`;
+const SURVEYINGS = `surveyings-${run}`;
 
 const SELFTOUCHING = `selftouching-process-${run}`;
 const SELFTOUCHINGS = `selftouchings-${run}`;
@@ -237,6 +239,19 @@ const elements = [
         }
     },
     { id: NOTICINGS, kind: 'process-entity-type', data: { definition: NOTICING } },
+    {
+        id: SURVEYING,
+        kind: 'process-definition',
+        data: {
+            entities: roles,
+            start: 'hold',
+            steps: {
+                hold: { wait: { when: [{ test: { $eq: [{ $get: { object: '#.entities', path: { $str: ['contract', '.data.body.name'] } } }, 'Ready'] }, then: 'done' }] } },
+                done: { end: true }
+            }
+        }
+    },
+    { id: SURVEYINGS, kind: 'process-entity-type', data: { definition: SURVEYING } },
     {
         id: SELFTOUCHING,
         kind: 'process-definition',
@@ -696,6 +711,13 @@ describe('processes', function () {
             await update('c-watched', 'Ready');
             await eventually(async () => (await readProcess(NOTICINGS, 'p-watched')).data.state.status === 'ended');
             expect((await readProcess(NOTICINGS, 'p-watched')).data.body).to.deep.equal({ name: 'Ready' });
+        });
+
+        it('is woken by a change of an entity a test reads through a computed path, which names no role or field', async () => {
+            await invoke(CONTRACT, 'create', { businessKey: 'c-computed', traits: { body: { name: 'Draft' } } });
+            await invoke(SURVEYINGS, 'start', { businessKey: 'p-computed', entities: { contract: 'c-computed' } });
+            await update('c-computed', 'Ready');
+            await eventually(async () => (await readProcess(SURVEYINGS, 'p-computed')).data.state.status === 'ended');
         });
 
         it('publishes nothing for a write that changes no view, and nothing for an entity type no process reads', async () => {
