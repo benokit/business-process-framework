@@ -1,0 +1,116 @@
+[
+    {
+        "id": "resolved-wait",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!wait": "@any", "!now": "string" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "resolvedWait"
+        }
+    },
+    {
+        "id": "process-held-exit",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!exit": "@any", "entities": "@any", "!scope": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"held": {"$if": [{"$and": [{"$eq": ["#.exit.kind", "wait"]}, {"$not": {"$isNil": "#.entities"}}]}, {"$find": {"collection": {"$coalesce": ["#.step.wait.when", []]}, "as": "entry", "predicate": {"$func/apply-mapping": {"mapping": "@entry.test", "input": {"$func/process-scope": {"definition": "#.scope.process.data.process.definition", "scope": "#.scope", "participants": "#.entities"}}}}}}, null]}}, "$in": {"$if": [{"$isNil": "@held"}, "#.exit", {"kind": "next", "step": "@held.then", "variables": "#.exit.variables", "entities": "#.exit.entities", "resolve": {"$coalesce": ["@held.resolve", {}]}}]}}
+        }
+    },
+    {
+        "id": "process-changed-views",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "before": "@any", "after": "@any" }, "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "changedViews"
+        }
+    },
+    {
+        "id": "process-view-roles",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "mapping": {"$map": {"over": "#.changed", "as": "name", "fn": {"definition": {"$head": {"$split": {"separator": "/", "string": "@name"}}}, "role": {"$join": {"separator": "/", "strings": {"$tail": {"$split": {"separator": "/", "string": "@name"}}}}}}}}
+        }
+    },
+    {
+        "id": "process-checks-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!message": "@any", "!view": "@any", "!sources": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"types": {"$map": {"over": {"$filter": {"collection": {"$func/instances-of": "process-entity-type"}, "as": "element", "predicate": {"$eq": ["@element.data.definition", "#.view.definition"]}}}, "as": "element", "fn": "@element.id"}}}, "$in": {"$map": {"over": {"$filter": {"collection": "#.sources", "as": "source", "predicate": {"$and": [{"$includes": {"collection": "@types", "value": "@source.sourceEntityType"}}, {"$not": {"$and": [{"$eq": ["#.message.via.definition", "#.view.definition"]}, {"$eq": ["#.message.via.businessKey", "@source.sourceEntityBusinessKey"]}]}}]}}}, "as": "source", "fn": {"message": {"kind": "check", "entityType": "@source.sourceEntityType", "businessKey": "@source.sourceEntityBusinessKey", "role": "#.view.role", "revision": "#.message.revision"}, "group": {"$str": ["@source.sourceEntityType", "/", "@source.sourceEntityBusinessKey"]}}}}}
+        }
+    },
+    {
+        "id": "process-view-change",
+        "kind": "schema",
+        "data": { "!entityType": "string", "!id": "string", "!businessKey": "string", "!revision": "integer", "!changed[]": "string", "via": "@any" }
+    },
+    {
+        "id": "entity-view-changes",
+        "kind": "message-channel",
+        "data": {
+            "broker": { "instanceOf": "message-broker" },
+            "topology": "topic",
+            "name": "entity-view-changes",
+            "publisher": { "transactionalOutbox": true, "retry": { "attempts": 5, "backoff": 500 } },
+            "consumer": { "retry": { "attempts": 5, "backoff": 500 } }
+        }
+    },
+    {
+        "id": "publish-process-view-changes",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "reactions",
+            "value": [
+                { "outputKey": "record", "set": { "$coalesce": ["#.input.after", "#.input.before"] } },
+                { "outputKey": "changed", "set": { "$func/process-changed-views": { "entityType": "#.record.entityType", "before": "#.input.before", "after": "#.input.after" } } },
+                {
+                    "if": "#.changed",
+                    "then": {
+                        "inputMap": {
+                            "message": {
+                                "entityType": "#.record.entityType",
+                                "id": "#.record.id",
+                                "businessKey": "#.record.businessKey",
+                                "revision": "#.record.revision",
+                                "changed": "#.changed",
+                                "via": { "$if": ["#._ctx.process", { "definition": "#._ctx.process.definition", "businessKey": "#._ctx.process.businessKey" }, null] }
+                            },
+                            "subject": "#.record.entityType",
+                            "messageId": { "$join": { "strings": ["#.record.id", "#.record.revision", "#.input.operation", "views"], "separator": "-" } },
+                            "group": { "$join": { "strings": ["#.record.entityType", "#.record.businessKey"], "separator": "/" } }
+                        },
+                        "publish": "entity-view-changes"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "id": "process-watcher",
+        "kind": "message-consumer",
+        "data": {
+            "channel": "entity-view-changes",
+            "handler": {
+                "asSystem": {
+                    "forEach": [
+                        {
+                            "outputKey": "sources",
+                            "inputMap": { "targetEntityId": "#.input.id", "relationType": "#.item.role" },
+                            "invoke": "entity-relations-to",
+                            "operation": "run"
+                        },
+                        {
+                            "outputKey": "checks",
+                            "set": { "$func/process-checks-of": { "message": "#.input", "view": "#.item", "sources": "#.sources" } }
+                        },
+                        { "inputMap": "#.checks", "forEach": { "inputMap": "#.item", "publish": "process-wakeups" } }
+                    ],
+                    "inputMap": { "$func/process-view-roles": "#.input" }
+                }
+            }
+        }
+    }
+]

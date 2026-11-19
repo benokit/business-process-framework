@@ -1,0 +1,112 @@
+[
+    {
+        "id": "process-trigger-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "[string]" },
+            "module": "@business-framework/entity-processes/definitions",
+            "export": "processTriggerProblems"
+        }
+    },
+    {
+        "id": "process-trigger-start",
+        "kind": "schema",
+        "data": { "!process": "string", "!entities": "@mapping", "input": "@mapping", "*": "never" }
+    },
+    {
+        "id": "process-trigger-signal",
+        "kind": "schema",
+        "data": { "!process": "string", "!name": "string", "!entity": "@mapping", "payload": "@mapping", "*": "never" }
+    },
+    {
+        "id": "process-trigger-on",
+        "kind": "schema",
+        "data": { "!channel": "@ref/message-channel", "subject": "@message-subject", "test": "@mapping", "*": "never" }
+    },
+    {
+        "id": "state-process-trigger",
+        "kind": "kind",
+        "data": {
+            "extends": "process-trigger",
+            "shape": { "!entityType": "@ref/entity-type", "!transition": "string", "!process": "string", "!role": "string", "*": "never" },
+            "mapping": {
+                "on": {
+                    "channel": "entity-events",
+                    "subject": "#.data.entityType",
+                    "test": {
+                        "$template": {
+                            "with": { "transition": "#.data.transition" },
+                            "mapping": {
+                                "$any": {
+                                    "collection": "#.commands",
+                                    "as": "command",
+                                    "predicate": { "$eq": ["@command", { "$literal": { "key": "state", "command": "@transition" } }] }
+                                }
+                            }
+                        }
+                    }
+                },
+                "start": {
+                    "process": "#.data.process",
+                    "entities": { "$template": { "with": { "role": "#.data.role" }, "mapping": { "@role": "#.businessKey" } } }
+                }
+            }
+        }
+    },
+    {
+        "id": "process-trigger",
+        "kind": "kind",
+        "data": {
+            "extends": "message-consumer",
+            "shape": { "!on": "@process-trigger-on", "start": "@process-trigger-start", "signal": "@process-trigger-signal" },
+            "mapping": {
+                "channel": "#.data.on.channel",
+                "filter": { "$if": ["#.data.on.subject", ["#.data.on.subject"], []] },
+                "handler": { "asSystem": { "inputMap": "\\#.input", "invoke": "\\#.self.id", "operation": "convert" } }
+            },
+            "operations": {
+                "convert": {
+                    "input": "@any",
+                    "output": "@any",
+                    "implementation": [
+                        {
+                            "outputKey": "applies",
+                            "set": { "$if": ["#.self.data.on.test", { "$func/apply-mapping": { "mapping": "#.self.data.on.test", "input": "#.input" } }, true] }
+                        },
+                        {
+                            "if": "#.applies",
+                            "then": {
+                                "if": "#.self.data.start",
+                                "then": [
+                                    { "outputKey": "entities", "set": { "$func/apply-mapping": { "mapping": "#.self.data.start.entities", "input": "#.input" } } },
+                                    { "outputKey": "startInput", "set": { "$if": ["#.self.data.start.input", { "$func/apply-mapping": { "mapping": "#.self.data.start.input", "input": "#.input" } }, null] } },
+                                    { "outputKey": "key", "set": { "$func/process-business-key": { "entityType": "#.self.data.start.process", "entities": "#.entities", "input": "#.startInput" } } },
+                                    {
+                                        "inputMap": {
+                                            "message": { "kind": "start", "entityType": "#.self.data.start.process", "businessKey": "#.key", "entities": "#.entities", "input": "#.startInput" },
+                                            "group": { "$str": ["#.self.data.start.process", "/", "#.key"] }
+                                        },
+                                        "publish": "process-wakeups"
+                                    }
+                                ],
+                                "else": [
+                                    { "outputKey": "entity", "set": { "$func/apply-mapping": { "mapping": "#.self.data.signal.entity", "input": "#.input" } } },
+                                    { "outputKey": "payload", "set": { "$if": ["#.self.data.signal.payload", { "$func/apply-mapping": { "mapping": "#.self.data.signal.payload", "input": "#.input" } }, null] } },
+                                    { "outputKey": "domain", "inputMap": { "businessKey": "#.entity.businessKey" }, "invoke": "#.entity.entityType", "operation": "read" },
+                                    { "outputKey": "role", "set": { "$func/process-signal-role": { "entityType": "#.self.data.signal.process", "name": "#.self.data.signal.name" } } },
+                                    { "outputKey": "sources", "inputMap": { "targetEntityId": "#.domain.id", "relationType": "#.role" }, "invoke": "entity-relations-to", "operation": "run" },
+                                    {
+                                        "outputKey": "wakeups",
+                                        "set": { "$func/process-signal-wakeups": { "entityType": "#.self.data.signal.process", "name": "#.self.data.signal.name", "payload": "#.payload", "sources": "#.sources" } }
+                                    },
+                                    { "inputMap": "#.wakeups", "forEach": { "inputMap": "#.item", "publish": "process-wakeups" } }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "lifecycle": { "validate": { "$func/process-trigger-problems": "#.self.id" } }
+        }
+    }
+]

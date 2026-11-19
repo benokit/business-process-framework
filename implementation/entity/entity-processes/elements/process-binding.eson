@@ -1,0 +1,84 @@
+[
+    {
+        "id": "process-definition-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "definitionOf"
+        }
+    },
+    {
+        "id": "process-roles-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "@any" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "rolesOf"
+        }
+    },
+    {
+        "id": "process-definition-of-type",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "string", "output": "string" },
+            "mapping": {"$let": {"type": {"$find": {"collection": {"$func/instances-of": "process-entity-type"}, "as": "element", "predicate": {"$eq": ["@element.id", "#"]}}}}, "$in": "@type.data.definition"}
+        }
+    },
+    {
+        "id": "process-scope",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!scope": "@any", "!participants": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"roles": {"$func/process-roles-of": {"$func/process-definition-of": "#.definition"}}}, "$in": {"$merge": ["#.scope", {"entities": {"$pick": {"keys": {"$filter": {"collection": {"$keys": "#.participants"}, "as": "role", "predicate": {"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.task"}}}}, "object": "#.participants"}}, "tasks": {"$pick": {"keys": {"$filter": {"collection": {"$keys": "#.participants"}, "as": "role", "predicate": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.task"}}}, "object": "#.participants"}}}]}}
+        }
+    },
+    {
+        "id": "process-task-openings",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "string", "!name": "string", "!step": "@any", "!scope": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"tasks": {"$coalesce": [{"$get": {"object": {"$func/process-definition-of": "#.definition"}, "path": "tasks"}}, {}]}, "entries": {"$values": {"$mapValues": {"of": {"$coalesce": ["#.step.open", {}]}, "as": ["opening", "task"], "fn": {"task": "@task", "opening": "@opening", "current": {"$get": {"object": "#.scope.tasks", "path": "@task"}}, "declared": {"$get": {"object": "@tasks", "path": "@task"}}}}}}, "closed": {"$find": {"collection": "@entries", "as": "entry", "predicate": {"$and": [{"$not": {"$isNil": "@entry.current"}}, {"$neq": ["@entry.current.data.task.status", "open"]}]}}}, "pairs": {"$map": {"over": {"$filter": {"collection": "@entries", "as": "entry", "predicate": {"$isNil": "@entry.current"}}}, "as": "entry", "fn": {"task": "@entry.task", "opening": {"entityType": "@entry.declared.type", "businessKey": {"$str": [{"$replace": {"regex": "/", "substitute": ".", "global": true, "string": "#.scope.process.businessKey"}}, ".", "@entry.task"]}, "traits": {"task": {"$merge": [{"origin": {"process": "#.scope.process.businessKey", "step": "#.name"}, "about": {"$concat": {"$map": {"over": {"$coalesce": ["@entry.declared.about", []]}, "as": "role", "fn": {"$map": {"over": {"$filter": {"collection": {"$concat": [[], {"$get": {"object": "#.scope.entities", "path": "@role"}}]}, "as": "record", "predicate": {"$not": {"$isNil": "@record"}}}}, "as": "record", "fn": {"entityType": "@record.entityType", "businessKey": "@record.businessKey"}}}}}}}, {"$if": [{"$isNil": "@entry.opening.dueOn"}, {}, {"dueOn": {"$func/apply-mapping": {"mapping": "@entry.opening.dueOn", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}}]}, {"$if": [{"$isNil": "@entry.opening.assignTo"}, {}, {"assignedTo": {"$func/apply-mapping": {"mapping": "@entry.opening.assignTo", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}}]}]}, "body": {"$if": [{"$isNil": "@entry.opening.body"}, {}, {"$func/apply-mapping": {"mapping": "@entry.opening.body", "input": {"$merge": ["#.scope", {"step": "#.name"}]}}}]}}}}}}}, "$in": {"openings": {"$map": {"over": "@pairs", "as": "pair", "fn": "@pair.opening"}}, "bind": {"$mapValues": {"of": {"$toDictionary": {"by": "@pair.task", "as": "pair", "collection": "@pairs"}}, "as": "pair", "fn": "@pair.opening.businessKey"}}, "conflict": {"$if": [{"$isNil": "@closed"}, null, {"code": "conflict", "message": {"$str": ["the task '", "@closed.task", "' of ", "#.definition", " is ", "@closed.current.data.task.status", ", and a task is opened once"]}, "data": {"definition": "#.definition", "task": "@closed.task"}}]}}}
+        }
+    },
+    {
+        "id": "process-transitions",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!scope": "@any" }, "output": "@any" },
+            "mapping": {"$values": {"$mapValues": {"of": {"$coalesce": ["#.step.transition", {}]}, "as": ["transition", "role"], "fn": {"$let": {"participant": {"$get": {"object": "#.scope.entities", "path": "@role"}}}, "$in": {"entityType": "@participant.entityType", "businessKey": "@participant.businessKey", "transition": "@transition"}}}}}
+        }
+    },
+    {
+        "id": "process-task-closures",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!step": "@any", "!entities": "@any", "!resolve": "@any" }, "output": "@any" },
+            "mapping": {"$let": {"roles": {"$if": [{"$eq": ["#.step", null]}, {"$keys": "#.entities"}, {"$unique": {"$concat": {"$map": {"over": {"$coalesce": ["#.step.wait.when", []]}, "as": "entry", "fn": {"$keys": {"$coalesce": ["@entry.resolve", {}]}}}}}}]}}, "$in": {"$concat": {"$map": {"over": "@roles", "as": "role", "fn": {"$let": {"outcome": {"$get": {"object": "#.resolve", "path": "@role"}}}, "$in": {"$map": {"over": {"$filter": {"collection": {"$concat": [[], {"$get": {"object": "#.entities", "path": "@role"}}]}, "as": "record", "predicate": {"$eq": ["@record.data.task.status", "open"]}}}, "as": "record", "fn": {"$merge": [{"entityType": "@record.entityType", "businessKey": "@record.businessKey", "revision": "@record.revision"}, {"$if": [{"$isNil": "@outcome"}, {"operation": "cancel"}, {"operation": "resolve", "input": {"outcome": "@outcome"}}]}]}}}}}}}}
+        }
+    },
+    {
+        "id": "process-business-key",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!entities": "@any", "input": "@any" }, "output": "string" },
+            "mapping": {"$let": {"definition": {"$func/process-definition-of-type": "#.entityType"}, "data": {"$func/process-definition-of": "@definition"}, "roles": {"$func/process-roles-of": "@data"}}, "$in": {"$join": {"separator": "/", "strings": {"$concat": [["@definition"], {"$concat": {"$map": {"over": {"$filter": {"collection": {"$keys": "@roles"}, "as": "role", "predicate": {"$not": {"$let": {"declared": {"$get": {"object": "@roles", "path": "@role"}}}, "$in": "@declared.late"}}}}, "as": "role", "fn": {"$concat": [[], {"$get": {"object": "#.entities", "path": "@role"}}]}}}}, {"$if": [{"$isNil": "@data.key"}, [], {"$func/apply-mapping": {"mapping": "@data.key", "input": {"entities": "#.entities", "input": {"$coalesce": ["#.input", null]}}}}]}]}}}}
+        }
+    },
+    {
+        "id": "process-signal-role",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!name": "string" }, "output": "@any" },
+            "mapping": {"$let": {"data": {"$func/process-definition-of": {"$func/process-definition-of-type": "#.entityType"}}, "signals": {"$find": {"collection": {"$map": {"over": {"$values": "@data.steps"}, "as": "step", "fn": {"$coalesce": ["@step.wait.signals", {}]}}}, "as": "declared", "predicate": {"$not": {"$isNil": {"$get": {"object": "@declared", "path": "#.name"}}}}}}, "declared": {"$get": {"object": "@signals", "path": "#.name"}}}, "$in": "@declared.by"}
+        }
+    },
+    {
+        "id": "process-signal-wakeups",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!name": "string", "payload": "@any", "!sources": "@any" }, "output": "@any" },
+            "mapping": {"$map": {"over": {"$filter": {"collection": "#.sources", "as": "source", "predicate": {"$eq": ["@source.sourceEntityType", "#.entityType"]}}}, "as": "source", "fn": {"message": {"$merge": [{"kind": "signal", "entityType": "#.entityType", "businessKey": "@source.sourceEntityBusinessKey", "name": "#.name"}, {"$if": [{"$isNil": "#.payload"}, {}, {"payload": "#.payload"}]}]}, "group": {"$str": ["#.entityType", "/", "@source.sourceEntityBusinessKey"]}}}}
+        }
+    }
+]

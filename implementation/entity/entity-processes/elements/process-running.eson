@@ -1,0 +1,63 @@
+[
+    {
+        "id": "process-search-document",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "object" },
+            "module": "@business-framework/entity-processes/process",
+            "export": "searchDocument"
+        }
+    },
+    {
+        "id": "process-wakeup-target",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!wakeup": "@any", "entities": "@any" }, "output": "@any" },
+            "mapping": {"$cond": [[{"$neq": ["#.process.data.state.status", "running"]}, null], [{"$eq": ["#.wakeup.kind", "signal"]}, {"$if": [{"$includes": {"collection": {"$coalesce": ["#.process.data.process.wait.signals", []]}, "value": "#.wakeup.name"}}, {"$let": {"declared": {"$get": {"object": {"$let": {"definition": {"$func/process-step-of": {"definition": "#.process.data.process.definition", "step": "#.process.data.process.step"}}}, "$in": "@definition.wait.signals"}, "path": "#.wakeup.name"}}}, "$in": {"step": "@declared.to", "signal": {"$coalesce": ["#.wakeup.payload", null]}}}, null]}], [{"$eq": ["#.wakeup.kind", "timer"]}, {"$if": [{"$and": [{"$eq": ["#.process.data.process.wait.token", "#.wakeup.token"]}, {"$eq": ["#.process.data.process.wait.until.then", "#.wakeup.step"]}]}, {"step": "#.wakeup.step", "signal": null}, null]}], ["else", {"$if": [{"$isNil": "#.process.data.process.wait"}, null, {"$let": {"held": {"$find": {"collection": {"$coalesce": [{"$let": {"definition": {"$func/process-step-of": {"definition": "#.process.data.process.definition", "step": "#.process.data.process.step"}}}, "$in": "@definition.wait.when"}, []]}, "as": "entry", "predicate": {"$func/apply-mapping": {"mapping": "@entry.test", "input": {"$func/process-scope": {"definition": "#.process.data.process.definition", "scope": {"process": "#.process"}, "participants": "#.entities"}}}}}}}, "$in": {"$if": [{"$isNil": "@held"}, null, {"step": "@held.then", "signal": null, "resolve": {"$coalesce": ["@held.resolve", {}]}}]}}]}]]}
+        }
+    },
+    {
+        "id": "process-wakeup",
+        "kind": "schema",
+        "data": {
+            "!kind=1": ["start", "signal", "timer", "check"],
+            "!entityType": "string",
+            "businessKey": "string",
+            "entities": "@any",
+            "input": "@any",
+            "name": "string",
+            "payload": "@any",
+            "token": "integer",
+            "step": "string",
+            "role": "string",
+            "revision": "integer",
+            "*": "never"
+        }
+    },
+    {
+        "id": "process-wakeups",
+        "kind": "message-channel",
+        "data": {
+            "broker": { "instanceOf": "message-broker" },
+            "topology": "topic",
+            "name": "process-wakeups",
+            "publisher": { "transactionalOutbox": true, "retry": { "attempts": 5, "backoff": 500 } },
+            "consumer": { "retry": { "attempts": 5, "backoff": 500 } }
+        }
+    },
+    {
+        "id": "process-runner",
+        "kind": "message-consumer",
+        "data": {
+            "channel": "process-wakeups",
+            "handler": { "asSystem": { "inputMap": "#.input", "invoke": "#.input.entityType", "operation": "wake" } }
+        }
+    },
+    {
+        "id": "process-context",
+        "kind": "schema",
+        "data": { "!definition": "string", "!businessKey": "string", "!step": "string", "!token": "integer", "!entities": "@any" }
+    },
+    { "id": "unknown-definition-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "unknown-definition" } } },
+    { "id": "process-chain-limit-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "process-chain-limit" } } }
+]

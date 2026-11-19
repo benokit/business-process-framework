@@ -1,0 +1,45 @@
+[
+    {
+        "id": "process-relations-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[@entity-relation]" },
+            "mapping": {"$if": [{"$includes": {"collection": ["ended", "aborted"], "value": "#.data.state.status"}}, [], {"$concat": {"$values": {"$mapValues": {"of": "#.data.process.entities", "as": ["binding", "role"], "fn": {"$map": {"over": {"$concat": [[], "@binding"]}, "as": "bound", "fn": {"targetEntityType": "@bound.entityType", "targetEntityBusinessKey": "@bound.businessKey", "relationType": "@role"}}}}}}}]}
+        }
+    },
+    {
+        "id": "process-relations",
+        "kind": "slot-fill",
+        "data": { "target": "process-entity-type", "slot": "relations", "value": { "set": { "relations": { "$func/process-relations-of": "#.input" } } } }
+    },
+    {
+        "id": "process-footprint-allows",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!process": "@any", "!change": "@any", "!entityType": "string" }, "output": "boolean" },
+            "mapping": {"$if": [{"$eq": ["#.change.operation", "create"]}, {"$any": {"collection": {"$values": {"$func/process-roles-of": {"$func/process-definition-of": "#.process.definition"}}}, "as": "role", "predicate": {"$eq": ["@role.entityType", "#.entityType"]}}}, {"$any": {"collection": {"$concat": {"$values": "#.process.entities"}}, "as": "bound", "predicate": {"$and": [{"$eq": ["@bound.entityType", "#.change.before.entityType"]}, {"$eq": ["@bound.businessKey", "#.change.before.businessKey"]}]}}}]}
+        }
+    },
+    { "id": "outside-process-footprint-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "outside-process-footprint", "extends": "forbidden" } } },
+    {
+        "id": "process-footprint-guard",
+        "kind": "slot-fill",
+        "data": {
+            "target": "entity-type",
+            "slot": "requestGuards",
+            "on": ["create", "trait", "delete"],
+            "value": {
+                "if": "#._ctx.process",
+                "then": {
+                    "if": { "$not": { "$func/process-footprint-allows": { "process": "#._ctx.process", "change": "#.input", "entityType": "#.self.id" } } },
+                    "then": {
+                        "throw": {
+                            "code": "outside-process-footprint",
+                            "message": { "$str": ["the process ", "#._ctx.process.businessKey", " (", "#._ctx.process.definition", ") may not ", { "$coalesce": ["#.input.entityOperation", "#.input.operation"] }, " ", "#.self.id", " '", { "$coalesce": ["#.input.before.businessKey", "#.input.after.businessKey"] }, "': it isn't one of its participants"] }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]
