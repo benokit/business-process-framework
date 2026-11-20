@@ -1,6 +1,35 @@
 
 
-Axioms of entity traits derivation
 
-derive trait 
-    -> (trait value, commands: [(target trait key, trait command, input)])
+element:
+    id: a-kind
+    kind: kind
+    shape:
+        entityType: @ref/kind
+        mapping: @mapping(input: object, output: any) 
+    operation:
+        map(input: businessKey):
+            - entity = get entity of kind self.data.entityType with businessKey
+            - return: evaluate self.data.mapping with entity
+
+element
+    id: an-instance
+    kind: a-kind
+    data:
+        entityType: contracts
+        mapping: $return #.body.something // can framework validate this path against contract schema?
+
+---------------
+
+element:
+    id: a-kind
+    kind: kind
+    shape:
+        entityType: @ref/kind
+        mapping: @mapping(input: "@template/T", output: any)
+    types:
+        T(self -> shape): record-of(#.data.entityType)
+    operation:
+        map(input: businessKey):
+            - entity = get entity of kind self.data.entityType with businessKey
+            - return: evaluate self.data.mapping with entity
