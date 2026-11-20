@@ -78,7 +78,7 @@
             "target": "insurance-contract-type",
             "slot": "reactions",
             "value": {
-                "if": { "$and": ["#.input.after.data.body.startDate", { "$lte": ["#.input.after.data.body.endDate", "#.input.after.data.body.startDate"] }] },
+                "if": { "$and": ["#.input.after.data.body.startDate", "#.input.after.data.body.endDate", { "$lte": [{ "$coalesce": ["#.input.after.data.body.endDate", ""] }, { "$coalesce": ["#.input.after.data.body.startDate", ""] }] }] },
                 "then": { "throw": { "code": "invalid", "message": "the end date must be after the start of the terms" } }
             }
         }
@@ -91,7 +91,7 @@
             "slot": "reactions",
             "value": [
                 {
-                    "if": { "$gt": ["#.input.after.data.body.sumInsured", "#.self.data.maxSumInsured"] },
+                    "if": { "$gt": [{ "$coalesce": ["#.input.after.data.body.sumInsured", 0] }, "#.self.data.maxSumInsured"] },
                     "then": { "throw": { "code": "invalid", "message": { "$str": ["the sum insured exceeds the limit of ", "#.self.data.maxSumInsured", " of the line of business"] } } }
                 }
             ]
