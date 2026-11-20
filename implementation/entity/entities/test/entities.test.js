@@ -186,7 +186,7 @@ const elements = [
     { id: UNDECLARED, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [DOUBLE]: { configuration: {} }, [TOTAL]: { configuration: {}, dependsOn: ['body'] } } } },
     { id: RUNAWAY, kind: WRITING, data: { traits: { body: { configuration: { schema: { '!amount': 'number' } } }, [COUNTING]: { configuration: {}, dependsOn: [COUNTING] } } } },
     prefixed(NOTE),
-    { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' } } },
+    { id: NOTE, kind: `${NOTE}-trait`, data: { configuration: { '!prefix': 'string' }, value: 'string' } },
     prefixed(MASKED),
     { id: MASKED, kind: `${MASKED}-trait`, data: { configuration: { '!prefix': 'string' }, view: { $if: [{ $eq: ['#.at', 'public'] }, '***', '#.value'] } } },
     { id: MASKING, kind: 'entity-type', data: { traits: { body: { configuration: { schema: {} } }, [MASKED]: { configuration: { prefix: 'secret: ' } } } } },
@@ -384,6 +384,13 @@ describe('entities', function () {
         const written = await invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 1, key: NOTE, command: 'rewrite', value: 'changed' });
         expect([written.revision, written.data.body.amount, written.data[NOTE]]).to.deep.equal([2, 1, 'changed']);
         expect((await errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-5', revision: 2, key: 'other', command: 'x', value: {} }))).code).to.equal('invalid');
+    });
+
+    it('refuses a value that the schema the trait declares does not accept, and leaves the record as it was', async () => {
+        await invoke(ORDER, 'create', { businessKey: 'o-typed', traits: { body: { amount: 1 } } });
+        const error = await errorOf(invoke(ORDER, 'writeTrait', { businessKey: 'o-typed', revision: 1, key: NOTE, command: 'rewrite', value: 5 }));
+        expect([error.code, error.data.problems.length]).to.deep.equal(['invalid', 1]);
+        expect((await invoke(ORDER, 'read', { businessKey: 'o-typed' })).revision).to.equal(1);
     });
 
     it('writes several traits in one revision, or none of them', async () => {

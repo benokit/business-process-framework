@@ -31,13 +31,10 @@ const dimensionsOf = use => Object.entries(use.configuration.dimensions ?? {}).m
 
 const isPrimitive = ({ type }) => PRIMITIVES.includes(type);
 
-export const ownershipSchemas = () => ownedTypes().map(({ id, use }) => ({
-    id: `${id}/ownership/dimensions`,
-    schema: {
-        ...Object.fromEntries(Object.entries(use.configuration.dimensions).map(([key, type]) => [key, type === 'string' ? LOWERCASE : type])),
-        '*': 'never'
-    }
-}));
+export const ownershipValueSchema = ({ dimensions }) => ({
+    ...Object.fromEntries(Object.entries(dimensions).map(([key, type]) => [key, type === 'string' ? LOWERCASE : type])),
+    '*': 'never'
+});
 
 export const ownershipRule = entityType => ownershipUseOf(entityType)?.configuration.rule ?? null;
 

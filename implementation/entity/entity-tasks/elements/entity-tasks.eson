@@ -147,6 +147,7 @@
         "kind": "task-trait",
         "data": {
             "configuration": "@task-configuration",
+            "value": { "!status=1": ["open", "resolved", "cancelled"], "actor": "string", "assignedTo": "string", "outcome": "string", "answer": { "!outcome": "string", "result": "\\@any", "by": "string" }, "*": "\\@any" },
             "guard": {
                 "if": {
                     "$and": [

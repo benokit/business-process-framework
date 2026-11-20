@@ -20,7 +20,7 @@
         "data": {
             "signature": {
                 "input": { "!definition": "string", "!entities{}": "@any" },
-                "output": { "!definition": "string", "!step": "string", "!entities{}": "@any" }
+                "output": "@process-value"
             },
             "mapping": {
                 "$let": {

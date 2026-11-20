@@ -5,15 +5,6 @@
         "data": "string:^\\d{4}-\\d{2}-\\d{2}$"
     },
     {
-        "id": "body-schemas",
-        "kind": "pure-function",
-        "data": {
-            "signature": { "input": "@any", "output": "[object]" },
-            "module": "@business-framework/entities/body",
-            "export": "bodySchemas"
-        }
-    },
-    {
         "id": "start-body-versions",
         "kind": "pure-function",
         "data": {
@@ -105,6 +96,7 @@
         "kind": "kind",
         "data": {
             "extends": "valued-entity-trait",
+            "fixed": { "value": "#.configuration.schema" },
             "operations": {
                 "update": { "public": true, "input": { "$data#&": ["@trait-operation-input", { "!input": "@body-update-input" }] }, "output": "@trait-command" }
             }
@@ -122,13 +114,13 @@
                             "if": { "$negate": "#.input.input" },
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " needs a ", "#.input.key"] } } }
                         },
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
                         { "set": "#.input.input" }
                     ]
                 },
                 "update": {
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
                         { "set": { "command": "update", "value": "#.input.input.value" } }
                     ]
                 }
@@ -150,13 +142,13 @@
                             "if": { "$negate": "#.input.input" },
                             "then": { "throw": { "code": "invalid", "message": { "$str": ["#.input.entityType", " needs a ", "#.input.key"] } } }
                         },
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.input.input" }, "invoke": "ajv", "operation": "assert" },
                         { "set": { "$func/start-body-versions": { "configuration": "#.input.configuration", "body": "#.input.input" } } }
                     ]
                 },
                 "update": {
                     "implementation": [
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.input.input.value" }, "invoke": "ajv", "operation": "assert" },
                         { "set": { "command": "update", "value": { "$func/replace-body-versions": { "timeline": "#.input.value", "configuration": "#.input.configuration", "body": "#.input.input.value" } } } }
                     ]
                 },
@@ -168,7 +160,7 @@
                             "outputKey": "body",
                             "set": { "$func/dated-body": { "configuration": "#.input.configuration", "validFrom": "#.input.input.validFrom", "body": "#.input.input.body" } }
                         },
-                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/schema"] }, "value": "#.body" }, "invoke": "ajv", "operation": "assert" },
+                        { "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.body" }, "invoke": "ajv", "operation": "assert" },
                         {
                             "set": { "command": "amend", "value": { "$func/append-body-version": { "timeline": "#.input.value", "validFrom": "#.input.input.validFrom", "ref": "#.input.input.ref", "body": "#.body" } } }
                         }
@@ -195,23 +187,6 @@
             "configuration": { "!schema": "@schema", "!versioned": { "!validFrom": "string:^(/([^/~]|~[01])*)+$" } },
             "view": { "$func/body-at": { "timeline": "#.value", "at": "#.at" } }
         }
-    },
-    {
-        "id": "entity-body-writer",
-        "kind": "kind",
-        "data": {
-            "lifecycle": {
-                "load": {
-                    "inputMap": { "$func/body-schemas": null },
-                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
-                }
-            }
-        }
-    },
-    {
-        "id": "entity-bodies",
-        "kind": "entity-body-writer",
-        "data": {}
     },
     {
         "id": "record-body",

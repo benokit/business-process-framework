@@ -1,5 +1,10 @@
 [
     {
+        "id": "process-value",
+        "kind": "schema",
+        "data": { "!definition": "string", "!step": "string", "entities": "@any", "wait": "@any", "*": "@any" }
+    },
+    {
         "id": "process-trait",
         "kind": "kind",
         "data": {
@@ -30,6 +35,7 @@
         "kind": "process-trait",
         "data": {
             "configuration": "@process-configuration",
+            "value": "\\@process-value",
             "react": [
                 {
                     "outputKey": "resumed",

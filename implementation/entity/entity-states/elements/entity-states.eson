@@ -88,6 +88,15 @@
         }
     },
     {
+        "id": "state-value-schema",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!model": "@any" }, "output": "@schema" },
+            "module": "@business-framework/entity-states/states",
+            "export": "stateValueSchema"
+        }
+    },
+    {
         "id": "states-trait",
         "kind": "kind",
         "data": {
@@ -137,6 +146,7 @@
         "kind": "states-trait",
         "data": {
             "configuration": "@entity-states-model",
+            "value": { "$func/state-value-schema": { "model": "#.configuration" } },
             "guard": {
                 "if": {
                     "$and": [

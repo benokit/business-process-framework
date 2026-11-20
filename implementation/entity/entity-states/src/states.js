@@ -7,6 +7,9 @@ export const applyTransition = ({ model, state, transition }) => {
     return targets.length > 0 && targets.every(([, target]) => target !== undefined) ? { ...state, ...Object.fromEntries(targets) } : null;
 };
 
+export const stateValueSchema = ({ model }) => Object.fromEntries(Object.entries(model.states ?? {})
+    .map(([dimension, states]) => [`!${dimension}=1`, Object.keys(states)]));
+
 export const initialState = ({ model, name }) => model.initialStates?.[name ?? 'default'] ?? null;
 
 const isDeclaration = declaration => declaration === true || (declaration !== null && typeof declaration === 'object');

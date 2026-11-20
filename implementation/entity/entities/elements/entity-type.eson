@@ -86,7 +86,20 @@
                         },
                         {
                             "if": { "$neq": ["#.input.change.operation", "delete"] },
-                            "then": { "inputMap": { "change": "#.input.change", "derivation": "#.derivation" }, "invoke": "#.self.id", "operation": "runResultGuards" }
+                            "then": [
+                                { "inputMap": { "change": "#.input.change", "derivation": "#.derivation" }, "invoke": "#.self.id", "operation": "runResultGuards" },
+                                { "outputKey": "valueProblems", "set": { "$func/trait-value-problems": { "entityType": "#.self.id", "data": "#.derivation.data" } } },
+                                {
+                                    "if": { "$head": "#.valueProblems" },
+                                    "then": {
+                                        "throw": {
+                                            "code": "invalid",
+                                            "message": { "$str": ["#.self.id", " has a value that doesn't match its trait: ", { "$join": { "strings": "#.valueProblems", "separator": "; " } }] },
+                                            "data": { "problems": "#.valueProblems" }
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         {
                             "outputKey": "databaseWrite",

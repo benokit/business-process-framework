@@ -94,7 +94,7 @@ const isDateSchema = schema => resolvedSchema(schema)?.type === 'string' && (res
 
 const pointerProblems = (entityType, key, { versioned: { validFrom } }) => {
     const names = validFrom.split('/').slice(1).map(name => name.replaceAll('~1', '/').replaceAll('~0', '~'));
-    const candidates = names.reduce((schemas, name) => schemas.flatMap(inner => propertiesNamed(inner, name)), [storedSchema(schemaRef(`${entityType}/${key}/schema`))]);
+    const candidates = names.reduce((schemas, name) => schemas.flatMap(inner => propertiesNamed(inner, name)), [storedSchema(schemaRef(`${entityType}/${key}/value`))]);
     if (candidates.length === 0) return [`${entityType}: the pointer '${validFrom}' of the versioned ${key} is no field of its schema`];
     return candidates.some(isDateSchema) ? [] : [`${entityType}: the field '${validFrom}' of the versioned ${key} is no date (a string that matches YYYY-MM-DD)`];
 };

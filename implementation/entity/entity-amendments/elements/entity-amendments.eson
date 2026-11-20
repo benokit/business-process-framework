@@ -253,7 +253,7 @@
             }
         }
     },
-    { "id": "amendable", "kind": "amendable-trait", "data": { "configuration": "@amendable-configuration" } },
+    { "id": "amendable", "kind": "amendable-trait", "data": { "configuration": "@amendable-configuration", "value": { "!last": "integer", "!entries[]": { "!key": "string", "!type": "string", "!status": "string", "*": "\\@any" } } } },
     {
         "id": "amendment-gateway-kind",
         "kind": "kind",

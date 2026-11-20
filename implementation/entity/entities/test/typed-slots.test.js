@@ -7,8 +7,8 @@ const typed = schema => ({ traits: { body: { configuration: { schema } } } });
 
 const fill = (id, target, value, slot = 'requestGuards') => ({ id, kind: 'slot-fill', data: { target, slot, ...slot === 'requestGuards' && { on: 'read' }, value } });
 
-const problemsOf = async elements => {
-    await boot({ paths: packages, elements });
+const problemsOf = async (elements, more = []) => {
+    await boot({ paths: [...packages, ...more.map(name => packageElements(`@business-framework/${name}`))], elements });
     return validate().filter(({ code }) => code === 'unknown-path').map(({ data }) => [data.element, data.path]);
 };
 
@@ -81,5 +81,18 @@ describe('typed records of the slots that see a viewed record', () => {
             ['bad-relations', 'value.set'],
             ['bad-index', 'value.mapping.set']
         ]);
+    });
+});
+
+describe('typed values of the traits', () => {
+    const lifecycle = { states: { status: { draft: true, done: true } }, transitions: { finish: { status: { draft: 'done' } } }, initialStates: { default: { status: 'draft' } } };
+    const order = { id: 'lifecycle-order-type', kind: 'entity-type', data: { traits: { ...typed({ '!total': 'number', '*': 'never' }).traits, state: { configuration: lifecycle } } } };
+
+    it('types the value a trait declares: a state by its dimensions, the business key as a string, the body by its schema', async () => {
+        expect(await problemsOf([
+            order,
+            fill('good-trait-guard', 'lifecycle-order-type', { set: ['#.input.before.data.state.status', '#.input.before.data.business-key', '#.input.before.data.body.total'] }),
+            fill('bad-state', 'lifecycle-order-type', { set: '#.input.before.data.state.stat' })
+        ], ['entity-states'])).to.deep.equal([['bad-state', 'value.set']]);
     });
 });

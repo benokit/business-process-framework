@@ -1,11 +1,11 @@
 [
     {
-        "id": "ownership-schemas",
+        "id": "ownership-value-schema",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "[object]" },
+            "signature": { "input": { "!dimensions": "@schema" }, "output": "@schema" },
             "module": "@business-framework/entity-ownership/ownership",
-            "export": "ownershipSchemas"
+            "export": "ownershipValueSchema"
         }
     },
     {
@@ -99,10 +99,11 @@
         "kind": "ownership-trait",
         "data": {
             "configuration": { "!dimensions": "@schema", "!rule": "@mapping" },
+            "value": { "$func/ownership-value-schema": { "dimensions": "#.configuration.dimensions" } },
             "derive": [
                 { "outputKey": "ownership", "set": { "$func/derived-ownership": { "rule": "#.input.configuration.rule", "record": "#.input.record" } } },
                 {
-                    "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/ownership/dimensions"] }, "value": "#.ownership" },
+                    "inputMap": { "schemaId": { "$str": ["#.input.entityType", "/", "#.input.key", "/value"] }, "value": "#.ownership" },
                     "invoke": "ajv",
                     "operation": "assert"
                 },
@@ -123,23 +124,6 @@
                 "validate": { "$func/scope-problems": "#.self.id" }
             }
         }
-    },
-    {
-        "id": "ownership-schemas-loader",
-        "kind": "kind",
-        "data": {
-            "lifecycle": {
-                "load": {
-                    "inputMap": { "$func/ownership-schemas": null },
-                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
-                }
-            }
-        }
-    },
-    {
-        "id": "entity-ownership-schemas-loader",
-        "kind": "ownership-schemas-loader",
-        "data": {}
     },
     {
         "id": "record-ownership",

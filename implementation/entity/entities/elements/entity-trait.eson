@@ -13,10 +13,11 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "key": "string", "view": "@mapping/trait-view", "identity": "boolean", "guard": "@method/trait-change", "react": "@method/trait-change", "derive": "@method/trait-derivation" },
+            "shape": { "!configuration": "@schema", "key": "string", "view": "@mapping/trait-view", "identity": "boolean", "guard": "@method/trait-change", "react": "@method/trait-change", "derive": "@method/trait-derivation", "value": "@mapping/trait-value" },
             "templates": {
                 "trait-view": { "input": { "!entityType": "string", "!key": "string", "!configuration": "#.data.configuration", "value": "\\@any", "at": "\\@any" } },
                 "trait-change": { "input": { "!entityType": "string", "!key": "string", "!configuration": "#.data.configuration", "!change": "\\@viewed-entity-change" } },
+                "trait-value": { "input": { "!entityType": "string", "!key": "string", "!configuration": "#.data.configuration" } },
                 "trait-derivation": {
                     "input": {
                         "!entityType": "string",
@@ -63,6 +64,41 @@
             "module": "@business-framework/entities/traits",
             "export": "publicOperationOf"
         }
+    },
+    {
+        "id": "trait-value-problems",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "string", "!data": "object" }, "output": "[string]" },
+            "module": "@business-framework/entities/records",
+            "export": "traitValueProblems"
+        }
+    },
+    {
+        "id": "trait-value-schemas",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": "@any", "output": "[object]" },
+            "module": "@business-framework/entities/records",
+            "export": "traitValueSchemas"
+        }
+    },
+    {
+        "id": "entity-trait-value-writer",
+        "kind": "kind",
+        "data": {
+            "lifecycle": {
+                "load": {
+                    "inputMap": { "$func/trait-value-schemas": null },
+                    "forEach": { "inputMap": "#.item", "invoke": "ajv", "operation": "add" }
+                }
+            }
+        }
+    },
+    {
+        "id": "entity-trait-values",
+        "kind": "entity-trait-value-writer",
+        "data": {}
     },
     {
         "id": "record-of",

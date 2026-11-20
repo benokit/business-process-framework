@@ -24,6 +24,6 @@
     {
         "id": "business-key",
         "kind": "business-key-trait",
-        "data": { "identity": true, "configuration": { "rule": "@method" } }
+        "data": { "identity": true, "configuration": { "rule": "@method" }, "value": "string" }
     }
 ]
