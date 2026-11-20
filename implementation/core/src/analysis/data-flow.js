@@ -181,6 +181,25 @@ const invokedElements = (walk, node, target) => {
     return literal ? [literal] : (namesOfType(target) ?? []).map(findElement).filter(Boolean);
 };
 
+const CONTRACT_CODES = ['type-mismatch', 'missing-property', 'unknown-property'];
+
+const inputOf = (kinds, name, elements) => {
+    const operations = name === undefined ? [] : kinds.map(kind => resolveKind(kind).operations[name]).filter(Boolean);
+    return operations.length === 0 || operations.some(({ input }) => input === undefined)
+        ? undefined
+        : unionOf(operations.map(({ owner }) => schemaTypeFor(`${owner}/${name}/input`, elements)));
+};
+
+const checkInput = (walk, { node, scope, path, kinds, name, elements }) => {
+    const expected = inputOf(kinds, name, elements);
+    if (expected === undefined) return;
+    const at = 'inputMap' in node ? `${path}.inputMap` : path;
+    mappingType('inputMap' in node ? node.inputMap : '#', 'inputMap' in node ? closed(scope) : scope.input, expected).problems
+        .filter(({ code }) => CONTRACT_CODES.includes(code))
+        .forEach(({ severity, code, path: pointer, message }) =>
+            walk.problems.push(problem(walk.at, pathOf(at, pointer.replace(EXPECTED_STEP, '')), code, message.replace(/ \(at [^)]*\)$/, ''), { severity })));
+};
+
 const outputOf = (kinds, name, elements) => {
     const operations = kinds.map(kind => resolveKind(kind).operations[name]).filter(Boolean);
     return operations.length === 0 || operations.some(({ output }) => output === undefined) ? ANY
@@ -233,7 +252,9 @@ const NODES = {
         const kinds = invokedKinds(walk, node, target);
         const name = literalOf(node.operation);
         if (!invokedKind(walk, node.invoke)) walk.problems.push(...unknownOperation(walk, kinds, name, `${path}.operation`));
-        return outputOf(kinds, name, invokedElements(walk, node, target));
+        const elements = invokedElements(walk, node, target);
+        checkInput(walk, { node, scope, path, kinds, name, elements });
+        return outputOf(kinds, name, elements);
     },
     execute: (walk, node, scope, input, path) => {
         expression(walk, closed(scope), node.execute, `${path}.execute`);

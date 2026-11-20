@@ -202,4 +202,25 @@ describe('data flow', () => {
             expect(problemsOf()).to.deep.equal([]);
         });
     });
+
+    it('checks what an invoke passes against the input contract of its target, an inputMap or the input it passes on', async () => {
+        await bootWith(
+            kind('strict-service', { operations: { take: operation({ set: null }, { '!name': 'string', 'count': 'number' }) } }),
+            element('the-service', 'strict-service'),
+            kind('caller', { operations: { run: operation([
+                { inputMap: { name: 'ok', count: 1 }, invoke: 'the-service', operation: 'take' },
+                { inputMap: { name: 5 }, invoke: 'the-service', operation: 'take' },
+                { inputMap: { count: 1 }, invoke: 'the-service', operation: 'take' },
+                { inputMap: { name: 'x', other: 1 }, invoke: 'the-service', operation: 'take' },
+                { invoke: 'the-service', operation: 'take' }
+            ], { '!label': 'string' }) } }),
+            element('the-caller', 'caller'));
+        expect(problemsOf()).to.deep.equal([
+            ['type-mismatch', `${PATH}[1].inputMap.name`],
+            ['missing-property', `${PATH}[2].inputMap`],
+            ['unknown-property', `${PATH}[3].inputMap.other`],
+            ['missing-property', `${PATH}[4]`],
+            ['unknown-property', `${PATH}[4]`]
+        ]);
+    });
 });
