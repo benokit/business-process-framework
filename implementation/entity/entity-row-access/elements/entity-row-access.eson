@@ -42,7 +42,7 @@
         "kind": "pure-function",
         "data": {
             "signature": {
-                "input": { "!entityType": "string", "user": "@principal", "record": "@entity-record" },
+                "input": { "!entityType": "string", "user": "@principal", "record": { "$data#": [{ "!data": "object", "entityType": "string", "*": "@any" }, "null"] } },
                 "output": "boolean"
             },
             "module": "@business-framework/entity-row-access/row-access",

@@ -11,12 +11,14 @@ let checking = false;
 
 const withReferences = new Map();
 const stubbed = new Set();
+const validators = new Map();
 
 onReset(() => {
     ajv = newAjv();
     checking = false;
     withReferences.clear();
     stubbed.clear();
+    validators.clear();
 });
 
 const uri = id => `/${id}`;
@@ -150,6 +152,17 @@ export const standardOf = schema => absoluteRefs(compactToStandard({ $data: sche
 
 export const enableChecks = () => {
     checking = true;
+};
+
+export const validatorFor = (key, schema) => {
+    if (!validators.has(key)) {
+        try {
+            validators.set(key, ajv.compile(standardOf(schema)));
+        } catch {
+            return undefined;
+        }
+    }
+    return validators.get(key);
 };
 
 export const validateWith = ({ schema, value }) => {

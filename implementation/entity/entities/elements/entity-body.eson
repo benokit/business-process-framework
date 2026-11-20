@@ -8,7 +8,7 @@
         "id": "start-body-versions",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "object" },
+            "signature": { "input": "@any", "output": "[object]" },
             "module": "@business-framework/entities/versions",
             "export": "startVersions"
         }
@@ -17,7 +17,7 @@
         "id": "replace-body-versions",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "object" },
+            "signature": { "input": "@any", "output": "[object]" },
             "module": "@business-framework/entities/versions",
             "export": "replaceVersions"
         }
@@ -44,7 +44,7 @@
         "id": "append-body-version",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "object" },
+            "signature": { "input": "@any", "output": "[object]" },
             "module": "@business-framework/entities/versions",
             "export": "appendVersion"
         }
@@ -53,7 +53,7 @@
         "id": "remove-body-version",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": "@any", "output": "object" },
+            "signature": { "input": "@any", "output": "[object]" },
             "module": "@business-framework/entities/versions",
             "export": "removeVersion"
         }

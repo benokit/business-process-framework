@@ -46,7 +46,7 @@
         "id": "endpoint-operation",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!endpoint": "string", "!request": "@http-request" }, "output": "{string}" },
+            "signature": { "input": { "!endpoint": "string", "!request": "@http-request" }, "output": { "*": { "$data#": ["string", "null"] } } },
             "module": "@business-framework/authorization/authorization",
             "export": "endpointOperation"
         }

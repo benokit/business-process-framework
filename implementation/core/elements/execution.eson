@@ -38,7 +38,7 @@
         "id": "apply-mapping",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!mapping": "@any", "input": "@any" }, "output": "@any" },
+            "signature": { "input": { "mapping": "@any", "input": "@any" }, "output": "@any" },
             "module": "@business-framework/core/mappings",
             "export": "applyMapping"
         }

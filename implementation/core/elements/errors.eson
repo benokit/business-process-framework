@@ -46,6 +46,7 @@
     },
     { "id": "internal-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "internal", "http": 500 } } },
     { "id": "low-failed-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "low-failed", "extends": "internal" } } },
+    { "id": "function-contract-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "function-contract", "extends": "internal" } } },
     { "id": "private-operation-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "private-operation", "extends": "forbidden" } } },
     { "id": "invalid-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "invalid", "http": 400 } } },
     { "id": "invalid-date-error", "kind": "slot-fill", "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "invalid-date", "extends": "invalid" } } },

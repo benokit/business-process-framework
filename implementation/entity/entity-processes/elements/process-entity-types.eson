@@ -672,7 +672,7 @@
                                         "inputMap": {
                                             "businessKey": "#.input.businessKey",
                                             "revision": "#.process.revision",
-                                            "entityOperation": "fail",
+                                            "entityOperation": "failed",
                                             "operations": "#.verdict.operations"
                                         },
                                         "invoke": "#.self.id",

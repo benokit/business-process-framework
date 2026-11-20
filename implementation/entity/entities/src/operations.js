@@ -1,14 +1,14 @@
 import { extendsKind, instancesOf, resolveKind } from '@business-framework/core/kinds';
 
-const publicOperationsOf = ({ id }) => Object.entries(resolveKind(id).operations)
-    .filter(([, operation]) => !operation.private)
-    .map(([name]) => name);
+const operationsOf = ({ id }) => Object.keys(resolveKind(id).operations);
 
-const publicTraitOperationsOf = ({ id }) => Object.entries(resolveKind(id).operations)
-    .filter(([, operation]) => operation.public === true)
+const isEntityOperation = operation => operation.public === true || operation.output === '@trait-command';
+
+const traitOperationsOf = ({ id }) => Object.entries(resolveKind(id).operations)
+    .filter(([, operation]) => isEntityOperation(operation))
     .map(([name]) => name);
 
 export const entityOperationNames = () => [...new Set([
-    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-type')).flatMap(publicOperationsOf),
-    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-trait')).flatMap(publicTraitOperationsOf)
+    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-type')).flatMap(operationsOf),
+    ...instancesOf('kind').filter(({ id }) => extendsKind(id, 'entity-trait')).flatMap(traitOperationsOf)
 ])].sort();

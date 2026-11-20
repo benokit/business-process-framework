@@ -394,7 +394,15 @@ const mappingInput = (author, path, walk) => {
     return ANY;
 };
 
-const expectedOf = (author, path) => author.kind === 'kind' && path === 'mapping' ? dataType(author.data.extends) : undefined;
+const declaredOutput = ({ data }) => {
+    const output = compactType(data.signature?.output);
+    return isAny(output) ? undefined : output;
+};
+
+const expectedOf = (author, path) => {
+    if (author.kind === 'kind' && path === 'mapping') return dataType(author.data.extends);
+    return author.kind === 'pure-function' && path === 'mapping' ? declaredOutput(author) : undefined;
+};
 
 const templateTypes = (walk, author, { template, path }) => {
     if (template === undefined) return undefined;

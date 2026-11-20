@@ -199,7 +199,7 @@
         "id": "state-moved",
         "kind": "pure-function",
         "data": {
-            "signature": { "input": { "!before": "@any", "!after": "@any", "!dimension": "string", "!from": "string", "!to": "string" }, "output": "boolean" },
+            "signature": { "input": { "before": "@any", "!after": "@any", "!dimension": "string", "!from": "string", "!to": "string" }, "output": "boolean" },
             "module": "@business-framework/entity-states/states",
             "export": "stateMoved"
         }
