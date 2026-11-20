@@ -2,8 +2,8 @@ import { isPlainObject } from 'lodash-es';
 import { findElement, kindOf } from '../registry.js';
 import { instancesOf, resolveKind, selfAt } from '../kinds.js';
 import { applyMapping } from '../mappings.js';
-import { templateNamesIn } from '../schemas.js';
-import { problem } from './code.js';
+import { templateNamesIn, validateWith } from '../schemas.js';
+import { positionsOf, problem } from './code.js';
 
 const targetsOf = author => {
     if (author.kind !== 'slot-fill') return [author];
@@ -36,3 +36,13 @@ export const undeclaredTemplateProblems = author => author.kind !== 'kind' ? [] 
     templateNamesIn(schemaId)
         .filter(name => resolveKind(author.id).templates[name] === undefined)
         .map(name => problem({ author }, path, 'unresolved-template', `the schema names the template '${name}', which no kind of ${author.id}'s chain declares`)));
+
+const heldValueProblems = (author, { template, code, path }) => resolveTemplate(author, template).flatMap(({ value, code: failure, message }) => {
+    if (failure !== undefined) return [problem({ author }, path, failure, message)];
+    const { isValid, errors } = validateWith({ schema: value, value: code });
+    return isValid ? [] : [problem({ author }, path, 'invalid-element', `the value doesn't match the schema of the template '${template}': ${errors.map(error => `${error.instancePath || '/'} ${error.message}`).join('; ')}`)];
+});
+
+export const heldValuesProblems = author => positionsOf(author)
+    .filter(({ type }) => type === 'type')
+    .flatMap(position => heldValueProblems(author, position));

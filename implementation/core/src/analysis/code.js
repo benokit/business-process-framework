@@ -24,12 +24,12 @@ const fillPositions = ({ data: { target, slot, value } }) => {
 
 const declaringShape = element => resolveKind(kindOf(element)).chain.findLast(kind => kind.data.shape !== undefined)?.id;
 
-const positionsOf = element => [
+export const positionsOf = element => [
     ...declaringShape(element) ? positionsIn({ schemaId: declaringShape(element), value: element.data }) : [],
     ...element.kind === 'slot-fill' ? fillPositions(element) : []
 ];
 
-export const codeOf = element => positionsOf(element).filter(({ type }) => type !== 'ref');
+export const codeOf = element => positionsOf(element).filter(({ type }) => type === 'mapping' || type === 'method');
 
 export const problem = (at, path, code, message, data = {}) => Object.assign(
     () => fail(code, `${at.author.id ?? `a ${at.author.kind}`} ${path}: ${message}`, { element: at.author.id, path, ...data }),
@@ -218,6 +218,7 @@ const positionProblems = author => position => {
     const { type, code, path } = position;
     const at = { author, allowsNext: allowsNext(author, path) };
     if (type === 'ref') return referenceProblems(position, at);
+    if (type === 'type') return [];
     return [
         ...type === 'method' ? nodesIn(code, path).flatMap(nodeProblems(at)) : [],
         ...callsIn(code, path).filter(({ key }) => key === '$func/slot-values').flatMap(({ value, path }) => slotValuesProblems(value, at, path))
@@ -242,7 +243,7 @@ const callReferences = ({ key, value, path }) => [
 
 const positionReferences = ({ type, code, path }) => type === 'ref'
     ? [{ to: nameOf(code), path, via: 'ref' }]
-    : [...type === 'method' ? nodesIn(code, path).flatMap(nodeReferences) : [], ...callsIn(code, path).flatMap(callReferences)];
+    : type === 'type' ? [] : [...type === 'method' ? nodesIn(code, path).flatMap(nodeReferences) : [], ...callsIn(code, path).flatMap(callReferences)];
 
 export const referencesOf = element => [
     { to: kindOf(element), path: 'kind', via: 'kind' },

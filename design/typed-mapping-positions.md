@@ -114,7 +114,8 @@ Built: the forms `@mapping/T`, `@method/T` and `@type/T` (the last in the `input
 - The trait hooks (`view`, `guard`, `react`, `derive`) are typed by three templates of `entity-trait`, the `configuration` by the schema the trait declares in its own data (`"!configuration": "#.data.configuration"`, no resolver). The `change` is typed with its record `data` open, since a trait serves every entity type.
 - `message-consumer.handler` has the template `handler`, whose input is `object`: a channel declares no schema for its messages. A `message` schema on `message-channel` with a resolver (`message-of`) would type the payload; not built.
 - The `operation` mapping of `http-endpoint` has the template `operation-mapping` (`{ params, query, headers, input }`, `input` by the contract of the target), so its unknown paths are reported by the framework; `authorization` keeps the type of the mapping (it needs the values of the dimensions) and no longer reports the paths.
-- Open: `@type` in operation contracts and shapes; `after` of a change.
+- `@type/T` in a **shape** is a checked value: `validate()` resolves the name for the instance and the value must match (`invalid-element`); in the `output` of an **operation** it types the result of an `invoke` against the element invoked (literal, or bounded by the type of a computed target; a list gives a union). It is not resolved in the code of the kind itself (`self.data`, `input` of its own operations): that code serves every instance, so the hole is any there.
+- Open: `after` of a change.
 
 ### 5.5 Recommendation
 

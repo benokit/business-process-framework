@@ -60,6 +60,8 @@ export const validateValue = ({ schemaId, value }) => {
 
 const CODE = new Set([uri('method'), uri('mapping')]);
 
+const CODE_TYPES = ['mapping', 'method'];
+
 const REF = uri('ref');
 
 const KIND_REF = `${REF}/kind/`;
@@ -88,7 +90,6 @@ const positionsAt = (schema, value, path) => {
     if (schema.$ref !== undefined) {
         const typed = typedAt(schema.$ref);
         if (typed?.type === 'ref') return typeof value === 'string' || isInstanceOfReference(value) ? [{ ...typed, code: value, path }] : [];
-        if (typed?.type === 'type') return [];
         return typed ? [{ ...typed, code: value, path }] : positionsAt(storedSchema(schema.$ref), value, path);
     }
     const alternatives = [...schema.allOf ?? [], ...schema.anyOf ?? [], ...schema.oneOf ?? []];
@@ -141,7 +142,7 @@ export const resolveReferencesIn = ({ schemaId, value, resolve }) => {
 
 export const propertiesOf = schemaId => Object.keys(storedSchema(uri(schemaId))?.properties ?? {});
 
-export const codeIn = options => positionsIn(options).filter(({ type }) => type !== 'ref');
+export const codeIn = options => positionsIn(options).filter(({ type }) => CODE_TYPES.includes(type));
 
 export const toJsonSchema =({ id, schema }) => compactToStandard({ $id: id, $data: schema });
 
@@ -149,6 +150,11 @@ export const standardOf = schema => absoluteRefs(compactToStandard({ $data: sche
 
 export const enableChecks = () => {
     checking = true;
+};
+
+export const validateWith = ({ schema, value }) => {
+    const validate = ajv.compile(standardOf(schema));
+    return { isValid: validate(value), errors: validate.errors ?? [] };
 };
 
 export const check = (schemaId, value, where) => {

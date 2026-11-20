@@ -4,7 +4,7 @@ import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
 import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
 import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
-import { resolveTemplate, undeclaredTemplateProblems } from './templates.js';
+import { heldValuesProblems, resolveTemplate, undeclaredTemplateProblems } from './templates.js';
 import { isKindReference } from '../references.js';
 import { valuesOf } from '../discriminators.js';
 
@@ -15,6 +15,11 @@ const STRING = { type: 'string' };
 const OBJECT = { type: 'object' };
 
 const anyOf = (...types) => ({ anyOf: types });
+const unionOf = types => {
+    const distinct = uniqBy(types, type => JSON.stringify(type));
+    return distinct.length === 0 ? ANY : distinct.length === 1 ? distinct[0] : anyOf(...distinct);
+};
+
 const arrayOf = items => ({ type: 'array', items });
 const closed = properties => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 const isAny = type => isPlainObject(type) && Object.keys(type).length === 0;
@@ -166,10 +171,20 @@ const invokedKinds = (walk, node, target) => {
     return kind ? [kind] : [...new Set((namesOfType(target) ?? []).map(findElement).filter(Boolean).map(kindOf))];
 };
 
-const outputOf = (kinds, name) => {
+const holesFor = element => name => unionOf(resolveTemplate(element, name).filter(({ code }) => code === undefined).map(({ value }) => compactType(value)));
+
+const schemaTypeFor = (id, elements) => elements.length === 0 ? schemaType(id) : unionOf(elements.map(element => schemaTypeWith(id, holesFor(element))));
+
+const invokedElements = (walk, node, target) => {
+    if (isKindReference(node.invoke) || node.invoke === '#.self.id') return [];
+    const literal = findElement(literalOf(node.invoke));
+    return literal ? [literal] : (namesOfType(target) ?? []).map(findElement).filter(Boolean);
+};
+
+const outputOf = (kinds, name, elements) => {
     const operations = kinds.map(kind => resolveKind(kind).operations[name]).filter(Boolean);
     return operations.length === 0 || operations.some(({ output }) => output === undefined) ? ANY
-        : anyOf(...operations.map(({ owner }) => schemaType(`${owner}/${name}/output`)));
+        : anyOf(...operations.map(({ owner }) => schemaTypeFor(`${owner}/${name}/output`, elements)));
 };
 
 const unknownOperation = (walk, kinds, name, path) =>
@@ -218,7 +233,7 @@ const NODES = {
         const kinds = invokedKinds(walk, node, target);
         const name = literalOf(node.operation);
         if (!invokedKind(walk, node.invoke)) walk.problems.push(...unknownOperation(walk, kinds, name, `${path}.operation`));
-        return outputOf(kinds, name);
+        return outputOf(kinds, name, invokedElements(walk, node, target));
     },
     execute: (walk, node, scope, input, path) => {
         expression(walk, closed(scope), node.execute, `${path}.execute`);
@@ -333,11 +348,6 @@ const narrowed = (type, discriminator, on) => {
     return variants.length > 0 ? { ...type, anyOf: variants } : type;
 };
 
-const unionOf = types => {
-    const distinct = uniqBy(types, type => JSON.stringify(type));
-    return distinct.length === 0 ? ANY : distinct.length === 1 ? distinct[0] : anyOf(...distinct);
-};
-
 const resolvedValues = (walk, author, name, path) => {
     const results = resolveTemplate(author, name);
     uniqBy(results.filter(({ code }) => code !== undefined), 'message').forEach(({ code, message }) => walk.problems.push(problem(walk.at, path, code, message)));
@@ -389,7 +399,7 @@ const positionWalk = (author, targets) => position => {
 
 export const flowProblems = author => {
     try {
-        return [...undeclaredTemplateProblems(author), ...codeOf(author).flatMap(positionWalk(author))];
+        return [...undeclaredTemplateProblems(author), ...heldValuesProblems(author), ...codeOf(author).flatMap(positionWalk(author))];
     } catch (error) {
         return [() => { throw error; }];
     }

@@ -66,4 +66,31 @@ describe('templates', () => {
             ['unresolved-template', 'slots/checks/input']
         ]);
     });
+
+    it('types the output of an invoke by the template of the element it invokes', async () => {
+        await bootWith(
+            kind('shelf', {
+                shape: { '!unit': 'string' },
+                operations: { fetch: { input: '@any', output: { '!item': '@type/item' }, implementation: { set: { item: {} } } } },
+                templates: { item: { $literal: { '!price': 'number' } } }
+            }),
+            element('fruit', 'shelf', { unit: 'kg' }),
+            kind('reader', { operations: { run: { input: '@any', implementation: [
+                { outputKey: 'found', invoke: 'fruit', operation: 'fetch' },
+                { set: { $sum: ['#.found.item.price', 1] } },
+                { set: '#.found.item.prize' }
+            ] } } }));
+        expect(problemsOf()).to.deep.equal([['unknown-path', 'operations.run.implementation[2].set']]);
+    });
+
+    it('checks the value in a field that a template types against the schema it resolves to', async () => {
+        await bootWith(
+            kind('priced', {
+                shape: { '!unit': 'string', '!sample': '@type/sample' },
+                templates: { sample: { $literal: { '!price': 'number', '*': 'never' } } }
+            }),
+            element('cheap', 'priced', { unit: 'kg', sample: { price: 1 } }),
+            element('costly', 'priced', { unit: 'kg', sample: { price: 'much' } }));
+        expect(problemsOf()).to.deep.equal([['invalid-element', 'sample']]);
+    });
 });

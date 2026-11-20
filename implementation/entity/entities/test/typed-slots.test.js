@@ -50,3 +50,16 @@ describe('typed hooks of entity-trait', () => {
         ])).to.deep.equal([['bad-trait', 'view.set'], ['bad-trait', 'guard.set'], ['bad-trait', 'react.set'], ['bad-trait', 'derive.set']]);
     });
 });
+
+describe('typed operation outputs of entity-type', () => {
+    it('types the record an invoke of read returns by the entity type it invokes', async () => {
+        expect(await problemsOf([
+            { id: 'order-type', kind: 'entity-type', data: typed({ '!total': 'number', '*': 'never' }) },
+            { id: 'reader', kind: 'kind', data: { operations: { run: { input: '@any', implementation: [
+                { outputKey: 'order', inputMap: { businessKey: 'O-1' }, invoke: 'order-type', operation: 'read' },
+                { set: '#.order.data.body.total' },
+                { set: '#.order.data.body.totl' }
+            ] } } } }
+        ])).to.deep.equal([['reader', 'operations.run.implementation[2].set']]);
+    });
+});
