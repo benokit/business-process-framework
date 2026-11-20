@@ -1,8 +1,9 @@
 import { getElement } from '@business-framework/core';
 import { resolveKind, selvesOf, isInstanceOf } from '@business-framework/core/kinds';
 import { standardOf } from '@business-framework/core/schemas';
-import { mappingType } from '@business-framework/core/data-flow';
+import { compactType, mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
+import { dataSchemaOf } from '@business-framework/entities/records';
 
 const DEFAULT_REVERT_KEYS = ['body'];
 
@@ -13,19 +14,11 @@ const bodyType = entityType => {
     return schema === undefined ? {} : standardOf(schema);
 };
 
-const recordType = entityType => ({
-    type: 'object',
-    properties: {
-        entityType: { type: 'string' },
-        businessKey: { type: 'string' },
-        revision: { type: 'integer' },
-        data: {
-            type: 'object',
-            properties: Object.fromEntries(Object.keys(traitsOf(entityType)).map(key => [key, key === 'body' ? bodyType(entityType) : {}])),
-            additionalProperties: false
-        }
-    },
-    additionalProperties: false
+const recordType = entityType => compactType({
+    '!entityType': 'string',
+    '!businessKey': 'string',
+    '!revision': 'integer',
+    '!data': dataSchemaOf({ entityType })
 });
 
 const mappingProblems = (code, scope, expected, label) => mappingType(code, scope, expected).problems

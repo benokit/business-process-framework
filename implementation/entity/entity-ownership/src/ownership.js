@@ -4,10 +4,11 @@ import { CoreError, findElement, getElement, invoke } from '@business-framework/
 import { applyMapping } from '@business-framework/core/mappings';
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { standardOf } from '@business-framework/core/schemas';
-import { mappingType } from '@business-framework/core/data-flow';
+import { compactType, mappingType } from '@business-framework/core/data-flow';
 import { traitKeyOf, traitValueOf } from '@business-framework/entities/traits';
 import { traitsOf } from '@business-framework/entities/traits';
 import { unlistedReadProblems } from '@business-framework/entities/dependencies';
+import { dataSchemaOf } from '@business-framework/entities/records';
 import { viewedRecord } from '@business-framework/entities/views';
 
 const PRIMITIVES = ['string', 'number', 'integer', 'boolean'];
@@ -40,20 +41,10 @@ export const ownershipSchemas = () => ownedTypes().map(({ id, use }) => ({
 
 export const ownershipRule = entityType => ownershipUseOf(entityType)?.configuration.rule ?? null;
 
-const traitType = ({ trait, configuration }) => isInstanceOf({ element: trait, kind: 'body-trait' }) && configuration.schema !== undefined ? standardOf(configuration.schema) : {};
-
-const recordType = entityType => ({
-    type: 'object',
-    properties: {
-        entityType: { type: 'string' },
-        businessKey: { type: 'string' },
-        data: {
-            type: 'object',
-            properties: Object.fromEntries(Object.entries(traitsOf(entityType)).map(([key, use]) => [key, traitType(use)])),
-            additionalProperties: false
-        }
-    },
-    additionalProperties: false
+const recordType = entityType => compactType({
+    '!entityType': 'string',
+    '!businessKey': 'string',
+    '!data': dataSchemaOf({ entityType })
 });
 
 const dimensionProblems = (entityType, dimensions) => dimensions
