@@ -4,7 +4,7 @@ import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
 import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
 import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
-import { resolveTemplate } from './templates.js';
+import { resolveTemplate, undeclaredTemplateProblems } from './templates.js';
 import { isKindReference } from '../references.js';
 import { valuesOf } from '../discriminators.js';
 
@@ -333,12 +333,18 @@ const narrowed = (type, discriminator, on) => {
     return variants.length > 0 ? { ...type, anyOf: variants } : type;
 };
 
-const holesOf = (walk, fill, path) => name => {
-    const { value, code, message } = resolveTemplate(fill, name);
-    if (code === undefined) return compactType(value);
-    walk.problems.push(problem(walk.at, path, code, message));
-    return ANY;
+const unionOf = types => {
+    const distinct = uniqBy(types, type => JSON.stringify(type));
+    return distinct.length === 0 ? ANY : distinct.length === 1 ? distinct[0] : anyOf(...distinct);
 };
+
+const resolvedValues = (walk, author, name, path) => {
+    const results = resolveTemplate(author, name);
+    uniqBy(results.filter(({ code }) => code !== undefined), 'message').forEach(({ code, message }) => walk.problems.push(problem(walk.at, path, code, message)));
+    return results.filter(({ code }) => code === undefined).map(({ value }) => value);
+};
+
+const holesOf = (walk, fill, path) => name => unionOf(resolvedValues(walk, fill, name, path).map(compactType));
 
 const fillInput = (fill, walk, path) => {
     const { slot, on } = fill.data;
@@ -361,13 +367,10 @@ const expectedOf = (author, path) => author.kind === 'kind' && path === 'mapping
 
 const templateTypes = (walk, author, { template, path }) => {
     if (template === undefined) return undefined;
-    const { value, code, message } = resolveTemplate(author, template);
-    if (code !== undefined) {
-        walk.problems.push(problem(walk.at, path, code, message));
-        return {};
-    }
-    const { input, output } = typeof value === 'string' ? { input: value } : value;
-    return { input: input === undefined ? ANY : compactType(input), output: output === undefined ? undefined : compactType(output) };
+    const parts = resolvedValues(walk, author, template, path).map(value => typeof value === 'string' ? { input: value } : value);
+    const sideOf = side => unionOf(parts.filter(part => part[side] !== undefined).map(part => compactType(part[side])));
+    const outputs = parts.filter(part => part.output !== undefined);
+    return { input: parts.some(part => part.input !== undefined) ? sideOf('input') : ANY, output: outputs.length === 0 ? undefined : sideOf('output') };
 };
 
 const positionWalk = (author, targets) => position => {
@@ -386,7 +389,7 @@ const positionWalk = (author, targets) => position => {
 
 export const flowProblems = author => {
     try {
-        return codeOf(author).flatMap(positionWalk(author));
+        return [...undeclaredTemplateProblems(author), ...codeOf(author).flatMap(positionWalk(author))];
     } catch (error) {
         return [() => { throw error; }];
     }

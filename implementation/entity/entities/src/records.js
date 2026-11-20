@@ -12,4 +12,6 @@ export const recordSchema = data => ({
 
 const traitSchema = ({ trait, configuration }) => isInstanceOf({ element: trait, kind: 'body-trait' }) && configuration.schema !== undefined ? configuration.schema : '@any';
 
-export const recordSchemaOf = ({ entityType }) => recordSchema(Object.fromEntries(Object.entries(traitsOf(entityType)).map(([key, use]) => [key, traitSchema(use)])));
+export const dataSchemaOf = ({ entityType }) => Object.fromEntries(Object.entries(traitsOf(entityType)).map(([key, use]) => [key, traitSchema(use)]));
+
+export const recordSchemaOf = options => recordSchema(dataSchemaOf(options));

@@ -10,6 +10,9 @@
                 "resultGuards": { "cardinality": "many", "value": "@method", "effects": ["read", "trace"], "input": "@viewed-entity-change", "discriminator": "operation" },
                 "reactions": { "cardinality": "many", "value": "@method", "input": "@viewed-entity-change" }
             },
+            "templates": {
+                "viewed-data": { "$func/viewed-data-of": { "entityType": "#.id" } }
+            },
             "operations": {
                 "loadReadableRecord": {
                     "private": true,

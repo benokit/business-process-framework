@@ -61,6 +61,15 @@
         }
     },
     {
+        "id": "viewed-data-of",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!entityType": "@ref/entity-type" }, "output": "@schema" },
+            "module": "@business-framework/entities/records",
+            "export": "dataSchemaOf"
+        }
+    },
+    {
         "id": "entity-traits",
         "kind": "pure-function",
         "data": {

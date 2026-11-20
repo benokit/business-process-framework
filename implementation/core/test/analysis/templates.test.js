@@ -29,7 +29,7 @@ describe('templates', () => {
 
     it('reports a name no kind of the chain declares', async () => {
         await bootWith(recordKind({}), element('lost-entry', 'entry', { record: 'a', rule: 1 }));
-        expect(problemsOf()).to.deep.equal([['unresolved-template', 'rule']]);
+        expect(problemsOf()).to.have.deep.members([['unresolved-template', 'shape'], ['unresolved-template', 'rule']]);
     });
 
     it('reports a template that resolves to something else than a schema', async () => {
@@ -55,5 +55,15 @@ describe('templates', () => {
             { id: 'fruit-check', kind: 'slot-fill', data: { target: 'fruit', slot: 'checks', value: { set: { $sum: ['#.input.item.price', 1] } } } },
             { id: 'fruit-typo', kind: 'slot-fill', data: { target: 'fruit', slot: 'checks', value: { set: '#.input.item.prize' } } });
         expect(problemsOf()).to.deep.equal([['unknown-path', 'value.set']]);
+    });
+
+    it('reports at the kind, with no instance, a name of its shape or slots that its chain does not declare', async () => {
+        await bootWith(
+            kind('open-entry', { shape: { '!rule': '@mapping/rule-code', note: '@type/note-type' }, slots: { checks: { cardinality: 'many', value: '@method', input: { '!item': '@type/item' } } }, templates: { 'rule-code': {} } }),
+            kind('closed-entry', { extends: 'open-entry' }));
+        expect(problemsOf()).to.have.deep.members([
+            ['unresolved-template', 'shape'],
+            ['unresolved-template', 'slots/checks/input']
+        ]);
     });
 });

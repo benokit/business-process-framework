@@ -19,7 +19,7 @@
             "!entityType": "string",
             "!businessKey": "string",
             "!revision": "number",
-            "!data": "object",
+            "!data": "@type/viewed-data",
             "!timestampUtc": "string"
         }
     },

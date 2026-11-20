@@ -113,6 +113,18 @@ const mentionsReference = (schema, seen = new Set()) => {
     return mentionsReference(storedSchema(schema.$ref), seen);
 };
 
+const templateNamesAt = (schema, seen) => {
+    if (Array.isArray(schema)) return schema.flatMap(part => templateNamesAt(part, seen));
+    if (!isPlainObject(schema)) return [];
+    if (typeof schema.$ref !== 'string') return Object.values(schema).flatMap(part => templateNamesAt(part, seen));
+    if (TEMPLATE.test(schema.$ref)) return [TEMPLATE.exec(schema.$ref)[2]];
+    if (seen.has(schema.$ref)) return [];
+    seen.add(schema.$ref);
+    return templateNamesAt(storedSchema(schema.$ref), seen);
+};
+
+export const templateNamesIn = schemaId => [...new Set(templateNamesAt(storedSchema(uri(schemaId)), new Set()))];
+
 const hasReferences = schemaId => {
     if (!checking) return mentionsReference(storedSchema(uri(schemaId)));
     if (!withReferences.has(schemaId)) withReferences.set(schemaId, mentionsReference(storedSchema(uri(schemaId))));

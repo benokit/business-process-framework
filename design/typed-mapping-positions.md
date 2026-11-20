@@ -108,7 +108,10 @@ Built: the forms `@mapping/T`, `@method/T` and `@type/T` (the last in the `input
 - A template returns a **compact** schema, not a type; the process scope was rewritten as one (`scopes.js`), which is also shorter than the type it replaces.
 - A schema id inside a template's mapping needs the escape (`"\\@http-request"`), since `@name` in a mapping is a variable.
 - `schema-of` was not needed: a path to the schema in the data (`#.data.configuration`) is the resolver.
-- Open: `unresolved-template` is reported for an instance, not at load for a kind that has none; `@type` in operation contracts and shapes; the `entity-type` slots (their inputs are unions, `viewed-entity-change`), trait hooks, `message-consumer.handler`; the `operation` mapping of `http-endpoint`.
+- `unresolved-template` is also reported at the kind (for the names its shape and own slots reach, `shape` and `slots/<slot>/input`), so a kind with no instance is checked; a kind that expects its subkinds to supply a name declares a default.
+- The `entity-type` slots `requestGuards`, `resultGuards` and `reactions` are typed by a `@type/viewed-data` hole in `viewed-entity-record`: one hole in a shared schema types every use, and the schema needs no copy. A fill on a **kind** has many entity types as targets: the template is resolved for each instance and the types are united.
+- The slots that see the stored record (`eventGroup`, `relations`, `searchIndex`, `searchRows`, `validations`) stay untyped: the stored value of a trait (the timeline of a versioned body) is not its viewed value, and a trait declares only the viewed one. A trait would have to declare its stored schema (Q6).
+- Open: `@type` in operation contracts and shapes; trait hooks, `message-consumer.handler`; the `operation` mapping of `http-endpoint`; `after` of a change.
 
 ### 5.5 Recommendation
 
