@@ -1,6 +1,8 @@
 import { allElements, findElement, kindOf } from '../registry.js';
 import { instancesOf, resolveKind, selfAt, selfOf } from '../kinds.js';
-import { validateValue } from '../schemas.js';
+import { validatePartial, validateValue } from '../schemas.js';
+import { DATA_MARKERS } from '../data.js';
+import { isPlainObject } from 'lodash-es';
 import { applyMapping } from '../mappings.js';
 import { fillsOf, orderFills } from '../slots.js';
 import { domainOf, isFilterable } from '../discriminators.js';
@@ -39,6 +41,20 @@ const shapeProblems = element => {
         if (!isValid) fail('invalid-element', `${element.id ?? 'an element'} doesn't match the shape of ${kind.id}${level}`, { element: element.id, kind: kind.id, errors });
     }]);
 };
+
+const markersIn = (tree, path = []) => Array.isArray(tree)
+    ? tree.flatMap((item, index) => markersIn(item, [...path, index]))
+    : isPlainObject(tree)
+        ? Object.entries(tree).flatMap(([key, value]) => [...DATA_MARKERS.includes(key) ? [[...path, key].join('.')] : [], ...markersIn(value, [...path, key])])
+        : [];
+
+const markerProblems = element => markersIn(element.data).map(path => () =>
+    fail('leftover-marker', `${element.id ?? 'an element'} has a data marker at '${path}', which only composed data (/data) resolves`, { element: element.id, path }));
+
+const fixedProblems = kind => kind.data.fixed === undefined || kind.data.shape === undefined ? [] : [() => {
+    const { isValid, errors } = validatePartial({ schemaId: kind.id, value: kind.data.fixed });
+    if (!isValid) fail('invalid-fixed', `${kind.id}: its fixed values don't match its own shape`, { kind: kind.id, errors });
+}];
 
 const fillProblem = fill => () => {
     const { target, slot, value, position, on } = fill.data;
@@ -119,6 +135,8 @@ const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
     ...allElements().flatMap(shapeProblems),
+    ...allElements().flatMap(markerProblems),
+    ...kinds().flatMap(fixedProblems),
     ...settingsProblems(),
     ...kinds().flatMap(discriminatorProblems),
     ...instancesOf('slot-fill').map(fillProblem),

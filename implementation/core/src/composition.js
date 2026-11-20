@@ -5,6 +5,8 @@ const REPLACE = '/replace';
 const UNSET = '/unset';
 const APPEND = '/append';
 
+export const OPERATION_MARKERS = [REPLACE, UNSET, APPEND];
+
 const markerOf = tree => isPlainObject(tree) ? [REPLACE, UNSET, APPEND].find(key => key in tree) : undefined;
 
 const typeError = path => fail('composition-type', `can't compose at '${path.join('.') || '/'}'`, { path });

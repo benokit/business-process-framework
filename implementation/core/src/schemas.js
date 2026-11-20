@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { compactToStandard } from '@benokit/js-cjsl';
-import { cloneDeep, isPlainObject, mapValues, set, uniqBy } from 'lodash-es';
+import { cloneDeep, isPlainObject, mapValues, omit, set, uniqBy } from 'lodash-es';
 import { onReset } from './registry.js';
 import { fail } from './errors.js';
 
@@ -163,6 +163,21 @@ export const validatorFor = (key, schema) => {
         }
     }
     return validators.get(key);
+};
+
+const partial = (schema, seen = new Set()) => {
+    if (Array.isArray(schema)) return schema.map(part => partial(part, seen));
+    if (!isPlainObject(schema)) return schema;
+    const rest = omit(schema, 'required');
+    const inlined = typeof rest.$ref === 'string' && !seen.has(rest.$ref) && storedSchema(rest.$ref) !== undefined && !TEMPLATE.test(rest.$ref) && referenceAt(rest.$ref) === undefined && !CODE.has(rest.$ref)
+        ? partial(storedSchema(rest.$ref), new Set([...seen, rest.$ref]))
+        : undefined;
+    return inlined ?? mapValues(rest, part => partial(part, seen));
+};
+
+export const validatePartial = ({ schemaId, value }) => {
+    const validate = ajv.compile(partial(storedSchema(uri(schemaId))));
+    return { isValid: validate(value), errors: validate.errors ?? [] };
 };
 
 export const validateWith = ({ schema, value }) => {

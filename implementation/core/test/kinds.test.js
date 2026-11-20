@@ -116,6 +116,18 @@ describe('kinds', () => {
         expect(validate()).to.deep.equal([]);
     });
 
+    it('checks the fixed values of a kind without instances against its own shape', async () => {
+        await bootWith(kind('typed', { shape: { '!provider': 'string', '!port': 'integer' }, fixed: { provider: 'database' } }));
+        expect(validate()).to.deep.equal([]);
+        await bootWith(kind('typed', { shape: { '!provider': 'string' }, fixed: { provider: 3 } }));
+        expect(validate().map(({ code }) => code)).to.deep.equal(['invalid-fixed']);
+    });
+
+    it('reports a composition marker left in the data of an element', async () => {
+        await bootWith(kind('plain', { shape: 'object' }), element('one', 'plain', { a: { '/unset': true }, b: [{ '/append': [1] }] }));
+        expect(validate().map(({ data }) => data.path)).to.deep.equal(['a./unset', 'b.0./append']);
+    });
+
     it('rejects a kind that changes an inherited fixed value', async () => {
         const error = await bootWith(kind('base', { fixed: { a: { b: 1 } } }), kind('derived', { extends: 'base', fixed: { a: { b: 2 } } })).catch(e => e);
         expect(error.message).to.include("derived can't change the fixed value at 'a.b'");

@@ -2,13 +2,15 @@ import { get, has, isPlainObject, mapValues } from 'lodash-es';
 import { getElement } from './registry.js';
 import { fail } from './errors.js';
 import { readUri } from './packages.js';
-import { compose as composeItems } from './composition.js';
+import { compose as composeItems, OPERATION_MARKERS } from './composition.js';
 
 const LITERAL = '/literal';
 const REF = '/ref';
 const MERGE = '/merge';
 const URI = '/uri';
 const COMPOSED = '/data';
+
+export const DATA_MARKERS = [LITERAL, REF, MERGE, URI, COMPOSED, ...OPERATION_MARKERS];
 
 const isComposed = element => COMPOSED in element;
 
