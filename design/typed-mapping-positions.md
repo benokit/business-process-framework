@@ -113,7 +113,8 @@ Built: the forms `@mapping/T`, `@method/T` and `@type/T` (the last in the `input
 - The slots that see the stored record (`eventGroup`, `relations`, `searchIndex`, `searchRows`, `validations`) stay untyped: the stored value of a trait (the timeline of a versioned body) is not its viewed value, and a trait declares only the viewed one. A trait would have to declare its stored schema (Q6).
 - The trait hooks (`view`, `guard`, `react`, `derive`) are typed by three templates of `entity-trait`, the `configuration` by the schema the trait declares in its own data (`"!configuration": "#.data.configuration"`, no resolver). The `change` is typed with its record `data` open, since a trait serves every entity type.
 - `message-consumer.handler` has the template `handler`, whose input is `object`: a channel declares no schema for its messages. A `message` schema on `message-channel` with a resolver (`message-of`) would type the payload; not built.
-- Open: `@type` in operation contracts and shapes; the `operation` mapping of `http-endpoint`; `after` of a change.
+- The `operation` mapping of `http-endpoint` has the template `operation-mapping` (`{ params, query, headers, input }`, `input` by the contract of the target), so its unknown paths are reported by the framework; `authorization` keeps the type of the mapping (it needs the values of the dimensions) and no longer reports the paths.
+- Open: `@type` in operation contracts and shapes; `after` of a change.
 
 ### 5.5 Recommendation
 

@@ -53,10 +53,10 @@ describe('authorization', () => {
             endpoint('incomplete', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.type', colour: 'red' } }),
             endpoint('misspelled', 'GET', 'read', { operation: { area: 'documents', resource: '#.input.typ', action: 'read' } })
         )).to.deep.equal([
+            'unknown-path',
             'unbounded: the resource is not a closed set of values',
             'incomplete: the operation names an unknown dimension colour',
             'incomplete: the operation names no action',
-            "misspelled: 'typ' is not a property of the object (declared: type)",
             'misspelled: the resource is not a closed set of values'
         ]);
     });

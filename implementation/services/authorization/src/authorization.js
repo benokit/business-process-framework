@@ -49,7 +49,7 @@ const dimensionType = (endpoint, dimension, operation, scope) => {
 
 const endpointSpace = (dimensions, endpoint) => {
     const scope = scopeType(endpoint.data.target);
-    const operation = typed(endpoint.data.operation, scope);
+    const operation = { type: mappingType(endpoint.data.operation, scope).type };
     const names = dimensions.map(({ name }) => name);
     const unknown = Object.keys(operation.type.properties ?? {}).filter(name => !names.includes(name))
         .map(name => `${endpoint.id}: the operation names an unknown dimension ${name}`);
@@ -62,7 +62,6 @@ const endpointSpace = (dimensions, endpoint) => {
             ...Object.fromEntries(typedDimensions.map(({ dimension, type }) => [dimension.name, (type && valuesOf(type)) ?? []]))
         },
         problems: [
-            ...operation.problems.map(message => `${endpoint.id}: ${message}`),
             ...unknown,
             ...typedDimensions.flatMap(({ dimension, type, problems }) => [
                 ...problems,

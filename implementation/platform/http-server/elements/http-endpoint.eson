@@ -19,12 +19,13 @@
                 "!path": "string",
                 "!target": { "!element": "@ref", "!operation": "string" },
                 "body": "@schema",
-                "operation": "@mapping",
+                "operation": "@mapping/operation-mapping",
                 "public": "boolean",
                 "request": "@mapping/request-mapping",
                 "response": "@mapping/response-mapping"
             },
             "templates": {
+                "operation-mapping": { "input": { "!params": "object", "!query": "object", "!headers": "object", "!input": { "$func/operation-input": "#.data.target" } } },
                 "request-mapping": { "input": "\\@http-request", "output": { "$func/operation-input": "#.data.target" } },
                 "response-mapping": {
                     "input": { "!output": { "$func/operation-output": "#.data.target" }, "!request": "\\@http-request" },

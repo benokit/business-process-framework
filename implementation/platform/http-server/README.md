@@ -10,6 +10,8 @@ An endpoint is only a mapping between a request and an operation of an element, 
 2. runs the `requestMiddleware` slot around the action;
 3. the action maps the request with `request` (default `#.body`), invokes the target, and maps `{ output, request }` with `response` (default `{ "body": "#.output" }`).
 
+`validate()` types the three mappings with the [templates](../../core/README.md#data-flow) of the kind: `request` takes the HTTP request and gives the input of the target operation, `response` takes `{ output, request }` with `output` by the contract of the target, and `operation` takes `{ params, query, headers, input }`; a misspelled path in any of them is `unknown-path`.
+
 A failure is answered with `{ error: { code, message, correlation } }` and logged to stderr with the correlation and the route of the error ([frames](../../core/README.md)); the route never leaves the server.
 
 Every endpoint that takes a body (`POST`, `PUT`, `PATCH`) and maps it with `request` declares its `body`, the payload schema (CJSL, registered as `<endpoint id>/body`), and the request is refused with `invalid` (400) unless its body matches it. It is checked after the request middleware, before `request` maps it, and is the contract a client reads; `validate()` reports such an endpoint without it. Without a `request` the body is the input of the target, whose input schema is the contract and validates it, so no `body` is needed. A schema with `"*": "never"` is closed, so a field nobody reads is refused.

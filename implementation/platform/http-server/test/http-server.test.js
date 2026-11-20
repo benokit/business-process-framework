@@ -156,11 +156,13 @@ describe('http-endpoint validation', () => {
             elements: [echo, { id: 'the-echo', kind: 'echo', data: {} },
                 endpoint('typed', 'POST', '/typed', 'priced', { request: { amount: '#.body.amount' }, response: { body: '#.output.amount' } }),
                 endpoint('wrong-request', 'POST', '/wrong-request', 'priced', { request: { amount: 'twelve' } }),
-                endpoint('wrong-response', 'POST', '/wrong-response', 'priced', { response: { body: '#.output.total' } })]
+                endpoint('wrong-response', 'POST', '/wrong-response', 'priced', { response: { body: '#.output.total' } }),
+                endpoint('wrong-operation', 'POST', '/wrong-operation', 'priced', { operation: { area: 'echo', resource: '#.input.total' }, public: undefined })]
         });
         expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([
             ['type-mismatch', 'wrong-request', 'request.amount'],
-            ['unknown-path', 'wrong-response', 'response.body']
+            ['unknown-path', 'wrong-response', 'response.body'],
+            ['unknown-path', 'wrong-operation', 'operation.resource']
         ]);
     });
 
