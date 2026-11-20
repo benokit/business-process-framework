@@ -26,7 +26,93 @@ What the framework can give is **the positions**. `codePositionsOf(element)` of 
 - `methodType` and `mappingType` return their problems in one shape, `{ severity, code, path, message }`.
 - The error scope is closed: `#.error.<unknown>` is reported.
 
-## 5. Not covered
+## 5. Next: templates, types that depend on the data of the element
+
+The sketch (blackboard, 2026-11-20): an element holds a `mapping`, and the type of its input depends on another field of the same element (`entityType: contracts`, then the record type of `contracts`). A plain `@mapping(input: object)` cannot say it. It is a template parameter, as in generics.
+
+### 5.1 Design
+
+The schema declares only **names of holes**; **the kind fills them** with ordinary code. No expression language lives in the schema.
+
+Two forms in a schema:
+
+- `@mapping/T` and `@method/T`: `T` must resolve to `{ input, output }`, two schemas;
+- `@type/T`: `T` must resolve to a plain schema.
+
+The kind (or a subkind, which overrides) declares `templates`: for each name, a mapping over the element, `{ id, data }` like the `mapping` of a kind, that returns what the form needs. It is a literal schema object, a call of a predefined resolver (`record-of`, `operation-input`, `operation-output`, `schema-of`) or any pure function.
+
+```json
+{ "id": "a-kind", "kind": "kind", "data": {
+    "shape": { "!entityType": "@ref/entity-type", "!mapping": "@mapping/entity-mapping" },
+    "templates": { "entity-mapping": { "input": { "$func/record-of": "#.data.entityType" }, "output": "@any" } } } }
+
+{ "id": "an-instance", "kind": "a-kind", "data": { "entityType": "contracts", "mapping": "#.data.body.something" } }
+```
+
+`validate` resolves `entity-mapping` against the data of `an-instance` and checks `#.data.body.something` against the record schema of `contracts`: `unknown-path` as in any typed mapping. Instance authors write nothing; kind authors write one `templates` map.
+
+Rules:
+
+1. **Lookup.** A name resolves in the kind of the element being validated, along the `extends` chain; a subkind can override it. A reusable schema (`process-step`) works only where the owner declares its names: every kind that reaches a schema with an unresolved name gets `unresolved-template` at load, like an unbound variable.
+2. **Nesting.** A resolved schema may contain further `@type/other` or `@mapping/other`; the framework resolves them recursively and reports a cycle.
+3. **Anywhere.** A name can be used wherever a schema is written (shape, slot inputs, operation contracts, nested schemas), not only in `shape`.
+4. **Slots.** In a slot input, a name resolves against the data of the fill's target element, with the templates of the kind that owns the slot. The fill declares nothing.
+5. **Checked results.** The result of a template is validated: `{ input, output }` or a schema. An error in a resolver is a problem on the instance, not a crash.
+6. **No silent `any`.** A template that cannot be resolved (missing field, a ref to nothing) reports the position as untyped.
+7. **References.** A template reads constants of the element data. A `@ref` field gives an element id; the resolver loads the element from the registry (`record-of` goes entity type, traits, body schemas). The schema never describes a path through other elements. A path into something computed at run time is not resolvable (rule 6).
+
+### 5.2 Examples
+
+*`http-endpoint`* (today the input of `request` and `response` is `any`):
+
+```json
+"shape": { "!target": { "!element": "@ref", "!operation": "string" },
+           "request": "@mapping/request-mapping", "response": "@mapping/response-mapping" },
+"templates": {
+    "request-mapping":  { "input": "@http-request", "output": { "$func/operation-input": "#.data.target" } },
+    "response-mapping": { "input": { "$func/operation-output": "#.data.target" }, "output": "@http-response" }
+}
+```
+
+*A slot on `entity-type`*: the slot input uses `@type/record`, so every fill of `reactions` of `contracts` sees the body of `contracts` typed:
+
+```json
+"slots": { "reactions": { "cardinality": "many", "value": "@method", "input": { "!record": "@type/record", "!change": "object" } } },
+"templates": { "record": { "$func/record-of": "#.id" } }
+```
+
+*A trait hook*: `"guard": "@method/guard"` with `"guard": { "input": { "!configuration": { "$func/schema-of": "#.data.configuration" }, "!record": "@entity-record" }, "output": "@any" }`.
+
+*The process definition*: `"steps{}": "@process-step"`, in which every `@mapping` is `@mapping/step-code`, and `"step-code": { "input": { "$func/process-scope": "#" }, "output": "@any" }` with `process-scope` the existing `scopeOf`. The `validate` hook and its use of `codePositionsOf` go away.
+
+### 5.3 Measurement
+
+
+| Group | Positions | Input type decided by |
+|---|---|---|
+| kind operations and hooks, `kind.mapping`, pure-function mappings, node templates and wrappers | 232 | the kind or function itself (typed today) |
+| slot-fills with a fixed slot input | about 32 | the slot declaration (typed today) |
+| slot-fills on `entity-type` slots | about 21 | record type of the target entity type (`record-of`) |
+| `http-endpoint` (`operation`, `request`, `response`) | 29 | contract of `target` (`operationInputType` already computes it) |
+| trait hooks (`derive`, `guard`, `react`, `view`) | 8 | `configuration` has the schema held in `self.data.configuration`; the record is per use, not per trait |
+| `message-consumer.handler`, `ownership-scope.filter` | 7 | `handler`: a fixed envelope never declared; `filter`: checked by hand-written JS in `entity-ownership` |
+| `process-definition` | 7 (many more in tests) | object built by looping over `entities`, `tasks`, `variables` |
+
+About 58 positions (three families) are covered by a predefined resolver over one or two fields. One kind, `process-definition`, needs a hand-written resolver (`scopeOf`); only inferring its scope from the runtime would need type-level evaluation. Applications other than the demo were not measured.
+
+
+### 5.4 Recommendation
+
+1. Build `templates` with the two forms, lookup along `extends`, recursive resolution, the checks above.
+2. Start with the predefined resolvers `record-of`, `operation-input`, `operation-output`, `schema-of`; they cover about 58 positions.
+3. Declare the missing fixed inputs (`message-consumer.handler`).
+4. Move the process scope to a template (`scopeOf` as the resolver).
+5. Inference from the kind's own operations (the earlier option 3) only if the second description of the process scope drifts in practice; it needs constant propagation of `self.data`, dependent results in contracts and, for the process scope, type-level evaluation of `$mapValues`.
+
+Compared with the `scopes` design dropped in section 3: the same idea (a name in the schema, resolved by the kind), but the resolver is an ordinary mapping over `self.data`, there are two forms with a checked result, templates nest and are not limited to `shape`.
+
+
+## 6. Not covered
 
 - The code of a step extension (a fill of `stepExtensions`) runs in the scope of its target definition and is not typed.
 - The scope is described twice: built at run time by `process-scope`, typed by `scopeOf`. They can drift; the long-term answer above removes the second.
