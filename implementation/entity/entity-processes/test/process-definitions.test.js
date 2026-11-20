@@ -20,12 +20,21 @@ const definition = (steps, start, tasks = { approval: { type: 'task-type', about
     }
 });
 
-const messagesAfterBooting = async (steps, start, extra = [], tasks) => {
+const bootDefinition = async (steps, start, extra = [], tasks) => {
     await boot({
         paths: packages,
         elements: [{ id: 'contract-type', kind: 'entity-type', data: { traits: { ...typed.traits, state: { configuration: lifecycle } } } }, { id: 'review-type', kind: 'entity-type', data: typed }, { id: 'task-type', kind: 'entity-type', data: { traits: { task: { configuration: { outcomes: { approved: { answer: true }, rejected: { answer: true }, 'timed-out': true } } } } } }, stale, definition(steps, start, tasks), ...extra]
     });
+};
+
+const messagesAfterBooting = async (...options) => {
+    await bootDefinition(...options);
     return validate().flatMap(({ data }) => data.messages ?? []);
+};
+
+const unknownPathsAfterBooting = async (...options) => {
+    await bootDefinition(...options);
+    return validate().filter(({ code }) => code === 'unknown-path').map(({ data }) => data.path);
 };
 
 const GOOD = {
@@ -126,7 +135,7 @@ describe('process definitions', function () {
     });
 
     it('reports a path of a step that its roles, input and variables do not have, in a do and in a mapping, at the position of the code', async () => {
-        const messages = await messagesAfterBooting({
+        expect(await unknownPathsAfterBooting({
             begin: {
                 open: { approval: {} },
                 do: { set: { name: '#.input.entities.contract.data.body.nme', by: '#.input.entities.nobody.data.body.name', fine: '#.input.entities.contract.data.body.name' } },
@@ -135,22 +144,15 @@ describe('process definitions', function () {
             },
             ask: { wait: { when: [{ test: { $eq: ['#.entities.review.data.body.nme', 'x'] }, then: 'finish' }] } },
             finish: { end: true }
-        });
-        expect(messages).to.have.length(4);
-        expect(messages.join('\n')).to.include('steps.begin.do').and.to.include('nme').and.to.include('nmae');
-        expect(messages.join('\n')).to.not.include('fine');
+        })).to.have.members(['steps.begin.do.set.name', 'steps.begin.do.set.by', 'steps.begin.set.copied', 'steps.ask.wait.when[0].test.$eq[0]']);
     });
 
     it('types every mapping field the schema of a step declares, with no list of its own: an opening, an until and an onError set', async () => {
-        const messages = await messagesAfterBooting({
+        expect(await unknownPathsAfterBooting({
             begin: { open: { approval: { dueOn: '#.entities.contract.data.body.nme' } }, set: { fine: '#.entities.contract.data.body.name' }, next: 'ask' },
             ask: { wait: { until: { at: '#.entities.review.data.body.nme', then: 'finish' } }, onError: [{ catches: ['conflict'], set: { seen: '#.error.nothing' }, then: 'finish' }] },
             finish: { end: true }
-        });
-        expect(messages.filter(message => message.includes('steps.begin.open.approval.dueOn'))).to.have.length(1);
-        expect(messages.filter(message => message.includes('steps.ask.wait.until.at'))).to.have.length(1);
-        expect(messages.filter(message => message.includes('steps.ask.onError[0].set'))).to.have.length(1);
-        expect(messages).to.have.length(3);
+        })).to.have.members(['steps.begin.open.approval.dueOn', 'steps.ask.wait.until.at', 'steps.ask.onError[0].set.seen']);
     });
 
     it('reports an extension at a step that does not exist or is not extensible', async () => {

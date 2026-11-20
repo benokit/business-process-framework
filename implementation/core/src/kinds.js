@@ -1,4 +1,4 @@
-import { isEmpty, isEqual, isPlainObject } from 'lodash-es';
+import { isEmpty, isEqual, isPlainObject, mapValues } from 'lodash-es';
 import { allElements, findElement, kindOf, memo } from './registry.js';
 import { fail, problemsOf } from './errors.js';
 import { applyMapping } from './mappings.js';
@@ -56,6 +56,9 @@ const fixedUpTo = (chain, index) => {
         .reduce((fixed, kind) => unite(fixed, kind.data.fixed ?? {}, kind.id), {});
 };
 
+const templatesOf = chain => chain.reduce((all, kind) =>
+    ({ ...all, ...mapValues(kind.data.templates ?? {}, mapping => ({ mapping, owner: kind.id })) }), {});
+
 const checkShape = chain => {
     const { id, data } = chain.at(-1);
     if (data.shape !== undefined && data.mapping === undefined && chain.slice(0, -1).some(kind => kind.data.shape !== undefined)) {
@@ -73,6 +76,7 @@ export const resolveKind = memo(id => {
         chain,
         operations: collect(chain, 'operations', 'operation'),
         slots: collect([...chain, ...slotDeclarationsFor(ids)], 'slots', 'slot'),
+        templates: templatesOf(chain),
         fixed: fixedUpTo(chain, chain.length - 1),
         manages: managedKeys(chain)
     };
@@ -126,6 +130,15 @@ export const hasOperation = ({ element, operation }) => {
     const found = findElement(element);
     return found === undefined || operation in resolveKind(kindOf(found)).operations;
 };
+
+const contractOf = side => ({ element, operation }) => {
+    const found = findElement(element);
+    return found === undefined ? {} : resolveKind(kindOf(found)).operations[operation]?.[side] ?? {};
+};
+
+export const operationInput = contractOf('input');
+
+export const operationOutput = contractOf('output');
 
 export const kindChainOf = id => {
     const element = findElement(id);

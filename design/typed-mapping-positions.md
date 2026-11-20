@@ -101,7 +101,16 @@ Rules:
 About 58 positions (three families) are covered by a predefined resolver over one or two fields. One kind, `process-definition`, needs a hand-written resolver (`scopeOf`); only inferring its scope from the runtime would need type-level evaluation. Applications other than the demo were not measured.
 
 
-### 5.4 Recommendation
+### 5.4 Status (R3.9)
+
+Built: the forms `@mapping/T`, `@method/T` and `@type/T` (the last in the `input` of a slot), `templates` on a kind, lookup along `extends`, resolution against the fill's target for slots, the problems `unresolved-template`, `invalid-template` and `template-failed`, the resolvers `operation-input`, `operation-output` (core) and `record-of` (entities). In use: `http-endpoint` (`request`, `response`) and `process-definition` (`step-code`, `step-method`, `error-code`; `definitions.js` no longer types anything). Findings of the work:
+
+- A template returns a **compact** schema, not a type; the process scope was rewritten as one (`scopes.js`), which is also shorter than the type it replaces.
+- A schema id inside a template's mapping needs the escape (`"\\@http-request"`), since `@name` in a mapping is a variable.
+- `schema-of` was not needed: a path to the schema in the data (`#.data.configuration`) is the resolver.
+- Open: `unresolved-template` is reported for an instance, not at load for a kind that has none; `@type` in operation contracts and shapes; the `entity-type` slots (their inputs are unions, `viewed-entity-change`), trait hooks, `message-consumer.handler`; the `operation` mapping of `http-endpoint`.
+
+### 5.5 Recommendation
 
 1. Build `templates` with the two forms, lookup along `extends`, recursive resolution, the checks above.
 2. Start with the predefined resolvers `record-of`, `operation-input`, `operation-output`, `schema-of`; they cover about 58 positions.

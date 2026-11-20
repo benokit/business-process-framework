@@ -9,6 +9,7 @@ const echo = {
             echo: { input: '@any', implementation: { set: '#.input' } },
             correlation: { input: '@any', implementation: { set: { correlation: '#._ctx.trace.correlation' } } },
             strict: { input: { '!amount': 'number' }, implementation: { set: '#.input' } },
+            priced: { input: { '!amount': 'number' }, output: { '!amount': 'number' }, implementation: { set: '#.input' } },
             fail: { input: '@any', implementation: { throw: 'broken' } },
             raise: { input: '@any', implementation: { throw: { code: '#.input.code', message: 'raised' } } }
         }
@@ -146,6 +147,20 @@ describe('http-endpoint validation', () => {
         });
         expect(validate().map(({ code, message }) => [code, message])).to.deep.equal([
             ['invalid-element', 'bare: declares no body schema']
+        ]);
+    });
+
+    it('types the request mapping by the input of the target operation and the response mapping by its output', async () => {
+        await boot({
+            paths: [packageElements('@business-framework/http-server')],
+            elements: [echo, { id: 'the-echo', kind: 'echo', data: {} },
+                endpoint('typed', 'POST', '/typed', 'priced', { request: { amount: '#.body.amount' }, response: { body: '#.output.amount' } }),
+                endpoint('wrong-request', 'POST', '/wrong-request', 'priced', { request: { amount: 'twelve' } }),
+                endpoint('wrong-response', 'POST', '/wrong-response', 'priced', { response: { body: '#.output.total' } })]
+        });
+        expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([
+            ['type-mismatch', 'wrong-request', 'request.amount'],
+            ['unknown-path', 'wrong-response', 'response.body']
         ]);
     });
 

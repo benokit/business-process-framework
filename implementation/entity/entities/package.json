@@ -10,7 +10,8 @@
     "./dependencies": "./src/dependencies.js",
     "./patch": "./src/patch.js",
     "./versions": "./src/versions.js",
-    "./views": "./src/views.js"
+    "./views": "./src/views.js",
+    "./records": "./src/records.js"
   },
   "scripts": {
     "test": "mocha --exit"

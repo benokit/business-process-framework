@@ -10,11 +10,13 @@ let ajv = newAjv();
 let checking = false;
 
 const withReferences = new Map();
+const stubbed = new Set();
 
 onReset(() => {
     ajv = newAjv();
     checking = false;
     withReferences.clear();
+    stubbed.clear();
 });
 
 const uri = id => `/${id}`;
@@ -27,8 +29,26 @@ const absoluteRefs = schema => Array.isArray(schema)
         ? mapValues(schema, (value, key) => key === '$ref' && !value.startsWith('#') ? uri(value) : absoluteRefs(value))
         : schema;
 
+const TEMPLATE = /^\/(mapping|method|type)\/(.+)$/;
+
+const TEMPLATE_BASES = { mapping: { $ref: uri('mapping') }, method: { $ref: uri('method') }, type: {} };
+
+const templateRefsIn = schema => Array.isArray(schema)
+    ? schema.flatMap(templateRefsIn)
+    : isPlainObject(schema)
+        ? Object.entries(schema).flatMap(([key, value]) => key === '$ref' && TEMPLATE.test(value) ? [value] : templateRefsIn(value))
+        : [];
+
+const stubTemplate = ref => {
+    if (stubbed.has(ref)) return;
+    stubbed.add(ref);
+    ajv.addSchema(TEMPLATE_BASES[TEMPLATE.exec(ref)[1]], ref);
+};
+
 export const addSchema = ({ id, schema }) => {
-    ajv.addSchema(absoluteRefs(compactToStandard({ $data: schema })), uri(id));
+    const standard = absoluteRefs(compactToStandard({ $data: schema }));
+    templateRefsIn(standard).forEach(stubTemplate);
+    ajv.addSchema(standard, uri(id));
 };
 
 export const add = ({ input }) => addSchema(input);
@@ -54,7 +74,12 @@ const referenceAt = ref => {
     return ref.startsWith(`${REF}/`) ? { type: 'ref', kind: ref.slice(REF.length + 1) } : undefined;
 };
 
-const typedAt = ref => CODE.has(ref) ? { type: ref.slice(1) } : referenceAt(ref);
+const templateAt = ref => {
+    const [, type, template] = TEMPLATE.exec(ref) ?? [];
+    return type === undefined ? undefined : { type, template };
+};
+
+const typedAt = ref => CODE.has(ref) ? { type: ref.slice(1) } : templateAt(ref) ?? referenceAt(ref);
 
 const isInstanceOfReference = value => isPlainObject(value) && Object.keys(value).length === 1 && typeof value.instanceOf === 'string';
 
@@ -63,6 +88,7 @@ const positionsAt = (schema, value, path) => {
     if (schema.$ref !== undefined) {
         const typed = typedAt(schema.$ref);
         if (typed?.type === 'ref') return typeof value === 'string' || isInstanceOfReference(value) ? [{ ...typed, code: value, path }] : [];
+        if (typed?.type === 'type') return [];
         return typed ? [{ ...typed, code: value, path }] : positionsAt(storedSchema(schema.$ref), value, path);
     }
     const alternatives = [...schema.allOf ?? [], ...schema.anyOf ?? [], ...schema.oneOf ?? []];

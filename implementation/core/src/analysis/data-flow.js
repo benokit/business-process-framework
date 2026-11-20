@@ -4,6 +4,7 @@ import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
 import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
 import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
+import { resolveTemplate } from './templates.js';
 import { isKindReference } from '../references.js';
 import { valuesOf } from '../discriminators.js';
 
@@ -52,15 +53,19 @@ const resolvedReferenceType = kind => {
     return ids.length === 0 ? STRING : { type: 'string', enum: ids };
 };
 
-const typeOf = (schema, seen = [], resolved = false) => {
+const HOLE = /^\/type\/(.+)$/;
+
+const typeOf = (schema, seen = [], resolved = false, holes = () => ANY) => {
     if (!isPlainObject(schema)) return schema === false ? NEVER : ANY;
+    const hole = typeof schema.$ref === 'string' ? HOLE.exec(schema.$ref)?.[1] : undefined;
+    if (hole !== undefined) return holes(hole);
     const referenced = typeof schema.$ref === 'string' ? REFERENCE.exec(schema.$ref)?.[2] : undefined;
     if (referenced !== undefined) return resolved ? resolvedReferenceType(referenced) : referenceType(referenced);
     if (resolved && schema.$ref === schemaRef('ref')) return STRING;
     if (typeof schema.$ref === 'string') {
-        return schema.$ref.startsWith('#') || seen.includes(schema.$ref) ? ANY : typeOf(storedSchema(schema.$ref), [...seen, schema.$ref], resolved);
+        return schema.$ref.startsWith('#') || seen.includes(schema.$ref) ? ANY : typeOf(storedSchema(schema.$ref), [...seen, schema.$ref], resolved, holes);
     }
-    const nested = part => typeOf(part, seen, resolved);
+    const nested = part => typeOf(part, seen, resolved, holes);
     const { allOf, anyOf: any, oneOf, properties, items, prefixItems, additionalProperties, ...rest } = schema;
     const own = {
         ...rest,
@@ -88,9 +93,11 @@ const closedType = type => {
 
 const schemaType = memo(id => closedType(typeOf({ $ref: schemaRef(id) })));
 
+const schemaTypeWith = (id, holes) => closedType(typeOf({ $ref: schemaRef(id) }, [], false, holes));
+
 const resolvedSchemaType = memo(id => closedType(typeOf({ $ref: schemaRef(id) }, [], true)));
 
-const compactType = schema => schema === undefined ? ANY : closedType(typeOf(standardOf(schema)));
+export const compactType = schema => schema === undefined ? ANY : closedType(typeOf(standardOf(schema)));
 
 const dataType = kindId => {
     const declaring = resolveKind(kindId).chain.findLast(kind => kind.data.shape !== undefined);
@@ -300,7 +307,7 @@ export const methodType = ({ author, code, input, path }) => {
     return { type, problems: walk.problems.map(({ severity, code, path: at, message }) => ({ severity, code, path: at, message })) };
 };
 
-const methodStart = (author, path) => {
+const methodStart = (author, path, walk) => {
     const _ctx = contextType();
     if (author.kind === 'kind') {
         const self = selfType(author.id);
@@ -312,7 +319,7 @@ const methodStart = (author, path) => {
         return { scope: { input: ANY, self: ANY_SELF, _ctx, operation: STRING, node: author.data.node ? schemaType(`${author.id}/node`) : ANY } };
     }
     const kind = author.kind === 'slot-fill' ? fillTarget(author)?.id : kindOf(author);
-    const input = author.kind === 'slot-fill' ? fillInput(author) : ANY;
+    const input = author.kind === 'slot-fill' ? fillInput(author, walk, path) : ANY;
     return { kind, scope: { input, self: kind ? selfType(kind) : ANY_SELF, _ctx } };
 };
 
@@ -326,30 +333,54 @@ const narrowed = (type, discriminator, on) => {
     return variants.length > 0 ? { ...type, anyOf: variants } : type;
 };
 
-const fillInput = fill => {
+const holesOf = (walk, fill, path) => name => {
+    const { value, code, message } = resolveTemplate(fill, name);
+    if (code === undefined) return compactType(value);
+    walk.problems.push(problem(walk.at, path, code, message));
+    return ANY;
+};
+
+const fillInput = (fill, walk, path) => {
     const { slot, on } = fill.data;
     const declaration = fillTarget(fill)?.slots[slot];
     if (declaration?.input === undefined) return ANY;
-    const type = schemaType(`${declaration.owner}/slots/${slot}/input`);
+    const type = schemaTypeWith(`${declaration.owner}/slots/${slot}/input`, holesOf(walk, fill, path));
     return on && declaration.discriminator ? narrowed(type, declaration.discriminator, on) : type;
 };
 
-const mappingInput = (author, path) => {
-    if (author.kind === 'kind' && path === 'mapping') return closed({ id: ANY, data: dataType(author.id) });
+const mappingInput = (author, path, walk) => {
+    if (author.kind === 'kind' && (path === 'mapping' || path.startsWith('templates.'))) return closed({ id: ANY, data: dataType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.validate') return closed({ self: selfType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.explain') return closed({ self: selfType(author.id), element: STRING });
     if (author.kind === 'pure-function' && path === 'mapping') return compactType(author.data.signature?.input);
-    if (author.kind === 'slot-fill') return fillInput(author);
+    if (author.kind === 'slot-fill') return fillInput(author, walk, path);
     return ANY;
 };
 
 const expectedOf = (author, path) => author.kind === 'kind' && path === 'mapping' ? dataType(author.data.extends) : undefined;
 
-const positionWalk = (author, targets) => ({ type, code, path }) => {
-    const start = type === 'method' ? methodStart(author, path) : {};
-    const walk = { at: { author }, kind: start.kind, problems: [], returns: [], targets };
-    if (type === 'method') method(walk, code, start.scope, path);
-    else expression(walk, mappingInput(author, path), code, path, expectedOf(author, path));
+const templateTypes = (walk, author, { template, path }) => {
+    if (template === undefined) return undefined;
+    const { value, code, message } = resolveTemplate(author, template);
+    if (code !== undefined) {
+        walk.problems.push(problem(walk.at, path, code, message));
+        return {};
+    }
+    const { input, output } = typeof value === 'string' ? { input: value } : value;
+    return { input: input === undefined ? ANY : compactType(input), output: output === undefined ? undefined : compactType(output) };
+};
+
+const positionWalk = (author, targets) => position => {
+    const { type, code, path } = position;
+    const walk = { at: { author }, kind: undefined, problems: [], returns: [], targets };
+    const template = templateTypes(walk, author, position);
+    if (type === 'method') {
+        const start = methodStart(author, path, walk);
+        walk.kind = start.kind;
+        method(walk, code, template?.input === undefined ? start.scope : { ...start.scope, input: template.input }, path);
+    } else {
+        expression(walk, template?.input ?? mappingInput(author, path, walk), code, path, template?.output ?? expectedOf(author, path));
+    }
     return walk.problems;
 };
 

@@ -1,13 +1,13 @@
 import { isDeepStrictEqual } from 'node:util';
-import { mappingType } from '@business-framework/core/data-flow';
+import { compactType, mappingType } from '@business-framework/core/data-flow';
 import { selvesOf } from '@business-framework/core/kinds';
 import { memo } from '@business-framework/core/registry';
-import { scopeOf } from './definitions.js';
+import { scopeSchema } from './scopes.js';
 import { rolesOf } from './process.js';
 
 const conditionsOf = ({ steps }) => Object.values(steps).flatMap(step => step.wait?.when ?? []);
 
-const readsOf = (data, { test }) => mappingType(test, { type: 'object', properties: scopeOf(data), additionalProperties: false }).reads ?? [[]];
+const readsOf = (data, { test }) => mappingType(test, compactType(scopeSchema({ definition: data, position: 'step' }))).reads ?? [[]];
 
 const readsOfRole = (reads, scope, role) => reads.flatMap(read => read.length === 0 || (read.length === 1 && read[0] === scope)
     ? [[]]

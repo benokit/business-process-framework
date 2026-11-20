@@ -53,6 +53,24 @@
         }
     },
     {
+        "id": "operation-input",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!operation": "string" }, "output": "@schema" },
+            "module": "@business-framework/core/kinds",
+            "export": "operationInput"
+        }
+    },
+    {
+        "id": "operation-output",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!element": "string", "!operation": "string" }, "output": "@schema" },
+            "module": "@business-framework/core/kinds",
+            "export": "operationOutput"
+        }
+    },
+    {
         "id": "has-operation",
         "kind": "pure-function",
         "data": {

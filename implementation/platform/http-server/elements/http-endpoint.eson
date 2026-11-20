@@ -21,8 +21,15 @@
                 "body": "@schema",
                 "operation": "@mapping",
                 "public": "boolean",
-                "request": "@mapping",
-                "response": "@mapping"
+                "request": "@mapping/request-mapping",
+                "response": "@mapping/response-mapping"
+            },
+            "templates": {
+                "request-mapping": { "input": "\\@http-request", "output": { "$func/operation-input": "#.data.target" } },
+                "response-mapping": {
+                    "input": { "!output": { "$func/operation-output": "#.data.target" }, "!request": "\\@http-request" },
+                    "output": "\\@http-response"
+                }
             },
             "slots": {
                 "requestMiddleware": { "cardinality": "many", "value": "@method", "input": "@http-request" }

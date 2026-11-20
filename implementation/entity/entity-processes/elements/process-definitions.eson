@@ -12,7 +12,7 @@
     {
         "id": "process-opening",
         "kind": "schema",
-        "data": { "body": "@mapping", "dueOn": "@mapping", "assignTo": "@mapping", "*": "never" }
+        "data": { "body": "@mapping/step-code", "dueOn": "@mapping/step-code", "assignTo": "@mapping/step-code", "*": "never" }
     },
     {
         "id": "process-signal",
@@ -27,12 +27,12 @@
     {
         "id": "process-until",
         "kind": "schema",
-        "data": { "at": "@mapping", "after": "@process-duration", "!then": "string", "*": "never" }
+        "data": { "at": "@mapping/step-code", "after": "@process-duration", "!then": "string", "*": "never" }
     },
     {
         "id": "process-condition",
         "kind": "schema",
-        "data": { "!test": "@mapping", "resolve{}": "string", "!then": "string", "*": "never" }
+        "data": { "!test": "@mapping/step-code", "resolve{}": "string", "!then": "string", "*": "never" }
     },
     {
         "id": "process-wait",
@@ -42,14 +42,14 @@
     {
         "id": "process-error-exit",
         "kind": "schema",
-        "data": { "!catches[]": "string", "set": "@mapping", "!then": "string", "*": "never" }
+        "data": { "!catches[]": "string", "set": "@mapping/error-code", "!then": "string", "*": "never" }
     },
     {
         "id": "process-choice",
         "kind": "schema",
         "data": {
             "$data#1": [
-                { "!test": "@mapping", "!then": "string", "*": "never" },
+                { "!test": "@mapping/step-code", "!then": "string", "*": "never" },
                 { "!else": "string", "*": "never" }
             ]
         }
@@ -58,10 +58,10 @@
         "id": "process-step",
         "kind": "schema",
         "data": {
-            "do": "@method",
+            "do": "@method/step-method",
             "transition{}": "string",
             "open{}": "@process-opening",
-            "set": "@mapping",
+            "set": "@mapping/step-code",
             "next": "string",
             "choose[]": "@process-choice",
             "wait": "@process-wait",
@@ -108,6 +108,15 @@
         }
     },
     {
+        "id": "process-scope-schema",
+        "kind": "pure-function",
+        "data": {
+            "signature": { "input": { "!definition": "object", "!position=1": ["step", "method", "error"] }, "output": "@schema" },
+            "module": "@business-framework/entity-processes/scopes",
+            "export": "scopeSchema"
+        }
+    },
+    {
         "id": "process-definition-problems",
         "kind": "pure-function",
         "data": {
@@ -128,6 +137,11 @@
                 "key": "@mapping",
                 "!start": "string",
                 "!steps{}": "@process-step"
+            },
+            "templates": {
+                "step-code": { "input": { "$func/process-scope-schema": { "definition": "#.data", "position": "step" } } },
+                "step-method": { "input": { "$func/process-scope-schema": { "definition": "#.data", "position": "method" } } },
+                "error-code": { "input": { "$func/process-scope-schema": { "definition": "#.data", "position": "error" } } }
             },
             "lifecycle": { "validate": { "$func/process-definition-problems": "#.self.id" } }
         }

@@ -1,10 +1,7 @@
 import { errorTypeOf, isRegistered } from '@business-framework/core/error-types';
 import { isInstanceOf, selvesOf } from '@business-framework/core/kinds';
 import { findElement } from '@business-framework/core/registry';
-import { codePositionsOf } from '@business-framework/core/introspection';
-import { methodType, mappingType } from '@business-framework/core/data-flow';
 import { traitsOf } from '@business-framework/entities/traits';
-import { standardOf } from '@business-framework/core/schemas';
 import { transitionsOfType } from '@business-framework/entity-states/states';
 import { extensionsOf, rolesOf } from './process.js';
 
@@ -136,64 +133,10 @@ const extensionProblems = (id, steps) => extensionsOf(id)
     .filter(({ step }) => steps[step]?.extensible !== true)
     .map(({ step }) => `${id} is extended at the step '${step}', which ${steps[step] === undefined ? "doesn't exist" : "isn't marked extensible"}`);
 
-const traitType = ({ trait, configuration }) => isInstanceOf({ element: trait, kind: 'body-trait' }) && configuration.schema !== undefined ? standardOf(configuration.schema) : {};
-
-const recordType = (data = {}) => ({
-    type: 'object',
-    properties: {
-        id: { type: 'string' },
-        entityType: { type: 'string' },
-        businessKey: { type: 'string' },
-        revision: { type: 'number' },
-        timestampUtc: { type: 'string' },
-        data: { type: 'object', properties: data, additionalProperties: false }
-    },
-    additionalProperties: false
-});
-
-const participantType = ({ entityType, many }) => {
-    const record = recordType(Object.fromEntries(Object.entries(traitsOf(entityType)).map(([key, use]) => [key, traitType(use)])));
-    return many ? { type: 'array', items: record } : record;
-};
-
-const processType = variables => recordType({ process: {}, state: {}, body: variables === undefined ? {} : standardOf(variables) });
-
-export const scopeOf = definition => ({
-    process: processType(definition.variables),
-    entities: { type: 'object', properties: Object.fromEntries(Object.entries(definition.entities).map(([role, declaration]) => [role, participantType(declaration)])), additionalProperties: false },
-    tasks: { type: 'object', properties: Object.fromEntries(Object.entries(definition.tasks ?? {}).map(([task, { type }]) => [task, participantType({ entityType: type })])), additionalProperties: false },
-    input: definition.input === undefined ? {} : standardOf(definition.input),
-    signal: {},
-    output: {}
-});
-
-const ERROR = { type: 'object', properties: { code: { type: 'string' }, message: { type: 'string' }, data: {} }, additionalProperties: false };
-
-const ERROR_EXIT = /\.onError\[\d+\]\.set$/;
-
-const withoutOutput = scope => Object.fromEntries(Object.entries(scope).filter(([name]) => name !== 'output'));
-
-const inputAt = (scope, { type, path }) => ({
-    type: 'object',
-    properties: type === 'method' ? withoutOutput(scope) : ERROR_EXIT.test(path) ? { ...scope, error: ERROR } : scope,
-    additionalProperties: false
-});
-
-const unknownPathMessages = (id, { type, code, path }, input) => (type === 'method'
-    ? methodType({ author: { id, kind: 'process-definition' }, code, input, path }).problems
-    : mappingType(code, input).problems.map(problem => ({ ...problem, path })))
-    .filter(problem => problem.code === 'unknown-path')
-    .map(problem => `${id} ${problem.path}: ${problem.message}`);
-
-const typingProblems = (id, data) => codePositionsOf(findElement(id))
-    .filter(({ path }) => path !== 'key')
-    .flatMap(position => unknownPathMessages(id, position, inputAt(scopeOf(data), position)));
-
 export const processDefinitionProblems = definition => {
     const { data } = selvesOf('process-definition').find(({ id }) => id === definition);
     return [
         ...startProblems(data),
-        ...typingProblems(definition, data),
         ...extensionProblems(definition, data.steps),
         ...taskProblems(data),
         ...Object.entries(data.steps).flatMap(stepProblems(data.steps, rolesOf(data), data.tasks ?? {}, data.entities)),

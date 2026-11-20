@@ -6,6 +6,7 @@
     "./package.json": "./package.json",
     "./definitions": "./src/definitions.js",
     "./process": "./src/process.js",
+    "./scopes": "./src/scopes.js",
     "./views": "./src/views.js"
   },
   "scripts": {
