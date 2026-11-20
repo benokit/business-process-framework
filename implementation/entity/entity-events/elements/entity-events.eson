@@ -25,7 +25,7 @@
     {
         "id": "entity-event-group-slot",
         "kind": "slot-declaration",
-        "data": { "target": "entity-type", "slot": "eventGroup", "cardinality": "one", "value": "@mapping", "input": "@entity-record" }
+        "data": { "target": "entity-type", "slot": "eventGroup", "cardinality": "one", "value": "@mapping", "input": "@viewed-entity-record" }
     },
     {
         "id": "entity-event-group",

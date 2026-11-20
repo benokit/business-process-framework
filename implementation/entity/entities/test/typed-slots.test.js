@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import { boot, packageElements, validate } from '@business-framework/core';
 
-const packages = ['integration', 'database', 'postgresql', 'transaction', 'entities', 'entities-postgresql'].map(name => packageElements(`@business-framework/${name}`));
+const packages = ['integration', 'database', 'postgresql', 'transaction', 'messaging', 'security', 'entities', 'entities-postgresql', 'entity-relations', 'entity-events', 'search', 'entity-search'].map(name => packageElements(`@business-framework/${name}`));
 
 const typed = schema => ({ traits: { body: { configuration: { schema } } } });
 
-const fill = (id, target, value) => ({ id, kind: 'slot-fill', data: { target, slot: 'requestGuards', on: 'read', value } });
+const fill = (id, target, value, slot = 'requestGuards') => ({ id, kind: 'slot-fill', data: { target, slot, ...slot === 'requestGuards' && { on: 'read' }, value } });
 
 const problemsOf = async elements => {
     await boot({ paths: packages, elements });
@@ -61,5 +61,25 @@ describe('typed operation outputs of entity-type', () => {
                 { set: '#.order.data.body.totl' }
             ] } } } }
         ])).to.deep.equal([['reader', 'operations.run.implementation[2].set']]);
+    });
+});
+
+describe('typed records of the slots that see a viewed record', () => {
+    const order = { id: 'order-type', kind: 'entity-type', data: typed({ '!total': 'number', '*': 'never' }) };
+
+    it('types the after of a reaction, whole or partial, and the records of eventGroup, relations and searchIndex', async () => {
+        expect(await problemsOf([
+            order,
+            fill('good-reaction', 'order-type', { set: '#.input.after.data.body.total' }, 'reactions'),
+            fill('bad-reaction', 'order-type', { set: '#.input.after.data.body.totl' }, 'reactions'),
+            fill('bad-group', 'order-type', '#.data.body.totl', 'eventGroup'),
+            fill('bad-relations', 'order-type', { set: '#.input.data.body.totl' }, 'relations'),
+            fill('bad-index', 'order-type', { index: 'nowhere', mapping: { set: '#.input.data.body.totl' } }, 'searchIndex')
+        ])).to.have.deep.members([
+            ['bad-reaction', 'value.set'],
+            ['bad-group', 'value'],
+            ['bad-relations', 'value.set'],
+            ['bad-index', 'value.mapping.set']
+        ]);
     });
 });

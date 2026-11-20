@@ -84,12 +84,24 @@
         }
     },
     {
+        "id": "viewed-entity-after",
+        "kind": "schema",
+        "data": {
+            "id": "string",
+            "entityType": "string",
+            "businessKey": "string",
+            "revision": "number",
+            "!data": "@type/viewed-data",
+            "timestampUtc": "string"
+        }
+    },
+    {
         "id": "viewed-entity-change",
         "kind": "schema",
         "data": {
             "$data#1": [
-                { "!operation=": "create", "entityOperation": "string", "!after": "object" },
-                { "!operation=": "trait", "entityOperation": "string", "!before": "@viewed-entity-record", "!commands[]": { "!key": "string", "!command": "string", "!value": "@any" }, "after": "object" },
+                { "!operation=": "create", "entityOperation": "string", "!after": "@viewed-entity-after" },
+                { "!operation=": "trait", "entityOperation": "string", "!before": "@viewed-entity-record", "!commands[]": { "!key": "string", "!command": "string", "!value": "@any" }, "after": "@viewed-entity-after" },
                 { "!operation=": "delete", "entityOperation": "string", "!before": "@viewed-entity-record" },
                 { "!operation=": "read", "entityOperation": "string", "!before": "@viewed-entity-record" }
             ]

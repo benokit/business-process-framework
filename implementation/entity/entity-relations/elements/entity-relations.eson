@@ -12,7 +12,7 @@
     {
         "id": "entity-relations-slot",
         "kind": "slot-declaration",
-        "data": { "target": "entity-type", "slot": "relations", "cardinality": "many", "value": "@method", "input": "@entity-record" }
+        "data": { "target": "entity-type", "slot": "relations", "cardinality": "many", "value": "@method", "input": "@viewed-entity-record" }
     },
     {
         "id": "entity-relation-target",

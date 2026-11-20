@@ -7,7 +7,7 @@
     {
         "id": "entity-search-index-slot",
         "kind": "slot-declaration",
-        "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index", "input": "@entity-record" }
+        "data": { "target": "entity-type", "slot": "searchIndex", "cardinality": "one", "value": "@entity-search-index", "input": "@viewed-entity-record" }
     },
     {
         "id": "entity-search-rows-slot",
