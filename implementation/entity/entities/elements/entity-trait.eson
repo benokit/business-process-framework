@@ -13,7 +13,20 @@
         "id": "entity-trait",
         "kind": "kind",
         "data": {
-            "shape": { "!configuration": "@schema", "key": "string", "view": "@mapping", "identity": "boolean", "guard": "@method", "react": "@method", "derive": "@method" },
+            "shape": { "!configuration": "@schema", "key": "string", "view": "@mapping/trait-view", "identity": "boolean", "guard": "@method/trait-change", "react": "@method/trait-change", "derive": "@method/trait-derivation" },
+            "templates": {
+                "trait-view": { "input": { "!entityType": "string", "!key": "string", "!configuration": "#.data.configuration", "value": "\\@any", "at": "\\@any" } },
+                "trait-change": { "input": { "!entityType": "string", "!key": "string", "!configuration": "#.data.configuration", "!change": "\\@viewed-entity-change" } },
+                "trait-derivation": {
+                    "input": {
+                        "!entityType": "string",
+                        "!key": "string",
+                        "!configuration": "#.data.configuration",
+                        "!record": { "!entityType": "string", "!businessKey": "string", "!data": "object" },
+                        "command": "\\@any"
+                    }
+                }
+            },
             "lifecycle": {
                 "load": {
                     "inputMap": { "id": { "$str": ["#.self.id", "/configuration"] }, "schema": "#.self.data.configuration" },

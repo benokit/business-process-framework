@@ -51,6 +51,15 @@ describe('messaging', () => {
         expect(validate()).to.deep.equal([]);
     });
 
+    it('types the input of a handler as the message', async () => {
+        await stop();
+        await boot({
+            paths: [packageElements('@business-framework/messaging')],
+            elements: [...elements, { id: 'arithmetic', kind: 'message-consumer', data: { channel: 'orders', handler: { set: { $sum: ['#.input', 1] } } } }]
+        });
+        expect(validate().map(({ code, data }) => [code, data.element, data.path])).to.deep.equal([['type-mismatch', 'arithmetic', 'handler.set.$sum[0]']]);
+    });
+
     it('reports a channel publishing through a transactional outbox when there is none', async () => {
         await stop();
         const payments = { id: 'payments', kind: 'message-channel', data: { broker: 'memory', topology: 'queue', name: 'payments', publisher: { transactionalOutbox: true } } };

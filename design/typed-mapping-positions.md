@@ -111,7 +111,9 @@ Built: the forms `@mapping/T`, `@method/T` and `@type/T` (the last in the `input
 - `unresolved-template` is also reported at the kind (for the names its shape and own slots reach, `shape` and `slots/<slot>/input`), so a kind with no instance is checked; a kind that expects its subkinds to supply a name declares a default.
 - The `entity-type` slots `requestGuards`, `resultGuards` and `reactions` are typed by a `@type/viewed-data` hole in `viewed-entity-record`: one hole in a shared schema types every use, and the schema needs no copy. A fill on a **kind** has many entity types as targets: the template is resolved for each instance and the types are united.
 - The slots that see the stored record (`eventGroup`, `relations`, `searchIndex`, `searchRows`, `validations`) stay untyped: the stored value of a trait (the timeline of a versioned body) is not its viewed value, and a trait declares only the viewed one. A trait would have to declare its stored schema (Q6).
-- Open: `@type` in operation contracts and shapes; trait hooks, `message-consumer.handler`; the `operation` mapping of `http-endpoint`; `after` of a change.
+- The trait hooks (`view`, `guard`, `react`, `derive`) are typed by three templates of `entity-trait`, the `configuration` by the schema the trait declares in its own data (`"!configuration": "#.data.configuration"`, no resolver). The `change` is typed with its record `data` open, since a trait serves every entity type.
+- `message-consumer.handler` has the template `handler`, whose input is `object`: a channel declares no schema for its messages. A `message` schema on `message-channel` with a resolver (`message-of`) would type the payload; not built.
+- Open: `@type` in operation contracts and shapes; the `operation` mapping of `http-endpoint`; `after` of a change.
 
 ### 5.5 Recommendation
 

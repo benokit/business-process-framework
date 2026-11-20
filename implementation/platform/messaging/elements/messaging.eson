@@ -121,7 +121,8 @@
         "data": {
             "extends": "entry-point",
             "context": { "manages": { "message": "@message-context" } },
-            "shape": { "!channel": "@ref/message-channel", "name": "string", "broadcast": "boolean", "filter[]": "@message-subject", "!handler": "@method" },
+            "shape": { "!channel": "@ref/message-channel", "name": "string", "broadcast": "boolean", "filter[]": "@message-subject", "!handler": "@method/handler" },
+            "templates": { "handler": { "input": "object" } },
             "operations": {
                 "handle": {
                     "input": "@message-envelope",

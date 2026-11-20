@@ -17,4 +17,4 @@ Keyword `publish`: the node input is the outgoing message.
 { "inputMap": { "message": { "orderId": "#.input.id" }, "group": "#.input.id" }, "publish": "order-events" }
 ```
 
-A handler reads `#._ctx.message` and `#._ctx.trace`. Correlation flows on: what a handler publishes carries the correlation of the message it handles.
+A handler reads `#._ctx.message` and `#._ctx.trace`. Its input is typed as an object by the template `handler`: a channel declares no schema for its messages, so the paths of the payload are not checked. Correlation flows on: what a handler publishes carries the correlation of the message it handles.

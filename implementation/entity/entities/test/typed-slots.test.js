@@ -31,3 +31,22 @@ describe('typed slots of entity-type', () => {
         ])).to.deep.equal([['typo-guard', 'value.set']]);
     });
 });
+
+describe('typed hooks of entity-trait', () => {
+    it('types the input of the hooks of a trait: its configuration by the schema the trait declares, the change, the record to derive from', async () => {
+        const trait = (id, data) => ({ id, kind: 'entity-trait', data: { configuration: { '!prefix': 'string', '*': 'never' }, ...data } });
+        expect(await problemsOf([
+            trait('good-trait', {
+                view: { $str: ['#.configuration.prefix', '#.value'] },
+                guard: { set: { $str: ['#.input.configuration.prefix', '#.input.change.operation'] } },
+                derive: { set: '#.input.record.businessKey' }
+            }),
+            trait('bad-trait', {
+                view: { set: '#.configuration.prefx' },
+                guard: { set: '#.input.configuration.prefx' },
+                react: { set: '#.input.change.operaton' },
+                derive: { set: '#.input.record.businessKye' }
+            })
+        ])).to.deep.equal([['bad-trait', 'view.set'], ['bad-trait', 'guard.set'], ['bad-trait', 'react.set'], ['bad-trait', 'derive.set']]);
+    });
+});
