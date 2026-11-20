@@ -1,6 +1,6 @@
 # Typed code positions: what was decided
 
-Status: **built** (F83 resolved, R3.8 done). Kept as the record of the decision and of the designs that were tried and dropped.
+Status: **built** (F83 resolved, R3.8 and R3.9 done). Kept as the record of the decision and of the designs that were tried and dropped.
 
 ## 1. The problem
 
