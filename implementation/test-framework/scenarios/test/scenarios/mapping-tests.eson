@@ -1,0 +1,32 @@
+[
+    {
+        "id": "scenarios-scenario-environment",
+        "kind": "scenario-environment",
+        "data": { "packages": [] }
+    },
+    {
+        "id": "date-add-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "scenarios-scenario-environment",
+            "subject": { "$func/date-add": "#" },
+            "cases": [
+                { "name": "days", "input": { "date": "2026-01-30T00:00:00.000Z", "days": 3 }, "expected": "2026-02-02T00:00:00.000Z" },
+                { "name": "hours and minutes", "input": { "date": "2026-01-01T00:00:00.000Z", "hours": 1, "minutes": 30 }, "expected": "2026-01-01T01:30:00.000Z" },
+                { "name": "date is required", "input": { "days": 1 }, "throws": "function-contract" }
+            ]
+        }
+    },
+    {
+        "id": "assertion-scope-template-mapping-test",
+        "kind": "mapping-test",
+        "/data": {
+            "environment": "scenarios-scenario-environment",
+            "subject": { "/ref": "scenario/templates/assertion-scope/input" },
+            "cases": [
+                { "name": "calls and the output keys of the steps", "input": { "data": { "act": [{ "outputKey": "failure" }, { "set": "\\#" }, { "outputKey": "saved" }] } }, "expected": { "calls": "object", "failure": "\\@any", "saved": "\\@any" } },
+                { "name": "a single step", "input": { "data": { "act": { "outputKey": "result" } } }, "expected": { "calls": "object", "result": "\\@any" } }
+            ]
+        }
+    }
+]

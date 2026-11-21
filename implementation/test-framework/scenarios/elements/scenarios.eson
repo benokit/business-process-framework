@@ -41,6 +41,20 @@
         }
     },
     {
+        "id": "mapping-test",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "environment": "@ref/scenario-environment",
+                "packages[]": "string",
+                "given[]": "@ref",
+                "!subject": "@mapping",
+                "base": "@mapping",
+                "!cases[]": { "name": "string", "input": "@mapping", "expected": "@mapping", "throws": "string", "*": "never" }
+            }
+        }
+    },
+    {
         "id": "scenario-environment",
         "kind": "kind",
         "data": {

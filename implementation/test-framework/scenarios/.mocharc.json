@@ -1,1 +1,1 @@
-{ "spec": "test/**/*.test.js" }
+{ "spec": ["test/**/*.test.js", "src/discover.js"] }

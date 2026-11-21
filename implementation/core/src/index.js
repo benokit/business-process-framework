@@ -3,7 +3,7 @@ import { allElements, register, reset } from './registry.js';
 import { readElements } from './loader.js';
 import { composeElements } from './data.js';
 import { recordAuthors } from './context.js';
-import { preparePureFunctions } from './mappings.js';
+import { prepareLibraries, preparePureFunctions } from './mappings.js';
 import { enableChecks } from './schemas.js';
 import { runLifecycle } from './lifecycle.js';
 import { checkSettings } from './settings.js';
@@ -27,6 +27,7 @@ export const boot = async ({ paths = [], elements = [] } = {}) => {
     [...await readElements([CORE_ELEMENTS, ...paths]), ...elements].forEach(register);
     composeElements(allElements()).forEach(recordAuthors);
     await preparePureFunctions();
+    prepareLibraries();
     await runLifecycle('load');
     enableChecks();
 };

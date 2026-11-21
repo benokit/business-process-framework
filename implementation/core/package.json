@@ -26,7 +26,7 @@
   "dependencies": {
     "@benokit/js-cjsl": "^1.0.0",
     "ajv": "^8.17.1",
-    "lambdajson-js": "^3.8.0",
+    "lambdajson-js": "^3.9.0",
     "lodash-es": "^4.17.21"
   }
 }

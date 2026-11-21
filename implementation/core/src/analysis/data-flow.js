@@ -1,7 +1,9 @@
-import { infer, typed } from 'lambdajson-js';
+import { infer, typed, typeModule } from 'lambdajson-js';
 import { isPlainObject, mapValues, uniqBy } from 'lodash-es';
 import { allElements, findElement, kindOf, lazy, memo } from '../registry.js';
 import { extendsKind, instancesOf, resolveKind } from '../kinds.js';
+import { libraries } from '../libraries.js';
+import { compiledLibraries } from '../mappings.js';
 import { schemaRef, standardOf, storedSchema } from '../schemas.js';
 import { codeOf, formOf, problem, targetKind, templatePositions } from './code.js';
 import { heldValuesProblems, resolveTemplate, undeclaredTemplateProblems } from './templates.js';
@@ -139,6 +141,18 @@ const RESULT_TYPES = { 'slot-values': slotValuesType };
 const pureFunctions = lazy(() => Object.fromEntries(instancesOf('pure-function').map(({ id, data: { signature } }) =>
     [`$func/${id}`, typed(argument => argument, { takes: compactType(signature?.input), returns: compactType(signature?.output) }, RESULT_TYPES[id])])));
 
+const typedLibraries = lazy(() => {
+    const sources = Object.fromEntries(libraries().map(library => [library.id, library]));
+    return compiledLibraries().reduce(({ modules, problems }, id) => {
+        const { functions, exports, signatures = {} } = sources[id];
+        const typedSignatures = mapValues(signatures, ({ input, output }) => ({ takes: compactType(input), returns: compactType(output) }));
+        const typedModule = typeModule({ functions, exports, signatures: typedSignatures }, { primitives: pureFunctions(), modules });
+        return { modules: { ...modules, [id]: typedModule.module }, problems: { ...problems, [id]: typedModule.problems } };
+    }, { modules: {}, problems: {} });
+});
+
+const inferred = (program, input, primitives = {}) => infer(program, { input, primitives: { ...pureFunctions(), ...primitives }, modules: typedLibraries().modules });
+
 const pathOf = (path, pointer) => pointer.split('/').slice(1)
     .map(step => step.replace(/~1/g, '/').replace(/~0/g, '~'))
     .reduce((at, step) => /^\d+$/.test(step) ? `${at}[${step}]` : `${at}.${step}`, path);
@@ -146,7 +160,7 @@ const pathOf = (path, pointer) => pointer.split('/').slice(1)
 const EXPECTED_STEP = /^\/\$func~1expected/;
 
 const expression = (walk, input, code, path, expected) => {
-    const { type, problems } = expected === undefined ? infer(code, { input, primitives: pureFunctions() }) : mappingType(code, input, expected);
+    const { type, problems } = expected === undefined ? inferred(code, input) : mappingType(code, input, expected);
     problems.forEach(({ severity, code: name, path: pointer, message }) =>
         walk.problems.push(problem(walk.at, pathOf(path, pointer.replace(EXPECTED_STEP, '')), name, message.replace(/ \(at [^)]*\)$/, ''), { severity })));
     return type;
@@ -334,8 +348,8 @@ export const operationInputType = ({ element, operation }) => {
 const EXPECTED = '$func/expected';
 
 export const mappingType = (code, input, expected) => expected === undefined
-    ? infer(code, { input, primitives: pureFunctions() })
-    : infer({ [EXPECTED]: code }, { input, primitives: { ...pureFunctions(), [EXPECTED]: typed(argument => argument, { takes: expected, returns: ANY }) } });
+    ? inferred(code, input)
+    : inferred({ [EXPECTED]: code }, input, { [EXPECTED]: typed(argument => argument, { takes: expected, returns: ANY }) });
 
 export const methodType = ({ author, code, input, path }) => {
     const walk = { at: { author }, kind: undefined, problems: [], returns: [], targets: undefined };
@@ -389,9 +403,8 @@ const mappingInput = (author, path, walk) => {
     if (author.kind === 'kind' && (path === 'mapping' || path.startsWith('templates.'))) return closed({ id: ANY, data: dataType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.validate') return closed({ self: selfType(author.id) });
     if (author.kind === 'kind' && path === 'lifecycle.explain') return closed({ self: selfType(author.id), element: STRING });
-    if (author.kind === 'pure-function' && path === 'mapping') return compactType(author.data.signature?.input);
     if (author.kind === 'slot-fill') return fillInput(author, walk, path);
-    return ANY;
+    return author.kind === 'pure-function' && path === 'mapping' ? compactType(author.data.signature?.input) : ANY;
 };
 
 const declaredOutput = ({ data }) => {
@@ -426,9 +439,14 @@ const positionWalk = (author, targets) => position => {
     return walk.problems;
 };
 
+const libraryProblems = author => (typedLibraries().problems[author.id] ?? []).map(({ severity, code, path, message }) =>
+    problem({ author }, pathOf('functions', path.replace(/^\/functions/, '')), code, message, { severity }));
+
+const walkedProblems = author => extendsKind(kindOf(author), 'function-library') ? libraryProblems(author) : codeOf(author).flatMap(positionWalk(author));
+
 export const flowProblems = author => {
     try {
-        return [...undeclaredTemplateProblems(author), ...heldValuesProblems(author), ...codeOf(author).flatMap(positionWalk(author))];
+        return [...undeclaredTemplateProblems(author), ...heldValuesProblems(author), ...walkedProblems(author)];
     } catch (error) {
         return [() => { throw error; }];
     }

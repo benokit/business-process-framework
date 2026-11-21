@@ -1,0 +1,36 @@
+[
+    {
+        "id": "versions",
+        "kind": "function-library",
+        "data": {
+            "functions": {
+                "$configuration": { "versioned": { "validFrom": "/startDate" } },
+                "$contract": { "$merge": [{ "premium": "#[1]", "currency": "EUR" }, { "$if": [{ "$isNil": "#[0]" }, {}, { "startDate": "#[0]" }] }] },
+                "$amend": {
+                    "$func/append-body-version": {
+                        "timeline": "#[0]",
+                        "validFrom": "#[1]",
+                        "ref": "#[3]",
+                        "body": {
+                            "$func/dated-body": {
+                                "configuration": { "$configuration": null },
+                                "validFrom": "#[1]",
+                                "body": { "$func/patched-body": { "body": { "$func/body-at": { "timeline": "#[0]" } }, "patch": "#[2]" } }
+                            }
+                        }
+                    }
+                },
+                "$first": { "$func/start-body-versions": { "configuration": { "$configuration": null }, "body": { "$contract": ["2025-01-01", 100] } } },
+                "$timeline": {
+                    "$amend": [
+                        { "$amend": [{ "$first": null }, "2025-07-01", [{ "op": "add", "path": "/premium", "value": 110 }], "a-1"] },
+                        "2026-03-01",
+                        [{ "op": "add", "path": "/premium", "value": 120 }],
+                        "a-1"
+                    ]
+                }
+            },
+            "exports": ["$contract", "$first", "$amend", "$timeline"]
+        }
+    }
+]

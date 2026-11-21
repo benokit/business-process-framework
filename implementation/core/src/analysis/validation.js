@@ -1,9 +1,9 @@
 import { allElements, findElement, kindOf } from '../registry.js';
-import { instancesOf, resolveKind, selfAt, selfOf } from '../kinds.js';
+import { extendsKind, instancesOf, resolveKind, selfAt, selfOf } from '../kinds.js';
 import { validatePartial, validateValue } from '../schemas.js';
 import { DATA_MARKERS } from '../data.js';
 import { isPlainObject } from 'lodash-es';
-import { applyMapping } from '../mappings.js';
+import { applyMapping, libraryFailure } from '../mappings.js';
 import { fillsOf, orderFills } from '../slots.js';
 import { domainOf, isFilterable } from '../discriminators.js';
 import { elementsInStartOrder } from '../lifecycle.js';
@@ -131,6 +131,13 @@ const hookProblems = element => resolveKind(kindOf(element)).chain
     .filter(kind => kind.data.lifecycle?.validate !== undefined)
     .flatMap(kind => [hookProblem(element, kind, hookErrors), hookProblem(element, kind, hookWarnings, 'warning')]);
 
+const libraryProblems = element => extendsKind(kindOf(element), 'function-library') && element.id !== undefined
+    ? [() => {
+        const failure = libraryFailure(element.id);
+        if (failure !== undefined) throw failure;
+    }]
+    : [];
+
 const checks = () => [
     ...kinds().map(kind => () => resolveKind(kind.id)),
     ...contextProblems(),
@@ -147,6 +154,7 @@ const checks = () => [
     ...allElements().flatMap(codeProblems),
     ...allElements().flatMap(flowProblems),
     ...allElements().filter(element => element.id !== undefined).flatMap(hookProblems),
+    ...allElements().filter(element => element.id !== undefined).flatMap(libraryProblems),
     elementsInStartOrder
 ];
 

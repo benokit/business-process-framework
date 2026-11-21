@@ -55,7 +55,7 @@ describe('code checks', () => {
             ['unknown-module', `${PATH}[5]`],
             ['unknown-slot', `${PATH}[4].set`],
             ['unknown-function', `${PATH}[2].set.$coalese`],
-            ['unknown-function', `${PATH}[3].set.$func/nothing`]
+            ['unknown-module', `${PATH}[3].set.$func/nothing`]
         ]);
     });
 

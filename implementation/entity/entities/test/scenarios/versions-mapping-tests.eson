@@ -1,0 +1,320 @@
+[
+    {
+        "id": "entities-scenario-environment",
+        "kind": "scenario-environment",
+        "data": { "packages": ["integration", "database", "transaction", "entities"] }
+    },
+    {
+        "id": "versions-start-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {"$func/start-body-versions": "#"},
+            "base": {"configuration": {"versioned": {"validFrom": "/startDate"}}},
+            "cases": [
+                {
+                    "name": "keys a version by the date the body holds at the pointer",
+                    "input": {"body": {"$versions/contract": ["2025-01-01", 100]}},
+                    "expected": [{"validFrom": "2025-01-01", "body": {"$versions/contract": ["2025-01-01", 100]}}]
+                },
+                {
+                    "name": "keys a body without the date with the marker",
+                    "input": {"body": {"$versions/contract": [null, 100]}},
+                    "expected": [{"validFrom": "undated", "body": {"$versions/contract": [null, 100]}}]
+                }
+            ]
+        }
+    },
+    {
+        "id": "versions-storage-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {"timeline": {"$timeline": null}},
+                "$in": {
+                    "dates": {"$map": {"over": "@timeline", "as": "version", "fn": "@version.validFrom"}},
+                    "last": "@timeline[2].body",
+                    "earlierArePatches": {
+                        "$all": {
+                            "collection": {"$take": {"count": 2, "from": "@timeline"}},
+                            "as": "version",
+                            "predicate": {"$isArray": "@version.body"}
+                        }
+                    }
+                }
+            },
+            "cases": [
+                {
+                    "name": "stores the last version in full and earlier ones as backward patches",
+                    "expected": {"dates": ["2025-01-01", "2025-07-01", "2026-03-01"], "last": {"$versions/contract": ["2026-03-01", 120]}, "earlierArePatches": true}
+                }
+            ]
+        }
+    },
+    {
+        "id": "versions-amended-body-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$func/dated-body": {
+                    "configuration": {"versioned": {"validFrom": "/startDate"}},
+                    "validFrom": "#.validFrom",
+                    "body": {"$func/patched-body": {"body": "#.body", "patch": "#.patch"}}
+                }
+            },
+            "base": {"validFrom": "2026-01-01", "body": {"startDate": "2025-01-01", "cover": {"fire": 1, "flood": 2}, "tags": ["a"]}},
+            "cases": [
+                {
+                    "name": "sets the date of an amended version in its body, keeping the rest",
+                    "input": {"validFrom": "2027-01-01", "body": {"$versions/contract": ["2026-03-01", 120]}, "patch": [{"op": "add", "path": "/premium", "value": 1}]},
+                    "expected": {"$versions/contract": ["2027-01-01", 1]}
+                },
+                {
+                    "name": "transforms the body by any JSON Patch",
+                    "input": {
+                        "patch": [
+                            {"op": "remove", "path": "/cover/flood"},
+                            {"op": "copy", "from": "/cover/fire", "path": "/cover/storm"},
+                            {"op": "move", "from": "/tags", "path": "/labels"},
+                            {"op": "test", "path": "/cover/fire", "value": 1}
+                        ]
+                    },
+                    "expected": {"startDate": "2026-01-01", "cover": {"fire": 1, "storm": 1}, "labels": ["a"]}
+                },
+                {"name": "refuses a patch that removes what isn't there", "input": {"patch": [{"op": "remove", "path": "/nothing"}]}, "throws": "invalid"},
+                {"name": "refuses a test operation that fails", "input": {"patch": [{"op": "test", "path": "/cover/fire", "value": 2}]}, "throws": "invalid"},
+                {"name": "refuses an unknown operation", "input": {"patch": [{"op": "jump"}]}, "throws": "invalid"},
+                {"name": "refuses a patch that is no list", "input": {"patch": {"cover": 1}}, "throws": "function-contract"}
+            ]
+        }
+    },
+    {
+        "id": "versions-resolution-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {"timeline": {"$timeline": null}},
+                "$in": {"$func/body-at": {"timeline": "@timeline", "at": "#.at"}}
+            },
+            "cases": [
+                {"name": "resolves the last version without a date", "input": {}, "expected": {"$versions/contract": ["2026-03-01", 120]}},
+                {"name": "resolves the version valid at a date", "input": {"at": "2025-12-31"}, "expected": {"$versions/contract": ["2025-07-01", 110]}},
+                {"name": "resolves the first version on its own date", "input": {"at": "2025-01-01"}, "expected": {"$versions/contract": ["2025-01-01", 100]}},
+                {"name": "resolves the last version after it", "input": {"at": "2030-01-01"}, "expected": {"$versions/contract": ["2026-03-01", 120]}},
+                {"name": "finds nothing before the first version", "input": {"at": "2024-12-31"}, "throws": "not-found"}
+            ]
+        }
+    },
+    {
+        "id": "versions-same-date-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {
+                    "timeline": {"$timeline": null},
+                    "twice": {"$amend": ["@timeline", "2026-03-01", [{"op": "add", "path": "/premium", "value": 130}], "a-2"]}
+                },
+                "$in": {
+                    "dates": {"$map": {"over": "@twice", "as": "version", "fn": "@version.validFrom"}},
+                    "latest": {"$func/body-at": {"timeline": "@twice", "at": null}},
+                    "inDecember": {"$func/body-at": {"timeline": "@twice", "at": "2025-12-31"}},
+                    "inMarch": {"$func/body-at": {"timeline": "@twice", "at": "2025-03-01"}},
+                    "restored": {
+                        "$let": {
+                            "removed": {
+                                "$func/remove-body-version": {"timeline": "@twice", "validFrom": "2026-03-01", "ref": "a-2"}
+                            }
+                        },
+                        "$in": {
+                            "sameAsBefore": {"$eq": ["@removed", "@timeline"]},
+                            "lastRef": "@removed[2].ref",
+                            "latest": {"$func/body-at": {"timeline": "@removed", "at": null}}
+                        }
+                    }
+                }
+            },
+            "cases": [
+                {
+                    "name": "keeps the version of each amendment at the same date, the later one shadowing; removing the later restores the earlier",
+                    "input": {},
+                    "expected": {
+                        "dates": ["2025-01-01", "2025-07-01", "2026-03-01", "2026-03-01"],
+                        "latest": {"$versions/contract": ["2026-03-01", 130]},
+                        "inDecember": {"$versions/contract": ["2025-07-01", 110]},
+                        "inMarch": {"$versions/contract": ["2025-01-01", 100]},
+                        "restored": {"sameAsBefore": true, "lastRef": "a-1", "latest": {"$versions/contract": ["2026-03-01", 120]}}
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "id": "versions-append-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {"timeline": {"$timeline": null}},
+                "$in": {
+                    "$func/append-body-version": {"timeline": "@timeline", "validFrom": "#.validFrom", "ref": "a-1", "body": {}}
+                }
+            },
+            "cases": [
+                {"name": "refuses an amendment before the last version", "input": {"validFrom": "2026-02-28"}, "throws": "conflict"},
+                {"name": "refuses an amendment before the first version", "input": {"validFrom": "2025-01-01"}, "throws": "conflict"},
+                {"name": "refuses a date that doesn't exist", "input": {"validFrom": "2026-04-31"}, "throws": "invalid"},
+                {"name": "refuses a date written without zeros", "input": {"validFrom": "2026-4-1"}, "throws": "invalid"},
+                {"name": "refuses a date that is no date", "input": {"validFrom": "soon"}, "throws": "invalid"}
+            ]
+        }
+    },
+    {
+        "id": "versions-removal-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {
+                    "first": {"$first": null},
+                    "timeline": {"$timeline": null},
+                    "removed": {
+                        "$func/remove-body-version": {
+                            "timeline": {"$if": ["#.single", "@first", "@timeline"]},
+                            "validFrom": "#.validFrom",
+                            "ref": "#.ref"
+                        }
+                    }
+                },
+                "$in": {
+                    "dates": {"$map": {"over": "@removed", "as": "version", "fn": "@version.validFrom"}},
+                    "last": "@removed[1]"
+                }
+            },
+            "cases": [
+                {
+                    "name": "removes the last version, restoring the previous one in full",
+                    "input": {"validFrom": "2026-03-01", "ref": "a-1"},
+                    "expected": {"dates": ["2025-01-01", "2025-07-01"], "last": {"validFrom": "2025-07-01", "ref": "a-1", "body": {"$versions/contract": ["2025-07-01", 110]}}}
+                },
+                {"name": "refuses to remove a version that isn't the last", "input": {"validFrom": "2025-07-01", "ref": "a-1"}, "throws": "conflict"},
+                {"name": "refuses to remove the last version of another amendment", "input": {"validFrom": "2026-03-01", "ref": "a-2"}, "throws": "conflict"},
+                {"name": "refuses to remove the only version", "input": {"validFrom": "2025-01-01", "single": true}, "throws": "invalid"}
+            ]
+        }
+    },
+    {
+        "id": "versions-undo-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {"first": {"$first": null}},
+                "$in": {
+                    "$func/body-at": {
+                        "timeline": {
+                            "$func/remove-body-version": {
+                                "timeline": {
+                                    "$amend": ["@first", "2026-01-01", [{"op": "add", "path": "/premium", "value": 1}], "a-1"]
+                                },
+                                "validFrom": "2026-01-01",
+                                "ref": "a-1"
+                            }
+                        },
+                        "at": null
+                    }
+                }
+            },
+            "cases": [
+                {"name": "undoes an amendment with a remove", "input": {}, "expected": {"$versions/contract": ["2025-01-01", 100]}}
+            ]
+        }
+    },
+    {
+        "id": "versions-replacement-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {"first": {"$first": null}, "timeline": {"$timeline": null}},
+                "$in": {
+                    "$func/replace-body-versions": {
+                        "timeline": {"$if": ["#.history", "@timeline", "@first"]},
+                        "configuration": {"versioned": {"validFrom": "/startDate"}},
+                        "body": {"$contract": ["2025-02-01", 90]}
+                    }
+                }
+            },
+            "cases": [
+                {
+                    "name": "replaces a body of one version, with another date",
+                    "input": {"history": false},
+                    "expected": [{"validFrom": "2025-02-01", "body": {"$versions/contract": ["2025-02-01", 90]}}]
+                },
+                {"name": "refuses to replace a history", "input": {"history": true}, "throws": "conflict"}
+            ]
+        }
+    },
+    {
+        "id": "versions-undated-mapping-test",
+        "kind": "mapping-test",
+        "data": {
+            "environment": "entities-scenario-environment",
+            "given": ["versions"],
+            "subject": {
+                "$include": ["versions"],
+                "$let": {
+                    "undated": {
+                        "$func/start-body-versions": {
+                            "configuration": {"versioned": {"validFrom": "/startDate"}},
+                            "body": {"$contract": [null, 100]}
+                        }
+                    }
+                },
+                "$in": {
+                    "dates": {"$map": {"over": "@undated", "as": "version", "fn": "@version.validFrom"}},
+                    "before every date": {"$func/body-at": {"timeline": "@undated", "at": "1900-01-01"}},
+                    "replaced when a date is given": {
+                        "$func/replace-body-versions": {
+                            "timeline": "@undated",
+                            "configuration": {"versioned": {"validFrom": "/startDate"}},
+                            "body": {"$contract": ["2025-01-01", 100]}
+                        }
+                    },
+                    "amended into a dated body": {"$amend": ["@undated", "2025-01-01", [{"op": "add", "path": "/premium", "value": 90}], "a-1"]}
+                }
+            },
+            "cases": [
+                {
+                    "name": "keys the body with the marker, before every date, replaced or amended when a date is given",
+                    "input": {},
+                    "expected": {
+                        "dates": ["undated"],
+                        "before every date": {"$versions/contract": [null, 100]},
+                        "replaced when a date is given": [{"validFrom": "2025-01-01", "body": {"$versions/contract": ["2025-01-01", 100]}}],
+                        "amended into a dated body": [{"validFrom": "2025-01-01", "ref": "a-1", "body": {"$versions/contract": ["2025-01-01", 90]}}]
+                    }
+                }
+            ]
+        }
+    }
+]

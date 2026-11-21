@@ -1,16 +1,17 @@
 import { boot, CoreError, execute, getElement, interpret, packageElements } from '@business-framework/core';
 import { applyMapping } from '@business-framework/core/mappings';
 import { readElements } from '@business-framework/core/loader';
-import { mapValues, merge, omit, uniq } from 'lodash-es';
+import { isEqual, mapValues, merge, omit, uniq } from 'lodash-es';
 import { matches } from './matching.js';
 
 const fail = message => { throw new Error(message); };
 
 const DEFAULT_EFFECTS = ['trace'];
+const TEST_KINDS = ['scenario', 'mapping-test'];
 
 export const loadScenarios = async paths => {
     const library = await readElements(paths);
-    return { library, ids: library.filter(({ kind }) => kind === 'scenario').map(({ id }) => id) };
+    return { library, ids: library.filter(({ kind }) => TEST_KINDS.includes(kind)).map(({ id }) => id) };
 };
 
 const elementOf = (library, id) => library.find(element => element.id === id) ?? fail(`unknown element '${id}' in the scenario files`);
@@ -33,14 +34,17 @@ const stubsOf = async (stubSets, calls) => recording(calls, merge({}, ...await P
 
 const inLibrary = (library, ids) => ids.flatMap(id => library.filter(element => element.id === id));
 
-const settingsOf = (library, scenario) => {
-    const environment = scenario.data.environment ? elementOf(library, scenario.data.environment).data : {};
+const writtenData = element => element.data ?? element['/data'] ?? {};
+
+const settingsOf = (library, test) => {
+    const written = writtenData(test);
+    const environment = written.environment ? writtenData(elementOf(library, written.environment)) : {};
     return {
-        environment: scenario.data.environment ? [scenario.data.environment] : [],
-        packages: uniq([...environment.packages ?? [], ...scenario.data.packages ?? []]),
-        stubSets: uniq([...environment.stubSets ?? [], ...scenario.data.stubSets ?? []]),
-        given: scenario.data.given ?? [],
-        effects: scenario.data.effects ?? environment.effects ?? DEFAULT_EFFECTS
+        environment: written.environment ? [written.environment] : [],
+        packages: uniq([...environment.packages ?? [], ...written.packages ?? []]),
+        stubSets: uniq([...environment.stubSets ?? [], ...written.stubSets ?? []]),
+        given: written.given ?? [],
+        effects: written.effects ?? environment.effects ?? DEFAULT_EFFECTS
     };
 };
 
@@ -84,3 +88,31 @@ export const runScenario = async (library, id) => {
         interpret();
     }
 };
+
+const outcomeOf = (subject, input, apply) => {
+    try {
+        return { value: apply(subject, input) };
+    } catch (error) {
+        return { error };
+    }
+};
+
+const runCase = ({ id, subject, base, apply }, testCase, index) => {
+    const input = { ...base, ...apply(testCase.input, base) };
+    const actual = outcomeOf(subject, input, apply);
+    const expected = testCase.throws === undefined ? { value: apply(testCase.expected, input) } : { error: { code: testCase.throws } };
+    const shown = outcome => outcome.error ? { error: outcome.error.code } : outcome.value;
+    if (actual.error && !expected.error) throw actual.error;
+    if (!(expected.error ? actual.error?.code === expected.error.code : isEqual(actual.value, expected.value))) {
+        throw new CoreError('assertion-failed', `case ${testCase.name ?? index + 1} of ${id} gives another result`, { actual: shown(actual), expected: shown(expected) });
+    }
+};
+
+const runMappingTest = id => {
+    const element = getElement(id);
+    const apply = (mapping, input) => mapping === undefined ? undefined : applyMapping({ mapping, input });
+    const test = { id, subject: element.data.subject, base: apply(element.data.base, null), apply };
+    element.data.cases.forEach((testCase, index) => runCase(test, testCase, index));
+};
+
+export const runTest = (library, id) => elementOf(library, id).kind === 'scenario' ? runScenario(library, id) : runMappingTest(id);

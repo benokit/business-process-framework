@@ -12,6 +12,17 @@
         }
     },
     {
+        "id": "function-library",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "!functions": { "*": "@mapping" },
+                "signatures": { "*": { "!input": "@schema", "!output": "@schema" } },
+                "exports[]": "string"
+            }
+        }
+    },
+    {
         "id": "js-export",
         "kind": "schema",
         "data": { "!module": "string", "!export": "string" }

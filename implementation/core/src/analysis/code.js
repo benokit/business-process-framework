@@ -236,8 +236,12 @@ const nodeReferences = ({ node, path, keyword, template }) => [
         .map(position => ({ to: nameOf(position.code), path: position.path, via: 'ref' })) : []
 ];
 
+const MODULE_CALL = /^\$(?!func\/)([a-z0-9]+(?:-[a-z0-9]+)*)\//;
+
 const callReferences = ({ key, value, path }) => [
     ...key.startsWith('$func/') ? [{ to: key.slice(6), path, via: 'function' }] : [],
+    ...MODULE_CALL.test(key) ? [{ to: MODULE_CALL.exec(key)[1], path, via: 'library' }] : [],
+    ...key === '$include' && Array.isArray(value) ? value.filter(name => typeof name === 'string').map(name => ({ to: name, path, via: 'library' })) : [],
     ...key === '$func/slot-values' && isPlainObject(value) ? [{ to: nameOf(value.element), path: `${path}.element`, via: 'slot' }] : []
 ];
 
