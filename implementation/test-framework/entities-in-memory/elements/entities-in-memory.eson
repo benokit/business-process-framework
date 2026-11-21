@@ -1,0 +1,7 @@
+[
+    {
+        "id": "in-memory-entity-store-stub-set",
+        "kind": "stub-set",
+        "data": { "fakes": [{ "module": "@business-framework/entities-in-memory", "export": "entityStore" }] }
+    }
+]

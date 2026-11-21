@@ -1,0 +1,19 @@
+[
+    {
+        "id": "event-effects-stub-set",
+        "kind": "stub-set",
+        "data": {
+            "stubs": {
+                "message-channel": {
+                    "envelope": { "answer": { "$merge": [{ "messageId": "m-1", "timestampUTC": "2026-01-01T00:00:00.000Z", "group": "g-1", "correlation": "c-1" }, "#"] } }
+                },
+                "logger": { "log": { "answer": null } }
+            }
+        }
+    },
+    {
+        "id": "outbox-stub-set",
+        "kind": "stub-set",
+        "data": { "stubs": { "default-transactional-outbox": { "put": { "answer": { "messageId": "m-1" } } } } }
+    }
+]

@@ -15,8 +15,10 @@
     "@business-framework/security": "*"
   },
   "devDependencies": {
+    "@business-framework/entities-in-memory": "*",
     "@business-framework/entity-states": "*",
     "@business-framework/messaging-nats": "*",
+    "@business-framework/scenarios": "*",
     "@business-framework/transactional-outbox": "*"
   }
 }

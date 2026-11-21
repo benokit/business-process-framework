@@ -1,0 +1,484 @@
+[
+    {
+        "id": "order-created-with-body-and-initial-trait-values-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-1", "traits": {"body": {"amount": 5}}}},
+                {"outputKey": "reloaded", "invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-1"}}
+            ],
+            "assert": [
+                {"actual": "#.created", "expected": {"entityType": "order-fixture", "businessKey": "o-1", "revision": 1}},
+                {"actual": "#.created.data", "expected": {"business-key": "o-1", "body": {"amount": 5}, "note-fixture": "order: new"}},
+                {"actual": "#.reloaded", "expected": "#.created"}
+            ]
+        }
+    },
+    {
+        "id": "entity-without-body-created-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["note-fixture-trait", "note-fixture", "bodyless-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "bodyless-fixture", "operation": "create", "inputMap": {"businessKey": "b-1"}},
+                {"outputKey": "reloaded", "invoke": "bodyless-fixture", "operation": "read", "inputMap": {"businessKey": "b-1"}}
+            ],
+            "assert": [
+                {"actual": "#.created.data", "expected": {"business-key": "b-1", "note-fixture": "plain: new"}},
+                {"actual": "#.reloaded", "expected": "#.created"}
+            ]
+        }
+    },
+    {
+        "id": "trait-view-given-the-readers-at-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["masked-fixture-trait", "masked-fixture", "masking-fixture"],
+            "act": [
+                {"invoke": "masking-fixture", "operation": "create", "inputMap": {"businessKey": "m-1", "traits": {"body": {}}}},
+                {"outputKey": "plain", "invoke": "masking-fixture", "operation": "read", "inputMap": {"businessKey": "m-1"}},
+                {"outputKey": "masked", "invoke": "masking-fixture", "operation": "read", "inputMap": {"businessKey": "m-1", "at": "public"}}
+            ],
+            "assert": [
+                {"actual": "#.plain.data.masked-fixture", "expected": "secret: new"},
+                {"actual": "#.masked.data.masked-fixture", "expected": "***"}
+            ]
+        }
+    },
+    {
+        "id": "trait-input-passed-on-create-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-2", "traits": {"body": {"amount": 5}, "note-fixture": "given"}}}
+            ],
+            "assert": [
+                {"actual": "#.created.data.note-fixture", "expected": "order: given"}
+            ]
+        }
+    },
+    {
+        "id": "invalid-create-duplicate-and-missing-record-refused-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-1", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "badBody", "try": {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "bad", "traits": {"body": {"amount": "x"}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "noKey", "try": {"invoke": "order-fixture", "operation": "create", "inputMap": {"traits": {"body": {"amount": 1}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "duplicate", "try": {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-1", "traits": {"body": {"amount": 1}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "missing", "try": {"invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "nothing"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.badBody", "expected": {"code": "invalid"}},
+                {"actual": "#.noKey", "expected": {"code": "invalid"}},
+                {"actual": "#.duplicate", "expected": {"code": "duplicate"}},
+                {"actual": "#.missing", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "guard-runs-before-the-write-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture", "positive-amount-fixture"],
+            "act": [
+                {"outputKey": "refused", "try": {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-neg", "traits": {"body": {"amount": -1}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "afterwards", "try": {"invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-neg"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"message": "amount must be positive"}},
+                {"actual": "#.afterwards", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "record-visibility-judged-where-it-is-loaded-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture", "hide-hidden-order-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-hidden", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "read", "try": {"invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-hidden"}}, "catch": {"set": "#.error"}},
+                {"outputKey": "updated", "try": {"invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-hidden", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": "x"}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "written", "try": {"invoke": "order-fixture", "operation": "writeTrait", "inputMap": {"businessKey": "o-hidden", "revision": 1, "key": "other", "command": "x", "value": {}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "deleted", "try": {"invoke": "order-fixture", "operation": "delete", "inputMap": {"businessKey": "o-hidden", "revision": 1}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.read", "expected": {"code": "not-found"}},
+                {"actual": "#.updated", "expected": {"code": "not-found"}},
+                {"actual": "#.written", "expected": {"code": "not-found"}},
+                {"actual": "#.deleted", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "guard-runs-only-on-its-operations-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture", "keep-kept-order-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-kept", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "read", "invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-kept"}},
+                {"outputKey": "updated", "invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-kept", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 2}}}},
+                {"outputKey": "refused", "try": {"invoke": "order-fixture", "operation": "delete", "inputMap": {"businessKey": "o-kept", "revision": 2}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.read.businessKey", "expected": "o-kept"},
+                {"actual": "#.updated.revision", "expected": 2},
+                {"actual": "#.refused", "expected": {"message": "kept"}}
+            ]
+        }
+    },
+    {
+        "id": "write-rolled-back-when-a-reaction-fails-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture", "fail-on-unlucky-amount-fixture"],
+            "act": [
+                {"outputKey": "refused", "try": {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-13", "traits": {"body": {"amount": 13}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "afterwards", "try": {"invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-13"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"message": "unlucky amount"}},
+                {"actual": "#.afterwards", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "trait-guard-hook-runs-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["veto-fixture-trait", "veto-fixture", "hooked-fixture"],
+            "act": [
+                {"invoke": "hooked-fixture", "operation": "create", "inputMap": {"businessKey": "h-1", "traits": {"body": {}}}},
+                {"outputKey": "refused", "try": {"invoke": "hooked-fixture", "operation": "delete", "inputMap": {"businessKey": "h-1", "revision": 1}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"message": "deletion vetoed"}}
+            ]
+        }
+    },
+    {
+        "id": "derived-traits-derive-in-order-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "deriving-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "deriving-fixture", "operation": "create", "inputMap": {"businessKey": "d-1", "traits": {"body": {"amount": 3}}}},
+                {"outputKey": "updated", "invoke": "deriving-fixture", "operation": "run", "inputMap": {"businessKey": "d-1", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 5}}}}
+            ],
+            "assert": [
+                {"actual": "#.created", "expected": {"revision": 1, "data": {"total-fixture": 3, "double-fixture": 6}}},
+                {"actual": "#.updated", "expected": {"revision": 2, "data": {"total-fixture": 5, "double-fixture": 10}}}
+            ]
+        }
+    },
+    {
+        "id": "derived-traits-converge-in-any-order-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "reversed-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "reversed-fixture", "operation": "create", "inputMap": {"businessKey": "r-1", "traits": {"body": {"amount": 3}}}}
+            ],
+            "assert": [
+                {"actual": "#.created", "expected": {"revision": 1, "data": {"total-fixture": 3, "double-fixture": 6}}}
+            ]
+        }
+    },
+    {
+        "id": "reaction-sees-derived-commands-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "reversed-fixture", "refuse-derived-double-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "reversed-fixture", "operation": "create", "inputMap": {"businessKey": "r-2", "traits": {"body": {"amount": 3}}}},
+                {"outputKey": "refused", "try": {"invoke": "reversed-fixture", "operation": "run", "inputMap": {"businessKey": "r-2", "revision": "#.created.revision", "trait": "body", "operation": "update", "input": {"value": {"amount": 5}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"message": "derived command seen"}}
+            ]
+        }
+    },
+    {
+        "id": "result-guard-sees-whole-command-sequence-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "result-guarded-fixture", "refuse-derived-double-result-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "result-guarded-fixture", "operation": "create", "inputMap": {"businessKey": "g-1", "traits": {"body": {"amount": 3}}}},
+                {"outputKey": "refused", "try": {"invoke": "result-guarded-fixture", "operation": "run", "inputMap": {"businessKey": "g-1", "revision": "#.created.revision", "trait": "body", "operation": "update", "input": {"value": {"amount": 5}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "afterwards", "invoke": "result-guarded-fixture", "operation": "read", "inputMap": {"businessKey": "g-1"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"code": "forbidden", "message": "derived double refused"}},
+                {"actual": "#.afterwards.revision", "expected": "#.created.revision"}
+            ]
+        }
+    },
+    {
+        "id": "write-previewed-without-writing-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "previewing-fixture-trait", "previewing-fixture", "previewed-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "previewed-fixture", "operation": "create", "inputMap": {"businessKey": "p-1", "traits": {"body": {"amount": 3}}}},
+                {"outputKey": "preview", "invoke": "previewed-fixture", "operation": "run", "inputMap": {"businessKey": "p-1", "revision": "#.created.revision", "trait": "previewing-fixture", "operation": "preview", "input": {"amount": 5}}},
+                {"outputKey": "afterwards", "invoke": "previewed-fixture", "operation": "read", "inputMap": {"businessKey": "p-1"}}
+            ],
+            "assert": [
+                {"actual": "#.preview.commands", "expected": [{"key": "body", "value": {"amount": 5}}, {"key": "total-fixture", "value": 5}, {"key": "double-fixture", "value": 10}]},
+                {"actual": "#.preview.entity.data", "expected": {"total-fixture": 5, "double-fixture": 10}},
+                {"actual": "#.afterwards.data.total-fixture", "expected": 3}
+            ]
+        }
+    },
+    {
+        "id": "derive-requesting-plan-operation-refused-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "previewing-fixture-trait", "previewing-fixture", "planning-fixture-trait", "planning-fixture", "planning-fixture-type"],
+            "act": [
+                {"outputKey": "refused", "try": {"invoke": "planning-fixture-type", "operation": "create", "inputMap": {"businessKey": "n-1", "traits": {"body": {"amount": 3}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"code": "invalid"}}
+            ]
+        }
+    },
+    {
+        "id": "derive-consulted-only-for-declared-keys-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "undeclared-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "undeclared-fixture", "operation": "create", "inputMap": {"businessKey": "u-1", "traits": {"body": {"amount": 3}}}}
+            ],
+            "assert": [
+                {"actual": "#.created.data", "expected": {"total-fixture": 3, "double-fixture": 0}}
+            ]
+        }
+    },
+    {
+        "id": "requested-operations-run-one-after-the-other-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "added-fixture-trait", "added-fixture", "adding-fixture-trait", "adding-fixture", "chaining-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "chaining-fixture", "operation": "create", "inputMap": {"businessKey": "c-1", "traits": {"body": {"amount": 1}}}}
+            ],
+            "assert": [
+                {"actual": "#.created.data.added-fixture", "expected": 3}
+            ]
+        }
+    },
+    {
+        "id": "derivation-that-never-settles-stopped-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "counting-fixture-trait", "counting-fixture", "runaway-fixture"],
+            "act": [
+                {"outputKey": "refused", "try": {"invoke": "runaway-fixture", "operation": "create", "inputMap": {"businessKey": "x-1", "traits": {"body": {"amount": 1}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"code": "derivation-limit"}},
+                {"actual": {"$count": {"collection": "#.refused.data.commands"}}, "expected": 101}
+            ]
+        }
+    },
+    {
+        "id": "caller-command-collision-left-to-the-trait-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "deriving-fixture"],
+            "act": [
+                {"invoke": "deriving-fixture", "operation": "create", "inputMap": {"businessKey": "d-1", "traits": {"body": {"amount": 3}}}},
+                {"invoke": "deriving-fixture", "operation": "run", "inputMap": {"businessKey": "d-1", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 5}}}},
+                {"outputKey": "written", "invoke": "deriving-fixture", "operation": "writeTrait", "inputMap": {"businessKey": "d-1", "revision": 2, "key": "total-fixture", "command": "rewrite", "value": 99}}
+            ],
+            "assert": [
+                {"actual": "#.written", "expected": {"revision": 3, "data": {"total-fixture": 5, "double-fixture": 10}}}
+            ]
+        }
+    },
+    {
+        "id": "nothing-written-when-nothing-is-stale-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "total-fixture-trait", "total-fixture", "double-fixture-trait", "double-fixture", "deriving-fixture"],
+            "act": [
+                {"invoke": "deriving-fixture", "operation": "create", "inputMap": {"businessKey": "d-1", "traits": {"body": {"amount": 3}}}},
+                {"invoke": "deriving-fixture", "operation": "run", "inputMap": {"businessKey": "d-1", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 5}}}},
+                {"outputKey": "before", "invoke": "deriving-fixture", "operation": "read", "inputMap": {"businessKey": "d-1"}},
+                {"outputKey": "derived", "invoke": "deriving-fixture", "operation": "derive", "inputMap": {"businessKey": "d-1"}}
+            ],
+            "assert": [
+                {"actual": "#.derived.revision", "expected": "#.before.revision"}
+            ]
+        }
+    },
+    {
+        "id": "write-changing-a-trait-twice-refused-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-twice", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "refused", "try": {"invoke": "order-fixture", "operation": "writeTwice", "inputMap": {"businessKey": "o-twice", "revision": 1}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"code": "invalid"}}
+            ]
+        }
+    },
+    {
+        "id": "delete-only-at-a-given-revision-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-6", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "withoutRevision", "try": {"invoke": "order-fixture", "operation": "delete", "inputMap": {"$func/apply-mapping": {"mapping": {"$literal": {"businessKey": "o-6"}}, "input": null}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "deleted", "invoke": "order-fixture", "operation": "delete", "inputMap": {"businessKey": "o-6", "revision": 1}},
+                {"outputKey": "afterwards", "try": {"invoke": "order-fixture", "operation": "read", "inputMap": {"businessKey": "o-6"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.withoutRevision", "expected": {"code": "invalid"}},
+                {"actual": "#.deleted.businessKey", "expected": "o-6"},
+                {"actual": "#.afterwards", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "store-reported-stale-refuses-the-write-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "stubSets": ["stale-delete-stub-set"],
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-raced", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "refused", "try": {"invoke": "order-fixture", "operation": "delete", "inputMap": {"businessKey": "o-raced", "revision": 1}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.refused", "expected": {"code": "stale"}}
+            ]
+        }
+    },
+    {
+        "id": "records-of-a-type-listed-in-the-store-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-a", "traits": {"body": {"amount": 1}}}},
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-b", "traits": {"body": {"amount": 2}}}},
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-c", "traits": {"body": {"amount": 3}}}},
+                {"outputKey": "listed", "invoke": "list-entities", "operation": "run", "inputMap": {"entityType": "order-fixture", "limit": 2}}
+            ],
+            "assert": [
+                {"actual": {"$count": {"collection": "#.listed.items"}}, "expected": 2},
+                {"actual": "#.listed.total", "expected": 3}
+            ]
+        }
+    },
+    {
+        "id": "entity-class-schema-traits-and-slots-inherited-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["note-fixture-trait", "note-fixture", "contract-body-fixture", "contract-fixture", "construction-fixture", "contract-note-fixture", "construction-note-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "construction-fixture", "operation": "create", "inputMap": {"traits": {"body": {"holder": "Ada", "project": "bridge"}}}},
+                {"outputKey": "refused", "try": {"invoke": "construction-fixture", "operation": "create", "inputMap": {"traits": {"body": {"project": "no holder"}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.created.businessKey", "expected": "CON-bridge"},
+                {"actual": "#.created.data.note-fixture", "expected": "contract: new (construction)"},
+                {"actual": "#.refused", "expected": {"code": "invalid"}}
+            ]
+        }
+    },
+    {
+        "id": "guard-given-data-of-the-entity-type-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["note-fixture-trait", "note-fixture", "contract-body-fixture", "contract-fixture", "construction-fixture", "contract-note-fixture", "construction-note-fixture", "keep-marine-contracts-fixture"],
+            "act": [
+                {"outputKey": "created", "invoke": "construction-fixture", "operation": "create", "inputMap": {"traits": {"body": {"holder": "Ada", "project": "tunnel"}}}},
+                {"outputKey": "refused", "try": {"invoke": "construction-fixture", "operation": "delete", "inputMap": {"businessKey": "#.created.businessKey", "revision": "#.created.revision"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": {"$isNil": "#.created.data.lineOfBusiness"}, "expected": true},
+                {"actual": "#.refused", "expected": {"code": "conflict"}}
+            ]
+        }
+    },
+    {
+        "id": "trait-configuration-united-from-chain-data-and-fills-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["note-fixture-trait", "note-fixture", "noted-fixture", "configured-fixture", "specialised-fixture", "specialised-note-fixture"],
+            "act": [
+                {"outputKey": "configured", "invoke": "configured-fixture", "operation": "create", "inputMap": {"businessKey": "c-1", "traits": {"body": {}}}},
+                {"outputKey": "specialised", "invoke": "specialised-fixture", "operation": "create", "inputMap": {"businessKey": "c-1", "traits": {"body": {}}}}
+            ],
+            "assert": [
+                {"actual": "#.configured.data.note-fixture", "expected": "class: new"},
+                {"actual": "#.specialised.data.note-fixture", "expected": "class: new!"}
+            ]
+        }
+    },
+    {
+        "id": "public-trait-operation-run-and-no-private-one-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "note-fixture-trait", "note-fixture", "order-fixture", "order-note-fixture"],
+            "act": [
+                {"invoke": "order-fixture", "operation": "create", "inputMap": {"businessKey": "o-run", "traits": {"body": {"amount": 1}}}},
+                {"outputKey": "updated", "invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-run", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 2}}}},
+                {"outputKey": "initialized", "try": {"invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-run", "revision": 2, "trait": "body", "operation": "initialize", "input": {}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "unknownTrait", "try": {"invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-run", "revision": 2, "trait": "nothing", "operation": "update", "input": {"value": {}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "noRevision", "try": {"invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-run", "trait": "body", "operation": "update", "input": {"value": {"amount": 3}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "late", "try": {"invoke": "order-fixture", "operation": "run", "inputMap": {"businessKey": "o-run", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"amount": 3}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.updated", "expected": {"revision": 2, "data": {"body": {"amount": 2}}}},
+                {"actual": "#.initialized", "expected": {"code": "private-operation"}},
+                {"actual": "#.unknownTrait", "expected": {"code": "private-operation"}},
+                {"actual": "#.noRevision", "expected": {"code": "invalid"}},
+                {"actual": "#.late", "expected": {"code": "stale"}}
+            ]
+        }
+    }
+]

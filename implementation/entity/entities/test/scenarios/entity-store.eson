@@ -1,0 +1,69 @@
+[
+    {
+        "id": "entity-store-scenario-environment",
+        "kind": "scenario-environment",
+        "data": {
+            "packages": ["integration", "database", "transaction", "entities", "entities-in-memory"],
+            "stubSets": ["in-memory-entity-store-stub-set"]
+        }
+    },
+    { "id": "revisioned-order-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } } } } },
+    {
+        "id": "order-update-with-optimistic-concurrency-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["revisioned-order-entity-type"],
+            "act": [
+                { "invoke": "revisioned-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-4", "traits": { "body": { "amount": 1 } } } },
+                { "outputKey": "updated", "invoke": "revisioned-order-entity-type", "operation": "run", "inputMap": { "businessKey": "o-4", "revision": 1, "trait": "body", "operation": "update", "input": { "value": { "amount": 2 } } } },
+                {
+                    "outputKey": "lateUpdate",
+                    "try": { "invoke": "revisioned-order-entity-type", "operation": "run", "inputMap": { "businessKey": "o-4", "revision": 1, "trait": "body", "operation": "update", "input": { "value": { "amount": 3 } } } },
+                    "catch": { "set": "#.error" }
+                },
+                { "outputKey": "first", "invoke": "revisioned-order-entity-type", "operation": "read", "inputMap": { "businessKey": "o-4", "revision": 1 } },
+                { "outputKey": "current", "invoke": "revisioned-order-entity-type", "operation": "read", "inputMap": { "businessKey": "o-4" } }
+            ],
+            "assert": [
+                { "actual": "#.updated", "expected": { "revision": 2, "data": { "body": { "amount": 2 } } } },
+                { "actual": "#.lateUpdate", "expected": { "code": "stale" } },
+                { "actual": "#.first", "expected": { "revision": 1, "data": { "body": { "amount": 1 } } } },
+                { "actual": "#.current", "expected": { "revision": 2, "data": { "body": { "amount": 2 } } } }
+            ]
+        }
+    },
+    {
+        "id": "order-create-and-delete-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["revisioned-order-entity-type"],
+            "act": [
+                { "invoke": "revisioned-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-1", "traits": { "body": { "amount": 1 } } } },
+                {
+                    "outputKey": "again",
+                    "try": { "invoke": "revisioned-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-1", "traits": { "body": { "amount": 2 } } } },
+                    "catch": { "set": "#.error" }
+                },
+                {
+                    "outputKey": "staleDelete",
+                    "try": { "invoke": "revisioned-order-entity-type", "operation": "delete", "inputMap": { "businessKey": "o-1", "revision": 7 } },
+                    "catch": { "set": "#.error" }
+                },
+                { "outputKey": "deleted", "invoke": "revisioned-order-entity-type", "operation": "delete", "inputMap": { "businessKey": "o-1", "revision": 1 } },
+                {
+                    "outputKey": "afterwards",
+                    "try": { "invoke": "revisioned-order-entity-type", "operation": "read", "inputMap": { "businessKey": "o-1" } },
+                    "catch": { "set": "#.error" }
+                }
+            ],
+            "assert": [
+                { "actual": "#.again", "expected": { "code": "duplicate" } },
+                { "actual": "#.staleDelete", "expected": { "code": "stale" } },
+                { "actual": "#.deleted", "expected": { "businessKey": "o-1", "revision": 1 } },
+                { "actual": "#.afterwards", "expected": { "code": "not-found" } }
+            ]
+        }
+    }
+]

@@ -28,9 +28,17 @@ const workspaceDirectories = () => readJson(join(ROOT, 'package.json')).workspac
     ? readdirSync(join(ROOT, pattern.slice(0, -2)), { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => `${pattern.slice(0, -2)}/${entry.name}`)
     : [pattern]).filter(directory => existsSync(join(ROOT, directory, 'package.json')));
 
-const testFilesOf = directory => existsSync(join(ROOT, directory, 'test'))
-    ? readdirSync(join(ROOT, directory, 'test'), { recursive: true }).filter(name => name.endsWith('.test.js')).map(name => `${directory}/test/${name}`)
-    : [];
+const SCENARIOS = 'test/scenarios';
+const SCENARIOS_RUNNER = join(ROOT, 'test-framework/scenarios/src/discover.js');
+
+const testFilesOf = directory => [
+    ...existsSync(join(ROOT, directory, 'test'))
+        ? readdirSync(join(ROOT, directory, 'test'), { recursive: true }).filter(name => name.endsWith('.test.js')).map(name => `${directory}/test/${name}`)
+        : [],
+    ...existsSync(join(ROOT, directory, SCENARIOS)) ? [`${directory}/${SCENARIOS}`] : []
+];
+
+const specOf = file => file.name.endsWith(`/${SCENARIOS}`) ? SCENARIOS_RUNNER : join(ROOT, file.name);
 
 const packageNames = directories => Object.fromEntries(directories.map(directory => [readJson(join(ROOT, directory, 'package.json')).name, directory]));
 
@@ -82,7 +90,7 @@ const run = file => {
     const folder = mkdtempSync(join(tmpdir(), 'quick-test-'));
     const output = join(folder, 'result.json');
     const config = join(folder, 'mocharc.json');
-    writeFileSync(config, JSON.stringify({ ...configOf(file.directory), spec: [join(ROOT, file.name)] }));
+    writeFileSync(config, JSON.stringify({ ...configOf(file.directory), spec: [specOf(file)] }));
     const started = Date.now();
     spawnSync(MOCHA, ['--config', config, '--no-package', '--exit', '--reporter', 'json', '--reporter-option', `output=${output}`], { cwd: join(ROOT, file.directory), stdio: 'ignore' });
     const { stats, failures } = existsSync(output) ? readJson(output) : { stats: { passes: 0, failures: 1 }, failures: [{ fullTitle: file.name, err: { message: 'mocha produced no result' } }] };

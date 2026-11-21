@@ -1,0 +1,65 @@
+[
+    {
+        "id": "assertion",
+        "kind": "schema",
+        "data": { "!actual": "@mapping/assertion-scope", "!expected": "@mapping/assertion-scope", "*": "never" }
+    },
+    {
+        "id": "scenario",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "environment": "@ref/scenario-environment",
+                "packages[]": "string",
+                "given[]": "@ref",
+                "stubSets[]": "@ref/stub-set",
+                "effects[]": "@effect",
+                "!act": "@method",
+                "!assert[]": "@assertion"
+            },
+            "templates": {
+                "assertion-scope": {
+                    "input": {
+                        "$merge": [
+                            { "calls": "object" },
+                            {
+                                "$mapValues": {
+                                    "of": {
+                                        "$toDictionary": {
+                                            "collection": { "$filter": { "collection": { "$toList": "#.data.act" }, "as": "step", "predicate": "@step.outputKey" } },
+                                            "as": "step",
+                                            "by": "@step.outputKey"
+                                        }
+                                    },
+                                    "fn": "\\@any"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "scenario-environment",
+        "kind": "kind",
+        "data": {
+            "shape": { "packages[]": "string", "stubSets[]": "@ref/stub-set", "effects[]": "@effect" }
+        }
+    },
+    {
+        "id": "stub-set",
+        "kind": "kind",
+        "data": {
+            "shape": {
+                "stubs": { "*": { "*": { "!answer": "@mapping" } } },
+                "fakes[]": { "!module": "string", "!export": "string", "*": "never" }
+            }
+        }
+    },
+    {
+        "id": "assertion-failed-error",
+        "kind": "slot-fill",
+        "data": { "target": "error-registry", "slot": "errorTypes", "value": { "code": "assertion-failed", "http": 500 } }
+    }
+]

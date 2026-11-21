@@ -1,0 +1,156 @@
+[
+    {
+        "id": "entity-events-scenario-environment",
+        "kind": "scenario-environment",
+        "data": {
+            "packages": ["logging", "integration", "database", "postgresql", "transaction", "entities", "messaging", "messaging-nats", "transactional-outbox", "entity-events", "entities-in-memory"],
+            "stubSets": ["in-memory-entity-store-stub-set", "event-effects-stub-set"]
+        }
+    },
+    { "id": "audited-order-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } } } } },
+    {
+        "id": "audit-order-slot-fill",
+        "kind": "slot-fill",
+        "data": {
+            "target": "audited-order-entity-type",
+            "slot": "reactions",
+            "value": { "inputMap": { "level": "info", "message": { "$str": ["created ", "#.input.after.businessKey"] } }, "invoke": "logging", "operation": "log" }
+        }
+    },
+    {
+        "id": "order-create-with-reaction-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "stubSets": ["outbox-stub-set"],
+            "given": ["audited-order-entity-type", "audit-order-slot-fill"],
+            "act": { "outputKey": "record", "invoke": "audited-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-1", "traits": { "body": { "amount": 1 } } } },
+            "assert": [
+                { "actual": "#.record.data.body", "expected": { "amount": 1 } },
+                { "actual": "#.calls.logger.log", "expected": [{ "message": "created o-1" }] },
+                { "actual": "#.calls.default-transactional-outbox.put", "expected": [{ "envelope": { "message": { "eventType": "create", "businessKey": "o-1" } } }] }
+            ]
+        }
+    },
+    { "id": "guarded-order-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } } } } },
+    {
+        "id": "positive-amount-slot-fill",
+        "kind": "slot-fill",
+        "data": {
+            "target": "guarded-order-entity-type",
+            "slot": "requestGuards",
+            "value": { "if": { "$lte": ["#.input.after.data.body.amount", 0] }, "then": { "throw": { "code": "invalid", "message": "amount must be positive" } } }
+        }
+    },
+    {
+        "id": "order-create-refused-by-guard-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "stubSets": ["outbox-stub-set"],
+            "given": ["guarded-order-entity-type", "positive-amount-slot-fill"],
+            "act": { "outputKey": "failure", "try": { "invoke": "guarded-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-2", "traits": { "body": { "amount": 0 } } } }, "catch": { "set": "#.error" } },
+            "assert": [
+                { "actual": "#.failure", "expected": { "code": "invalid" } },
+                { "actual": "#.calls.default-transactional-outbox.put", "expected": [] }
+            ]
+        }
+    },
+    { "id": "plain-order-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } } } } },
+    {
+        "id": "order-create-without-outbox-stub-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "given": ["plain-order-entity-type"],
+            "act": { "outputKey": "failure", "try": { "invoke": "plain-order-entity-type", "operation": "create", "inputMap": { "businessKey": "o-3", "traits": { "body": { "amount": 3 } } } }, "catch": { "set": "#.error" } },
+            "assert": [
+                { "actual": "#.failure", "expected": { "code": "stubbed-effect", "data": { "export": "now" } } }
+            ]
+        }
+    },
+    { "id": "stated-order-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!amount": "number" } } } } } },
+    { "id": "all-orders-event-group-slot-fill", "kind": "slot-fill", "data": { "target": "stated-order-entity-type", "slot": "eventGroup", "value": "all-orders" } },
+    {
+        "id": "order-lifecycle-slot-fill",
+        "kind": "slot-fill",
+        "data": {
+            "target": "stated-order-entity-type",
+            "slot": "traits",
+            "value": { "trait": "state", "configuration": { "states": { "status": { "draft": true, "done": true } }, "transitions": { "finish": { "status": { "draft": "done" } } }, "initialStates": { "default": { "status": "draft" } } } }
+        }
+    },
+    { "id": "noted-entity-type", "kind": "entity-type", "data": { "traits": { "body": { "configuration": { "schema": { "!text": "string" } } } } } },
+    {
+        "id": "order-lifecycle-events-in-order-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "packages": ["entity-states", "security"],
+            "stubSets": ["outbox-stub-set"],
+            "given": ["stated-order-entity-type", "all-orders-event-group-slot-fill", "order-lifecycle-slot-fill"],
+            "act": [
+                { "invoke": "stated-order-entity-type", "operation": "create", "inputMap": { "businessKey": "e-1", "traits": { "body": { "amount": 1 } } } },
+                { "invoke": "stated-order-entity-type", "operation": "run", "inputMap": { "businessKey": "e-1", "revision": 1, "trait": "body", "operation": "update", "input": { "value": { "amount": 2 } } } },
+                { "invoke": "stated-order-entity-type", "operation": "run", "inputMap": { "businessKey": "e-1", "revision": 2, "trait": "state", "operation": "transition", "input": { "transition": "finish" } } },
+                { "invoke": "stated-order-entity-type", "operation": "delete", "inputMap": { "businessKey": "e-1", "revision": 3 } }
+            ],
+            "assert": [
+                {
+                    "actual": "#.calls.default-transactional-outbox.put",
+                    "expected": [
+                        { "envelope": { "message": { "eventType": "create", "revision": 1 } } },
+                        { "envelope": { "message": { "eventType": "trait", "revision": 2, "commands": [{ "key": "body", "command": "update" }] } } },
+                        { "envelope": { "message": { "eventType": "trait", "revision": 3, "commands": [{ "key": "state", "command": "finish" }] } } },
+                        { "envelope": { "message": { "eventType": "delete", "revision": 3 } } }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "order-refused-by-schema-publishes-nothing-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "packages": ["entity-states", "security"],
+            "stubSets": ["outbox-stub-set"],
+            "given": ["stated-order-entity-type", "all-orders-event-group-slot-fill", "order-lifecycle-slot-fill"],
+            "act": [
+                {
+                    "outputKey": "refused",
+                    "try": { "invoke": "stated-order-entity-type", "operation": "create", "inputMap": { "businessKey": "e-2", "traits": { "body": { "amount": "not a number" } } } },
+                    "catch": { "set": "#.error" }
+                },
+                { "invoke": "stated-order-entity-type", "operation": "create", "inputMap": { "businessKey": "e-3", "traits": { "body": { "amount": 3 } } } }
+            ],
+            "assert": [
+                { "actual": "#.refused", "expected": { "code": "invalid" } },
+                { "actual": "#.calls.default-transactional-outbox.put", "expected": [{ "envelope": { "message": { "businessKey": "e-3" } } }] }
+            ]
+        }
+    },
+    {
+        "id": "events-grouped-by-event-group-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-events-scenario-environment",
+            "packages": ["entity-states", "security"],
+            "stubSets": ["outbox-stub-set"],
+            "given": ["stated-order-entity-type", "all-orders-event-group-slot-fill", "order-lifecycle-slot-fill", "noted-entity-type"],
+            "act": [
+                { "invoke": "stated-order-entity-type", "operation": "create", "inputMap": { "businessKey": "e-1", "traits": { "body": { "amount": 1 } } } },
+                { "invoke": "noted-entity-type", "operation": "create", "inputMap": { "businessKey": "n-1", "traits": { "body": { "text": "hi" } } } }
+            ],
+            "assert": [
+                {
+                    "actual": "#.calls.default-transactional-outbox.put",
+                    "expected": [
+                        { "envelope": { "group": "all-orders", "message": { "entityType": "stated-order-entity-type" } } },
+                        { "envelope": { "group": "noted-entity-type/n-1", "message": { "entityType": "noted-entity-type" } } }
+                    ]
+                }
+            ]
+        }
+    }
+]

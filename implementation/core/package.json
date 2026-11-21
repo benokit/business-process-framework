@@ -17,7 +17,8 @@
     "./introspection": "./src/analysis/introspection.js",
     "./effects": "./src/analysis/effect-inference.js",
     "./data-flow": "./src/analysis/data-flow.js",
-    "./registry": "./src/registry.js"
+    "./registry": "./src/registry.js",
+    "./loader": "./src/loader.js"
   },
   "scripts": {
     "test": "mocha"

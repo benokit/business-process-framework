@@ -23,8 +23,10 @@
     "fast-json-patch": "^3.1.1"
   },
   "devDependencies": {
+    "@business-framework/entities-in-memory": "*",
     "@business-framework/entities-postgresql": "*",
     "@business-framework/integration": "*",
-    "@business-framework/postgresql": "*"
+    "@business-framework/postgresql": "*",
+    "@business-framework/scenarios": "*"
   }
 }

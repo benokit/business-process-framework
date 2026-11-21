@@ -1,4 +1,7 @@
 {
-    "spec": "test/**/*.test.js",
+    "spec": [
+        "test/**/*.test.js",
+        "../../test-framework/scenarios/src/discover.js"
+    ],
     "timeout": 15000
 }

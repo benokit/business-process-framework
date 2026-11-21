@@ -6,6 +6,7 @@
     "core",
     "platform/*",
     "adapters/*",
+    "test-framework/*",
     "entity/*",
     "services/*",
     "server",

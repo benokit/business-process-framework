@@ -21,7 +21,7 @@ Ask the registry before reading element files (in `implementation/`, add `../dem
 
 ## Implementation layout
 
-`implementation/` holds the packages (core, platform, adapters, entity, services, server, tools), indexed in [implementation/README.md](implementation/README.md); `demo/` is the insurance example application.
+`implementation/` holds the packages (core, platform, adapters, entity, services, server, tools, test-framework), indexed in [implementation/README.md](implementation/README.md); `demo/` is the insurance example application.
 
 ## LambdaJSON
 

@@ -1,0 +1,1239 @@
+[
+    {
+        "id": "writing-fixture",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "operations": {
+                "writeTraits": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!revision": "number",
+                        "!amount": "number",
+                        "!note": "string"
+                    },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "amount": "#.input.amount",
+                            "note": "#.input.note"
+                        },
+                        "traitOperations": [
+                            {
+                                "key": "body",
+                                "operation": "update",
+                                "input": {
+                                    "value": {
+                                        "amount": "#.input.amount"
+                                    }
+                                }
+                            },
+                            {
+                                "key": "note-fixture",
+                                "operation": "rewrite",
+                                "input": {
+                                    "value": "#.input.note"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "writeTwice": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!revision": "number"
+                    },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision"
+                        },
+                        "traitOperations": [
+                            {
+                                "key": "note-fixture",
+                                "operation": "rewrite",
+                                "input": {
+                                    "value": "a"
+                                }
+                            },
+                            {
+                                "key": "note-fixture",
+                                "operation": "rewrite",
+                                "input": {
+                                    "value": "b"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "amend": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!revision": "number",
+                        "!validFrom": "string",
+                        "!ref": "string",
+                        "!body": "object"
+                    },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "input": {
+                                "validFrom": "#.input.validFrom",
+                                "ref": "#.input.ref",
+                                "body": "#.input.body"
+                            }
+                        },
+                        "traitOperation": {
+                            "key": "body",
+                            "operation": "amend"
+                        }
+                    }
+                },
+                "unamend": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!revision": "number",
+                        "!validFrom": "string",
+                        "!ref": "string"
+                    },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "input": {
+                                "validFrom": "#.input.validFrom",
+                                "ref": "#.input.ref"
+                            }
+                        },
+                        "traitOperation": {
+                            "key": "body",
+                            "operation": "remove"
+                        }
+                    }
+                },
+                "writeTrait": {
+                    "input": {
+                        "!businessKey": "string",
+                        "!revision": "number",
+                        "!key": "string",
+                        "!command": "string",
+                        "!value": "@any"
+                    },
+                    "output": "@entity-record",
+                    "implementation": {
+                        "inputMap": {
+                            "businessKey": "#.input.businessKey",
+                            "revision": "#.input.revision",
+                            "key": "#.input.key",
+                            "input": {
+                                "value": "#.input.value"
+                            }
+                        },
+                        "traitOperation": {
+                            "key": "#.input.key",
+                            "operation": "rewrite"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "total-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": 0
+                    }
+                },
+                "rewrite": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "rewrite",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "total-fixture",
+        "kind": "total-fixture-trait",
+        "data": {
+            "configuration": {},
+            "derive": [
+                {
+                    "outputKey": "computed",
+                    "set": "#.input.record.data.body.amount"
+                },
+                {
+                    "if": {
+                        "$eq": [
+                            "#.computed",
+                            {
+                                "$get": {
+                                    "object": "#.input.record.data",
+                                    "path": "#.input.key"
+                                }
+                            }
+                        ]
+                    },
+                    "then": {
+                        "set": []
+                    },
+                    "else": {
+                        "set": [
+                            {
+                                "key": "#.input.key",
+                                "operation": "rewrite",
+                                "input": {
+                                    "value": "#.computed"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "id": "double-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": 0
+                    }
+                },
+                "rewrite": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "rewrite",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "double-fixture",
+        "kind": "double-fixture-trait",
+        "data": {
+            "configuration": {},
+            "derive": [
+                {
+                    "outputKey": "computed",
+                    "set": {
+                        "$multiply": [
+                            2,
+                            {
+                                "$get": {
+                                    "object": "#.input.record.data",
+                                    "path": "total-fixture"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "$eq": [
+                            "#.computed",
+                            {
+                                "$get": {
+                                    "object": "#.input.record.data",
+                                    "path": "#.input.key"
+                                }
+                            }
+                        ]
+                    },
+                    "then": {
+                        "set": []
+                    },
+                    "else": {
+                        "set": [
+                            {
+                                "key": "#.input.key",
+                                "operation": "rewrite",
+                                "input": {
+                                    "value": "#.computed"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "id": "deriving-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "total-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body",
+                        "total-fixture"
+                    ]
+                },
+                "double-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "total-fixture"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "reversed-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "double-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "total-fixture"
+                    ]
+                },
+                "total-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body",
+                        "total-fixture"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "added-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": 0
+                    }
+                },
+                "add": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "add",
+                            "value": {
+                                "$sum": [
+                                    "#.input.value",
+                                    "#.input.input"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {"id": "added-fixture", "kind": "added-fixture-trait", "data": {"configuration": {}}},
+    {"id": "adding-fixture-trait", "kind": "kind", "data": {"extends": "valued-entity-trait", "operations": {"initialize": {"implementation": {"set": 0}}}}},
+    {
+        "id": "adding-fixture",
+        "kind": "adding-fixture-trait",
+        "data": {
+            "configuration": {},
+            "derive": {
+                "if": {
+                    "$eq": [
+                        {
+                            "$get": {
+                                "object": "#.input.record.data",
+                                "path": "added-fixture"
+                            }
+                        },
+                        0
+                    ]
+                },
+                "then": {
+                    "set": [
+                        {
+                            "key": "added-fixture",
+                            "operation": "add",
+                            "input": 1
+                        },
+                        {
+                            "key": "added-fixture",
+                            "operation": "add",
+                            "input": 2
+                        }
+                    ]
+                },
+                "else": {
+                    "set": []
+                }
+            }
+        }
+    },
+    {
+        "id": "result-guarded-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "total-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body",
+                        "total-fixture"
+                    ]
+                },
+                "double-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "total-fixture"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "previewing-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-trait",
+            "operations": {
+                "preview": {
+                    "public": true,
+                    "input": {
+                        "$data#&": [
+                            "@trait-process-input",
+                            {
+                                "!input": {
+                                    "!amount": "number"
+                                }
+                            }
+                        ]
+                    },
+                    "output": "@trait-plan",
+                    "implementation": {
+                        "set": {
+                            "operations": [
+                                {
+                                    "key": "body",
+                                    "operation": "update",
+                                    "input": {
+                                        "value": {
+                                            "amount": "#.input.input.amount"
+                                        }
+                                    }
+                                }
+                            ],
+                            "commit": false
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {"id": "previewing-fixture", "kind": "previewing-fixture-trait", "data": {"configuration": {}}},
+    {
+        "id": "previewed-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "total-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body",
+                        "total-fixture"
+                    ]
+                },
+                "double-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "total-fixture"
+                    ]
+                },
+                "previewing-fixture": {
+                    "configuration": {}
+                }
+            }
+        }
+    },
+    {"id": "planning-fixture-trait", "kind": "kind", "data": {"extends": "entity-trait"}},
+    {
+        "id": "planning-fixture",
+        "kind": "planning-fixture-trait",
+        "data": {
+            "configuration": {},
+            "derive": {
+                "set": [
+                    {
+                        "key": "previewing-fixture",
+                        "operation": "preview",
+                        "input": {
+                            "amount": 1
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "id": "planning-fixture-type",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "planning-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body"
+                    ]
+                },
+                "previewing-fixture": {
+                    "configuration": {}
+                }
+            }
+        }
+    },
+    {
+        "id": "chaining-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "added-fixture": {
+                    "configuration": {}
+                },
+                "adding-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "added-fixture"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "counting-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": 0
+                    }
+                },
+                "rewrite": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "rewrite",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "counting-fixture",
+        "kind": "counting-fixture-trait",
+        "data": {
+            "configuration": {},
+            "derive": {
+                "set": [
+                    {
+                        "key": "#.input.key",
+                        "operation": "rewrite",
+                        "input": {
+                            "value": {
+                                "$sum": [
+                                    {
+                                        "$get": {
+                                            "object": "#.input.record.data",
+                                            "path": "#.input.key"
+                                        }
+                                    },
+                                    1
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "id": "undeclared-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "double-fixture": {
+                    "configuration": {}
+                },
+                "total-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "body"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "runaway-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "!amount": "number"
+                        }
+                    }
+                },
+                "counting-fixture": {
+                    "configuration": {},
+                    "dependsOn": [
+                        "counting-fixture"
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "id": "note-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": {
+                            "$str": [
+                                "#.input.configuration.prefix",
+                                {
+                                    "$coalesce": [
+                                        "#.input.input",
+                                        "new"
+                                    ]
+                                },
+                                {
+                                    "$coalesce": [
+                                        "#.input.configuration.suffix",
+                                        ""
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                "rewrite": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "rewrite",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {"id": "note-fixture", "kind": "note-fixture-trait", "data": {"configuration": {"!prefix": "string"}, "value": "string"}},
+    {
+        "id": "masked-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": {
+                            "$str": [
+                                "#.input.configuration.prefix",
+                                {
+                                    "$coalesce": [
+                                        "#.input.input",
+                                        "new"
+                                    ]
+                                },
+                                {
+                                    "$coalesce": [
+                                        "#.input.configuration.suffix",
+                                        ""
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                "rewrite": {
+                    "input": "@trait-operation-input",
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "rewrite",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "masked-fixture",
+        "kind": "masked-fixture-trait",
+        "data": {
+            "configuration": {
+                "!prefix": "string"
+            },
+            "view": {
+                "$if": [
+                    {
+                        "$eq": [
+                            "#.at",
+                            "public"
+                        ]
+                    },
+                    "***",
+                    "#.value"
+                ]
+            }
+        }
+    },
+    {
+        "id": "masking-fixture",
+        "kind": "entity-type",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {}
+                    }
+                },
+                "masked-fixture": {
+                    "configuration": {
+                        "prefix": "secret: "
+                    }
+                }
+            }
+        }
+    },
+    {"id": "veto-fixture-trait", "kind": "kind", "data": {"extends": "valued-entity-trait", "operations": {"initialize": {"implementation": {"set": true}}}}},
+    {
+        "id": "veto-fixture",
+        "kind": "veto-fixture-trait",
+        "data": {
+            "configuration": {
+                "!reason": "string"
+            },
+            "guard": {
+                "if": {
+                    "$eq": [
+                        "#.input.change.operation",
+                        "delete"
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "conflict",
+                        "message": "#.input.configuration.reason"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "hooked-fixture",
+        "kind": "entity-type",
+        "data": {
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {}
+                    }
+                },
+                "veto-fixture": {
+                    "configuration": {
+                        "reason": "deletion vetoed"
+                    }
+                }
+            }
+        }
+    },
+    {"id": "bodyless-fixture", "kind": "entity-type", "data": {"traits": {"note-fixture": {"configuration": {"prefix": "plain: "}}}}},
+    {"id": "noted-fixture", "kind": "kind", "data": {"extends": "entity-type", "fixed": {"traits": {"note-fixture": {"configuration": {"prefix": "class: "}}}}}},
+    {"id": "configured-fixture", "kind": "noted-fixture", "data": {"traits": {"body": {"configuration": {"schema": {}}}}}},
+    {"id": "specialised-fixture", "kind": "noted-fixture", "data": {"traits": {"body": {"configuration": {"schema": {}}}}}},
+    {
+        "id": "specialised-note-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "specialised-fixture",
+            "slot": "traits",
+            "value": {
+                "key": "note-fixture",
+                "configuration": {
+                    "suffix": "!"
+                }
+            }
+        }
+    },
+    {
+        "id": "versioned-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "trait": "versioned-body",
+                    "configuration": {
+                        "schema": {
+                            "!owner": "string",
+                            "startDate": "string",
+                            "!premium": "number"
+                        },
+                        "versioned": {
+                            "validFrom": "/startDate"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {"id": "handling-fixture-value", "kind": "schema", "data": {"!handler": "string", "team": "string"}},
+    {
+        "id": "handling-fixture-trait",
+        "kind": "kind",
+        "data": {
+            "extends": "valued-entity-trait",
+            "operations": {
+                "initialize": {
+                    "implementation": {
+                        "set": {
+                            "$coalesce": [
+                                "#.input.input",
+                                {}
+                            ]
+                        }
+                    }
+                },
+                "reassign": {
+                    "public": true,
+                    "input": {
+                        "$data#&": [
+                            "@trait-operation-input",
+                            {
+                                "!input": {
+                                    "!value": "@handling-fixture-value"
+                                }
+                            }
+                        ]
+                    },
+                    "output": "@trait-command",
+                    "implementation": {
+                        "set": {
+                            "command": "reassign",
+                            "value": "#.input.input.value"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {"id": "handling-fixture", "kind": "handling-fixture-trait", "data": {"configuration": {}}},
+    {
+        "id": "handled-fixture",
+        "kind": "writing-fixture",
+        "data": {
+            "traits": {
+                "body": {
+                    "trait": "versioned-body",
+                    "configuration": {
+                        "schema": {
+                            "!owner": "string",
+                            "startDate": "string",
+                            "!premium": "number"
+                        },
+                        "versioned": {
+                            "validFrom": "/startDate"
+                        }
+                    }
+                },
+                "handling-fixture": {
+                    "configuration": {}
+                }
+            }
+        }
+    },
+    {"id": "order-fixture", "kind": "writing-fixture", "data": {"traits": {"body": {"configuration": {"schema": {"!amount": "number", "note": "string"}}}}}},
+    {
+        "id": "order-note-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "order-fixture",
+            "slot": "traits",
+            "value": {
+                "trait": "note-fixture",
+                "configuration": {
+                    "prefix": "order: "
+                }
+            }
+        }
+    },
+    {
+        "id": "positive-amount-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "order-fixture",
+            "slot": "requestGuards",
+            "value": {
+                "if": {
+                    "$and": [
+                        {
+                            "$eq": [
+                                "#.input.operation",
+                                "create"
+                            ]
+                        },
+                        {
+                            "$lte": [
+                                "#.input.after.data.body.amount",
+                                0
+                            ]
+                        }
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "invalid",
+                        "message": "amount must be positive"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "hide-hidden-order-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "order-fixture",
+            "slot": "requestGuards",
+            "value": {
+                "if": {
+                    "$eq": [
+                        "#.input.before.businessKey",
+                        "o-hidden"
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "not-found",
+                        "message": "hidden"
+                    }
+                }
+            },
+            "on": [
+                "read"
+            ]
+        }
+    },
+    {
+        "id": "keep-kept-order-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "order-fixture",
+            "slot": "requestGuards",
+            "value": {
+                "if": {
+                    "$eq": [
+                        "#.input.before.businessKey",
+                        "o-kept"
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "conflict",
+                        "message": "kept"
+                    }
+                }
+            },
+            "on": [
+                "delete"
+            ]
+        }
+    },
+    {
+        "id": "refuse-derived-double-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "reversed-fixture",
+            "slot": "reactions",
+            "value": {
+                "if": {
+                    "$any": {
+                        "collection": {
+                            "$coalesce": [
+                                "#.input.commands",
+                                []
+                            ]
+                        },
+                        "as": "command",
+                        "predicate": {
+                            "$eq": [
+                                "@command.key",
+                                "double-fixture"
+                            ]
+                        }
+                    }
+                },
+                "then": {
+                    "throw": "derived command seen"
+                }
+            }
+        }
+    },
+    {
+        "id": "refuse-derived-double-result-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "result-guarded-fixture",
+            "slot": "resultGuards",
+            "value": {
+                "if": {
+                    "$any": {
+                        "collection": {
+                            "$coalesce": [
+                                "#.input.commands",
+                                []
+                            ]
+                        },
+                        "as": "command",
+                        "predicate": {
+                            "$eq": [
+                                "@command.key",
+                                "double-fixture"
+                            ]
+                        }
+                    }
+                },
+                "then": {
+                    "throw": {
+                        "code": "forbidden",
+                        "message": "derived double refused"
+                    }
+                }
+            },
+            "on": [
+                "trait"
+            ]
+        }
+    },
+    {
+        "id": "fail-on-unlucky-amount-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "order-fixture",
+            "slot": "reactions",
+            "value": {
+                "if": {
+                    "$eq": [
+                        "#.input.after.data.body.amount",
+                        13
+                    ]
+                },
+                "then": {
+                    "throw": "unlucky amount"
+                }
+            }
+        }
+    },
+    {"id": "contract-body-fixture", "kind": "schema", "data": {"!holder": "string"}},
+    {
+        "id": "contract-fixture",
+        "kind": "kind",
+        "data": {
+            "extends": "entity-type",
+            "shape": {
+                "lineOfBusiness": "string",
+                "traits{}": "@entity-trait-entry"
+            },
+            "mapping": {
+                "traits": "#.data.traits"
+            }
+        }
+    },
+    {
+        "id": "construction-fixture",
+        "kind": "contract-fixture",
+        "data": {
+            "lineOfBusiness": "marine",
+            "traits": {
+                "body": {
+                    "configuration": {
+                        "schema": {
+                            "$data#&": [
+                                "@contract-body-fixture",
+                                {
+                                    "!project": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "business-key": {
+                    "configuration": {
+                        "rule": {
+                            "set": {
+                                "$str": [
+                                    "CON-",
+                                    "#.input.traits.body.project"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "id": "keep-marine-contracts-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "contract-fixture",
+            "slot": "requestGuards",
+            "value": {
+                "if": {
+                    "$eq": [
+                        "#.self.data.lineOfBusiness",
+                        "marine"
+                    ]
+                },
+                "then": {
+                    "throw": {
+                        "code": "conflict",
+                        "message": "marine contracts are kept"
+                    }
+                }
+            },
+            "on": [
+                "delete"
+            ]
+        }
+    },
+    {
+        "id": "contract-note-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "contract-fixture",
+            "slot": "traits",
+            "value": {
+                "trait": "note-fixture",
+                "configuration": {
+                    "prefix": "contract: "
+                }
+            }
+        }
+    },
+    {
+        "id": "construction-note-fixture",
+        "kind": "slot-fill",
+        "data": {
+            "target": "construction-fixture",
+            "slot": "traits",
+            "value": {
+                "key": "note-fixture",
+                "configuration": {
+                    "suffix": " (construction)"
+                }
+            }
+        }
+    },
+    {
+        "id": "stale-delete-stub-set",
+        "kind": "stub-set",
+        "data": {
+            "stubs": {
+                "entity-database": {
+                    "delete": {
+                        "answer": {
+                            "$throw": {
+                                "code": "stale",
+                                "message": "the record changed after it was read"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]

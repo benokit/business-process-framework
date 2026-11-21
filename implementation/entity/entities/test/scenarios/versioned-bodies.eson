@@ -1,0 +1,148 @@
+[
+    {
+        "id": "trait-beside-versioned-body-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "handling-fixture-value", "handling-fixture-trait", "handling-fixture", "handled-fixture"],
+            "act": [
+                {"invoke": "handled-fixture", "operation": "create", "inputMap": {"businessKey": "h-1", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}, "handling-fixture": {"handler": "ann"}}}},
+                {"invoke": "handled-fixture", "operation": "amend", "inputMap": {"businessKey": "h-1", "revision": 1, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}},
+                {"outputKey": "reassigned", "invoke": "handled-fixture", "operation": "run", "inputMap": {"businessKey": "h-1", "revision": 2, "trait": "handling-fixture", "operation": "reassign", "input": {"value": {"handler": "bob", "team": "north"}}}},
+                {"outputKey": "past", "invoke": "handled-fixture", "operation": "read", "inputMap": {"businessKey": "h-1", "at": "2025-03-01"}},
+                {"outputKey": "bodyUpdate", "try": {"invoke": "handled-fixture", "operation": "run", "inputMap": {"businessKey": "h-1", "revision": 3, "trait": "body", "operation": "update", "input": {"value": {"owner": "Ada", "startDate": "2025-01-01", "premium": 1}}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "badReassign", "try": {"invoke": "handled-fixture", "operation": "run", "inputMap": {"businessKey": "h-1", "revision": 3, "trait": "handling-fixture", "operation": "reassign", "input": {"value": {"handler": 7}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.reassigned", "expected": {"revision": 3, "data": {"handling-fixture": {"handler": "bob", "team": "north"}, "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}}},
+                {"actual": "#.past.data", "expected": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}, "handling-fixture": {"handler": "bob", "team": "north"}}},
+                {"actual": "#.bodyUpdate", "expected": {"code": "conflict"}},
+                {"actual": "#.badReassign", "expected": {"code": "invalid"}}
+            ]
+        }
+    },
+    {
+        "id": "versioned-body-stored-and-read-by-date-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-1", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-1", "revision": 1, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}},
+                {"outputKey": "stored", "invoke": "entity-database", "operation": "read", "inputMap": {"entityType": "versioned-fixture", "businessKey": "v-1"}},
+                {"outputKey": "current", "invoke": "versioned-fixture", "operation": "read", "inputMap": {"businessKey": "v-1"}},
+                {"outputKey": "atDate", "invoke": "versioned-fixture", "operation": "read", "inputMap": {"businessKey": "v-1", "at": "2025-03-01"}},
+                {"outputKey": "atRevision", "invoke": "versioned-fixture", "operation": "read", "inputMap": {"businessKey": "v-1", "revision": 1}},
+                {"outputKey": "tooEarly", "try": {"invoke": "versioned-fixture", "operation": "read", "inputMap": {"businessKey": "v-1", "at": "2024-01-01"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.stored.data.body", "expected": [{"validFrom": "2025-01-01"}, {"validFrom": "2025-07-01"}]},
+                {"actual": "#.current.data.body", "expected": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}},
+                {"actual": "#.atDate.data.body", "expected": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}},
+                {"actual": "#.atRevision.data.body", "expected": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}},
+                {"actual": "#.tooEarly", "expected": {"code": "not-found"}}
+            ]
+        }
+    },
+    {
+        "id": "versioned-body-checked-against-schema-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"outputKey": "badCreate", "try": {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-2", "traits": {"body": {"owner": "Ada", "premium": "high"}}}}, "catch": {"set": "#.error"}},
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-2", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"outputKey": "badAmend", "try": {"invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-2", "revision": 1, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": "high"}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.badCreate", "expected": {"code": "invalid"}},
+                {"actual": "#.badAmend", "expected": {"code": "invalid"}}
+            ]
+        }
+    },
+    {
+        "id": "versioned-body-corrected-by-update-until-amended-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-3", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"outputKey": "corrected", "invoke": "versioned-fixture", "operation": "run", "inputMap": {"businessKey": "v-3", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"owner": "Ada", "startDate": "2025-02-01", "premium": 90}}}},
+                {"outputKey": "storedAfterCorrection", "invoke": "entity-database", "operation": "read", "inputMap": {"entityType": "versioned-fixture", "businessKey": "v-3"}},
+                {"invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-3", "revision": 2, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 95}}},
+                {"outputKey": "refused", "try": {"invoke": "versioned-fixture", "operation": "run", "inputMap": {"businessKey": "v-3", "revision": 3, "trait": "body", "operation": "update", "input": {"value": {"owner": "Ada", "startDate": "2025-02-01", "premium": 1}}}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.corrected", "expected": {"revision": 2, "data": {"body": {"owner": "Ada", "startDate": "2025-02-01", "premium": 90}}}},
+                {"actual": "#.storedAfterCorrection.data.body", "expected": [{"validFrom": "2025-02-01"}]},
+                {"actual": "#.refused", "expected": {"code": "conflict"}}
+            ]
+        }
+    },
+    {
+        "id": "versioned-body-amended-and-unamended-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-4", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-4", "revision": 1, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}},
+                {"outputKey": "early", "try": {"invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-4", "revision": 2, "ref": "a-2", "validFrom": "2025-03-01", "body": {"owner": "Ada", "startDate": "2025-03-01", "premium": 110}}}, "catch": {"set": "#.error"}},
+                {"outputKey": "second", "invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-4", "revision": 2, "ref": "a-2", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 115}}},
+                {"outputKey": "stored", "invoke": "entity-database", "operation": "read", "inputMap": {"entityType": "versioned-fixture", "businessKey": "v-4"}},
+                {"outputKey": "notLast", "try": {"invoke": "versioned-fixture", "operation": "unamend", "inputMap": {"businessKey": "v-4", "revision": 3, "ref": "a-1", "validFrom": "2025-07-01"}}, "catch": {"set": "#.error"}},
+                {"outputKey": "wrongDate", "try": {"invoke": "versioned-fixture", "operation": "unamend", "inputMap": {"businessKey": "v-4", "revision": 3, "ref": "a-2", "validFrom": "2025-01-01"}}, "catch": {"set": "#.error"}},
+                {"outputKey": "restored", "invoke": "versioned-fixture", "operation": "unamend", "inputMap": {"businessKey": "v-4", "revision": 3, "ref": "a-2", "validFrom": "2025-07-01"}},
+                {"outputKey": "removed", "invoke": "versioned-fixture", "operation": "unamend", "inputMap": {"businessKey": "v-4", "revision": 4, "ref": "a-1", "validFrom": "2025-07-01"}},
+                {"outputKey": "onlyVersion", "try": {"invoke": "versioned-fixture", "operation": "unamend", "inputMap": {"businessKey": "v-4", "revision": 5, "ref": "a-1", "validFrom": "2025-01-01"}}, "catch": {"set": "#.error"}}
+            ],
+            "assert": [
+                {"actual": "#.early", "expected": {"code": "conflict"}},
+                {"actual": "#.second", "expected": {"revision": 3, "data": {"body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 115}}}},
+                {"actual": "#.stored.data.body", "expected": [{"validFrom": "2025-01-01"}, {"validFrom": "2025-07-01", "ref": "a-1"}, {"validFrom": "2025-07-01", "ref": "a-2"}]},
+                {"actual": "#.notLast", "expected": {"code": "conflict"}},
+                {"actual": "#.wrongDate", "expected": {"code": "conflict"}},
+                {"actual": "#.restored.data.body", "expected": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}},
+                {"actual": "#.removed.data.body", "expected": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}},
+                {"actual": "#.onlyVersion", "expected": {"code": "conflict"}}
+            ]
+        }
+    },
+    {
+        "id": "undated-versioned-body-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-5", "traits": {"body": {"owner": "Ada", "premium": 100}}}},
+                {"outputKey": "undated", "invoke": "entity-database", "operation": "read", "inputMap": {"entityType": "versioned-fixture", "businessKey": "v-5"}},
+                {"invoke": "versioned-fixture", "operation": "run", "inputMap": {"businessKey": "v-5", "revision": 1, "trait": "body", "operation": "update", "input": {"value": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"outputKey": "dated", "invoke": "entity-database", "operation": "read", "inputMap": {"entityType": "versioned-fixture", "businessKey": "v-5"}}
+            ],
+            "assert": [
+                {"actual": "#.undated.data.body", "expected": [{"validFrom": "undated"}]},
+                {"actual": "#.dated.data.body", "expected": [{"validFrom": "2025-01-01"}]}
+            ]
+        }
+    },
+    {
+        "id": "versioned-body-returned-from-every-write-scenario",
+        "kind": "scenario",
+        "data": {
+            "environment": "entity-store-scenario-environment",
+            "given": ["writing-fixture", "versioned-fixture"],
+            "act": [
+                {"invoke": "versioned-fixture", "operation": "create", "inputMap": {"businessKey": "v-6", "traits": {"body": {"owner": "Ada", "startDate": "2025-01-01", "premium": 100}}}},
+                {"outputKey": "amended", "invoke": "versioned-fixture", "operation": "amend", "inputMap": {"businessKey": "v-6", "revision": 1, "ref": "a-1", "validFrom": "2025-07-01", "body": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}}
+            ],
+            "assert": [
+                {"actual": "#.amended.data.body", "expected": {"owner": "Ada", "startDate": "2025-07-01", "premium": 110}}
+            ]
+        }
+    }
+]
